@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Core functions shared by pRESTO modules
+Core functions shared by Changeo modules
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.9.24'
+__date__      = '2013.10.10'
 
 # Imports
 import math, os, re, sys
@@ -1309,14 +1309,16 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
     return None
         
         
-def getCommonParser(seqin=True, seqout=True, paired=False, annotation=True, log=True, multiproc=False):
+def getCommonParser(seq_in=True, seq_out=True, paired=False, db_in=False, 
+                    annotation=True, log=True, multiproc=False):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments: 
-    seqin = if True include sequence input arguments
-    seqout = if True include sequence output arguments
+    seq_in = if True include sequence input arguments
+    seq_out = if True include sequence output arguments
     paired = if True defined paired-end sequence input and output arguments
+    db_in = if True include tab delimited database input arguments
     annotation = if True include annotation arguments
     log = if True include log arguments
     multiproc = if True include multiprocessing arguments
@@ -1326,16 +1328,21 @@ def getCommonParser(seqin=True, seqout=True, paired=False, annotation=True, log=
     """
     parser = ArgumentParser(add_help=False, formatter_class=ArgumentDefaultsHelpFormatter)
 
-    # Sequence processing arguments
-    if seqin and not paired:
+    # Database arguments
+    if db_in:
+        parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
+                        help='CLIP tab delimited database files containing sequence records')
+            
+    # Sequence arguments
+    if seq_in and not paired:
         parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                             help='List of FASTA/FASTQ files containing sequences')
-    elif seqin and paired:
+    elif seq_in and paired:
         parser.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
                             help='Ordered list of FASTA/FASTQ files containing head/primary sequences')
         parser.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
                             help='Ordered list of FASTA/FASTQ files containing tail/secondary sequences')
-    if seqout:
+    if seq_out:
         parser.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
                             help='Specify to force output as FASTA rather than FASTQ')
         parser.add_argument('--clean', action='store_true', dest='clean', 
@@ -1383,10 +1390,22 @@ def parseCommonArgs(args, file_args=None):
     Returns:
     a dictionary copy of args with output arguments embedded in the dictionary out_args
     """ 
-    file_types = ['.fasta', '.fastq']
+    db_types = ['.tab']
+    seq_types = ['.fasta', '.fastq']
     primer_types = ['.fasta', '.regex']
     args_dict = args.__dict__.copy()
     
+    # Verify database files
+    db_files = []
+    if 'db_files' in args_dict:
+        db_files.extend(args_dict['db_files'])
+    for f in db_files:
+        if not os.path.isfile(f):
+            sys.exit('ERROR:  database file %s does not exist' % f)
+        if os.path.splitext(f)[-1].lower() not in db_types:
+            sys.exit('ERROR:  database file %s is not a supported type. Must be one: %s' \
+                     % (','.join(db_types), f))
+                
     # Verify sequence files
     seq_files = []
     if 'seq_files' in args_dict:
@@ -1402,9 +1421,9 @@ def parseCommonArgs(args, file_args=None):
     for f in seq_files:
         if not os.path.isfile(f):
             sys.exit('ERROR:  sequence file %s does not exist' % f)
-        if os.path.splitext(f)[-1].lower() not in file_types:
+        if os.path.splitext(f)[-1].lower() not in seq_types:
             sys.exit('ERROR:  sequence file %s is not a supported type. Must be one: %s' \
-                     % (','.join(file_types), f))
+                     % (','.join(seq_types), f))
 
     # Verify primer files
     if 'primer_file' in args_dict:
@@ -1413,7 +1432,7 @@ def parseCommonArgs(args, file_args=None):
         for f in primer_files:
             if not os.path.isfile(f):
                 sys.exit('ERROR:  primer file %s does not exist' % f)
-            if os.path.splitext(f)[-1].lower() not in file_types:
+            if os.path.splitext(f)[-1].lower() not in primer_types:
                 sys.exit('ERROR:  primer file %s is not a supported type. Must be one: %s' \
                          % (','.join(primer_types), f))
             
@@ -1432,7 +1451,7 @@ def parseCommonArgs(args, file_args=None):
                 if not os.path.isfile(f):
                     sys.exit('ERROR:  file %s does not exist' % f)
     
-    # Redfine common output options as out_args dictionary
+    # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'out_dir', 'out_name', 'out_type', 'clean']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
