@@ -3,11 +3,11 @@
 Assign Ig sequences into clones
 """
 
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
+__author__    = 'Gur Yaari, Mohamed Uduman, Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.10.10'
+__date__      = '2013.10.12'
 
 # Imports
 import csv, os, re, sys
@@ -21,117 +21,51 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from DbCore import default_delimiter, default_out_args
 from DbCore import getCommonParser, parseCommonArgs
 from DbCore import getOutputHandle, printLog, printProgress
+from DbCore import countDbRecords, readDbFile, getFileType
 
 # Defaults
 
-# >>> into DbCore when finished
-class IgRecord:
-    """
-    A class defining a V(D)J germline sequence alignment
-    """
-    def __init__(self, i, s, v, d, j):
-        self.id = i
-        self.seq = s
-        self.v_call = v
-        self.d_call = d
-        self.j_call = j
-    
-    def getVAllele(self):
-        return self.v_call
-    
-    def getDAllele(self):
-        return self.d_call
-    
-    def getJAllele(self):
-        return self.j_call
 
 
-# >>> into DbCore when finished
-def readDbFile(db_file):
-    """
-    Reads database files
 
-    Arguments: 
-    db_file = a tab delimited database file
-    
-    Returns: 
-    a tuple of (input file type, database record iterator)
-    """
-    # Read and check file
-    try:
-        db_type = os.path.splitext(db_file)[1].lower().lstrip('.')
-        db_records = ['test_record']
-    except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % db_file)
-    
-    return db_type, db_records
-
-
-# >>> into DbCore when finished
-def countDbFile(db_file):
-    """
-    Counts the records in database files
-
-    Arguments: 
-    db_file = a tab delimited database file
-
-    Returns: 
-    the count of records in the database file
-    """
-    # Count records and check file
-    try:
-        db_type = os.path.splitext(db_file)[1].lower().lstrip('.')
-        db_count = 1
-    except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % db_file)
-    else:
-        if db_count == 0:  sys.exit('ERROR:  File %s is empty' % db_file)
-        
-    return db_count
-
-
-# >>> into DbCore when finished
-def feedQueue(data_queue, nproc, db_iter):
-    """
-    Feeds the data queue with Ig records for processQueue processes
-
-    Arguments: 
-    data_queue = a multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
-    db_iter = an iterator of IgRecords returned by readDbFile
-    
-    Returns: 
-    None
-    """
-    # Iterate over db_ter and define processQueue arguments 
-    count = 0
-    for rec in db_iter:
-        # Feed queue
-        #data_queue.put({'id':rec.id, 'rec':rec})
-        data_queue.put({'id':count, 'rec':rec})
-        count += 1
-    
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
-
-    return None
-
-
-def distanceClones(ig_set):
+def distanceClones(rec_iter):
     """
     Separates a set of IgRecords into clones
 
     Arguments: 
-    ig_set = a iterator of IgRecords
+    rec_list = an iterator of IgRecords
     
     Returns: 
     a list of IgRecords with a clone annotation
     """
+    for rec in rec_iter:
+        print rec.getVAllele(), rec.id, rec.junction
+    
+    return None
+
+
+# >>> into DbCore when finished?
+def feedQueue(data_queue, nproc, db_file):
+    """
+    Feeds the data queue with Ig records
+
+    Arguments: 
+    data_queue = a multiprocessing.Queue to hold data for processing
+    nproc = the number of processQueue processes
+    db_file = the Ig record database file
+    
+    Returns: 
+    None
+    """
+    # Iterate over Ig records and feed data queue
+    db_iter = readDbFile(db_file)
+    for rec in db_iter:
+        # Feed queue
+        data_queue.put({'id':rec.id, 'rec_list':[rec]})
+    
+    # Add sentinel object for each processQueue process
+    for __ in range(nproc):
+        data_queue.put(None)
 
     return None
 
@@ -152,26 +86,25 @@ def processQueue(data_queue, result_queue, clone_func, clone_args, delimiter=def
     """
     # Iterator over data queue until sentinel object reached
     for args in iter(data_queue.get, None):
-        in_rec = args['rec']
+        rec_list = args['rec_list']
         
         # Define result dictionary for iteration
         results = {'id':args['id'],
-                   'in_rec':in_rec,
+                   'rec_list':rec_list,
                    'out_rec':None,
                    'pass':False,
                    'log':OrderedDict([('ID', args['id'])])}
  
         # Assign clones
-        preclones = clone_func(in_rec)
-        #clones = clone_func(in_rec, **clone_args)
+        clones = clone_func(rec_list, **clone_args)
 
         # Feed results to result queue
         result_queue.put(results)
 
     return None
 
-# >>> into DbCore when finished
-def collectQueue(result_queue, result_count, collect_dict, task_label, db_file, out_args):
+# >>> into DbCore when finished?
+def collectQueue(result_queue, collect_dict, db_file, out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -179,7 +112,6 @@ def collectQueue(result_queue, result_count, collect_dict, task_label, db_file, 
     result_queue = a multiprocessing.Queue holding processQueue results
     result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
-    task_label = the task label used to tag the output files
     db_file = the input database file name
     out_args = common output argument dictionary from parseCommonArgs
     
@@ -187,21 +119,26 @@ def collectQueue(result_queue, result_count, collect_dict, task_label, db_file, 
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
+    # Count records and define output format 
+    out_type = getFileType(db_file) if out_args['out_type'] is None \
+               else out_args['out_type']
+    result_count = countDbRecords(db_file)
+
     # Defined successful output handle
     pass_handle = getOutputHandle(db_file, 
-                                  '%s-pass' % task_label, 
+                                  'clone-pass', 
                                   out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], 
-                                  out_type=out_args['out_type'])
+                                  out_type=out_type)
     # Defined failed alignment output handle
     if out_args['clean']:   
         fail_handle = None
     else:  
         fail_handle = getOutputHandle(db_file, 
-                                      '%s-fail' % task_label, 
+                                      'clone-fail', 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
-                                      out_type=out_args['out_type'])
+                                      out_type=out_type)
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
@@ -217,6 +154,11 @@ def collectQueue(result_queue, result_count, collect_dict, task_label, db_file, 
         
         # Update counts
         rec_count += 1
+        
+        if result['pass']:
+            pass_count += 1
+        else:
+            fail_count += 1
 
         # Write log
         printLog(result['log'], handle=log_handle)
@@ -278,17 +220,11 @@ def defineClones(db_file, mode, action, fields=None, out_args=default_out_args,
     log['NPROC'] = nproc
     printLog(log)
     
-    # Define database iterator
-    in_type, db_iter = readDbFile(db_file)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
-    
-    # Count records
-    result_count = countDbFile(db_file)
-    
     clone_func = distanceClones
-    clone_args = {'mode':mode, 
-                  'action':action,
-                  'fields':fields}
+    #clone_args = {'mode':mode, 
+    #              'action':action,
+    #              'fields':fields}
+    clone_args = {}
     
     # Define shared data objects
     manager = mp.Manager()
@@ -297,7 +233,7 @@ def defineClones(db_file, mode, action, fields=None, out_args=default_out_args,
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedQueue, args=(data_queue, nproc, db_iter))
+    feeder = mp.Process(target=feedQueue, args=(data_queue, nproc, db_file))
     feeder.start()
 
     # Initiate processQueue processes
@@ -309,8 +245,8 @@ def defineClones(db_file, mode, action, fields=None, out_args=default_out_args,
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectQueue, args=(result_queue, result_count, collect_dict, 
-                                                      'clone', db_file, out_args))
+    collector = mp.Process(target=collectQueue, args=(result_queue, collect_dict, db_file, 
+                                                      out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue
