@@ -23,85 +23,103 @@ from Bio.Alphabet import IUPAC
 
 # Defaults
 default_delimiter = ('|', '=', ',')
-default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
-default_action_choices = ['min', 'max', 'sum', 'first', 'last', 'set']
+default_separator = default_delimiter[2]
+default_action_choices = ('min', 'max', 'sum', 'first', 'last', 'set')
 default_coord_type = 'presto'
-default_barcode_field = 'BARCODE'
-default_primer_field = 'PRIMER'
-default_missing_chars = ['-', '.', 'N']
-default_min_freq = 0.7
-default_min_qual = 20
+default_missing_chars = ('-', '.', 'N')
 default_out_args = {'log_file':None, 
                     'delimiter':default_delimiter,
+                    'separator':default_separator,
                     'out_dir':None,
                     'out_name':None,
                     'out_type':None,
                     'clean':False}
 
 
-# >>> into DbCore when finished
+
 class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment
     """
+    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
+    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
+    
     def __init__(self, row):
-        self.id = row.get('SEQUENCE_ID', None)
-        
-        try: self.seq = Seq(row.get('SEQUENCE', None), IUPAC.ambiguous_dna)
-        except: self.seq = None
+        try:
+            self.id = row.pop('SEQUENCE_ID')
+            self.seq = Seq(row.pop('SEQUENCE'), IUPAC.ambiguous_dna)
+            self.v_call = row.pop('V_CALL')
+            self.d_call = row.pop('D_CALL')
+            self.j_call = row.pop('J_CALL')
+        except:
+            sys.exit('ERROR:  Input must contain valid ID,SEQUENCE,V_CALL,D_CALL,J_CALL values')
+
+        # Defined optional values
+        self.functional = row.pop('FUNCTIONAL', None)
+        self.in_frame = row.pop('IN_FRAME', None)
+        self.stop = row.pop('STOP', None)
+        self.mutated_invariant = row.pop('MUTATED_INVARIANT', None)
+        self.indels = row.pop('INDELS', None)
+        self.v_match = row.pop('V_MATCH', None)
+        self.v_length = row.pop('V_LENGTH', None)
+        self.j_match = row.pop('J_MATCH', None)
+        self.j_length = row.pop('J_LENGTH', None)
+        self.sequence_gap = row.pop('SEQUENCE_GAP', None)
+        self.v_gap_length = row.pop('V_GAP_LENGTH', None)
+        self.n1_length = row.pop('N1_LENGTH', None)
+        self.d_5_trim = row.pop('D_5_TRIM', None)
+        self.d_3_trim = row.pop('D_3_TRIM', None)
+        self.n2_length = row.pop('N2_LENGTH', None)
+        self.j_5_trim = row.pop('J_5_TRIM', None)
+        self.j_gap_length = row.pop('J_GAP_LENGTH', None)
+        self.junction_gap_length = row.pop('JUNCTION_GAP_LENGTH', None)
+        try:
+            self.junction = Seq(row.pop('JUNCTION', None))
+        except:
+            self.junction = None
             
-        self.v_call = row.get('V_CALL', None)
-        self.d_call = row.get('D_CALL', None)
-        self.j_call = row.get('J_CALL', None)
-
-        self.functional = row.get('FUNCTIONAL', None)
-        self.in_frame = row.get('IN_FRAME', None)
-        self.stop = row.get('STOP', None)
-        self.mutated_invariant = row.get('MUTATED_INVARIANT', None)
-        self.indels = row.get('INDELS', None)
-        self.v_match = row.get('V_MATCH', None)
-        self.v_length = row.get('V_LENGTH', None)
-        self.j_match = row.get('J_MATCH', None)
-        self.j_length = row.get('J_LENGTH', None)
-        self.sequence_gap = row.get('SEQUENCE_GAP', None)
-        self.v_gap_length = row.get('V_GAP_LENGTH', None)
-        self.n1_length = row.get('N1_LENGTH', None)
-        self.d_5_trim = row.get('D_5_TRIM', None)
-        self.d_3_trim = row.get('D_3_TRIM', None)
-        self.n2_length = row.get('N2_LENGTH', None)
-        self.j_5_trim = row.get('J_5_TRIM', None)
-        self.j_gap_length = row.get('J_GAP_LENGTH', None)
-        self.junction_gap_length = row.get('JUNCTION_GAP_LENGTH', None)
-        self.junction = row.get('JUNCTION', None)
+        # Add remaining elements as annotations dictionary
+        self.annotations = row
         
-    def getVAllele(self):
-        return self.v_call
-    
-    def getDAllele(self):
-        return self.d_call
-    
-    def getJAllele(self):
-        return self.j_call
-    
-    def getVGene(self):
-        return self.v_call
-    
-    def getDGene(self):
-        return self.d_call
-    
-    def getJGene(self):
-        return self.j_call
+    def _parseAllele(self, alleles, regex, action='first'):
+        x = regex.findall(alleles)
+        if action == 'first':
+            return x[0] if x else None
+        elif action == 'all':
+            return tuple(sorted(set(x))) if x else None
+        else:
+            return None
+        
+    def getVAllele(self, action='first'):
+        return self._parseAllele(self.v_call, self.allele_regex, action)
 
-    def getVFamily(self):
-        return self.v_call
-    
-    def getDFamily(self):
-        return self.d_call
-    
-    def getJFamily(self):
-        return self.j_call
+    def getDAllele(self, action='first'):
+        return self._parseAllele(self.d_call, self.allele_regex, action)
 
+    def getJAllele(self, action='first'):
+        return self._parseAllele(self.j_call, self.allele_regex, action)
+    
+    def getVGene(self, action='first'):
+        return self._parseAllele(self.v_call, self.gene_regex, action)
 
+    def getDGene(self, action='first'):
+        return self._parseAllele(self.d_call, self.gene_regex, action)
+
+    def getJGene(self, action='first'):
+        return self._parseAllele(self.j_call, self.gene_regex, action)
+    
+    def getVFamily(self, action='first'):
+        return self._parseAllele(self.v_call, self.family_regex, action)
+
+    def getDFamily(self, action='first'):
+        return self._parseAllele(self.d_call, self.family_regex, action)
+
+    def getJFamily(self, action='first'):
+        return self._parseAllele(self.j_call, self.family_regex, action)
+
+    
+    
 def getFileType(filename):
     """
     Determines the type of a file by file extension
@@ -134,7 +152,7 @@ def readDbFile(db_file):
     db_file = a tab delimited database file
     
     Returns: 
-    a tuple of (input file type, database record iterator)
+    a tuple of database record iterator
     """
     # Read and check file
     try:

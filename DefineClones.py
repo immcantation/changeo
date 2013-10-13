@@ -10,7 +10,7 @@ __version__   = '0.4.0'
 __date__      = '2013.10.12'
 
 # Imports
-import csv, os, re, sys
+import csv, linecache, os, re, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
@@ -18,7 +18,7 @@ from time import time
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from DbCore import default_delimiter, default_out_args
+from DbCore import default_separator, default_out_args
 from DbCore import getCommonParser, parseCommonArgs
 from DbCore import getOutputHandle, printLog, printProgress
 from DbCore import countDbRecords, readDbFile, getFileType
@@ -26,9 +26,32 @@ from DbCore import countDbRecords, readDbFile, getFileType
 # Defaults
 
 
+def indexPreclones(db_iter, separator=default_separator):
+    """
+    Identifies preclonal groups by V, J and junction length
+
+    Arguments: 
+    db_iter = an iterator of IgRecords defined by readDbFile
+    action = how to handle multiple value fields when assigning preclones;
+             one of ('first', 'intersect', 'union')
+    separator = the delimiter separating values within a field 
+    
+    Returns: 
+    an iterator of 
+    """
+    clone_index = {}
+    for i, rec in enumerate(db_iter):
+        key = (rec.getVAllele('first'), rec.getJAllele('first'), len(rec.junction))
+        #key = (rec.getVAllele('all'), rec.getJAllele('all'), rec.getJuncLen())
+        #print key
+        if all([k is not None for k in key]):
+            clone_index.setdefault(key, []).append(rec)
+            #clone_index.setdefault(key, []).append(i)
+        
+    return clone_index
 
 
-def distanceClones(rec_iter):
+def distanceClones(rec_list):
     """
     Separates a set of IgRecords into clones
 
@@ -38,8 +61,9 @@ def distanceClones(rec_iter):
     Returns: 
     a list of IgRecords with a clone annotation
     """
-    for rec in rec_iter:
-        print rec.getVAllele(), rec.id, rec.junction
+    print ''
+    for rec in rec_list:
+        print rec.id, rec.junction
     
     return None
 
@@ -59,9 +83,12 @@ def feedQueue(data_queue, nproc, db_file):
     """
     # Iterate over Ig records and feed data queue
     db_iter = readDbFile(db_file)
-    for rec in db_iter:
+    clone_dict = indexPreclones(db_iter)
+    
+    #db_iter = readDbFile(db_file)
+    for k, v in clone_dict.iteritems():
         # Feed queue
-        data_queue.put({'id':rec.id, 'rec_list':[rec]})
+        data_queue.put({'id':k, 'rec_list':v})
     
     # Add sentinel object for each processQueue process
     for __ in range(nproc):
@@ -70,7 +97,7 @@ def feedQueue(data_queue, nproc, db_file):
     return None
 
 
-def processQueue(data_queue, result_queue, clone_func, clone_args, delimiter=default_delimiter):
+def processQueue(data_queue, result_queue, clone_func, clone_args, separator=default_separator):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -79,7 +106,7 @@ def processQueue(data_queue, result_queue, clone_func, clone_args, delimiter=def
     result_queue = a multiprocessing.Queue to hold processed results
     clone_func = the function to call for clonal assignment
     clone_args = a dictionary of arguments to pass to clone_func
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
+    separator = the delimiter separating values within a field 
 
     Returns: 
     None
@@ -191,9 +218,9 @@ def defineClones(db_file, mode, action, fields=None, out_args=default_out_args,
     Arguments:
     db_file = filename of input database
     mode = specificity of alignment call to use for assigning preclones;
-           one of ['allele', 'gene']
+           one of ('allele', 'gene')
     action = how to handle multiple value fields when assigning preclones;
-             one of ['first', 'intersect', 'union']
+             one of ('first', 'intersect', 'union')
     fields = additional fields to use to group preclones
              if None use only V_CALL, J_CALL, J_LENGTH
     out_args = common output argument dictionary from parseCommonArgs
@@ -289,7 +316,7 @@ def getArgParser():
                         choices=('allele', 'gene'), default='gene', 
                         help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
     parser.add_argument('--act', action='store', dest='action', default='first',
-                        choices=['first', 'intersect', 'union'],
+                        choices=('first', 'intersect', 'union'),
                         help='Specifies how to handle multiple V(D)J assignments for preclone assignment') 
         
     return parser
