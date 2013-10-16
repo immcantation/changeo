@@ -3,11 +3,11 @@
 Assign Ig sequences into clones
 """
 
-__author__    = 'Gur Yaari, Mohamed Uduman, Namita Gupta, Jason Anthony Vander Heiden'
+__author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed Uduman'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.10.12'
+__date__      = '2013.10.14'
 
 # Imports
 import csv, linecache, os, re, sys
@@ -26,14 +26,16 @@ from DbCore import countDbRecords, readDbFile, getFileType
 # Defaults
 
 
-def indexPreclones(db_iter, separator=default_separator):
+def indexPreclones(db_iter, fields=None, action='first', separator=default_separator):
     """
     Identifies preclonal groups by V, J and junction length
 
     Arguments: 
     db_iter = an iterator of IgRecords defined by readDbFile
+    fields = additional fields to use to group preclones;
+             if None use only V_CALL, J_CALL, JUNCTION_GAP_LENGTH
     action = how to handle multiple value fields when assigning preclones;
-             one of ('first', 'intersect', 'union')
+             one of ('first', 'set')
     separator = the delimiter separating values within a field 
     
     Returns: 
@@ -42,8 +44,10 @@ def indexPreclones(db_iter, separator=default_separator):
     clone_index = {}
     for i, rec in enumerate(db_iter):
         key = (rec.getVAllele('first'), rec.getJAllele('first'), len(rec.junction))
-        #key = (rec.getVAllele('all'), rec.getJAllele('all'), rec.getJuncLen())
-        #print key
+        #key = (rec.getVAllele('set'), rec.getJAllele('set'), len(rec.junction))
+        #key = (rec.getVGene('set'), rec.getJGene('set'), len(rec.junction))
+        print key
+        #print rec.__dict__
         if all([k is not None for k in key]):
             clone_index.setdefault(key, []).append(rec)
             #clone_index.setdefault(key, []).append(i)
@@ -61,10 +65,12 @@ def distanceClones(rec_list):
     Returns: 
     a list of IgRecords with a clone annotation
     """
-    print ''
+    #print ''
     for rec in rec_list:
-        print rec.id, rec.junction
-    
+        pass
+        #print rec.id, rec.junction
+        #print rec.__dict__
+        
     return None
 
 
@@ -220,9 +226,9 @@ def defineClones(db_file, mode, action, fields=None, out_args=default_out_args,
     mode = specificity of alignment call to use for assigning preclones;
            one of ('allele', 'gene')
     action = how to handle multiple value fields when assigning preclones;
-             one of ('first', 'intersect', 'union')
-    fields = additional fields to use to group preclones
-             if None use only V_CALL, J_CALL, J_LENGTH
+             one of ('first', 'set')
+    fields = additional fields to use to group preclones;
+             if None use only V_CALL, J_CALL, JUNCTION_GAP_LENGTH
     out_args = common output argument dictionary from parseCommonArgs
     nproc = the number of processQueue processes;
             if None defaults to the number of CPUs
@@ -316,7 +322,7 @@ def getArgParser():
                         choices=('allele', 'gene'), default='gene', 
                         help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
     parser.add_argument('--act', action='store', dest='action', default='first',
-                        choices=('first', 'intersect', 'union'),
+                        choices=('first', 'set'),
                         help='Specifies how to handle multiple V(D)J assignments for preclone assignment') 
         
     return parser

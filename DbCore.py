@@ -41,10 +41,37 @@ class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment
     """
+    # Public variables
     allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
     gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
     family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
     
+    # Private methods
+    def _logical(self, v):
+        trans = {'F':False, 'T':True}
+        try:  return trans[v]
+        except:  return None
+
+    def _integer(self, v):
+        try:  return int(v)
+        except:  return None
+        
+    def _sequence(self, v):
+        try:  return Seq(v, IUPAC.ambiguous_dna)
+        except:  return None
+
+    def _parseAllele(self, alleles, regex, action='first'):
+        x = regex.findall(alleles)
+        if action == 'first':
+            return x[0] if x else None
+        elif action == 'set':
+            return tuple(sorted(set(x))) if x else None
+        elif action == 'list':
+            return tuple(sorted(x)) if x else None
+        else:
+            return None
+    
+    # Initializer
     def __init__(self, row):
         try:
             self.id = row.pop('SEQUENCE_ID')
@@ -55,42 +82,35 @@ class IgRecord:
         except:
             sys.exit('ERROR:  Input must contain valid ID,SEQUENCE,V_CALL,D_CALL,J_CALL values')
 
-        # Defined optional values
-        self.functional = row.pop('FUNCTIONAL', None)
-        self.in_frame = row.pop('IN_FRAME', None)
-        self.stop = row.pop('STOP', None)
-        self.mutated_invariant = row.pop('MUTATED_INVARIANT', None)
-        self.indels = row.pop('INDELS', None)
-        self.v_match = row.pop('V_MATCH', None)
-        self.v_length = row.pop('V_LENGTH', None)
-        self.j_match = row.pop('J_MATCH', None)
-        self.j_length = row.pop('J_LENGTH', None)
-        self.sequence_gap = row.pop('SEQUENCE_GAP', None)
-        self.v_gap_length = row.pop('V_GAP_LENGTH', None)
-        self.n1_length = row.pop('N1_LENGTH', None)
-        self.d_5_trim = row.pop('D_5_TRIM', None)
-        self.d_3_trim = row.pop('D_3_TRIM', None)
-        self.n2_length = row.pop('N2_LENGTH', None)
-        self.j_5_trim = row.pop('J_5_TRIM', None)
-        self.j_gap_length = row.pop('J_GAP_LENGTH', None)
-        self.junction_gap_length = row.pop('JUNCTION_GAP_LENGTH', None)
-        try:
-            self.junction = Seq(row.pop('JUNCTION', None))
-        except:
-            self.junction = None
+        # Defined optional logical values
+        self.functional = self._logical(row.pop('FUNCTIONAL', None))
+        self.in_frame = self._logical(row.pop('IN_FRAME', None))
+        self.stop = self._logical(row.pop('STOP', None))
+        self.mutated_invariant = self._logical(row.pop('MUTATED_INVARIANT', None))
+        self.indels = self._logical(row.pop('INDELS', None))
+        
+        # Defined optional integer values
+        self.v_match = self._integer(row.pop('V_MATCH', None))
+        self.v_length = self._integer(row.pop('V_LENGTH', None))
+        self.j_match = self._integer(row.pop('J_MATCH', None))
+        self.j_length = self._integer(row.pop('J_LENGTH', None))
+        self.v_gap_length = self._integer(row.pop('V_GAP_LENGTH', None))
+        self.n1_length = self._integer(row.pop('N1_LENGTH', None))
+        self.d_5_trim = self._integer(row.pop('D_5_TRIM', None))
+        self.d_3_trim = self._integer(row.pop('D_3_TRIM', None))
+        self.n2_length = self._integer(row.pop('N2_LENGTH', None))
+        self.j_5_trim = self._integer(row.pop('J_5_TRIM', None))
+        self.j_gap_length = self._integer(row.pop('J_GAP_LENGTH', None))
+        self.junction_gap_length = self._integer(row.pop('JUNCTION_GAP_LENGTH', None))
+        
+        # Defined option Seq records
+        self.junction = self._sequence(row.pop('JUNCTION', None))
+        self.seq_gap = self._sequence(row.pop('SEQUENCE_GAP', None))
             
         # Add remaining elements as annotations dictionary
         self.annotations = row
-        
-    def _parseAllele(self, alleles, regex, action='first'):
-        x = regex.findall(alleles)
-        if action == 'first':
-            return x[0] if x else None
-        elif action == 'all':
-            return tuple(sorted(set(x))) if x else None
-        else:
-            return None
-        
+    
+    # Public methods
     def getVAllele(self, action='first'):
         return self._parseAllele(self.v_call, self.allele_regex, action)
 
@@ -117,7 +137,6 @@ class IgRecord:
 
     def getJFamily(self, action='first'):
         return self._parseAllele(self.j_call, self.family_regex, action)
-
     
     
 def getFileType(filename):
