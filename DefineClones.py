@@ -7,21 +7,35 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.10.14'
+__date__      = '2013.11.10'
 
 # Imports
 import csv, linecache, os, re, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
+from itertools import chain
 from time import time
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from DbCore import default_separator, default_out_args
-from DbCore import getCommonParser, parseCommonArgs
-from DbCore import getOutputHandle, printLog, printProgress
-from DbCore import countDbRecords, readDbFile, getFileType
+from IgCore import default_separator, default_out_args
+from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import getFileType, getOutputHandle, printLog, printProgress
+from DbCore import countDbFile, readDbFile, getDbWriter
+
+# R imports
+from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
+
+# >>> THIS IS AN AWFUL HACK. NEEDS FIXING.
+# Source ClonesByDist
+py_wd = os.getcwd()
+r_lib = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rlib')
+os.chdir(r_lib)
+with open('ClonesByDist.R', 'r') as f:
+    r_script = ''.join(f.readlines())
+ClonesByDist = STAP(r_script, 'ClonesByDist')
+os.chdir(py_wd)
 
 # Defaults
 
@@ -42,12 +56,13 @@ def indexPreclones(db_iter, fields=None, action='first', separator=default_separ
     an iterator of 
     """
     clone_index = {}
-    for i, rec in enumerate(db_iter):
+    for rec in db_iter:
         key = (rec.getVAllele('first'), rec.getJAllele('first'), len(rec.junction))
         #key = (rec.getVAllele('set'), rec.getJAllele('set'), len(rec.junction))
         #key = (rec.getVGene('set'), rec.getJGene('set'), len(rec.junction))
-        print key
+        #print key
         #print rec.__dict__
+        #print rec.to_dict()
         if all([k is not None for k in key]):
             clone_index.setdefault(key, []).append(rec)
             #clone_index.setdefault(key, []).append(i)
@@ -63,15 +78,29 @@ def distanceClones(rec_list):
     rec_list = an iterator of IgRecords
     
     Returns: 
-    a list of IgRecords with a clone annotation
+    a list of lists defining [IgRecords clonal groups]
     """
-    #print ''
-    for rec in rec_list:
-        pass
-        #print rec.id, rec.junction
-        #print rec.__dict__
-        
-    return None
+    # Define unique junction mapping
+    junc_map = {}
+    for r in rec_list:
+        junc_map.setdefault(str(r.junction.upper()), []).append(r)
+    
+    # Process records    
+    if len(junc_map) > 1:
+        # Call R function
+        junc_str = '|'.join(junc_map.keys())
+        #junc_str = '|'.join([str(r.junction.upper()) for r in rec_list])
+        clone_str = ClonesByDist.getClones(junc_str, 5)
+        # Parse R output
+        clone_list = []
+        for clone in str(clone_str[0]).split('|'):
+            junc_r = clone.split(',')
+            #print list(chain(*[junc_map[j.upper()] for j in junc_r]))
+            clone_list.append(list(chain(*[junc_map[j.upper()] for j in junc_r])))
+    else:
+        clone_list = [rec_list]
+
+    return clone_list
 
 
 # >>> into DbCore when finished?
@@ -124,13 +153,16 @@ def processQueue(data_queue, result_queue, clone_func, clone_args, separator=def
         # Define result dictionary for iteration
         results = {'id':args['id'],
                    'rec_list':rec_list,
-                   'out_rec':None,
+                   'clone_list':None,
                    'pass':False,
                    'log':OrderedDict([('ID', args['id'])])}
  
         # Assign clones
-        clones = clone_func(rec_list, **clone_args)
-
+        clone_list = clone_func(rec_list, **clone_args)
+        if clone_list is not None:
+            results['clone_list'] = clone_list
+            results['pass'] = True
+            
         # Feed results to result queue
         result_queue.put(results)
 
@@ -155,23 +187,28 @@ def collectQueue(result_queue, collect_dict, db_file, out_args):
     # Count records and define output format 
     out_type = getFileType(db_file) if out_args['out_type'] is None \
                else out_args['out_type']
-    result_count = countDbRecords(db_file)
+    result_count = countDbFile(db_file)
 
     # Defined successful output handle
     pass_handle = getOutputHandle(db_file, 
-                                  'clone-pass', 
+                                  out_label='clone-pass', 
                                   out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], 
                                   out_type=out_type)
+    pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE_ID')
+    
     # Defined failed alignment output handle
     if out_args['clean']:   
         fail_handle = None
+        fail_writer = None
     else:  
         fail_handle = getOutputHandle(db_file, 
-                                      'clone-fail', 
+                                      out_label='clone-fail', 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
                                       out_type=out_type)
+        fail_writer = getDbWriter(fail_handle, db_file)
+
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
@@ -180,29 +217,33 @@ def collectQueue(result_queue, collect_dict, db_file, out_args):
         
     # Iterator over results queue until sentinel object reached
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    clone_count = pass_count = fail_count = 0
     for result in iter(result_queue.get, None): 
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time) 
-        
-        # Update counts
-        rec_count += 1
+        printProgress(pass_count + fail_count, result_count, 0.05, start_time) 
         
         if result['pass']:
-            pass_count += 1
+            for clone in result['clone_list']:
+                clone_count += 1
+                for c in clone:
+                    row = c.to_dict()
+                    row['CLONE_ID'] = clone_count
+                    pass_writer.writerow(row)
+                    pass_count += 1
         else:
-            fail_count += 1
+            fail_count += len(result['rec_list'])
 
         # Write log
         printLog(result['log'], handle=log_handle)
  
     # Print total counts
-    printProgress(rec_count, result_count, 0.05, start_time) 
+    printProgress(pass_count + fail_count, result_count, 0.05, start_time) 
 
     # Update return list
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['RECORDS'] = rec_count
+    log['RECORDS'] = pass_count + fail_count
+    log['CLONES'] = clone_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     collect_dict['log'] = log
@@ -313,7 +354,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, 
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(seq_in=False, seq_out=False, db_in=True, multiproc=True)], 
+                            parents=[getCommonArgParser(seq_in=False, seq_out=False, db_in=True, multiproc=True)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
