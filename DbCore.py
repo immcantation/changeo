@@ -30,7 +30,66 @@ class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment
     """
-    # Private static methods
+    # Private variables
+    _key_map = {'id': 'SEQUENCE_ID',
+                'v_call': 'V_CALL',
+                'd_call': 'D_CALL',
+                'j_call': 'J_CALL',
+                'seq': 'SEQUENCE', 
+                'seq_gap': 'SEQUENCE_GAP',
+                'junction': 'JUNCTION',
+                'functional': 'FUNCTIONAL', 
+                'in_frame': 'IN_FRAME', 
+                'stop': 'STOP', 
+                'mutated_invariant': 'MUTATED_INVARIANT', 
+                'indels': 'INDELS',
+                'v_match': 'V_MATCH',
+                'v_length': 'V_LENGTH',
+                'j_match': 'J_MATCH',
+                'j_length': 'J_LENGTH',
+                'v_gap_length': 'V_GAP_LENGTH',
+                'n1_length': 'N1_LENGTH',
+                'd_5_trim': 'D_5_TRIM',
+                'd_3_trim': 'D_3_TRIM',
+                'n2_length': 'N2_LENGTH',
+                'j_5_trim': 'J_5_TRIM',
+                'j_gap_length': 'J_GAP_LENGTH',
+                'junction_gap_length': 'JUNCTION_GAP_LENGTH'}
+    
+    _parse_map = {'id': '_identity',
+                  'v_call': '_identity',
+                  'd_call': '_identity',
+                  'j_call': '_identity',
+                  'seq': '_sequence', 
+                  'seq_gap': '_sequence',
+                  'junction': '_sequence',
+                  'functional': '_logical', 
+                  'in_frame': '_logical', 
+                  'stop': '_logical', 
+                  'mutated_invariant': '_logical', 
+                  'indels': '_logical',
+                  'v_match': '_integer',
+                  'v_length': '_integer',
+                  'j_match': '_integer',
+                  'j_length': '_integer',
+                  'v_gap_length': '_integer',
+                  'n1_length': '_integer',
+                  'd_5_trim': '_integer',
+                  'd_3_trim': '_integer',
+                  'n2_length': '_integer',
+                  'j_5_trim': '_integer',
+                  'j_gap_length': '_integer',
+                  'junction_gap_length': '_integer'}
+
+    _logical_parse = {'F':False, 'T':True}
+    _logical_deparse = {False:'F', True:'T'}
+    
+    # Public variables
+    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
+    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
+
+    # Private methods
     @staticmethod    
     def _identity(v, deparse=False):
         return v
@@ -61,43 +120,9 @@ class IgRecord:
         else:
             try:  return str(v.seq)
             except:  return ''
-            
-    # Private variables
-    _parse_map = {'SEQUENCE_ID': ('id', '_identity'),
-                  'V_CALL': ('v_call', '_identity'),
-                  'D_CALL': ('d_call', '_identity'),
-                  'J_CALL': ('j_call', '_identity'),
-                  'SEQUENCE': ('seq', '_sequence'), 
-                  'SEQUENCE_GAP': ('seq_gap', '_sequence'),
-                  'JUNCTION': ('junction', '_sequence'),
-                  'FUNCTIONAL': ('functional', '_logical'), 
-                  'IN_FRAME': ('in_frame', '_logical'), 
-                  'STOP': ('stop', '_logical'), 
-                  'MUTATED_INVARIANT': ('mutated_invariant', '_logical'), 
-                  'INDELS': ('indels', '_logical'),
-                  'V_MATCH': ('v_match', '_integer'),
-                  'V_LENGTH': ('v_length', '_integer'),
-                  'J_MATCH': ('j_match', '_integer'),
-                  'J_LENGTH': ('j_length', '_integer'),
-                  'V_GAP_LENGTH': ('v_gap_length', '_integer'),
-                  'N1_LENGTH': ('n1_length', '_integer'),
-                  'D_5_TRIM': ('d_5_trim', '_integer'),
-                  'D_3_TRIM': ('d_3_trim', '_integer'),
-                  'N2_LENGTH': ('n2_length', '_integer'),
-                  'J_5_TRIM': ('j_5_trim', '_integer'),
-                  'J_GAP_LENGTH': ('j_gap_length', '_integer'),
-                  'JUNCTION_GAP_LENGTH': ('junction_gap_length', '_integer')}
-    _deparse_map = {v[0]: (k, v[1]) for k, v in _parse_map.iteritems()}
     
-    _logical_parse = {'F':False, 'T':True}
-    _logical_deparse = {False:'F', True:'T'}
-    
-    # Public variables
-    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
-    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
-
-    def _parseAllele(self, alleles, regex, action='first'):
+    @staticmethod
+    def _parseAllele(alleles, regex, action='first'):
         x = regex.findall(alleles)
         if action == 'first':
             return x[0] if x else None
@@ -107,88 +132,67 @@ class IgRecord:
             return tuple(sorted(x)) if x else None
         else:
             return None
-    
+
     # Initializer
     def __init__(self, row):
+        required_keys = ('id', 'seq', 'v_call', 'd_call', 'j_call')
+        optional_keys = (x for x in IgRecord._parse_map if x not in required_keys)
+        
         try:
-            self.id = row.pop('SEQUENCE_ID')
-            self.seq = IgRecord._sequence(row.pop('SEQUENCE'))
-            self.v_call = row.pop('V_CALL')
-            self.d_call = row.pop('D_CALL')
-            self.j_call = row.pop('J_CALL')
+            for k in required_keys:
+                f = getattr(IgRecord, IgRecord._parse_map[k])
+                setattr(self, k, f(row.pop(IgRecord._key_map[k])))
         except:
-            sys.exit('ERROR:  Input must contain valid ID,SEQUENCE,V_CALL,D_CALL,J_CALL values')
+            sys.exit('ERROR:  Input must contain valid %s values' \
+                     % ','.join([IgRecord._key_map[k] for k in required_keys]))
 
         # Defined optional logical values
-        self.functional = IgRecord._logical(row.pop('FUNCTIONAL', None))
-        self.in_frame = IgRecord._logical(row.pop('IN_FRAME', None))
-        self.stop = IgRecord._logical(row.pop('STOP', None))
-        self.mutated_invariant = IgRecord._logical(row.pop('MUTATED_INVARIANT', None))
-        self.indels = IgRecord._logical(row.pop('INDELS', None))
-        
-        # Defined optional integer values
-        self.v_match = IgRecord._integer(row.pop('V_MATCH', None))
-        self.v_length = IgRecord._integer(row.pop('V_LENGTH', None))
-        self.j_match = IgRecord._integer(row.pop('J_MATCH', None))
-        self.j_length = IgRecord._integer(row.pop('J_LENGTH', None))
-        self.v_gap_length = IgRecord._integer(row.pop('V_GAP_LENGTH', None))
-        self.n1_length = IgRecord._integer(row.pop('N1_LENGTH', None))
-        self.d_5_trim = IgRecord._integer(row.pop('D_5_TRIM', None))
-        self.d_3_trim = IgRecord._integer(row.pop('D_3_TRIM', None))
-        self.n2_length = IgRecord._integer(row.pop('N2_LENGTH', None))
-        self.j_5_trim = IgRecord._integer(row.pop('J_5_TRIM', None))
-        self.j_gap_length = IgRecord._integer(row.pop('J_GAP_LENGTH', None))
-        self.junction_gap_length = IgRecord._integer(row.pop('JUNCTION_GAP_LENGTH', None))
-        
-        # Defined option Seq records
-        self.junction = IgRecord._sequence(row.pop('JUNCTION', None))
-        self.seq_gap = IgRecord._sequence(row.pop('SEQUENCE_GAP', None))
+        for k in optional_keys:
+            f = getattr(IgRecord, IgRecord._parse_map[k])
+            setattr(self, k, f(row.pop(IgRecord._key_map[k], None)))
             
         # Add remaining elements as annotations dictionary
         self.annotations = row
     
     # Return a dictionary of the namespace
-    def to_dict(self):
+    def toDict(self):
         d = {}
         n = self.__dict__
-        if 'annotations' in n:
-            d.update({k.upper():v for k, v in n['annotations'].iteritems()})
-            del n['annotations']
         for k, v in n.iteritems():
-            p = IgRecord._deparse_map[k]
-            f = getattr(IgRecord, p[1])
-            d[p[0]] = f(v, deparse=True)
-
+            if k == 'annotations':
+                d.update({i.upper():j for i, j in n['annotations'].iteritems()})
+            else:
+                f = getattr(IgRecord, IgRecord._parse_map[k])
+                d[IgRecord._key_map[k]] = f(v, deparse=True)
         return d
-        
-        
-    # Public methods
+    
+    # Allele, gene and family getter functions
     def getVAllele(self, action='first'):
-        return self._parseAllele(self.v_call, self.allele_regex, action)
+        return IgRecord._parseAllele(self.v_call, self.allele_regex, action)
 
     def getDAllele(self, action='first'):
-        return self._parseAllele(self.d_call, self.allele_regex, action)
+        return IgRecord._parseAllele(self.d_call, self.allele_regex, action)
 
     def getJAllele(self, action='first'):
-        return self._parseAllele(self.j_call, self.allele_regex, action)
+        return IgRecord._parseAllele(self.j_call, self.allele_regex, action)
     
     def getVGene(self, action='first'):
-        return self._parseAllele(self.v_call, self.gene_regex, action)
+        return IgRecord._parseAllele(self.v_call, self.gene_regex, action)
 
     def getDGene(self, action='first'):
-        return self._parseAllele(self.d_call, self.gene_regex, action)
+        return IgRecord._parseAllele(self.d_call, self.gene_regex, action)
 
     def getJGene(self, action='first'):
-        return self._parseAllele(self.j_call, self.gene_regex, action)
+        return IgRecord._parseAllele(self.j_call, self.gene_regex, action)
     
     def getVFamily(self, action='first'):
-        return self._parseAllele(self.v_call, self.family_regex, action)
+        return IgRecord._parseAllele(self.v_call, self.family_regex, action)
 
     def getDFamily(self, action='first'):
-        return self._parseAllele(self.d_call, self.family_regex, action)
+        return IgRecord._parseAllele(self.d_call, self.family_regex, action)
 
     def getJFamily(self, action='first'):
-        return self._parseAllele(self.j_call, self.family_regex, action)
+        return IgRecord._parseAllele(self.j_call, self.family_regex, action)
 
 
 def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):

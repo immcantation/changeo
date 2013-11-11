@@ -1,13 +1,9 @@
 #' Generates clones by distance method with mutability model
 #' 
-#' @author Gur Yaari, Namita Gupta, Jason Vander Heiden
-#' @date 2013.11.10
-#' 
-#' @param Strings   a named vector of junction sequences
-#' @param Thresh    mutation threshold
-#' 
-#' @return a string of grouped junctions
-
+#' @author     Gur Yaari, Mohamed Uduman
+#' @copyright  Copyright 2013 Kleinstein Lab, Yale University. All rights reserved
+#' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
+#' @date       2013.11.10
 #dyn.load("/home/gur/SHMDistance.so")
 #arg<-c("5","AAAAAAAAA|TTTTTTAAA|ccccccccA|ttttttttA|AAcAgAAAA|ttttttttt|ggggggggg|gggAagggg|tAAAAAAAA|AAtAAAAAA")
 #arg <- commandArgs(TRUE) 
@@ -44,12 +40,19 @@ switch_col <- function(Mat, i, j){
 }
 
 
-
+#' Generates clones by distance method with mutability model
+#' 
+#' @param Strings   a vector of junction sequences as strings
+#' @param Thresh    a numerical distance threshold
+#' 
+#' @return a list of junction string vectors defining clones
 getClones <- function(Strings, Thresh) {
 	#Thresh <- as.numeric(arg[1])
 	#Strings <- toupper(strsplit(arg[2],"\\|")[[1]])
-	Strings <- toupper(strsplit(Strings,"\\|")[[1]])
-	StringsNumeric<-chartr(c("ACGTN-"),"123456",Strings)
+	#Strings <- toupper(strsplit(Strings,"\\|")[[1]])
+	Strings <- toupper(Strings)
+	#StringsNumeric<-chartr(c("ACGTN-"),"123456",Strings)
+	StringsNumeric<-chartr(c("ACGTN.-"),"1234566",Strings)
 	
 	N<-length(Strings)
 	Mat<-diag(N)
@@ -64,7 +67,7 @@ getClones <- function(Strings, Thresh) {
 	BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
 	BinaryDist[BinaryDist>=Thresh]<-0
 	diag(BinaryDist) <- rep(1,N)
-	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<<-BinaryDist[i,1:i])
+	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<-BinaryDist[i,1:i])
 	Mat <- BinaryDist
 	
 	if(N>2) {
@@ -96,17 +99,22 @@ getClones <- function(Strings, Thresh) {
 		Blocks=1
 	}
 	
-	retString <- NULL
-	
-	startInd=c(1,1+Blocks[-length(Blocks)])
-	for(i in 1:length(startInd)){
-		retString <- c(retString, "|", rownames(Mat)[(startInd[i]:Blocks[i])])
-	}
-	retString <- paste(retString,collapse=",")
-	retString <- gsub("|,","|",retString,fixed=T)
-	retString <- gsub(",|","|",retString,fixed=T)
-	retString <- substring(retString,2,nchar(retString))
+	#retString <- NULL
+	#startInd=c(1,1+Blocks[-length(Blocks)])
+	#for(i in 1:length(startInd)){
+	#	retString <- c(retString, "|", rownames(Mat)[(startInd[i]:Blocks[i])])
+	#}
+	#retString <- paste(retString,collapse=",")
+	#retString <- gsub("|,","|",retString,fixed=T)
+	#retString <- gsub(",|","|",retString,fixed=T)
+	#retString <- substring(retString,2,nchar(retString))
 	#cat("$$$",retString<-substring(retString,2,nchar(retString)),"\n",sep="")
+	#return(retString)
 
-	return(retString)
+	returnBlocks <- list()
+	startInd=c(1,1+Blocks[-length(Blocks)])
+	for(i in 1:length(startInd)) {
+    		returnBlocks[[i]] <- rownames(Mat)[(startInd[i]:Blocks[i])]
+	}
+	return(returnBlocks)
 }
