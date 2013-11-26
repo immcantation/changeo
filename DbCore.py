@@ -118,7 +118,7 @@ class IgRecord:
             try:  return Seq(v, IUPAC.ambiguous_dna)
             except:  return None
         else:
-            try:  return str(v.seq)
+            try:  return str(v)
             except:  return ''
     
     @staticmethod

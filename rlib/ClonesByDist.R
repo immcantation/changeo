@@ -42,10 +42,9 @@ switch_col <- function(Mat, i, j){
 
 #' Generates clones by distance method with mutability model
 #' 
-#' @param Strings   a vector of junction sequences as strings
-#' @param Thresh    a numerical distance threshold
-#' 
-#' @return a list of junction string vectors defining clones
+#' @param   Strings   a vector of junction sequences as strings
+#' @param   Thresh    a numerical distance threshold
+#' @return  a list of junction string vectors defining clones
 getClones <- function(Strings, Thresh) {
 	#Thresh <- as.numeric(arg[1])
 	#Strings <- toupper(strsplit(arg[2],"\\|")[[1]])

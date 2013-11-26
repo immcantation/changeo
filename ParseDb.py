@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.10'
+__date__      = '2013.11.26'
 
 # Imports
 import os, sys
@@ -26,7 +26,7 @@ from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import default_delimiter, default_out_args
 from IgCore import getCommonArgParser, parseCommonArgs
 from DbCore import default_id_field, default_seq_field
-from DbCore import countDbFile, readDbFile
+from DbCore import countDbFile, readDbFile, getDbWriter
 
 
 def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
@@ -61,7 +61,7 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
     return seq_record
 
 
-def parseDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field, 
+def createDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field, 
                meta_fields=None, out_args=default_out_args):
     """
     Builds fasta files from database records
@@ -127,6 +127,70 @@ def parseDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field,
     return pass_handle.name
 
 
+def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
+    """
+    Builds fasta files from database records
+
+    Arguments: 
+    db_file = the database file name
+    fields = a list of fields to check for deletion criteria
+    values = a list of values defining deletion targets
+    out_args = common output argument dictionary from parseCommonArgs
+                    
+    Returns: 
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'delete'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELDS'] = ','.join(fields)
+    log['VALUES'] = ','.join(values)
+    printLog(log)
+    
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'], 
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file)
+    # Count records
+    result_count = countDbFile(db_file)
+    
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = fail_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Check for deletion values in all fields
+        delete = any([rec.get(f, False) in values for f in fields])
+        print rec['SEQUENCE']
+        
+        # Write sequences
+        if not delete:
+            pass_count += 1
+            pass_writer.writerow(rec)
+        else:
+            fail_count += 1
+        
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['KEPT'] = pass_count
+    log['DELETED'] = fail_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+ 
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -142,8 +206,10 @@ def getArgParser():
                             formatter_class=ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers()
     
-    # Subparser to add header fields
+    # Define parent parser
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, log=False)
+
+    # Subparser to convert database entries to sequence file
     parser_seq = subparsers.add_parser('seq', parents=[parser_parent], 
                                        formatter_class=ArgumentDefaultsHelpFormatter,
                                        help='Creates a fasta file from database records')
@@ -155,8 +221,18 @@ def getArgParser():
                               help='The name of the field containing sequences')
     parser_seq.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                               help='List of annotation fields to add to the sequence description')
-    parser_seq.set_defaults(func=parseDbSeq)
-    
+    parser_seq.set_defaults(func=createDbSeq)
+
+    # Subparser to delete records
+    parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
+                                       formatter_class=ArgumentDefaultsHelpFormatter,
+                                       help='Deletes database records')
+    parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='The name of the fields to check for deletion criteria')
+    parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
+                               help='The values defining with records to delete')
+    parser_delete.set_defaults(func=deleteDbRecords)
+        
     return parser
 
     
@@ -169,9 +245,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields
-    args_dict['id_field'] = args_dict['id_field'].upper()
-    args_dict['seq_field'] = args_dict['seq_field'].upper() 
-    if args_dict['meta_fields']:  args_dict['meta_fields'] = map(str.upper, args_dict['meta_fields']) 
+    #args_dict['id_field'] = args_dict['id_field'].upper()
+    #args_dict['seq_field'] = args_dict['seq_field'].upper() 
+    #if args_dict['meta_fields']:  args_dict['meta_fields'] = map(str.upper, args_dict['meta_fields']) 
 
     # Call parser function for each database file
     del args_dict['func']

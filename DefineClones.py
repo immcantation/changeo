@@ -431,7 +431,7 @@ def getArgParser():
     parser_dist.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_dist.add_argument('--mode', action='store', dest='mode', 
-                             choices=('allele', 'gene'), default='allele', 
+                             choices=('allele', 'gene'), default='gene', 
                              help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
     parser_dist.add_argument('--act', action='store', dest='action', default='first',
                              choices=('first', 'set'),
