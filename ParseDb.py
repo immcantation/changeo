@@ -166,7 +166,6 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
 
         # Check for deletion values in all fields
         delete = any([rec.get(f, False) in values for f in fields])
-        print rec['SEQUENCE']
         
         # Write sequences
         if not delete:
