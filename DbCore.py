@@ -7,18 +7,11 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.10.12'
+__date__      = '2013.12.1'
 
 # Imports
-import csv, math, os, re, sys
-import multiprocessing as mp
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from itertools import izip, izip_longest, product
-from collections import OrderedDict
-from time import time, strftime
-from Bio import SeqIO
+import csv, os, re, sys
 from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
 # Defaults

@@ -10,10 +10,11 @@ __version__   = '0.4.0'
 __date__      = '2013.11.10'
 
 # Imports
-import csv, linecache, os, re, sys
+import os, signal, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
+from ctypes import c_bool
 from itertools import chain
 from time import time
 
@@ -139,11 +140,13 @@ def distanceClones(records, distance=default_distance):
     return clone_dict
 
 
-def feedQueue(data_queue, nproc, db_file, group_func, group_args={}):
+def feedQueue(status, data_queue, nproc, db_file, group_func, group_args={}):
     """
     Feeds the data queue with Ig records
 
     Arguments: 
+    status = a multiprocessing.Value boolean controlling whether processing continues
+             if False exit process
     data_queue = a multiprocessing.Queue to hold data for processing
     nproc = the number of processQueue processes
     db_file = the Ig record database file
@@ -153,28 +156,37 @@ def feedQueue(data_queue, nproc, db_file, group_func, group_args={}):
     Returns: 
     None
     """
-    # Iterate over Ig records and feed data queue
-    db_iter = readDbFile(db_file)
-    clone_dict = group_func(db_iter, **group_args)
+    try:
+        # Iterate over Ig records and feed data queue
+        db_iter = readDbFile(db_file)
+        clone_dict = group_func(db_iter, **group_args)
+        
+        #db_iter = readDbFile(db_file)
+        for k, v in clone_dict.iteritems():
+            # Check status
+            #print "FEED", status.value, k
+            if not status.value:  break
+            # Feed queue
+            group_pass = False if k is None else True
+            data_queue.put({'id':k, 'records':v, 'pass':group_pass})
+    except:
+        status.value = False
+        raise
+    finally:
+        # Add sentinel object for each processQueue process
+        for __ in range(nproc):
+            data_queue.put(None)
     
-    #db_iter = readDbFile(db_file)
-    for k, v in clone_dict.iteritems():
-        # Feed queue
-        group_pass = False if k is None else True
-        data_queue.put({'id':k, 'records':v, 'pass':group_pass})
-    
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
-
     return None
 
 
-def processQueue(data_queue, result_queue, clone_func, clone_args, separator=default_separator):
+def processQueue(status, data_queue, result_queue, clone_func, clone_args, separator=default_separator):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
+    status = a multiprocessing.Value boolean controlling whether processing continues
+             if False exit process
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     clone_func = the function to call for clonal assignment
@@ -184,44 +196,55 @@ def processQueue(data_queue, result_queue, clone_func, clone_args, separator=def
     Returns: 
     None
     """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        records = args['records']
-        
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'records':records,
-                   'clones':None,
-                   'pass':False,
-                   'log':OrderedDict([('ID', args['id'])])}
- 
-        # Add V(D)J to log
-        results['log']['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
-        results['log']['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
-        results['log']['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
-        results['log']['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
-        results['log']['READS'] = len(records)
-        
-        # Checking for preclone failure and assign clones
-        clones = clone_func(records, **clone_args) if args['pass'] else None
-        if clones is not None:
-            results['clones'] = clones
-            results['pass'] = True
-            results['log']['CLONES'] = len(clones)
-        else:
-            results['log']['CLONES'] = 0
-
-        # Feed results to result queue
-        result_queue.put(results)
-
+    try:
+        # Iterator over data queue until sentinel object reached
+        for args in iter(data_queue.get, None):
+            # Check status
+            #print "WORK", status.value, args['id']
+            if not status.value:
+                result_queue.put(None)
+                return None
+            
+            records = args['records']
+            # Define result dictionary for iteration
+            results = {'id':args['id'],
+                       'records':records,
+                       'clones':None,
+                       'pass':False,
+                       'log':OrderedDict([('ID', args['id'])])}
+            
+            # Add V(D)J to log
+            results['log']['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
+            results['log']['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
+            results['log']['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
+            results['log']['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
+            results['log']['READS'] = len(records)
+            
+            # Checking for preclone failure and assign clones
+            clones = clone_func(records, **clone_args) if args['pass'] else None
+            if clones is not None:
+                results['clones'] = clones
+                results['pass'] = True
+                results['log']['CLONES'] = len(clones)
+            else:
+                results['log']['CLONES'] = 0
+    
+            # Feed results to result queue
+            result_queue.put(results)
+    except:
+        status.value = False
+        raise
+    
     return None
 
 
-def collectQueue(result_queue, collect_dict, db_file, out_args):
+def collectQueue(status, result_queue, collect_dict, db_file, out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
     Arguments: 
+    status = a multiprocessing.Value boolean controlling whether processing continues
+             if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
     result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
@@ -232,85 +255,203 @@ def collectQueue(result_queue, collect_dict, db_file, out_args):
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
-    # Count records and define output format 
-    out_type = getFileType(db_file) if out_args['out_type'] is None \
-               else out_args['out_type']
-    result_count = countDbFile(db_file)
-    
-    # Defined successful output handle
-    pass_handle = getOutputHandle(db_file, 
-                                  out_label='clone-pass', 
-                                  out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_type)
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
-    
-    # Defined failed alignment output handle
-    if out_args['clean']:   
-        fail_handle = None
-        fail_writer = None
-    else:  
-        fail_handle = getOutputHandle(db_file, 
-                                      out_label='clone-fail', 
+    try:
+        # Count records and define output format 
+        out_type = getFileType(db_file) if out_args['out_type'] is None \
+                   else out_args['out_type']
+        result_count = countDbFile(db_file)
+        
+        # Defined successful output handle
+        pass_handle = getOutputHandle(db_file, 
+                                      out_label='clone-pass', 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
                                       out_type=out_type)
-        fail_writer = getDbWriter(fail_handle, db_file)
-
-    # Define log handle
-    if out_args['log_file'] is None:  
-        log_handle = None
-    else:  
-        log_handle = open(out_args['log_file'], 'w')
+        pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
         
-    # Iterator over results queue until sentinel object reached
-    start_time = time()
-    rec_count = clone_count = pass_count = fail_count = 0
-    for result in iter(result_queue.get, None): 
-        # Print progress for previous iteration and update record count
-        printProgress(rec_count, result_count, 0.05, start_time) 
-        rec_count += len(result['records'])
-        
-        # Write passed and failed records
-        if result['pass']:
-            for clone in result['clones'].itervalues():
-                clone_count += 1
-                for i, rec in enumerate(clone):
-                    rec.annotations['CLONE'] = clone_count
-                    pass_writer.writerow(rec.toDict())
-                    pass_count += 1
-                    result['log']['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
-
-        else:
-            for i, rec in enumerate(result['records']):
-                fail_writer.writerow(rec.toDict())
-                fail_count += 1
-                result['log']['CLONE0-%i' % (i + 1)] = str(rec.junction)
+        # Defined failed alignment output handle
+        if out_args['clean']:   
+            fail_handle = None
+            fail_writer = None
+        else:  
+            fail_handle = getOutputHandle(db_file, 
+                                          out_label='clone-fail', 
+                                          out_dir=out_args['out_dir'], 
+                                          out_name=out_args['out_name'], 
+                                          out_type=out_type)
+            fail_writer = getDbWriter(fail_handle, db_file)
+    
+        # Define log handle
+        if out_args['log_file'] is None:  
+            log_handle = None
+        else:  
+            log_handle = open(out_args['log_file'], 'w')
+  
+        # Iterator over results queue until sentinel object reached
+        start_time = time()
+        rec_count = clone_count = pass_count = fail_count = 0
+        for result in iter(result_queue.get, None):
+            # Check status
+            #print "COLLECT", status.value, result['id']
+            if not status.value:  return None
+            
+            # Print progress for previous iteration and update record count
+            printProgress(rec_count, result_count, 0.05, start_time) 
+            rec_count += len(result['records'])
+            
+            # Write passed and failed records
+            if result['pass']:
+                for clone in result['clones'].itervalues():
+                    clone_count += 1
+                    for i, rec in enumerate(clone):
+                        rec.annotations['CLONE'] = clone_count
+                        pass_writer.writerow(rec.toDict())
+                        pass_count += 1
+                        result['log']['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
+    
+            else:
+                for i, rec in enumerate(result['records']):
+                    fail_writer.writerow(rec.toDict())
+                    fail_count += 1
+                    result['log']['CLONE0-%i' % (i + 1)] = str(rec.junction)
+                    
+            # Write log
+            printLog(result['log'], handle=log_handle)
                 
-        # Write log
-        printLog(result['log'], handle=log_handle)
- 
-    # Print total counts
-    printProgress(rec_count, result_count, 0.05, start_time) 
-
-    # Update return list
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['CLONES'] = clone_count
-    log['RECORDS'] = rec_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    collect_dict['log'] = log
-    collect_dict['out_files'] = [pass_handle.name]
-
-    # Close file handles
-    pass_handle.close()
-    if fail_handle is not None:  fail_handle.close()
-    if log_handle is not None:  log_handle.close()
-        
+        # Print total counts
+        printProgress(rec_count, result_count, 0.05, start_time) 
+    
+        # Update return list
+        log = OrderedDict()
+        log['OUTPUT'] = os.path.basename(pass_handle.name)
+        log['CLONES'] = clone_count
+        log['RECORDS'] = rec_count
+        log['PASS'] = pass_count
+        log['FAIL'] = fail_count
+        collect_dict['log'] = log
+        collect_dict['out_files'] = [pass_handle.name]
+    
+        # Close file handles
+        pass_handle.close()
+        if fail_handle is not None:  fail_handle.close()
+        if log_handle is not None:  log_handle.close()
+    except:
+        status.value = False
+        raise
+    
     return None
 
 
+def manageProcesses(feed_func, work_func, collect_func, 
+                    feed_args={}, work_args={}, collect_args={}, 
+                    nproc=None, queue_size=None):
+    """
+    Manages feeder, worker and collector processes
+    
+    Arguments:
+    feed_func = the data Queue feeder function
+    work_func = the worker function
+    collect_func = the result Queue collector function
+    feed_args = a dictionary of arguments to pass to feed_func
+    work_args = a dictionary of arguments to pass to work_func
+    collect_args = a dictionary of arguments to pass to collect_func
+    nproc = the number of processQueue processes;
+            if None defaults to the number of CPUs
+    queue_size = maximum size of the argument queue;
+                 if None defaults to 2*nproc    
+    
+    Returns:
+    a dictionary of collector results
+    """
+    # Raise KeyboardInterrupt
+    def _sigint_handler(signum, frame):
+        raise SystemExit
+
+    # Terminate processes
+    def _terminate():
+        # Terminate feeders
+        feeder.terminate()
+        feeder.join()
+        # Terminate workers
+        for w in workers:
+            w.terminate()
+            w.join()
+        # Terminate collector
+        collector.terminate()
+        collector.join
+        # Shutdown manager
+        manager.shutdown()
+
+    # Raise KeyboardInterrupt on termination signal
+    signal.signal(signal.SIGTERM, _sigint_handler)
+        
+    # Define number of processes and queue size
+    if nproc is None:  nproc = mp.cpu_count()
+    if queue_size is None:  queue_size = nproc * 2
+    
+    # Define shared data objects
+    manager = mp.Manager()
+    collect_dict = manager.dict()
+    data_queue = mp.Queue(queue_size)
+    result_queue = mp.Queue(queue_size)
+    status = mp.Value(c_bool, True)
+
+    try:  
+        # Initiate feeder process
+        feeder = mp.Process(target=feed_func, 
+                            args=(status, data_queue, nproc), 
+                            kwargs=feed_args)
+        feeder.start()
+    
+        # Initiate processQueue processes
+        workers = []
+        for __ in range(nproc):
+            w = mp.Process(target=work_func, 
+                           args=(status, data_queue, result_queue), 
+                           kwargs=work_args) 
+            w.start()
+            workers.append(w)
+    
+        # Initiate collector process
+        collector = mp.Process(target=collectQueue, 
+                               args=(status, result_queue, collect_dict), 
+                               kwargs=collect_args)
+        collector.start()
+    
+        # Wait for feeder to finish
+        feeder.join()
+        if feeder.exitcode == 1:  raise Exception('Exception in feeder process')
+        
+        # Wait for worker processes to finish and add sentinel to result_queue
+        for w in workers:  
+            w.join()
+            if w.exitcode == 1:  raise Exception('Exception in worker process')
+        result_queue.put(None)
+        
+        # Wait for collector process to finish
+        collector.join()
+        if collector.exitcode == 1:  raise Exception('Exception in collector process')
+
+        # Copy collector results and shutdown manager
+        result = dict(collect_dict)
+        manager.shutdown()
+    except (KeyboardInterrupt, SystemExit):
+        sys.stderr.write('Terminating\n')
+        _terminate()
+        sys.exit()
+    except Exception as e:
+        sys.stderr.write('Error:  %s\n' % e)
+        _terminate()
+        sys.exit()
+    except:
+        sys.stderr.write('Error:  Exiting with unknown exception\n')
+        _terminate()
+        sys.exit()
+
+    return result
+
+
+    
 def defineClones(db_file, group_func, clone_func, group_args={}, clone_args={}, 
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
@@ -346,61 +487,31 @@ def defineClones(db_file, group_func, clone_func, group_args={}, clone_args={},
     log['NPROC'] = nproc
     printLog(log)
     
-    # Define shared data objects
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
-
-    try:  
-        # Initiate feeder process
-        feeder = mp.Process(target=feedQueue, args=(data_queue, nproc, db_file, 
-                                                    group_func, group_args))
-        feeder.start()
+    # Define feeder function and arguments
+    feed_func = feedQueue
+    feed_args = {'db_file': db_file,
+                 'group_func': group_func, 
+                 'group_args': group_args}
+    # Define worker function and arguments
+    work_func = processQueue
+    work_args = {'clone_func': clone_func, 
+                 'clone_args': clone_args,
+                 'separator': out_args['separator']}
+    # Define collector function and arguments
+    collect_func = collectQueue
+    collect_args = {'db_file': db_file,
+                    'out_args': out_args}
     
-        # Initiate processQueue processes
-        workers = []
-        for __ in range(nproc):
-            w = mp.Process(target=processQueue, args=(data_queue, result_queue, 
-                                                      clone_func, clone_args, 
-                                                      out_args['delimiter']))
-            w.start()
-            workers.append(w)
-    
-        # Initiate collector process
-        collector = mp.Process(target=collectQueue, args=(result_queue, collect_dict, db_file, 
-                                                          out_args))
-        collector.start()
-    
-        # Wait for feeder and worker processes to finish, add sentinel to result_queue
-        feeder.join()
-        for w in workers:  w.join()
-        result_queue.put(None)
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
         
-        # Wait for collector process to finish and shutdown manager
-        collector.join()
-        log = collect_dict['log']
-        out_files = collect_dict['out_files']
-        manager.shutdown()
+    # Print log
+    result['log']['END'] = 'DefineClones'
+    printLog(result['log'])
     
-        # Print log
-        log['END'] = 'DefineClones'
-        printLog(log)
-        
-        return out_files
-    
-    except Exception as e:
-        print "EXCEPTION: %s" % e
-        feeder.terminate()
-        feeder.join()
-        for w in workers:
-            w.terminate()
-            w.join()
-        collector.terminate()
-        collector.join
-        manager.shutdown()
-        
-        return None
+    return result['out_files']
 
 
 def getArgParser():
