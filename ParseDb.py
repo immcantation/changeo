@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.26'
+__date__      = '2013.12.2'
 
 # Imports
 import os, sys
@@ -25,8 +25,12 @@ from IgCore import flattenAnnotation
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import default_delimiter, default_out_args
 from IgCore import getCommonArgParser, parseCommonArgs
-from DbCore import default_id_field, default_seq_field
 from DbCore import countDbFile, readDbFile, getDbWriter
+
+# Defaults
+default_id_field = 'SEQUENCE_ID'
+default_seq_field = 'SEQUENCE_GAP'
+default_germ_field = 'GERMLINE_GAP_D_MASK'
 
 
 def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
@@ -61,8 +65,107 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
     return seq_record
 
 
-def createDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field, 
-               meta_fields=None, out_args=default_out_args):
+# >>> SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
+# >>> SHOULD ALLOW FOR GROUPING FIELDS
+def convertDbClip(db_file, id_field=default_id_field, seq_field=default_seq_field, 
+                  germ_field=default_germ_field, cluster_field=None, 
+                  meta_fields=None, out_args=default_out_args):
+    """
+    Builds fasta files from database records
+
+    Arguments: 
+    db_file = the database file name
+    id_field = the field containing identifiers
+    seq_field = the field containing sample sequences
+    germ_field = the field containing germline sequences
+    cluster_field = the field containing clonal groupings
+                    if None write the germline for each record
+    meta_fields = a list of fields to add to sequence annotations
+    out_args = common output argument dictionary from parseCommonArgs
+                    
+    Returns: 
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'fasta'
+    log['FILE'] = os.path.basename(db_file)
+    log['ID_FIELD'] = id_field
+    log['SEQ_FIELD'] = seq_field
+    log['GERM_FIELD'] = germ_field
+    log['CLUSTER_FIELD'] = cluster_field
+    if meta_fields is not None:  log['META_FIELDS'] = ','.join(meta_fields)
+    printLog(log)
+    
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
+                                  out_name=out_args['out_name'], out_type='clip')
+    # Count records
+    result_count = countDbFile(db_file)
+    
+    # Iterate over records
+    start_time = time()
+    rec_count = germ_count = pass_count = fail_count = 0
+    cluster_last = None
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+        
+        # Update cluster ID
+        cluster = rec.get(cluster_field, None)
+        
+        # Get germline SeqRecord when needed
+        if cluster_field is None:
+            germ = getDbSeqRecord(rec, id_field, germ_field, meta_fields, 
+                                  delimiter=out_args['delimiter'])
+            germ.id = '>' + germ.id
+        elif cluster != cluster_last:
+            germ = getDbSeqRecord(rec, cluster_field, germ_field, 
+                                  delimiter=out_args['delimiter'])
+            germ.id = '>' + germ.id            
+        else:
+            germ = None
+
+        # Get read SeqRecord
+        seq = getDbSeqRecord(rec, id_field, seq_field, meta_fields, 
+                             delimiter=out_args['delimiter'])
+        
+        # Write germline
+        if germ is not None:
+            germ_count += 1
+            SeqIO.write(germ, pass_handle, 'fasta')
+        
+        # Write sequences
+        if seq is not None:
+            pass_count += 1
+            SeqIO.write(seq, pass_handle, 'fasta')
+        else:
+            fail_count += 1
+        
+        # Set last cluster ID
+        cluster_last = cluster
+        
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['GERMLINES'] = germ_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+ 
+    return pass_handle.name
+
+
+def convertDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field, 
+                 meta_fields=None, out_args=default_out_args):
     """
     Builds fasta files from database records
 
@@ -213,14 +316,33 @@ def getArgParser():
                                        formatter_class=ArgumentDefaultsHelpFormatter,
                                        help='Creates a fasta file from database records')
     parser_seq.add_argument('--if', action='store', dest='id_field', 
-                              default=default_id_field,
-                              help='The name of the field containing identifiers')
+                            default=default_id_field,
+                            help='The name of the field containing identifiers')
     parser_seq.add_argument('--sf', action='store', dest='seq_field', 
-                              default=default_seq_field,
-                              help='The name of the field containing sequences')
+                            default=default_seq_field,
+                            help='The name of the field containing sequences')
     parser_seq.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
-                              help='List of annotation fields to add to the sequence description')
-    parser_seq.set_defaults(func=createDbSeq)
+                            help='List of annotation fields to add to the sequence description')
+    parser_seq.set_defaults(func=convertDbSeq)
+    
+    # Subparser to convert database entries to clip-fasta file
+    parser_clip = subparsers.add_parser('clip', parents=[parser_parent], 
+                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        help='Creates a fasta file from database records')
+    parser_clip.add_argument('--if', action='store', dest='id_field', 
+                             default=default_id_field,
+                             help='The name of the field containing identifiers')
+    parser_clip.add_argument('--sf', action='store', dest='seq_field',
+                             default=default_seq_field,
+                             help='The name of the field containing reads')
+    parser_clip.add_argument('--gf', action='store', dest='germ_field',
+                             default=default_germ_field,
+                             help='The name of the field containing germline sequences')
+    parser_clip.add_argument('--cf', action='store', dest='cluster_field', default=None,
+                             help='The name of the field containing containing sorted clone IDs')
+    parser_clip.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
+                             help='List of annotation fields to add to the sequence description')
+    parser_clip.set_defaults(func=convertDbClip)
 
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 

@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.11.10'
+__date__      = '2013.12.2'
 
 # Imports
 import os, signal, sys
@@ -42,6 +42,37 @@ os.chdir(py_wd)
 # Defaults
 default_distance = 5
 
+class DbData:
+    """
+    A class defining data objects for worker processes
+    """
+    def __init__(self, key, records):
+        self.id = key
+        self.records = records
+        self.valid = (key is not None and records is not None)
+        
+    def __nonzero__(self): 
+        return self.valid
+
+
+class DbResult:
+    """
+    A class defining result objects for collector processes
+    """
+    def __init__(self, data):
+        self.id = data.id
+        self.records = data.records
+        self.results = None
+        self.valid = False
+        self.log = OrderedDict([('ID', data.id)])
+        #if isinstance(values, list):
+        #    for v in values:  setattr(self, v, None)
+        #else:
+        #    setattr(self, values, None)
+            
+    def __nonzero__(self): 
+        return self.valid
+
 
 def indexJunctions(db_iter, fields=None, mode='allele', action='first', 
                    separator=default_separator):
@@ -61,6 +92,7 @@ def indexJunctions(db_iter, fields=None, mode='allele', action='first',
     Returns: 
     a dictionary of {(V, J, junction length):[IgRecords]}
     """
+    # Define functions for grouping keys
     if mode == 'allele' and fields is None:
         def _get_key(rec, act):
             return (rec.getVAllele(act), rec.getJAllele(act), len(rec.junction))
@@ -140,15 +172,14 @@ def distanceClones(records, distance=default_distance):
     return clone_dict
 
 
-def feedQueue(status, data_queue, nproc, db_file, group_func, group_args={}):
+def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     """
     Feeds the data queue with Ig records
 
     Arguments: 
-    status = a multiprocessing.Value boolean controlling whether processing continues
-             if False exit process
+    alive = a multiprocessing.Value boolean controlling whether processing continues
+            if False exit process
     data_queue = a multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
     db_file = the Ig record database file
     group_func = the function to use for assigning preclones
     group_args = a dictionary of arguments to pass to group_func
@@ -156,37 +187,51 @@ def feedQueue(status, data_queue, nproc, db_file, group_func, group_args={}):
     Returns: 
     None
     """
+    # Open input file and perform grouping
     try:
-        # Iterate over Ig records and feed data queue
+        # Iterate over Ig records and assign groups
         db_iter = readDbFile(db_file)
         clone_dict = group_func(db_iter, **group_args)
-        
-        #db_iter = readDbFile(db_file)
-        for k, v in clone_dict.iteritems():
-            # Check status
-            #print "FEED", status.value, k
-            if not status.value:  break
-            # Feed queue
-            group_pass = False if k is None else True
-            data_queue.put({'id':k, 'records':v, 'pass':group_pass})
     except:
-        status.value = False
+        #sys.stderr.write('Exception in feeder grouping step\n')
+        alive.value = False
         raise
-    finally:
-        # Add sentinel object for each processQueue process
-        for __ in range(nproc):
-            data_queue.put(None)
     
+    # Add groups to data queue
+    try:
+        #print 'START FEED', alive.value
+        # Iterate over groups and feed data queue
+        clone_iter = clone_dict.iteritems()
+        while alive.value:
+            # Get data from queue
+            if data_queue.full():  continue
+            else:  data = next(clone_iter, None)
+            # Exit upon reaching end of iterator
+            if data is None:  break
+            #print "FEED", alive.value, k
+            
+            # Feed queue
+            data_queue.put(DbData(*data))
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        #sys.stderr.write('Exception in feeder queue feeding step\n')
+        alive.value = False
+        raise
+
     return None
 
 
-def processQueue(status, data_queue, result_queue, clone_func, clone_args, separator=default_separator):
+def processQueue(alive, data_queue, result_queue, clone_func, clone_args, 
+                 separator=default_separator):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
-    status = a multiprocessing.Value boolean controlling whether processing continues
-             if False exit process
+    alive = a multiprocessing.Value boolean controlling whether processing continues
+            if False exit process
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     clone_func = the function to call for clonal assignment
@@ -197,54 +242,57 @@ def processQueue(status, data_queue, result_queue, clone_func, clone_args, separ
     None
     """
     try:
+        #print 'START WORK', alive.value
         # Iterator over data queue until sentinel object reached
-        for args in iter(data_queue.get, None):
-            # Check status
-            #print "WORK", status.value, args['id']
-            if not status.value:
-                result_queue.put(None)
-                return None
-            
-            records = args['records']
-            # Define result dictionary for iteration
-            results = {'id':args['id'],
-                       'records':records,
-                       'clones':None,
-                       'pass':False,
-                       'log':OrderedDict([('ID', args['id'])])}
-            
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
+            #print "WORK", alive.value, data['id']
+
+            # Define result object for iteration and get data records
+            result = DbResult(data)
+            records = data.records
+             
             # Add V(D)J to log
-            results['log']['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
-            results['log']['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
-            results['log']['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
-            results['log']['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
-            results['log']['READS'] = len(records)
-            
+            result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
+            result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
+            result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
+            result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
+            result.log['READS'] = len(records)
+             
             # Checking for preclone failure and assign clones
-            clones = clone_func(records, **clone_args) if args['pass'] else None
+            clones = clone_func(records, **clone_args) if data else None
             if clones is not None:
-                results['clones'] = clones
-                results['pass'] = True
-                results['log']['CLONES'] = len(clones)
+                result.results = clones
+                result.valid = True
+                result.log['CLONES'] = len(clones)
             else:
-                results['log']['CLONES'] = 0
-    
+                result.log['CLONES'] = 0
+  
             # Feed results to result queue
-            result_queue.put(results)
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
     except:
-        status.value = False
+        #sys.stderr.write('Exception in worker\n')
+        alive.value = False
         raise
     
     return None
 
 
-def collectQueue(status, result_queue, collect_dict, db_file, out_args):
+def collectQueue(alive, result_queue, collect_dict, db_file, out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
     Arguments: 
-    status = a multiprocessing.Value boolean controlling whether processing continues
-             if False exit process
+    alive = a multiprocessing.Value boolean controlling whether processing continues
+            if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
     result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
@@ -255,6 +303,7 @@ def collectQueue(status, result_queue, collect_dict, db_file, out_args):
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
+    # Open output files
     try:
         # Count records and define output format 
         out_type = getFileType(db_file) if out_args['out_type'] is None \
@@ -286,41 +335,59 @@ def collectQueue(status, result_queue, collect_dict, db_file, out_args):
             log_handle = None
         else:  
             log_handle = open(out_args['log_file'], 'w')
-  
+    except:
+        #sys.stderr.write('Exception in collector file opening step\n')
+        alive.value = False
+        raise
+
+    # Get results from queue and write to files
+    try:
         # Iterator over results queue until sentinel object reached
         start_time = time()
         rec_count = clone_count = pass_count = fail_count = 0
-        for result in iter(result_queue.get, None):
-            # Check status
-            #print "COLLECT", status.value, result['id']
-            if not status.value:  return None
+        while alive.value:
+            # Get result from queue
+            if result_queue.empty():  continue
+            else:  result = result_queue.get()
+            # Exit upon reaching sentinel
+            if result is None:  break
+            #print "COLLECT", alive.value, result['id']
             
             # Print progress for previous iteration and update record count
             printProgress(rec_count, result_count, 0.05, start_time) 
-            rec_count += len(result['records'])
+            rec_count += len(result.records)
             
             # Write passed and failed records
-            if result['pass']:
-                for clone in result['clones'].itervalues():
+            if result:
+                for clone in result.results.itervalues():
                     clone_count += 1
                     for i, rec in enumerate(clone):
                         rec.annotations['CLONE'] = clone_count
                         pass_writer.writerow(rec.toDict())
                         pass_count += 1
-                        result['log']['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
+                        result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
     
             else:
-                for i, rec in enumerate(result['records']):
+                for i, rec in enumerate(result.records):
                     fail_writer.writerow(rec.toDict())
                     fail_count += 1
-                    result['log']['CLONE0-%i' % (i + 1)] = str(rec.junction)
+                    result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
                     
             # Write log
-            printLog(result['log'], handle=log_handle)
-                
+            printLog(result.log, handle=log_handle)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+        
         # Print total counts
-        printProgress(rec_count, result_count, 0.05, start_time) 
-    
+        printProgress(rec_count, result_count, 0.05, start_time)
+
+        # Close file handles
+        pass_handle.close()
+        if fail_handle is not None:  fail_handle.close()
+        if log_handle is not None:  log_handle.close()
+                
         # Update return list
         log = OrderedDict()
         log['OUTPUT'] = os.path.basename(pass_handle.name)
@@ -330,15 +397,11 @@ def collectQueue(status, result_queue, collect_dict, db_file, out_args):
         log['FAIL'] = fail_count
         collect_dict['log'] = log
         collect_dict['out_files'] = [pass_handle.name]
-    
-        # Close file handles
-        pass_handle.close()
-        if fail_handle is not None:  fail_handle.close()
-        if log_handle is not None:  log_handle.close()
     except:
-        status.value = False
+        #sys.stderr.write('Exception in collector result processing step\n')
+        alive.value = False
         raise
-    
+
     return None
 
 
@@ -364,11 +427,12 @@ def manageProcesses(feed_func, work_func, collect_func,
     a dictionary of collector results
     """
     # Raise KeyboardInterrupt
-    def _sigint_handler(signum, frame):
+    def _signalHandler(signum, frame):
         raise SystemExit
 
     # Terminate processes
     def _terminate():
+        sys.stderr.write('Terminating child processes...')
         # Terminate feeders
         feeder.terminate()
         feeder.join()
@@ -381,62 +445,67 @@ def manageProcesses(feed_func, work_func, collect_func,
         collector.join
         # Shutdown manager
         manager.shutdown()
-
-    # Raise KeyboardInterrupt on termination signal
-    signal.signal(signal.SIGTERM, _sigint_handler)
+        sys.stderr.write('  Done.\n')
+    
+    # Raise SystemExit upon termination signal
+    signal.signal(signal.SIGTERM, _signalHandler)
         
     # Define number of processes and queue size
     if nproc is None:  nproc = mp.cpu_count()
     if queue_size is None:  queue_size = nproc * 2
     
-    # Define shared data objects
+    # Define shared child process keep alive flag
+    alive = mp.Value(c_bool, True)
+    
+    # Initiate manager and define shared data objects
     manager = mp.Manager()
+    data_queue = manager.Queue(queue_size)
+    result_queue = manager.Queue(queue_size)
     collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
-    status = mp.Value(c_bool, True)
 
     try:  
         # Initiate feeder process
         feeder = mp.Process(target=feed_func, 
-                            args=(status, data_queue, nproc), 
+                            args=(alive, data_queue), 
                             kwargs=feed_args)
+        #feeder.daemon = True
         feeder.start()
     
         # Initiate processQueue processes
         workers = []
         for __ in range(nproc):
             w = mp.Process(target=work_func, 
-                           args=(status, data_queue, result_queue), 
+                           args=(alive, data_queue, result_queue), 
                            kwargs=work_args) 
+            #w.daemon = True
             w.start()
             workers.append(w)
     
         # Initiate collector process
         collector = mp.Process(target=collectQueue, 
-                               args=(status, result_queue, collect_dict), 
+                               args=(alive, result_queue, collect_dict), 
                                kwargs=collect_args)
+        #collector.daemon = True
         collector.start()
     
         # Wait for feeder to finish
         feeder.join()
-        if feeder.exitcode == 1:  raise Exception('Exception in feeder process')
+        # Add sentinel object to data queue for each worker process
+        for __ in range(nproc):  data_queue.put(None)
         
-        # Wait for worker processes to finish and add sentinel to result_queue
-        for w in workers:  
-            w.join()
-            if w.exitcode == 1:  raise Exception('Exception in worker process')
+        # Wait for worker processes to finish
+        for w in workers:  w.join()
+        # Add sentinel to result queue
         result_queue.put(None)
         
         # Wait for collector process to finish
         collector.join()
-        if collector.exitcode == 1:  raise Exception('Exception in collector process')
 
         # Copy collector results and shutdown manager
         result = dict(collect_dict)
         manager.shutdown()
     except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write('Terminating\n')
+        sys.stderr.write('Exit signal received\n')
         _terminate()
         sys.exit()
     except Exception as e:
@@ -447,7 +516,12 @@ def manageProcesses(feed_func, work_func, collect_func,
         sys.stderr.write('Error:  Exiting with unknown exception\n')
         _terminate()
         sys.exit()
-
+    else:
+        if not alive.value:
+            sys.stderr.write('Error:  Exiting due to child process error\n')
+            _terminate()
+            sys.exit()
+    
     return result
 
 
@@ -472,10 +546,6 @@ def defineClones(db_file, group_func, clone_func, group_args={}, clone_args={},
     Returns:
     a list of successful output file names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'DefineClones'
@@ -554,6 +624,7 @@ def getArgParser():
     parser_dist.set_defaults(clone_func=distanceClones)
         
     return parser
+
 
 
 if __name__ == '__main__':

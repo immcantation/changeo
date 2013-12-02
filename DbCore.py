@@ -15,8 +15,6 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # Defaults
-default_id_field = 'ID'
-default_seq_field = 'SEQ'
 
 
 class IgRecord:
