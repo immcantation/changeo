@@ -13,8 +13,3 @@ pandas 0.12
 Biopython 1.59
 Rpy2 2.30
 R 3.0
-
-COMPILE INSTRUCTIONS
--------------------------------------------------------------------------------
-gcc -c -fPIC SHMDistance.c -o SHMDistance.o
-gcc -shared -Wl,-soname,SHMDistance.so -o SHMDistance.so SHMDistance.o 

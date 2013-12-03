@@ -1,0 +1,4 @@
+COMPILING SHM DISTANCE FUNCTION
+-------------------------------------------------------------------------------
+gcc -c -fPIC SHMDistance.c -o SHMDistance.o
+gcc -shared -Wl,-soname,SHMDistance.so -o SHMDistance.so SHMDistance.o 

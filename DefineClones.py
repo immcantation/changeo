@@ -42,6 +42,7 @@ os.chdir(py_wd)
 # Defaults
 default_distance = 5
 
+
 class DbData:
     """
     A class defining data objects for worker processes
@@ -342,6 +343,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args):
 
     # Get results from queue and write to files
     try:
+        #print 'START COLLECT', alive.value
         # Iterator over results queue until sentinel object reached
         start_time = time()
         rec_count = clone_count = pass_count = fail_count = 0
@@ -427,7 +429,7 @@ def manageProcesses(feed_func, work_func, collect_func,
     a dictionary of collector results
     """
     # Raise KeyboardInterrupt
-    def _signalHandler(signum, frame):
+    def _signalHandler(s, f):
         raise SystemExit
 
     # Terminate processes
