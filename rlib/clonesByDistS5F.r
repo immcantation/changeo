@@ -99,8 +99,6 @@ getClones <- function(Strings, Thresh) {
                             
                             return( c(pos1, pos2, posMiddle, posN_1, posN) )
                             })
-  
-  nameStrings = paste(rep("A",N),1:N,sep="")
   t<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
                                                           dist_seq_fast(Clone1[,i],Clone1[,j])
                                                     })))
