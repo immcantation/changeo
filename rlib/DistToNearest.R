@@ -15,8 +15,6 @@ dist_seq_fast<-function(seq1,seq2){
     if(nchar(i)==1) {
       retVal <- retVal + mean(S5F_Substitution[i,j],S5F_Substitution[j,i],na.rm=T)
     } else {
-      print(i)
-      print(j)
       retVal <- retVal + mean( S5F_Substitution[substr(j,3,3),i], S5F_Substitution[substr(i,3,3),j], na.rm=T )
     }    
   })
@@ -40,12 +38,12 @@ distToNearest <- function(file, genotyped=F, grouping='first') {
 
 	# Recreate V column based on grouping method
 	if(grouping == 'first') {
-		V <- sapply(clip[,v_col], function(x){
+		V <- as.character(sapply(clip[,v_col], function(x){
 					return(unique(na.omit(str_extract(strsplit(x,',')[[1]][1], 
-													perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) })
-		J <- sapply(clip[,j_col], function(x){
+													perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) }))
+		J <- as.character(sapply(clip[,j_col], function(x){
 					return(unique(na.omit(str_extract(strsplit(x,',')[[1]][1], 
-													perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) })
+													perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) }))
 	} else if(grouping == 'set') {
 		stop("Error: Set grouping is not yet implemented\n")
 	} else {
@@ -57,6 +55,7 @@ distToNearest <- function(file, genotyped=F, grouping='first') {
 	
 	# Iterate over rows
 	for(i in 1:nrow(clip)) {
+    print(i)
 		if(is.na(clip[i,dist])) {
 			indices = which(V==V[i] & J==J[i] & clip[,junc_len]==clip[i,junc_len])
       if(length(indices)>1) {
