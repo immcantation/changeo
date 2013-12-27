@@ -23,7 +23,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from DbCore import countDbFile, readDbFile, getDbWriter
+from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 
 # R imports
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
@@ -45,34 +45,56 @@ default_distance = 5
 
 class DbData:
     """
-    A class defining data objects for worker processes
+    A class defining IgRecord data objects for worker processes
     """
+    # Instantiation
     def __init__(self, key, records):
         self.id = key
-        self.records = records
+        self.data = records
         self.valid = (key is not None and records is not None)
-        
+    
+    # Boolean evaluation
     def __nonzero__(self): 
         return self.valid
+    
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.data, IgRecord):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.data)
 
 
 class DbResult:
     """
-    A class defining result objects for collector processes
+    A class defining IgRecord result objects for collector processes
     """
-    def __init__(self, data):
-        self.id = data.id
-        self.records = data.records
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
         self.results = None
         self.valid = False
-        self.log = OrderedDict([('ID', data.id)])
+        self.log = OrderedDict([('ID', key)])
         #if isinstance(values, list):
         #    for v in values:  setattr(self, v, None)
         #else:
         #    setattr(self, values, None)
             
+    # Boolean evaluation
     def __nonzero__(self): 
         return self.valid
+    
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.results, IgRecord):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.results)
 
 
 def indexJunctions(db_iter, fields=None, mode='allele', action='first', 
@@ -225,8 +247,7 @@ def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     return None
 
 
-def processQueue(alive, data_queue, result_queue, clone_func, clone_args, 
-                 separator=default_separator):
+def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -237,7 +258,6 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args,
     result_queue = a multiprocessing.Queue to hold processed results
     clone_func = the function to call for clonal assignment
     clone_args = a dictionary of arguments to pass to clone_func
-    separator = the delimiter separating values within a field 
 
     Returns: 
     None
@@ -254,8 +274,8 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args,
             #print "WORK", alive.value, data['id']
 
             # Define result object for iteration and get data records
-            result = DbResult(data)
-            records = data.records
+            records = data.data
+            result = DbResult(data.id, records)
              
             # Add V(D)J to log
             result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
@@ -357,7 +377,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args):
             
             # Print progress for previous iteration and update record count
             printProgress(rec_count, result_count, 0.05, start_time) 
-            rec_count += len(result.records)
+            rec_count += len(result.data)
             
             # Write passed and failed records
             if result:
@@ -370,7 +390,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args):
                         result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
     
             else:
-                for i, rec in enumerate(result.records):
+                for i, rec in enumerate(result.data):
                     fail_writer.writerow(rec.toDict())
                     fail_count += 1
                     result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
@@ -484,7 +504,7 @@ def manageProcesses(feed_func, work_func, collect_func,
             workers.append(w)
     
         # Initiate collector process
-        collector = mp.Process(target=collectQueue, 
+        collector = mp.Process(target=collect_func, 
                                args=(alive, result_queue, collect_dict), 
                                kwargs=collect_args)
         #collector.daemon = True
@@ -567,8 +587,7 @@ def defineClones(db_file, group_func, clone_func, group_args={}, clone_args={},
     # Define worker function and arguments
     work_func = processQueue
     work_args = {'clone_func': clone_func, 
-                 'clone_args': clone_args,
-                 'separator': out_args['separator']}
+                 'clone_args': clone_args}
     # Define collector function and arguments
     collect_func = collectQueue
     collect_args = {'db_file': db_file,
@@ -626,7 +645,6 @@ def getArgParser():
     parser_dist.set_defaults(clone_func=distanceClones)
         
     return parser
-
 
 
 if __name__ == '__main__':
