@@ -9,15 +9,29 @@ library(stringr)
 load("S5F_Substitution.RData")
 load("Old_Symmetric_Distance.RData")
 
+#' String to Character
+#'
+#' @param   String    a string
+#' @return  a vector of each character
 s2c<-function(String){
   N<-nchar(String)
   return(substring(String,1:N,1:N))
 }
 
+#' Get symmetric distance
+#'
+#' @param   seq1   the first nucleotide sequence
+#' @param   seq2   the second nucleotide sequence
+#' @return  distance between two sequences based on symmetric distance matrix
 old_dist_seq_fast<-function(seq1,seq2){
   sum(symmetric_distance_array[paste(seq1,seq2)])
 }
 
+#' Get S5F distance
+#'
+#' @param   seq1   the first nucleotide sequence
+#' @param   seq2   the second nucleotide sequence
+#' @return  distance between two sequences based on S5F model
 dist_seq_fast<-function(seq1,seq2){  
   retVal = 0
   sapply(1:length(seq1),function(x){
@@ -33,10 +47,22 @@ dist_seq_fast<-function(seq1,seq2){
   return(retVal)
 }
 
-distToNearest <- function(file, genotyped=F, grouping='first', dist="S5F") {
+#' Get distance to nearest sequence sharing same V/J/JuncLen
+#'
+#' @param   file        CLIP-DB file to read in
+#' @param   clip        CLIP dataframe if it has already been read in
+#' @param   genotyped   whether file is genotyped
+#' @param   grouping    'first' means first gene call is used
+#' @param   dist        'S5F' uses S5F distance function, anything else uses old function
+#' @return  CLIP dataframe with DIST_NEAREST column added
+distToNearest <- function(file="", clip=NA, genotyped=F, grouping='first', dist="S5F") {
 	
-	# Read input file into dataframe
-	clip <- read.delim(file, as.is=T)
+	if(file != "") {
+    # Read input file into dataframe
+	  clip <- read.delim(file, as.is=T)
+	} else if(!is.data.frame(clip)) {
+    stop('Must submit either Clip file or data frame')
+	}
 	# Create new column for distance to nearest neighbor
 	clip$DIST_NEIGHBOR = rep(NA, nrow(clip))
 	
@@ -66,7 +92,7 @@ distToNearest <- function(file, genotyped=F, grouping='first', dist="S5F") {
 	
 	# Iterate over rows
 	for(k in 1:nrow(clip)) {
-    if(k %% 100 == 0) { cat(k,"\t/\t",nrow(clip)) }
+    if(k %% 500 == 0) { cat(100*k/nrow(clip),"%\n") }
 		if(is.na(clip[k,dist])) {
 			indices = which(V==V[k] & J==J[k] & clip[,junc_len]==clip[k,junc_len])
       if(length(indices)>1) {
@@ -110,19 +136,3 @@ distToNearest <- function(file, genotyped=F, grouping='first', dist="S5F") {
 	return(clip)
 }
 
-setwd("/home/ng265/data/HIV")
-subjects = c("CP2","CP5","CP6","CP7","CP8","EC1","EC2","EC3","EC4","VC2")
-for(s in subjects) {
-  print(s)
-  assign(s,
-         distToNearest(paste0("allHIV_CLIP_T_",s,"_genotyped_clone-pass_germ.tab"),
-                       genotyped=T, dist=old_dist_seq_fast))
-}
-  
-opar <- par(no.readonly=T)
-pdf("oldDistsToNearest.pdf",15,16)
-par(mfrow=c(4,3))
-for(s in subjects){
-  hist(get(s)$DIST_NEIGHBOR, breaks=50, main=paste0("Distance to Nearest - ",s), xlab="Distance")
-}
-dev.off()
