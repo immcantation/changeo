@@ -16,8 +16,7 @@ from os import listdir, mkdir, path
 from zipfile import ZipFile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser, ArgumentDefaultsHelpForm    parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
-atter
+from argparse import ArgumentParser
 from itertools import izip
 
 # ChAnGEo imports
