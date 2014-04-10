@@ -1,14 +1,13 @@
 #!/usr/bin/env python
-##/usr/bin/env /usr/local/cluster/software/installation/python/Python-2.7/bin/python
 """
 Create CLIP tab-delimited file to store sequence alignment information
 """
 
 __author__    = 'Namita Gupta'
-__copyright__ = 'Copyright 2013, Kleinstein Lab, Yale University School of Medicine'
-__license__   = 'GPLv3'
-__version__   = '0.3'
-__date__      = '2014.01.24'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
+__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
+__version__   = '0.4.0'
+__date__      = '2014.4.10'
 
 # Imports
 import re
@@ -17,7 +16,8 @@ from os import listdir, mkdir, path
 from zipfile import ZipFile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpForm    parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
+atter
 from itertools import izip
 
 # ChAnGEo imports
@@ -25,8 +25,7 @@ from sys import path as syspath
 syspath.append(path.dirname(path.realpath(__file__)))
 from IgCore import default_out_args, parseAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
+
 
 # Default parameters
 default_V_regex = re.compile(r"(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)")

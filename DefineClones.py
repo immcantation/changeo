@@ -4,10 +4,10 @@ Assign Ig sequences into clones
 """
 
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed Uduman'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.12.2'
+__date__      = '2014.4.10'
 
 # Imports
 import os, signal, sys
