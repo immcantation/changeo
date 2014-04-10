@@ -629,7 +629,7 @@ def getArgParser():
     parser_dist = subparsers.add_parser('dist', parents=[parser_parent],
                                         formatter_class=ArgumentDefaultsHelpFormatter,
                                         help='Defines clones V assignment, J assignment and junction \
-                                              length with S5F distance model')
+                                              length with old substitution distance model')
     parser_dist.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_dist.add_argument('--mode', action='store', dest='mode', 
