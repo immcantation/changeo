@@ -16,7 +16,7 @@ from os import listdir, mkdir, path
 from zipfile import ZipFile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import izip
 
 # ChAnGEo imports
