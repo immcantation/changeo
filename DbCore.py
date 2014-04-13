@@ -218,7 +218,8 @@ def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
 
     # Create writer
     try:
-        db_writer = csv.DictWriter(out_handle, fieldnames=fields, dialect='excel-tab')
+        # >>> THIS NEEDS TO BE FIXED, extrasaction='ignore' IS A WORKAROUND FOR ADDITIONS TO IgRecord
+        db_writer = csv.DictWriter(out_handle, fieldnames=fields, dialect='excel-tab', extrasaction='ignore')
         db_writer.writeheader()
     except:
         sys.exit('ERROR:  File %s cannot be written' % out_handle.name)
