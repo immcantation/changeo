@@ -24,7 +24,7 @@ from time import time
 # ChAnGEo imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args, parseAnnotation, printLog, printProgress
-from IgCore import getCommonArgParser, parseCommonArgs, countSeqFile
+from IgCore import getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
 
 
@@ -331,7 +331,6 @@ if __name__ == "__main__":
                 args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
                 args_dict['db_files'] = None
                 args.func(**args_dict)
-                print ''
         elif args.__dict__['al_folders']: # input folders with IMGT summary files
             db_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"] # necessary files
             for i in range( len(args.__dict__['al_folders']) ):
