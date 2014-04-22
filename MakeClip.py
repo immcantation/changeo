@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Create CLIP tab-delimited file to store sequence alignment information
+Create tab-delimited database file to store sequence alignment information
 """
 
 __author__    = 'Namita Gupta'
@@ -21,12 +21,11 @@ from itertools import izip
 from collections import OrderedDict
 from time import time
 
-# ChAnGEo imports
+# IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args, parseAnnotation, printLog, printProgress
 from IgCore import getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
-
 
 # Default parameters
 default_V_regex = re.compile(r"(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)")
@@ -47,23 +46,23 @@ def extractIMGT(imgt_zipfile):
     # Extract selected files from the IMGT zip file
     # Try to retain compressed format
     imgt_zip = ZipFile(imgt_zipfile, 'r')
-    db_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"]
-    db_files = sorted([n for n in imgt_zip.namelist() for d in db_flags if d in n])
-    for f in db_files:  imgt_zip.extract(f)
-    return db_files
+    imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"]
+    imgt_files = sorted([n for n in imgt_zip.namelist() for i in imgt_flags if i in n])
+    for f in imgt_files:  imgt_zip.extract(f)
+    return imgt_files
 
 
-def readIMGT(db_files):
+def readIMGT(imgt_files):
     """
     Reads IMGT/HighV-Quest output
 
     Arguments: 
-    db_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
+    imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
         
     Returns: 
     a generator of dictionaries containing alignment data
     """
-    db_iters = [csv.DictReader(open(d, 'rU'), delimiter='\t') for d in db_files]
+    imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a generator of dictionaries for each sequence alignment
     db_gen = (IgRecord(
               {'SEQUENCE_ID':        sm['Sequence ID'],
@@ -103,7 +102,7 @@ def readIMGT(db_files):
                                                           jn['N1-REGION-nt nb'], 
                                                           jn["P5'D-nt nb"]] if i),
                'D_SEQ_LENGTH':       int(jn["D-REGION-nt nb"] or 0),
-               'D_GERM_START':       int(jn["5'D-REGION trimmed-nt nb"] or -1) + 1,
+               'D_GERM_START':       int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1,
                'D_GERM_LENGTH':      int(jn["D-REGION-nt nb"] or 0),
                'N2_LENGTH':          sum(int(i) for i in [jn["P3'D-nt nb"],
                                                           jn['N2-REGION-nt nb'],
@@ -119,13 +118,13 @@ def readIMGT(db_files):
                                                           jn['N2-REGION-nt nb'],
                                                           jn["P5'J-nt nb"]] if i),
                'J_SEQ_LENGTH':       len(nt['J-REGION']) if nt['J-REGION'] else 0,
-               'J_GERM_START':       int(jn["5'J-REGION trimmed-nt nb"] or -1) + 1,
+               'J_GERM_START':       int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1,
                'J_GERM_LENGTH':      len(gp['J-REGION']) if gp['J-REGION'] else 0,
                'JUNCTION_GAP_LENGTH': len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
                'JUNCTION':           jn['JUNCTION']}) if "No results" not in sm['Functionality'] else \
               IgRecord({'SEQUENCE_ID':sm['Sequence ID'], 'SEQUENCE':sm['Sequence'],
                         'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
-              for sm, gp, nt, jn in izip(*db_iters) )
+              for sm, gp, nt, jn in izip(*imgt_iters) )
     
     return db_gen
 
@@ -174,9 +173,9 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
     if aligner=='imgt':
         ordered_fields = ['SEQUENCE_ID','SEQUENCE','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
                           'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_GAP',
-                          'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START''V_GERM_LENGTH','N1_LENGTH','D_5_TRIM',
-                          'D_SEQ_START','D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_5_TRIM',
-                          'J_SEQ_START','J_SEQ_LENGTH','J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
+                          'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START',
+                          'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
+                          'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
    
     pass_handle = open(pass_file, 'wb')
     fail_handle = open(fail_file, 'wb')
@@ -184,6 +183,7 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
     if parse_id:
         for v in id_dict.itervalues():
             tmp = parseAnnotation(v, delimiter=out_args['delimiter'])
+            del tmp['ID']
             ordered_fields.extend(tmp.keys())
             break
     pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
@@ -211,8 +211,8 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
         # Write row to tab-delim CLIP file
         pass_writer.writerow(record.toDict())
     
-    printProgress(i+1 + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
     # Print log
+    printProgress(i+1 + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = pass_file
     log['PASS'] = pass_count
@@ -221,14 +221,14 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
     printLog(log)
     
 
-def parseIMGT(seq_file, zip_file, db_files, id_only, parse_id, out_args=default_out_args):
+def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
     Arguments: 
     seq_file = FASTA file input to IMGT (from which to get seqID)
     zip_file = zipped IMGT output file to process
-    db_files = list of 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, 6_Junction filenames
+    imgt_files = list of 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, 6_Junction filenames
         
     Returns: 
     None
@@ -239,15 +239,15 @@ def parseIMGT(seq_file, zip_file, db_files, id_only, parse_id, out_args=default_
     log['ALIGNER'] = 'IMGT'
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ALIGN_RESULTS'] = zip_file if zip_file is not None else \
-    '_'.join( filter( None, os.path.basename(db_files[0]).split('_') )[2:-1] )
+    '_'.join( filter( None, os.path.basename(imgt_files[0]).split('_') )[2:-1] )
     log['ID_ONLY'] = id_only 
     log['PARSE_ID'] = parse_id
     printLog(log)
     
     # Unzip zipped file
     if zip_file:
-        db_files = extractIMGT(zip_file)
-    file_prefix = '_'.join( filter( None, os.path.basename(db_files[0]).split('_') )[2:-1] )
+        imgt_files = extractIMGT(zip_file)
+    file_prefix = '_'.join( filter( None, os.path.basename(imgt_files[0]).split('_') )[2:-1] )
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
@@ -257,14 +257,14 @@ def parseIMGT(seq_file, zip_file, db_files, id_only, parse_id, out_args=default_
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
     file_prefix = os.path.join(out_dir, file_prefix)
     
-    total_count = countDbFile(db_files[0]) * (2 if parse_id else 1)
+    total_count = countDbFile(imgt_files[0]) * (2 if parse_id else 1)
     start_time = time()
     
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file, start_time, total_count, out_args, id_only) if seq_file else {}
     
     # Create
-    imgt_dict = readIMGT(db_files)
+    imgt_dict = readIMGT(imgt_files)
     writeCLIP(imgt_dict, parse_id, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
     
 
@@ -329,20 +329,20 @@ if __name__ == "__main__":
             for i in range(len(args.__dict__['zip_files'])):
                 args_dict['zip_file'] = args.__dict__['zip_files'][i]
                 args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
-                args_dict['db_files'] = None
+                args_dict['imgt_files'] = None
                 args.func(**args_dict)
         elif args.__dict__['al_folders']: # input folders with IMGT summary files
-            db_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"] # necessary files
+            imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"] # necessary files
             for i in range( len(args.__dict__['al_folders']) ):
                 folder = args.__dict__['al_folders'][i]
-                db_files = sorted([ (folder + ('/' if folder[-1]!='/' else '') + n) \
-                                    for n in os.listdir(folder) for d in db_flags if d in n ])
-                if all( d in f for d,f in zip(db_flags, db_files) ):
+                imgt_files = sorted([ (folder + ('/' if folder[-1]!='/' else '') + n) \
+                                    for n in os.listdir(folder) for j in imgt_flags if j in n ])
+                if all( j in f for j,f in zip(imgt_flags, imgt_files) ):
                     args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
                     args_dict['zip_file'] = None
-                    args_dict['db_files'] = db_files
+                    args_dict['imgt_files'] = imgt_files
                     args.func(**args_dict)
-                elif len(db_files) >= len(db_flags): # e.g. multiple 1_Summary files
+                elif len(imgt_files) >= len(imgt_flags): # e.g. multiple 1_Summary files
                     parser.error('Wrong files in folder %s' % folder)
                 else:
                     parser.error('Missing necessary file in folder %s' % folder)
