@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-Sorts, samples and splits CLIP-tab files
+Sorts, samples and splits tab-delimited database files
 """
 
 __author__    = 'Namita Gupta and Jason Vander Heiden'
-__copyright__ = 'Copyright 2013, Kleinstein Lab, Yale University School of Medicine'
-__license__   = 'GPLv3'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
+__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
 __date__      = '2014.4.14'
 
@@ -15,19 +15,19 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from time import time
 
-# ChAnGEo imports 
+# IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args, printLog, printProgress
 from IgCore import getCommonArgParser, parseCommonArgs, getOutputHandle
 from DbCore import readDbFile, getDbWriter, countDbFile
  
 
-def downsizeTabFile(tab_file, max_count, out_args=default_out_args):
+def downsizeTabFile(db_file, max_count, out_args=default_out_args):
     """
-    Splits a CLIP-tab file into segments with a limited number of records
+    Splits a tab-delimited database file into segments with a limited number of records
 
     Arguments: 
-    tab_file = filename of the CLIP-tab file to split
+    db_file = filename of the tab-delimited database file to split
     max_count = number of records in each output file
     out_args = common output argument dictionary from parseCommonArgs
 
@@ -37,25 +37,23 @@ def downsizeTabFile(tab_file, max_count, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'SplitTab'
     log['COMMAND'] = 'count'
-    log['FILE'] = os.path.basename(tab_file) 
+    log['FILE'] = os.path.basename(db_file) 
     log['MAX_COUNT'] = max_count
     printLog(log)
     
-    # Specify output filetype if unspecified
-    if out_args['out_type'] is None: out_args['out_type'] = 'tab'
-    
     # Determine total numbers of records
-    rec_count = countDbFile(tab_file)
+    rec_count = countDbFile(db_file)
     
     # Loop through iterator writing each record
     # Open new output file handle as needed
     start_time = time()
     count, part_num = 0, 1
-    reader = readDbFile(tab_file)
-    out_handle = getOutputHandle(tab_file, 'part%06i' % part_num, 
-                                 out_type = out_args['out_type'], 
+    reader = readDbFile(db_file)
+    out_handle = getOutputHandle(db_file, 'part%06i' % part_num, 
+                                 out_type = out_args['out_type'],
+                                 out_name = out_args['out_name'], 
                                  out_dir = out_args['out_dir'])
-    writer = getDbWriter(out_handle, tab_file)
+    writer = getDbWriter(out_handle, db_file)
     out_files = [out_handle.name]
     for row in reader:
         # Print progress
@@ -74,10 +72,11 @@ def downsizeTabFile(tab_file, max_count, out_args=default_out_args):
         if count % max_count == 0:
             out_handle.close()
             part_num += 1
-            out_handle = getOutputHandle(tab_file, 'part%06i' % part_num, 
+            out_handle = getOutputHandle(db_file, 'part%06i' % part_num, 
                                          out_type = out_args['out_type'], 
+                                         out_name = out_args['out_name'],
                                          out_dir = out_args['out_dir'])
-            writer = getDbWriter(out_handle, tab_file)
+            writer = getDbWriter(out_handle, db_file)
             out_files.append(out_handle.name)
     
     # Print log
@@ -96,13 +95,13 @@ def downsizeTabFile(tab_file, max_count, out_args=default_out_args):
     return out_files
 
 
-def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
+def groupTabFile(db_file, field, threshold, out_args=default_out_args):
     """
-    Divides a CLIP-tab file into segments by description tags
+    Divides a tab-delimited database file into segments by description tags
 
     Arguments: 
-    tab_file = filename of the CLIP-tab file to split
-    field = The field name by which to split tab_file
+    db_file = filename of the tab-delimited database file to split
+    field = The field name by which to split db_file
     threshold = The numerical threshold by which to group sequences;
                 if None treat field as textual
     out_args = common output argument dictionary from parseCommonArgs
@@ -113,26 +112,23 @@ def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'SplitTab'
     log['COMMAND'] = 'group'
-    log['FILE'] = os.path.basename(tab_file) 
+    log['FILE'] = os.path.basename(db_file) 
     log['FIELD'] = field
     log['THRESHOLD'] = threshold
     printLog(log)
     
     # Open IgRecord reader iter object
-    reader = readDbFile(tab_file, ig=False)
-    
-    # Specify output filetype if unspecified
-    if out_args['out_type'] is None: out_args['out_type'] = 'tab'   
+    reader = readDbFile(db_file, ig=False) 
 
     # Determine total numbers of records
-    rec_count = countDbFile(tab_file)
+    rec_count = countDbFile(db_file)
     
     start_time = time()
     count = 0
     # Sort records into files based on textual field
     if threshold is None:
         # Create set of unique field tags
-        tmp_iter = readDbFile(tab_file, ig=False)
+        tmp_iter = readDbFile(db_file, ig=False)
         tag_list = list(set([row[field] for row in tmp_iter]))
         
         # Forbidden characters in filename and replacements
@@ -145,7 +141,7 @@ def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
                 tag_dict[tag] = (tag_dict.get(tag,tag).replace(c,r) if c in tag else tag_dict.get(tag,tag)) 
         
         # Create output handles
-        handles_dict = {tag:getOutputHandle(tab_file, 
+        handles_dict = {tag:getOutputHandle(db_file, 
                                             label, 
                                             out_type = out_args['out_type'],
                                             out_name = out_args['out_name'], 
@@ -153,7 +149,7 @@ def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
                         for tag,label in tag_dict.iteritems()}
         
         # Create Db writer instances
-        writers_dict = {tag:getDbWriter(handles_dict[tag], tab_file)
+        writers_dict = {tag:getDbWriter(handles_dict[tag], db_file)
                         for tag,label in tag_dict.iteritems()}
         
         # Iterate over IgRecords
@@ -169,20 +165,20 @@ def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
         threshold = float(threshold)
         
         # Create output handles
-        handles_dict = {'under':getOutputHandle(tab_file, 
+        handles_dict = {'under':getOutputHandle(db_file, 
                                                 'under-%.1f' % threshold, 
                                                 out_type = out_args['out_type'], 
                                                 out_name = out_args['out_name'], 
                                                 out_dir = out_args['out_dir']),
-                        'atleast':getOutputHandle(tab_file, 
+                        'atleast':getOutputHandle(db_file, 
                                                   'atleast-%.1f' % threshold, 
                                                 out_type = out_args['out_type'], 
                                                 out_name = out_args['out_name'], 
                                                 out_dir = out_args['out_dir'])}
         
         # Create Db writer instances
-        writers_dict = {'under':getDbWriter(handles_dict['under'], tab_file),
-                        'atleast':getDbWriter(handles_dict['atleast'], tab_file)}
+        writers_dict = {'under':getDbWriter(handles_dict['under'], db_file),
+                        'atleast':getDbWriter(handles_dict['atleast'], db_file)}
 
         # Iterate over IgRecords
         for row in reader:
@@ -208,12 +204,12 @@ def groupTabFile(tab_file, field, threshold, out_args=default_out_args):
     return [handles_dict[t].name for t in handles_dict]
 
 
-def sortTabFile(tab_file, field, numeric, max_count, out_args=default_out_args):
+def sortTabFile(db_file, field, numeric, max_count, out_args=default_out_args):
     """
-    Sorts a CLIP-tab file by annotation fields
+    Sorts a tab-delimited database file by annotation fields
 
     Arguments: 
-    tab_file = filename of the CLIP-tab file to sort
+    db_file = filename of the tab-delimited database file to sort
     field = the field name to sort by
     numeric = if True sort field numerically;
               if False sort field alphabetically
@@ -227,17 +223,14 @@ def sortTabFile(tab_file, field, numeric, max_count, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'SplitTab'
     log['COMMAND'] = 'sort'
-    log['FILE'] = os.path.basename(tab_file)
+    log['FILE'] = os.path.basename(db_file)
     log['FIELD'] = field
     log['NUMERIC'] = numeric
     log['MAX_COUNT'] = max_count
     printLog(log)
     
-    # Specify output filetype if unspecified
-    if out_args['out_type'] is None: out_args['out_type'] = 'tab'
-    
     # Save all IgRecords in file as dictionary
-    reader = readDbFile(tab_file, ig=False)
+    reader = readDbFile(db_file, ig=False)
     db_dict = {}
     for row in reader:
         db_dict[row['SEQUENCE_ID']] = row
@@ -256,12 +249,12 @@ def sortTabFile(tab_file, field, numeric, max_count, out_args=default_out_args):
     part_num = 1
     if max_count is None: out_label = 'sorted'
     else: out_label = 'sorted-part%06i' % part_num
-    out_handle = getOutputHandle(tab_file, 
+    out_handle = getOutputHandle(db_file, 
                                  out_label, 
                                  out_dir=out_args['out_dir'], 
                                  out_name=out_args['out_name'], 
                                  out_type=out_args['out_type'])
-    writer = getDbWriter(out_handle, tab_file)
+    writer = getDbWriter(out_handle, db_file)
     out_files = [out_handle.name]
     
     # Loop through sorted IgRecord dictionary keys  
@@ -280,12 +273,12 @@ def sortTabFile(tab_file, field, numeric, max_count, out_args=default_out_args):
                 part_num += 1
                 # Open new file handle and add name to output file list
                 out_handle.close()
-                out_handle = getOutputHandle(tab_file, 
+                out_handle = getOutputHandle(db_file, 
                                  out_label, 
                                  out_dir=out_args['out_dir'], 
                                  out_name=out_args['out_name'], 
                                  out_type=out_args['out_type'])
-                writer = getDbWriter(out_handle, tab_file)
+                writer = getDbWriter(out_handle, db_file)
                 out_files.append(out_handle.name)
             
             # Write saved records  
@@ -392,5 +385,5 @@ if __name__ == '__main__':
     del args_dict['func']    
     del args_dict['db_files']
     for f in args.__dict__['db_files']:
-        args_dict['tab_file'] = f
+        args_dict['db_file'] = f
         args.func(**args_dict)
