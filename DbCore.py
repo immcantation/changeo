@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.12.1'
+__date__      = '2014.4.10'
 
 # Imports
 import csv, os, re, sys
@@ -15,6 +15,8 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # Defaults
+default_repo = 'germlines'
+default_allele_regex = re.compile(r"(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)")
 
 
 class IgRecord:
