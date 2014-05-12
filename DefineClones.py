@@ -7,22 +7,27 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.13'
+__date__      = '2014.4.23'
 
 # Imports
 import os, signal, sys
 import multiprocessing as mp
+import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain
+from itertools import chain, izip, product
 from time import time
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
+from IgCore import getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 
 # R imports
@@ -30,17 +35,25 @@ from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
 from rpy2.robjects.vectors import StrVector
 
 # >>> THIS IS AN AWFUL HACK. NEEDS FIXING.
-# Source ClonesByDist
+# Get into rlib folder with R scripts
 py_wd = os.getcwd()
 r_lib = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rlib')
 os.chdir(r_lib)
+# Source ClonesByDist
 with open('ClonesByDist.R', 'r') as f:
     r_script = ''.join(f.readlines())
 ClonesByDist = STAP(r_script, 'ClonesByDist')
+# Source ClonesByDistS5F
+with open('ClonesByDistS5F.R', 'r') as f:
+    r_script = ''.join(f.readlines())
+ClonesByDistS5F = STAP(r_script, 'ClonesByDistS5F')
+# Move back to directory with DefineClones.py
 os.chdir(py_wd)
 
 # Defaults
-default_distance = 5
+default_translate = False
+default_submodel = 's5f'
+default_distance = 10
 
 
 class DbData:
@@ -97,7 +110,7 @@ class DbResult:
             return len(self.results)
 
 
-def indexJunctions(db_iter, fields=None, mode='allele', action='first', 
+def indexJunctions(db_iter, fields=None, mode='gene', action='first', 
                    separator=default_separator):
     """
     Identifies preclonal groups by V, J and junction length
@@ -136,27 +149,46 @@ def indexJunctions(db_iter, fields=None, mode='allele', action='first',
     clone_index = {}
     for rec in db_iter:
         key = _get_key(rec, action)
-        #print key
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None for k in key]):
-            clone_index.setdefault(key, []).append(rec)
+            
+            #print key
+            if action == 'set':
+                
+                f_range = range(2, 3 + (len(fields) if fields else 0) )
+                vdj_range = range(2)
+                
+                # Check for any keys that have matching columns and junction length and overlapping genes/alleles
+                to_remove = []
+                if len(clone_index) > 0 and not key in clone_index:
+                    key = list(key)
+                    for k in clone_index:
+                        if all([key[i] == k[i] for i in f_range]):
+                            if all([not set(key[i]).isdisjoint(set(k[i])) for i in vdj_range]):
+                                for i in vdj_range:  key[i] = tuple(set(key[i]).union(set(k[i])))
+                                to_remove.append(k)
+                
+                # Remove original keys, replace with union of all genes/alleles and append values to new key
+                val = [rec]
+                val += list(chain(*(clone_index.pop(k) for k in to_remove)))
+                clone_index[tuple(key)] = clone_index.get(tuple(key),[]) + val 
+                
+            
+            elif action == 'first':
+                clone_index.setdefault(key, []).append(rec)
         else:
-            clone_index.setdefault(None, []).append(rec)
-    
-    if action == 'set':
-        print 'WARNING: set mode is unimplemented\n'
-    #    for k in clone_index:
-    #        pass
+            clone_index.setdefault((0,0,0), []).append(rec)
         
     return clone_index
 
 
-def distanceClones(records, distance=default_distance):
+def distanceClones(records, submodel=default_submodel, distance=default_distance):
     """
     Separates a set of IgRecords into clones
 
     Arguments: 
     records = an iterator of IgRecords
+    submodel = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
     
     Returns: 
@@ -165,31 +197,45 @@ def distanceClones(records, distance=default_distance):
     # Define unique junction mapping
     junc_map = {}
     for r in records:
-        junc_map.setdefault(str(r.junction.upper()), []).append(r)
+        # Check if junction length is 0
+        if r.junction_gap_length == 0:
+            return None
+        
+        if submodel == 'aa':
+            # print r.junction.transcribe().translate().upper()
+            junc_map.setdefault(str(r.junction.transcribe().translate().upper()), []).append(r)
+        else:
+            junc_map.setdefault(str(r.junction.upper()), []).append(r)
     
-    # Process records    
-    if any([len(j) == 0 for j in junc_map]):
-        clone_dict = None
-    elif len(junc_map) == 1:
-        clone_dict = {1:records}
-    else:
-        # Call R function
-        #junctions = '|'.join(junc_map.keys())
+    # Process records
+    if len(junc_map) == 1:
+        return {1:records}
+    # Call distance function
+    elif submodel == 's5f':
         junctions = StrVector(junc_map.keys())
-        #print junctions
+        clone_list = ClonesByDistS5F.getClones(junctions, distance)
+        print clone_list
+    elif submodel == 'h3n':
+        junctions = StrVector(junc_map.keys())
         clone_list = ClonesByDist.getClones(junctions, distance)
-        # Parse R output        
-        clone_dict = {}
-        for i, c in enumerate(clone_list):
-            clone_dict[i + 1] = list(chain(*[junc_map[str(j).upper()] for j in c]))
-        # Parse R output
-        #clone_dict = {}        
-        #clone_split = str(clone_str[0]).split('|')
-        #for i, c in enumerate(clone_split):
-        #    junc = c.split(',')
-            #print list(chain(*[junc_map[j.upper()] for j in junc_r]))
-            #clone_list.append(list(chain(*[junc_map[j.upper()] for j in junc_r])))
-        #    clone_dict[i + 1] = list(chain(*[junc_map[j.upper()] for j in junc]))
+    elif submodel == 'aa':
+        junctions = junc_map.keys()
+        score_dict = getScoreDict(n_score=0, gap_score=0, alphabet='aa')
+        
+        dists = np.zeros((len(junctions),len(junctions)))
+        for i,j in product(range(len(junctions)),range(len(junctions))):
+            dists[i,j] = dists[j,i] = len(junctions[0]) - sum([score_dict[(c1,c2)] for c1,c2 in izip(junctions[i],junctions[j])])
+        dists = squareform(dists)
+        links = linkage(dists, 'single')
+        clusters = fcluster(links, distance, criterion='distance')
+        clone_list = [[] for i in range(len(set(clusters)))]
+        for i,c in enumerate(clusters):
+            clone_list[c-1].append(junctions[i])
+                        
+    # Parse R output        
+    clone_dict = {}
+    for i, c in enumerate(clone_list):
+        clone_dict[i + 1] = list(chain(*[junc_map[str(j).upper()] for j in c]))
     
     #print clone_dict
     return clone_dict
@@ -625,11 +671,12 @@ def getArgParser():
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, multiproc=True)
     
-    # S5F distance cloning method
+    # Distance cloning method
     parser_dist = subparsers.add_parser('dist', parents=[parser_parent],
                                         formatter_class=ArgumentDefaultsHelpFormatter,
-                                        help='Defines clones V assignment, J assignment and junction \
-                                              length with old substitution distance model')
+                                        help='Defines clones as having same V assignment, \
+                                              J assignment, and junction length with \
+                                              specified substitution distance model')
     parser_dist.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_dist.add_argument('--mode', action='store', dest='mode', 
@@ -637,7 +684,10 @@ def getArgParser():
                              help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
     parser_dist.add_argument('--act', action='store', dest='action', default='first',
                              choices=('first', 'set'),
-                             help='Specifies how to handle multiple V(D)J assignments for preclone assignment') 
+                             help='Specifies how to handle multiple V(D)J assignments for preclone assignment')
+    parser_dist.add_argument('--submodel', action='store', dest='submodel', 
+                             choices=('aa', 'h3n', 's5f'), default=default_submodel, 
+                             help='Specifies which substitution model to use for calculating distance between junctions')
     parser_dist.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
@@ -664,10 +714,12 @@ if __name__ == '__main__':
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
-        args_dict['clone_args'] = {'distance': args_dict['distance']}
+        args_dict['clone_args'] = {'submodel':  args_dict['submodel'],
+                                   'distance':  args_dict['distance']}
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']
+        del args_dict['submodel']
         del args_dict['distance']
     
     # Call defineClones

@@ -141,7 +141,7 @@ getClones <- function(Strings, Thresh) {
   } else {
     Blocks=1
   }
-             
+  
   #retString <- NULL
   
   #startInd=c(1,1+Blocks[-length(Blocks)])
