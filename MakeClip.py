@@ -192,7 +192,7 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
     pass_count = fail_count = 0
     
     for i,record in enumerate(db_gen):
-        printProgress(i+1 + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
+        printProgress(i + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
         # Count pass or fail
         if record.v_call == 'None' and record.j_call == 'None': 
             fail_count += 1
