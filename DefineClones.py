@@ -408,7 +408,7 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
             records[rec.id] = rec
         records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_gap_length))
         dist_dict = {}
-        for i in range(len(records)):
+        for __ in range(len(records)):
             k,v = records.popitem(last=False)
             dist_dict[k] = [v].append(records.values())
     except:
@@ -1028,46 +1028,47 @@ def getArgParser():
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, multiproc=True)
     
     # Distance cloning method
-    parser_dist = subparsers.add_parser('dist', parents=[parser_parent],
+    parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],
                                         formatter_class=ArgumentDefaultsHelpFormatter,
                                         help='Defines clones as having same V assignment, \
                                               J assignment, and junction length with \
                                               specified substitution distance model')
-    parser_dist.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
+    parser_bygroup.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
-    parser_dist.add_argument('--mode', action='store', dest='mode', 
+    parser_bygroup.add_argument('--mode', action='store', dest='mode', 
                              choices=('allele', 'gene'), default='gene', 
                              help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
-    parser_dist.add_argument('--act', action='store', dest='action', default='first',
+    parser_bygroup.add_argument('--act', action='store', dest='action', default='first',
                              choices=('first', 'set'),
                              help='Specifies how to handle multiple V(D)J assignments for preclone assignment')
-    parser_dist.add_argument('--submodel', action='store', dest='submodel', 
+    parser_bygroup.add_argument('--submodel', action='store', dest='submodel', 
                              choices=('aa', 'h3n', 's5f'), default=default_submodel, 
                              help='Specifies which substitution model to use for calculating distance between junctions')
-    parser_dist.add_argument('--dist', action='store', dest='distance', type=float, 
+    parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
-    parser_dist.set_defaults(feed_func=feedQueue)
-    parser_dist.set_defaults(work_func=processQueue)
-    parser_dist.set_defaults(collect_func=collectQueue)  
-    parser_dist.set_defaults(group_func=indexJunctions)  
-    parser_dist.set_defaults(clone_func=distanceClones)
+    parser_bygroup.set_defaults(feed_func=feedQueue)
+    parser_bygroup.set_defaults(work_func=processQueue)
+    parser_bygroup.set_defaults(collect_func=collectQueue)  
+    parser_bygroup.set_defaults(group_func=indexJunctions)  
+    parser_bygroup.set_defaults(clone_func=distanceClones)
     
     
     # Hierarchical clustering cloning method
-    parser_dist = subparsers.add_parser('hclust', parents=[parser_parent],
+    parser_hclust = subparsers.add_parser('hclust', parents=[parser_parent],
                                         formatter_class=ArgumentDefaultsHelpFormatter,
-                                        help='Defines clones as ')
-#     parser_dist.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
+                                        help='Defines clones by specified distance metric on CDR3s and \
+                                              cutting of hierarchical clustering tree')
+#     parser_hclust.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
 #                              help='Fields to use for grouping clones (non VDJ)')
-    parser_dist.add_argument('--method', action='store', dest='method', 
+    parser_hclust.add_argument('--method', action='store', dest='method', 
                              choices=('chen2010', 'ademokun2011'), default=default_model, 
                              help='Specifies which cloning method to use for calculating distance \
                                    between CDR3s, computing linkage, and cutting clusters')
-    parser_dist.set_defaults(feed_func=feedQueueClust)
-    parser_dist.set_defaults(work_func=processQueueClust)
-    parser_dist.set_defaults(collect_func=collectQueueClust)
-    parser_dist.set_defaults(cluster_func=hierClust)
+    parser_hclust.set_defaults(feed_func=feedQueueClust)
+    parser_hclust.set_defaults(work_func=processQueueClust)
+    parser_hclust.set_defaults(collect_func=collectQueueClust)
+    parser_hclust.set_defaults(cluster_func=hierClust)
         
     return parser
 
@@ -1085,7 +1086,7 @@ if __name__ == '__main__':
         args_dict['fields'] = map(str.upper, args_dict['fields'])
     
     # Define clone_args
-    if args.command == 'dist':
+    if args.command == 'bygroup':
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
@@ -1096,7 +1097,7 @@ if __name__ == '__main__':
         del args_dict['mode']
         del args_dict['submodel']
         del args_dict['distance']
-        
+
     # Define clone_args
     if args.command == 'hclust':
         dist_funcs = {'chen2010':distChen2010, 'ademokun2011':distAdemokun2011}
