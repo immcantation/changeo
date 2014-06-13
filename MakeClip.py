@@ -286,7 +286,7 @@ def getArgParser():
                                        help='Aligner used', metavar='')
     
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=False)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=True)
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
