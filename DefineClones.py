@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.23'
+__date__      = '2014.6.24'
 
 # Imports
 import os, signal, sys
@@ -53,9 +53,9 @@ os.chdir(py_wd)
 
 # Defaults
 default_translate = False
-default_submodel = 's5f'
 default_distance = 10
-default_model = 'chen2010'
+default_bygroup_model = 'h3n'
+default_hclust_model = 'chen2010'
 
 
 class DbData:
@@ -184,13 +184,13 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
     return clone_index
 
 
-def distanceClones(records, submodel=default_submodel, distance=default_distance):
+def distanceClones(records, model=default_bygroup_model, distance=default_distance):
     """
     Separates a set of IgRecords into clones
 
     Arguments: 
     records = an iterator of IgRecords
-    submodel = substitution model used to calculate distance
+    model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
     
     Returns: 
@@ -203,7 +203,7 @@ def distanceClones(records, submodel=default_submodel, distance=default_distance
         if r.junction_gap_length == 0:
             return None
         
-        if submodel == 'aa':
+        if model == 'aa':
             # print r.junction.transcribe().translate().upper()
             junc_map.setdefault(str(r.junction.transcribe().translate().upper()), []).append(r)
         else:
@@ -213,13 +213,13 @@ def distanceClones(records, submodel=default_submodel, distance=default_distance
     if len(junc_map) == 1:
         return {1:records}
     # Call distance function
-    elif submodel == 's5f':
+    elif model == 's5f':
         junctions = StrVector(junc_map.keys())
         clone_list = ClonesByDistS5F.getClones(junctions, distance)
-    elif submodel == 'h3n':
+    elif model == 'h3n':
         junctions = StrVector(junc_map.keys())
         clone_list = ClonesByDist.getClones(junctions, distance)
-    elif submodel == 'aa':
+    elif model == 'aa':
         junctions = junc_map.keys()
         score_dict = getScoreDict(n_score=0, gap_score=0, alphabet='aa')
         
@@ -1041,8 +1041,8 @@ def getArgParser():
     parser_bygroup.add_argument('--act', action='store', dest='action', default='first',
                              choices=('first', 'set'),
                              help='Specifies how to handle multiple V(D)J assignments for preclone assignment')
-    parser_bygroup.add_argument('--submodel', action='store', dest='submodel', 
-                             choices=('aa', 'h3n', 's5f'), default=default_submodel, 
+    parser_bygroup.add_argument('--model', action='store', dest='model', 
+                             choices=('aa', 'h3n', 's5f'), default=default_bygroup_model, 
                              help='Specifies which substitution model to use for calculating distance between junctions')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
@@ -1062,7 +1062,7 @@ def getArgParser():
 #     parser_hclust.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
 #                              help='Fields to use for grouping clones (non VDJ)')
     parser_hclust.add_argument('--method', action='store', dest='method', 
-                             choices=('chen2010', 'ademokun2011'), default=default_model, 
+                             choices=('chen2010', 'ademokun2011'), default=default_hclust_model, 
                              help='Specifies which cloning method to use for calculating distance \
                                    between CDR3s, computing linkage, and cutting clusters')
     parser_hclust.set_defaults(feed_func=feedQueueClust)
@@ -1090,12 +1090,12 @@ if __name__ == '__main__':
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
-        args_dict['clone_args'] = {'submodel':  args_dict['submodel'],
+        args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance']}
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']
-        del args_dict['submodel']
+        del args_dict['model']
         del args_dict['distance']
 
     # Define clone_args

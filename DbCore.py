@@ -26,6 +26,7 @@ class IgRecord:
     # Private variables
     _key_map = {'id': 'SEQUENCE_ID',
                 'v_call': 'V_CALL',
+                'v_call_geno': 'V_CALL_GENOTYPED',
                 'd_call': 'D_CALL',
                 'j_call': 'J_CALL',
                 'seq': 'SEQUENCE', 
@@ -60,6 +61,7 @@ class IgRecord:
     
     _parse_map = {'id': '_identity',
                   'v_call': '_identity',
+                  'v_call_geno': '_identity',
                   'd_call': '_identity',
                   'j_call': '_identity',
                   'seq': '_sequence', 
@@ -145,10 +147,14 @@ class IgRecord:
             return None
 
     # Initializer
-    def __init__(self, row):
+    def __init__(self, row, genotyped=True):
         required_keys = ('id', 'seq', 'v_call', 'd_call', 'j_call')
         optional_keys = (x for x in IgRecord._parse_map if x not in required_keys)
         
+        # Not ideal. Will place V_CALL_GENOTYPED in annotations
+        if not genotyped and 'v_call_geno' in optional_keys:
+            del optional_keys['v_call_geno']
+            
         try:
             for k in required_keys:
                 f = getattr(IgRecord, IgRecord._parse_map[k])
@@ -179,7 +185,9 @@ class IgRecord:
     
     # Allele, gene and family getter functions
     def getVAllele(self, action='first'):
-        return IgRecord._parseAllele(self.v_call, self.allele_regex, action)
+        # NOTE: Can't distinguish empty value ("") from missing field (no column)
+        x = self.v_call_geno if self.v_call_geno is not None else self.v_call
+        return IgRecord._parseAllele(x, self.allele_regex, action)
 
     def getDAllele(self, action='first'):
         return IgRecord._parseAllele(self.d_call, self.allele_regex, action)
