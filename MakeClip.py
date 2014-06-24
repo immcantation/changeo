@@ -318,6 +318,7 @@ if __name__ == "__main__":
     args_dict = parseCommonArgs(args)
     
     if 'seq_files' in args_dict: del args_dict['seq_files']
+    else: args_dict['parse_id'] = False
     if 'zip_files' in args_dict: del args_dict['zip_files']
     if 'al_folders' in args_dict: del args_dict['al_folders']
     if 'command' in args_dict: del args_dict['command']
