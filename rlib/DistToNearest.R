@@ -55,7 +55,7 @@ dist_seq_fast<-function(seq1,seq2){
 #' @param   grouping    'first' means first gene call is used
 #' @param   dist        'S5F' uses S5F distance function, anything else uses old function
 #' @return  DB dataframe with DIST_NEAREST column added
-distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', dist="S5F") {
+distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', model="old") {
 	
 	if(file != "") {
     # Read input file into dataframe
@@ -99,7 +99,7 @@ distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', dist="S
   			Strings <- db[indices,"JUNCTION"]
   			Strings <- toupper(Strings)
   			N<-length(Strings)
-        if(dist=="S5F") {
+        if(model=="S5F") {
     			Clone1 <- sapply(Strings,function(x){  
     						lenString <- nchar(x)
     						#Pos 1
@@ -133,6 +133,6 @@ distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', dist="S
       }
 		}
 	}
-	return(clip)
+	return(db)
 }
 
