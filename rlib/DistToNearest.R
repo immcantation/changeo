@@ -55,7 +55,7 @@ dist_seq_fast<-function(seq1,seq2){
 #' @param   grouping    'first' means first gene call is used
 #' @param   dist        'S5F' uses S5F distance function, anything else uses old function
 #' @return  DB dataframe with DIST_NEAREST column added
-distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', model="old") {
+distToNearest <- function(file="", db=NA, genotyped=F, grouping='first') {
 	
 	if(file != "") {
     # Read input file into dataframe
@@ -99,33 +99,11 @@ distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', model="
   			Strings <- db[indices,"JUNCTION"]
   			Strings <- toupper(Strings)
   			N<-length(Strings)
-        if(model=="S5F") {
-    			Clone1 <- sapply(Strings,function(x){  
-    						lenString <- nchar(x)
-    						#Pos 1
-    						pos1 =  substr(x,1,1)
-    						#Pos 2
-    						pos2 =  substr(x,2,2)  
-    						#Middle
-    						posMid <- 3:(lenString-2)
-    						posMiddle <-  substr(rep(x,lenString-5),(posMid-2),(posMid+2))  
-    						#Pos N-1
-    						posN_1 <- substr(x,lenString-2,lenString-2)  
-    						#Pos N
-    						posN <- substr(x,lenString-1,lenString-1)  
-    						return( c(pos1, pos2, posMiddle, posN_1, posN) )
-    					})
-    			Mat<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
-    											dist_seq_fast(Clone1[,i],Clone1[,j])
-    										})))
-        } else {
-          Clone1 <- sapply(Strings,s2c)
-          nameStrings = paste(rep("A",N),1:N,sep="")
-          Mat<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
-                          old_dist_seq_fast(Clone1[,i],Clone1[,j])
-                        })))
-          
-        }
+        Clone1 <- sapply(Strings,s2c)
+        nameStrings = paste(rep("A",N),1:N,sep="")
+        Mat<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
+                        old_dist_seq_fast(Clone1[,i],Clone1[,j])
+                      })))
   			Mat <- Mat + t(Mat)
   			colnames(Mat)<-indices
   			rownames(Mat)<-indices

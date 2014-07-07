@@ -5,21 +5,42 @@
 #' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
 #' @date       2013.12.09
 
-load("S5F_Substitution.RData")
+load("S5F_Targeting.RData")
+S5F_Substitution <- S5F_Targeting[["Substitution"]]
+S5F_Mutability <- S5F_Targeting[["Mutability"]]  
+S5F_Substitution_Array <- S5F_Targeting[["S5F_Substitution_Array"]]
 
+#' Get S5F distance between two sequences of same length broken down into fivemers
+#'
+#' @param   seq1   the first nucleotide sequence
+#' @param   seq2   the second nucleotide sequence
+#' @return  distance between two sequences based on S5F model
 dist_seq_fast<-function(seq1,seq2){  
-  retVal = 0
-  sapply(1:length(seq1),function(x){
-    i = seq1[x]
-    j = seq2[x]
-    if(nchar(i)==1) {
-      retVal <<- retVal + mean(S5F_Substitution[i,j],S5F_Substitution[j,i],na.rm=T)
-    } else {
-      retVal <<- retVal + mean( S5F_Substitution[substr(j,3,3),i], S5F_Substitution[substr(i,3,3),j], na.rm=T )
-    }    
+  #Compute distance only on fivemers that have mutations
+  fivemersWithMu <- substr(seq1,3,3)!=substr(seq2,3,3)
+  seq1 <- seq1[fivemersWithMu]
+  seq2 <- seq2[fivemersWithMu]
+  fivemersWithMu <- (substr(seq1,3,3)!="N" & substr(seq2,3,3)!="N")
+  seq1 <- seq1[fivemersWithMu]
+  seq2 <- seq2[fivemersWithMu]  
+  a <- tryCatch({
+    if(length(seq1)==1){
+      seq1_to_seq2 <- S5F_Substitution[substr(seq2,3,3),seq1] * S5F_Mutability[seq1]
+      seq2_to_seq1 <- S5F_Substitution[substr(seq1,3,3),seq2] * S5F_Mutability[seq2]
+    }else{
+      seq1_to_seq2 <- sum( diag(S5F_Substitution[substr(seq2,3,3),seq1]) *  S5F_Mutability[seq1] )
+      seq2_to_seq1 <- sum( diag(S5F_Substitution[substr(seq1,3,3),seq2]) *  S5F_Mutability[seq2] )
+    }
+    return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
+  },error = function(e){
+    return(NA)
   })
-  #sum(symmetric_distance_array[paste(seq1,seq2)])  
-  return(retVal)
+}
+
+dist_seq_fast2<-function(seq1,seq2){  
+  seq1_to_seq2 <- sum( (S5F_Substitution_Array[paste(substr(seq2,3,3),seq1,sep=":")]) *  S5F_Mutability[seq1] )
+  seq2_to_seq1 <- sum( (S5F_Substitution_Array[paste(substr(seq1,3,3),seq2,sep=":")]) *  S5F_Mutability[seq2] )
+  return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
 }
 
 switch_row <- function(Mat, i, j){
@@ -70,41 +91,32 @@ getClones <- function(Strings, Thresh) {
 
   #   arg <- commandArgs(TRUE) 
   #   arg<-c("5","AAAAAAAAA|TTTTTTAAA|ccccccccA|ttttttttA|AAcAgAAAA|ttttttttt|ggggggggg|gggAagggg|tAAAAAAAA|AAtAAAAAA")
-  #   arg<-c("10","TGTGCGAAAGAGGGATATTGTAGTAGTACCAGCTGTTTATATCGGGAACCTTTTGATATCTG|TGTGCGAGGGATCCGGGGCTATATTGTAGTGGTGGTGGCTGCGCGAATGCTTTTGATGTTTG|")
+  #   arg<-c("10","ACGNACGT|ACGTACGG|ACGTACGG|ACGTACGT|ATGTACGT|ACGTACGT|ACGTACGT|ACGTACGT")
   #   Thresh <- as.numeric(arg[1])
   #   Strings <- toupper(strsplit(arg[2],"\\|")[[1]])
+  
   Strings <- toupper(Strings)
   
+  ##ADD "NN" to the start and end of each sequence (junction)
+  StringsOrig <- Strings
+  Strings <- as.vector(sapply(Strings,function(x){paste("NN",x,"NN",sep="")}))
+    
   N<-length(Strings)
   Mat<-diag(N)
   
   Clone1 <- sapply(Strings,function(x){  
                             lenString <- nchar(x)
-                            
-                            #Pos 1
-                            pos1 =  substr(x,1,1)
-                            
-                            #Pos 2
-                            pos2 =  substr(x,2,2)  
-                            
-                            #Middle
-                            posMid <- 3:(lenString-2)
-                            posMiddle <-  substr(rep(x,lenString-5),(posMid-2),(posMid+2))  
-                            
-                            #Pos N-1
-                            posN_1 <- substr(x,lenString-2,lenString-2)  
-                            
-                            #Pos N
-                            posN <- substr(x,lenString-1,lenString-1)  
-                            
-                            return( c(pos1, pos2, posMiddle, posN_1, posN) )
-                            })
+                            fivemersPos <- 3:(lenString-2)
+                            fivemers <-  substr(rep(x,lenString-4),(fivemersPos-2),(fivemersPos+2))
+                            return(fivemers)
+                            },simplify="matrix")
+  
   t<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
                                                           dist_seq_fast(Clone1[,i],Clone1[,j])
                                                     })))
-  colnames(t)<-Strings
-  rownames(t)<-Strings
   BinaryDist<-t
+  colnames(BinaryDist)<-StringsOrig
+  rownames(BinaryDist)<-StringsOrig
   BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
   BinaryDist[BinaryDist>=Thresh]<-0
   diag(BinaryDist) <- rep(1,N)
@@ -141,17 +153,6 @@ getClones <- function(Strings, Thresh) {
   } else {
     Blocks=1
   }
-  
-  #retString <- NULL
-  
-  #startInd=c(1,1+Blocks[-length(Blocks)])
-  #for(i in 1:length(startInd)){
-  #  retString <- c(retString, "|", rownames(Mat)[(startInd[i]:Blocks[i])])
-  #}
-  #retString <- paste(retString,collapse=",")
-  #retString <- gsub("|,","|",retString,fixed=T)
-  #retString <- gsub(",|","|",retString,fixed=T)
-  #cat("$$$",retString<-substring(retString,2,nchar(retString)),"\n",sep="")
 
 	returnBlocks <- list()
 	startInd=c(1,1+Blocks[-length(Blocks)])

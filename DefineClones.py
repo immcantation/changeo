@@ -45,7 +45,7 @@ with open('ClonesByDist.R', 'r') as f:
     r_script = ''.join(f.readlines())
 ClonesByDist = STAP(r_script, 'ClonesByDist')
 # Source ClonesByDistS5F
-with open('ClonesByDistS5F.R', 'r') as f:
+with open('ClonesByDistS5F_Full.R', 'r') as f:
     r_script = ''.join(f.readlines())
 ClonesByDistS5F = STAP(r_script, 'ClonesByDistS5F')
 # Move back to directory with DefineClones.py
@@ -215,6 +215,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Call distance function
     elif model == 's5f':
         junctions = StrVector(junc_map.keys())
+        #print junctions
         clone_list = ClonesByDistS5F.getClones(junctions, distance)
     elif model == 'h3n':
         junctions = StrVector(junc_map.keys())
