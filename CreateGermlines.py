@@ -6,7 +6,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4'
-__date__      = '2014.4.15'
+__date__      = '2014.7.8'
 
 # Imports
 import os, sys
@@ -121,9 +121,11 @@ def joinGermline(align, repo_dict, germ_types, v_field):
         germ_jseq = 'N' * int(align['J_GERM_LENGTH'] or 0)
     
     germ_seq = germ_vseq
-    germ_seq += 'N' * int(align['N1_LENGTH'] or 0)
+    # Nucleotide additions before D (before J for light chains)
+    germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - int(align['V_SEQ_START'] or 0))
     germ_seq += germ_dseq
-    germ_seq += 'N' * int(align['N2_LENGTH'] or 0)
+    # Nucleotide additions after D (heavy chains only)
+    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
     germ_seq += germ_jseq
     germs['full'] = germ_seq
     if 'dmask' in germ_types: germs['dmask'] = germ_seq[:len(germ_vseq)] + \
