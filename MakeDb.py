@@ -156,9 +156,9 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     return ids
 
 
-def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}):
+def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}):
     """
-    Writes CLIP intermediate tab-delim file in current directory
+    Writes tab-delimited database file in output directory
     
     Arguments:
     db_gen = a generator of IgRecord objects containing alignment data
@@ -168,8 +168,8 @@ def writeCLIP(db_gen, parse_id, file_prefix, aligner, start_time, total_count, o
     Returns:
     None
     """
-    pass_file = "%s_CLIP-pass.tab" % file_prefix
-    fail_file = "%s_CLIP-fail.tab" % file_prefix
+    pass_file = "%s_db-pass.tab" % file_prefix
+    fail_file = "%s_db-fail.tab" % file_prefix
     if aligner=='imgt':
         ordered_fields = ['SEQUENCE_ID','SEQUENCE','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
                           'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_GAP',
@@ -235,7 +235,7 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
     """
     # Print parameter info
     log = OrderedDict()
-    log['START'] = 'MakeClip'
+    log['START'] = 'MakeDB'
     log['ALIGNER'] = 'IMGT'
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ALIGN_RESULTS'] = zip_file if zip_file is not None else \
@@ -265,7 +265,7 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeCLIP(imgt_dict, parse_id, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
+    writeDb(imgt_dict, parse_id, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
     
 
 def getArgParser():

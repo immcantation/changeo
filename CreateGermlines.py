@@ -159,7 +159,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
     log['DB_FILE'] = os.path.basename(db_file)
-    log['GERM_TYPES'] = ','.join(germ_types)
+    log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
     log['CLONED'] = 'False'
     log['V_FIELD'] = v_field
     printLog(log)
@@ -284,14 +284,14 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
             result_log['V_CALL'] = ','.join(v_cons)
             result_log['J_CALL'] = ','.join(j_cons)
             result_log['STATUS'] = 'FAIL: No consensus sequence for clone found'
-        
-        # Pad end of consensus sequence with gaps to make it the max length
-        cons = cons[0]
-        cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons['SEQUENCE_GAP']))
-        cons['SEQUENCE_GAP'] += '.'*(max_length - len(cons['SEQUENCE_GAP']))
-        result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field)
-        result_log['ID'] = clone
-        result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+        else:
+            # Pad end of consensus sequence with gaps to make it the max length
+            cons = cons[0]
+            cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons['SEQUENCE_GAP']))
+            cons['SEQUENCE_GAP'] += '.'*(max_length - len(cons['SEQUENCE_GAP']))
+            result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field)
+            result_log['ID'] = clone
+            result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
         result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field)
@@ -300,19 +300,21 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
 
     # Write sequences of clone
     for val in clone_dict.itervalues():
-        val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val['SEQUENCE_GAP']))
-        val['SEQUENCE_GAP'] += '.'*(max_length - len(val['SEQUENCE_GAP']))
-        
-        # Add column(s) to tab-delimited database file
-        if 'full' in germ_types: val['GERMLINE_GAP'] = germs['full']
-        if 'dmask' in germ_types: val['GERMLINE_GAP_D_MASK'] = germs['dmask']
-        if 'vonly' in germ_types: val['GERMLINE_GAP_V_REGION'] = germs['vonly']
-        
-        # Write to pass or fail file
         if(result_log['STATUS'] == 'PASS'):
+            # Update lengths padded to longest sequence in clone
+            val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val['SEQUENCE_GAP']))
+            val['SEQUENCE_GAP'] += '.'*(max_length - len(val['SEQUENCE_GAP']))
+            
+            # Add column(s) to tab-delimited database file
+            if 'full' in germ_types: val['GERMLINE_GAP'] = germs['full']
+            if 'dmask' in germ_types: val['GERMLINE_GAP_D_MASK'] = germs['dmask']
+            if 'vonly' in germ_types: val['GERMLINE_GAP_V_REGION'] = germs['vonly']
+            
+            # Write to pass file
             counts['pass'] += 1
             writers['pass'].writerow(val)
         else:
+            # Write to fail file
             counts['fail'] += 1
             writers['fail'].writerow(val)
     # Return log
@@ -338,7 +340,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
     log['DB_FILE'] = os.path.basename(db_file)
-    log['GERM_TYPES'] = ','.join(germ_types)
+    log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
     log['CLONED'] = 'True'
     log['V_FIELD'] = v_field
     printLog(log)

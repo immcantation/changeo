@@ -53,8 +53,8 @@ os.chdir(py_wd)
 
 # Defaults
 default_translate = False
-default_distance = 10
-default_bygroup_model = 'h3n'
+default_distance = 0.01
+default_bygroup_model = 's5f'
 default_hclust_model = 'chen2010'
 
 
@@ -1038,10 +1038,10 @@ def getArgParser():
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_bygroup.add_argument('--mode', action='store', dest='mode', 
                              choices=('allele', 'gene'), default='gene', 
-                             help='Specifies whether to use the V(D)J allele or gene for preclone assignment')
-    parser_bygroup.add_argument('--act', action='store', dest='action', default='first',
+                             help='Specifies whether to use the V(D)J allele or gene for initial grouping')
+    parser_bygroup.add_argument('--act', action='store', dest='action', default='set',
                              choices=('first', 'set'),
-                             help='Specifies how to handle multiple V(D)J assignments for preclone assignment')
+                             help='Specifies how to handle multiple V(D)J assignments for initial grouping')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
                              choices=('aa', 'h3n', 's5f'), default=default_bygroup_model, 
                              help='Specifies which substitution model to use for calculating distance between junctions')

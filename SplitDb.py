@@ -22,7 +22,7 @@ from IgCore import getCommonArgParser, parseCommonArgs, getOutputHandle
 from DbCore import readDbFile, getDbWriter, countDbFile
  
 
-def downsizeTabFile(db_file, max_count, out_args=default_out_args):
+def downsizeDbFile(db_file, max_count, out_args=default_out_args):
     """
     Splits a tab-delimited database file into segments with a limited number of records
 
@@ -95,7 +95,7 @@ def downsizeTabFile(db_file, max_count, out_args=default_out_args):
     return out_files
 
 
-def groupTabFile(db_file, field, threshold, out_args=default_out_args):
+def groupDbFile(db_file, field, threshold, out_args=default_out_args):
     """
     Divides a tab-delimited database file into segments by description tags
 
@@ -204,7 +204,7 @@ def groupTabFile(db_file, field, threshold, out_args=default_out_args):
     return [handles_dict[t].name for t in handles_dict]
 
 
-def sortTabFile(db_file, field, numeric, max_count, out_args=default_out_args):
+def sortDbFile(db_file, field, numeric, max_count, out_args=default_out_args):
     """
     Sorts a tab-delimited database file by annotation fields
 
@@ -344,7 +344,7 @@ def getArgParser():
                                          help='Splits sequences files by number of records')
     parser_count.add_argument('-c', action='store', dest='max_count', type=int, required=True,
                               help='Maximum number of records in each new file')
-    parser_count.set_defaults(func=downsizeTabFile)
+    parser_count.set_defaults(func=downsizeDbFile)
     
     # Subparser to partition files by annotation
     parser_group = subparsers.add_parser('group', parents=[parser_parent],
@@ -354,7 +354,7 @@ def getArgParser():
                               help='Annotation field by which to split database files')
     parser_group.add_argument('--num', action='store', dest='threshold', type=float, default=None, 
                               help='Specify to define the split column as numeric and group records by value')
-    parser_group.set_defaults(func=groupTabFile)
+    parser_group.set_defaults(func=groupDbFile)
     
     # Subparser to sort files
     parser_sort = subparsers.add_parser('sort', parents=[parser_parent],
@@ -366,7 +366,7 @@ def getArgParser():
                              help='Specify to define the sort column as numeric rather than textual')
     parser_sort.add_argument('--max', action='store', dest='max_count', type=int,
                              default=None, help='Maximum number of records in each new file')
-    parser_sort.set_defaults(func=sortTabFile)
+    parser_sort.set_defaults(func=sortDbFile)
     
     return parser
 
