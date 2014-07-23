@@ -237,7 +237,7 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
     log = OrderedDict()
     log['START'] = 'MakeClip'
     log['ALIGNER'] = 'IMGT'
-    log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ALIGN_RESULTS'] = zip_file if zip_file is not None else \
     '_'.join( filter( None, os.path.basename(imgt_files[0]).split('_') )[2:-1] )
     log['ID_ONLY'] = id_only 
@@ -251,7 +251,7 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
-        out_dir = os.path.split(seq_file)[0]
+        out_dir = os.path.split(zip_file)[0] if zip_file else os.path.split(imgt_files[0])[0] 
     else:
         out_dir = os.path.abspath(out_args['out_dir'])
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
@@ -299,7 +299,7 @@ def getArgParser():
     imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='al_folders', 
                                 help='Folder with unzipped IMGT files \
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
-    parser_imgt.add_argument('-s', action='store', nargs='+', dest='seq_files',
+    parser_imgt.add_argument('-s', action='store', nargs='+', dest='in_files',
                              help='List of input FASTA files containing sequences')
     parser_imgt.add_argument('--id', action='store_true', dest='id_only', default=False,
                              help='Specify if only sequence ID passed to IMGT')
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     
-    if 'seq_files' in args_dict: del args_dict['seq_files']
+    if 'in_files' in args_dict: del args_dict['in_files']
     else: args_dict['parse_id'] = False
     if 'zip_files' in args_dict: del args_dict['zip_files']
     if 'al_folders' in args_dict: del args_dict['al_folders']
@@ -329,7 +329,7 @@ if __name__ == "__main__":
         if args.__dict__['zip_files']: # input IMGT zip-files
             for i in range(len(args.__dict__['zip_files'])):
                 args_dict['zip_file'] = args.__dict__['zip_files'][i]
-                args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
+                args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
                 args_dict['imgt_files'] = None
                 args.func(**args_dict)
         elif args.__dict__['al_folders']: # input folders with IMGT summary files
@@ -339,7 +339,7 @@ if __name__ == "__main__":
                 imgt_files = sorted([ (folder + ('/' if folder[-1]!='/' else '') + n) \
                                     for n in os.listdir(folder) for j in imgt_flags if j in n ])
                 if all( j in f for j,f in zip(imgt_flags, imgt_files) ):
-                    args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
+                    args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
                     args_dict['zip_file'] = None
                     args_dict['imgt_files'] = imgt_files
                     args.func(**args_dict)
