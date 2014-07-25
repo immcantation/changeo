@@ -95,6 +95,9 @@ def cdr3Properties(junc, out_args):
     b = 3.9
     cdr3['CDR3_ALIPHATIC'] = round(100*float(nAla + a*nVal + b*nLeuIle)/cdr3['CDR3_AA_LENGTH'], 2)
     
+    # Percent CDR3 Aromatic AAs
+    cdr3['CDR3_AROMATIC'] = round(100*float(len(re.findall("[FWHY]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    
     # GRAVY (Grand Average of Hydropathy) index
     # Some documentation: http://web.expasy.org/tools/protparam/protparam-doc.html
     cdr3['CDR3_GRAVY'] = round(gravy(cdr3_aa), 2)
@@ -102,7 +105,7 @@ def cdr3Properties(junc, out_args):
     return cdr3
 
 
-def aaAnalysis(db_file, cdr3, out_args=default_out_args):
+def aaAnalysis(db_file, cdr3=True, out_args=default_out_args):
     """
     Calculate amino acid properties for specified regions and add to tab-delimited database
 
@@ -117,7 +120,7 @@ def aaAnalysis(db_file, cdr3, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'AAnalysis'
     log['FILE'] = path.basename(db_file)
-    log['CDR3'] = 'True'
+    #log['CDR3'] = 'True'
     printLog(log)
     
     # Create reader instance for input file
@@ -134,7 +137,7 @@ def aaAnalysis(db_file, cdr3, out_args=default_out_args):
         writer = getDbWriter(out_handle, db_file, 
                              add_fields=['CDR3_AA_LENGTH', 'CDR3_AA_POSITIVE', 'CDR3_AA_NEGATIVE', 
                                          'CDR3_ARGININE', 'CDR3_HISTIDINE', 'CDR3_LYSINE', 
-                                         'CDR3_TYROSINE', 'CDR3_ALIPHATIC', 'CDR3_GRAVY'])
+                                         'CDR3_TYROSINE', 'CDR3_ALIPHATIC', 'CDR3_AROMATIC', 'CDR3_GRAVY'])
     
     # Initialize time and total count for progress bar
     start_time = time()
@@ -179,8 +182,10 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_in=False, seq_out=False, annotation=False, db_in=True, log=False)],
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
-                        help='Specify for analysis of CDR3 properties')
+    #===========================================================================
+    # parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
+    #                     help='Specify for analysis of CDR3 properties')
+    #===========================================================================
     return parser
 
 
