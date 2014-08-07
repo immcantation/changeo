@@ -94,7 +94,7 @@ class IgRecord:
                   'j_germ_length': '_integer',
                   'junction_gap_length': '_integer'}
 
-    _logical_parse = {'F':False, 'T':True}
+    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False}
     _logical_deparse = {False:'F', True:'T'}
     
     # Public variables
