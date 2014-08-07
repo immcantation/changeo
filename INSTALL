@@ -4,6 +4,12 @@ gcc -c -fPIC SHMDistance.c -o SHMDistance.o
 gcc -shared -Wl,-soname,SHMDistance.so -o SHMDistance.so SHMDistance.o 
 
 
+COMPILING SHM DISTANCE FUNCTION - OS X
+-------------------------------------------------------------------------------
+gcc -c -fPIC SHMDistance.c -o SHMDistance.o
+gcc -shared -Wl,-dylib_install_name,SHMDistance.so -o SHMDistance.so SHMDistance.o 
+
+
 INSTALL - LINUX
 -------------------------------------------------------------------------------
 1) The simplest way to install all Python dependencies is to install the full 
