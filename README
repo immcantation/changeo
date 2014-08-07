@@ -1,15 +1,32 @@
 VERSION
 -------------------------------------------------------------------------------
-October 8, 2013
+August 7, 2014
 Version 0.4.0
 
 REQUIREMENTS
 -------------------------------------------------------------------------------
-pRESTO 0.4.1 (installed to the same directory or within PYTHONPATH)
-Python 2.7.3
+pRESTO 0.4.4
+Python 2.7.5
 NumPy 1.7
 SciPy 0.12
 pandas 0.12
 Biopython 1.59
-Rpy2 2.30
+rpy2 2.30
 R 3.0
+
+R PACKAGE REQUIREMENTS
+-------------------------------------------------------------------------------
+doMC
+epitools
+igraph
+ggplot2
+grid
+parallel
+plyr
+reshape2
+seqinr
+scales
+sqlbf
+stringr
+utils
+

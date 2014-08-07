@@ -1,8 +1,9 @@
-November 10, 2013
+August 7, 2014
 Version 0.4.0
 
 High Priority
-+ DefineClones, ParseDB
++ Remove R requirement from DefineClones
++ Complete common features of ParseDb (collapses, expand, etc)
 
 Low Priority
-+ everything else
++ Add VDJML and SQL I/O to ParseDb

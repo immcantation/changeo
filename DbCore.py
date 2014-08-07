@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Core functions shared by Changeo modules
+Core functions shared by Change-O modules
 """
 
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
+__author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
 __date__      = '2014.4.10'

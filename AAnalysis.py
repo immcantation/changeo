@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
-Amino acid analysis of Ig sequences
+Performs amino acid analysis of Ig sequences
 """
 
-__author__    = 'Namita Gupta and Daniel Gadala-Maria'
+__author__    = 'Namita Gupta, Daniel Gadala-Maria'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
@@ -182,10 +182,7 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_in=False, seq_out=False, annotation=False, db_in=True, log=False)],
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    #===========================================================================
     # parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
-    #                     help='Specify for analysis of CDR3 properties')
-    #===========================================================================
     return parser
 
 

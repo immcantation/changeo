@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-Parses records in the console log of pRESTO modules
+Parses tab delimited Change-O files
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
+__version__   = '0.4.0'
 __date__      = '2013.12.2'
 
 # Imports

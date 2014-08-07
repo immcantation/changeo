@@ -3,9 +3,9 @@
 Reconstructs germline sequences from alignment data
 """
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4'
+__version__   = '0.4.0'
 __date__      = '2014.7.8'
 
 # Imports

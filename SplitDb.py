@@ -3,7 +3,7 @@
 Sorts, samples and splits tab-delimited database files
 """
 
-__author__    = 'Namita Gupta and Jason Vander Heiden'
+__author__    = 'Namita Gupta, Jason Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
