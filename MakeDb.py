@@ -13,7 +13,7 @@ __date__      = '2014.4.10'
 import re
 import csv
 import os, sys
-from zipfile import ZipFile
+from zipfile import ZipFile, is_zipfile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -33,22 +33,34 @@ default_D_regex = re.compile(r"(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)")
 default_J_regex = re.compile(r"(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)")
 
 
-def extractIMGT(imgt_zipfile):
+def extractIMGT(imgt_output):
     """
-    Extract necessary files from IMGT zipped results
+    Extract necessary files from IMGT results, zipped or unzipped
     
     Arguments:
-    imgt_zipfile = zipped file output by IMGT
+    imgt_output = zipped file or unzipped folder output by IMGT
     
     Returns:
     sorted list of filenames from which information will be read
     """
-    # Extract selected files from the IMGT zip file
-    # Try to retain compressed format
-    imgt_zip = ZipFile(imgt_zipfile, 'r')
     imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"]
-    imgt_files = sorted([n for n in imgt_zip.namelist() for i in imgt_flags if i in n])
-    for f in imgt_files:  imgt_zip.extract(f)
+    if is_zipfile(imgt_output):
+        # Extract selected files from the IMGT zip file
+        # Try to retain compressed format
+        imgt_zip = ZipFile(imgt_output, 'r')
+        imgt_files = sorted([n for n in imgt_zip.namelist() for i in imgt_flags if i in n])
+        for f in imgt_files:  imgt_zip.extract(f)
+    elif os.path.isdir(imgt_output):
+        imgt_files = sorted([ (imgt_output + ('/' if imgt_output[-1]!='/' else '') + n) \
+                             for n in os.listdir(imgt_output) for j in imgt_flags if j in n ])
+    else:
+        sys.exit('ERROR: Unsupported IGMT output file-type - must be zipped file (-z) or folder (-f)')
+    
+    if len(imgt_files) > len(imgt_flags): # e.g. multiple 1_Summary files
+        sys.exit('ERROR: Wrong files in folder %s' % imgt_output)
+    elif len(imgt_files) < len(imgt_flags):
+        sys.exit('ERROR: Missing necessary file in folder %s' % imgt_output)
+        
     return imgt_files
 
 
@@ -156,7 +168,7 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     return ids
 
 
-def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}):
+def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}):
     """
     Writes tab-delimited database file in output directory
     
@@ -178,25 +190,25 @@ def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out
                           'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
    
     pass_handle = open(pass_file, 'wb')
-    fail_handle = open(fail_file, 'wb')
+    fail_handle = open(fail_file, 'wb') if not out_args['clean'] else None
     # Create DbWriter
-    if parse_id:
+    if not no_parse:
         for v in id_dict.itervalues():
             tmp = parseAnnotation(v, delimiter=out_args['delimiter'])
             del tmp['ID']
             ordered_fields.extend(tmp.keys())
             break
     pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
-    fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE'])
+    fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE']) if not out_args['clean'] else None
     # Initialize counters
     pass_count = fail_count = 0
     
     for i,record in enumerate(db_gen):
-        printProgress(i + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
+        printProgress(i + (total_count/2 if not no_parse else 0), total_count, 0.05, start_time)
         # Count pass or fail
-        if record.v_call == 'None' and record.j_call == 'None': 
+        if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None or not record.seq_gap: 
             fail_count += 1
-            fail_writer.writerow(record.toDict())
+            if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
         else: 
             pass_count += 1
@@ -204,7 +216,7 @@ def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out
         if record.id.split(' ')[0] in id_dict:
             record.id = id_dict[record.id]
         # Parse sequence description into new columns
-        if parse_id:
+        if not no_parse:
             record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
             record.id = record.annotations['ID']
             del record.annotations['ID']
@@ -212,7 +224,7 @@ def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out
         pass_writer.writerow(record.toDict())
     
     # Print log
-    printProgress(i+1 + (total_count/2 if parse_id else 0), total_count, 0.05, start_time)
+    printProgress(i+1 + (total_count/2 if not no_parse else 0), total_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = pass_file
     log['PASS'] = pass_count
@@ -220,15 +232,17 @@ def writeDb(db_gen, parse_id, file_prefix, aligner, start_time, total_count, out
     log['END'] = 'MakeClip'
     printLog(log)
     
+    pass_handle.close()
+    if fail_handle is not None: fail_handle.close()
+    
 
-def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=default_out_args):
+def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
     Arguments: 
     seq_file = FASTA file input to IMGT (from which to get seqID)
-    zip_file = zipped IMGT output file to process
-    imgt_files = list of 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, 6_Junction filenames
+    imgt_output = zipped file or unzipped folder output by IMGT
         
     Returns: 
     None
@@ -238,26 +252,27 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
     log['START'] = 'MakeDB'
     log['ALIGNER'] = 'IMGT'
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
-    log['ALIGN_RESULTS'] = zip_file if zip_file is not None else \
-    '_'.join( filter( None, os.path.basename(imgt_files[0]).split('_') )[2:-1] )
+    log['ALIGN_RESULTS'] = imgt_output
     log['ID_ONLY'] = id_only 
-    log['PARSE_ID'] = parse_id
+    log['NO_PARSE'] = no_parse
     printLog(log)
     
-    # Unzip zipped file
-    if zip_file:
-        imgt_files = extractIMGT(zip_file)
-    file_prefix = '_'.join( filter( None, os.path.basename(imgt_files[0]).split('_') )[2:-1] )
+    # Get individual IMGT result files
+    imgt_files = extractIMGT(imgt_output)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.splitext(os.path.split(os.path.abspath(imgt_output))[1])[0]
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
-        out_dir = os.path.split(zip_file)[0] if zip_file else os.path.split(imgt_files[0])[0] 
+        out_dir = os.path.dirname(os.path.abspath(imgt_output))
     else:
         out_dir = os.path.abspath(out_args['out_dir'])
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
     file_prefix = os.path.join(out_dir, file_prefix)
     
-    total_count = countDbFile(imgt_files[0]) * (2 if parse_id else 1)
+    total_count = countDbFile(imgt_files[0]) * (2 if not no_parse else 1)
     start_time = time()
     
     # Get (parsed) IDs from fasta file submitted to IMGT
@@ -265,7 +280,7 @@ def parseIMGT(seq_file, zip_file, imgt_files, id_only, parse_id, out_args=defaul
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeDb(imgt_dict, parse_id, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
+    writeDb(imgt_dict, no_parse, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
     
 
 def getArgParser():
@@ -294,16 +309,16 @@ def getArgParser():
                                         formatter_class=ArgumentDefaultsHelpFormatter)
     parser_imgt.set_defaults(func=parseIMGT)
     imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
-    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='zip_files',
+    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='imgt_output',
                                 help='Zipped IMGT output files')
-    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='al_folders', 
-                                help='Folder with unzipped IMGT files \
+    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='imgt_output', 
+                                help='Folder with unzipped IMGT output files \
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
     parser_imgt.add_argument('-s', action='store', nargs='+', dest='in_files',
                              help='List of input FASTA files containing sequences')
     parser_imgt.add_argument('--id', action='store_true', dest='id_only', default=False,
                              help='Specify if only sequence ID passed to IMGT')
-    parser_imgt.add_argument('--noParse', action='store_false', dest='parse_id', default=True,
+    parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', default=False,
                              help='Specify if input IDs should not be parsed to add new columns to CLIP-tab')
     
     return parser
@@ -318,35 +333,18 @@ if __name__ == "__main__":
     args_dict = parseCommonArgs(args)
     
     if 'in_files' in args_dict: del args_dict['in_files']
-    else: args_dict['parse_id'] = False
-    if 'zip_files' in args_dict: del args_dict['zip_files']
-    if 'al_folders' in args_dict: del args_dict['al_folders']
+    else: args_dict['no_parse'] = True
+    if 'imgt_output' in args_dict: del args_dict['imgt_output']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
     # IMGT parser
     if args.command == 'imgt':
-        if args.__dict__['zip_files']: # input IMGT zip-files
-            for i in range(len(args.__dict__['zip_files'])):
-                args_dict['zip_file'] = args.__dict__['zip_files'][i]
+        if args.__dict__['imgt_output']:
+            for i in range(len(args.__dict__['imgt_output'])):
                 args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
-                args_dict['imgt_files'] = None
+                args_dict['imgt_output'] = args.__dict__['imgt_output'][i]
                 args.func(**args_dict)
-        elif args.__dict__['al_folders']: # input folders with IMGT summary files
-            imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"] # necessary files
-            for i in range( len(args.__dict__['al_folders']) ):
-                folder = args.__dict__['al_folders'][i]
-                imgt_files = sorted([ (folder + ('/' if folder[-1]!='/' else '') + n) \
-                                    for n in os.listdir(folder) for j in imgt_flags if j in n ])
-                if all( j in f for j,f in zip(imgt_flags, imgt_files) ):
-                    args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
-                    args_dict['zip_file'] = None
-                    args_dict['imgt_files'] = imgt_files
-                    args.func(**args_dict)
-                elif len(imgt_files) >= len(imgt_flags): # e.g. multiple 1_Summary files
-                    parser.error('Wrong files in folder %s' % folder)
-                else:
-                    parser.error('Missing necessary file in folder %s' % folder)
         else:
             parser.error('Must include either (-z) zipped IMGT files or \
-                         (-f) folder with 1_, 2_, 3_, and 6_ individual files')
+                         (-f) folder with individual files 1_, 2_, 3_, and 6_')

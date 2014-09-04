@@ -83,7 +83,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
             germ_vseq = germ_vseq[int(align['V_GERM_START'] or 1)-1:int(align['V_GERM_START'] or 1)-1+int(align['V_GERM_LENGTH'] or 0)] + \
                         'N' * (int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1)-1:]))
         else:
-            result_log['STATUS'] = 'FAIL: Germline %s not in repertoire' % ','.join(vgene)
+            result_log['ERROR'] = 'Germline %s not in repertoire' % ','.join(vgene)
             return result_log, germs
     else:
         result_log['V_CALL'] = 'None'
@@ -97,7 +97,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
             germ_dseq = repo_dict[dgene]
             germ_dseq = germ_dseq[int(align['D_GERM_START'] or 1)-1:int(align['D_GERM_START'] or 1)-1+int(align['D_GERM_LENGTH'] or 0)]
         else:
-            result_log['STATUS'] = 'FAIL: Germline %s not in repertoire' % dgene
+            result_log['ERROR'] = 'Germline %s not in repertoire' % dgene
             return result_log, germs
     else:
         result_log['D_CALL'] = 'None'
@@ -114,28 +114,35 @@ def joinGermline(align, repo_dict, germ_types, v_field):
             germ_jseq = germ_jseq[int(align['J_GERM_START'] or 1)-1:int(align['J_GERM_START'] or 1)-1+int(align['J_GERM_LENGTH'] or 0)] + \
                         'N' * (int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1)-1:]))
         else:
-            result_log['STATUS'] = 'FAIL: Germline %s not in repertoire' % jgene
+            result_log['ERROR'] = 'Germline %s not in repertoire' % jgene
             return result_log, germs
     else: 
         result_log['J_CALL'] = 'None'
         germ_jseq = 'N' * int(align['J_GERM_LENGTH'] or 0)
     
     germ_seq = germ_vseq
+    regions = 'V' * len(germ_vseq)
     # Nucleotide additions before D (before J for light chains)
     germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - int(align['V_SEQ_START'] or 0))
+    regions += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - int(align['V_SEQ_START'] or 0))
     germ_seq += germ_dseq
+    regions += 'D' * len(germ_dseq)
     # Nucleotide additions after D (heavy chains only)
     germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
+    regions += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
     germ_seq += germ_jseq
+    regions += 'J' * len(germ_jseq)
     germs['full'] = germ_seq
+    germs['regions'] = regions
     if 'dmask' in germ_types: germs['dmask'] = germ_seq[:len(germ_vseq)] + \
                                   "N" * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
                                   germ_seq[-len(germ_jseq):]
     if 'vonly' in germ_types: germs['vonly'] = germ_vseq
 
-    if(len(germs['full']) != len(align['SEQUENCE_GAP'])):
-        result_log['STATUS'] = 'FAIL: Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align['SEQUENCE_GAP']))
-    else: result_log['STATUS'] = 'PASS'
+    if len(align['SEQUENCE_GAP']) == 0:
+        result_log['ERROR'] = 'Gapped sequence is missing from SEQUENCE_GAP column'
+    elif len(germs['full']) != len(align['SEQUENCE_GAP']):
+        result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align['SEQUENCE_GAP']))
     
     return result_log, germs
 
@@ -183,13 +190,13 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
     pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                 out_name=out_args['out_name'], out_type=out_args['out_type']) if not out_args['clean'] else None
     add_fields = []
     if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
     if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
     pass_writer = getDbWriter(pass_handle, db_file, add_fields=add_fields)
-    fail_writer = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+    fail_writer = getDbWriter(fail_handle, db_file, add_fields=add_fields) if not out_args['clean'] else None
     
     # Initialize time and total count for progress bar
     start_time = time()
@@ -208,12 +215,16 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
         if 'vonly' in germ_types: row['GERMLINE_GAP_V_REGION'] = germs['vonly']
 
         # Write row to pass or fail file
-        if result_log['STATUS'] == 'PASS':
+        if 'ERROR' in result_log:
+            fail_count += 1
+            if fail_writer is not None: fail_writer.writerow(row)
+        else:
+            result_log['SEQUENCE'] = row['SEQUENCE_GAP']
+            result_log['GERMLINE'] = germs['full']
+            result_log['REGIONS'] = germs['regions']
+            
             pass_count += 1
             pass_writer.writerow(row)
-        else:
-            fail_count += 1
-            fail_writer.writerow(row)
         printLog(result_log, handle=log_handle)
     
     # Print log
@@ -228,7 +239,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
         
     # Close file handles
     pass_handle.close()
-    fail_handle.close()
+    if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()
 
 
@@ -283,7 +294,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
             result_log['ID'] = clone
             result_log['V_CALL'] = ','.join(v_cons)
             result_log['J_CALL'] = ','.join(j_cons)
-            result_log['STATUS'] = 'FAIL: No consensus sequence for clone found'
+            result_log['ERROR'] = 'No consensus sequence for clone found'
         else:
             # Pad end of consensus sequence with gaps to make it the max length
             cons = cons[0]
@@ -300,7 +311,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
 
     # Write sequences of clone
     for val in clone_dict.itervalues():
-        if(result_log['STATUS'] == 'PASS'):
+        if 'ERROR' not in result_log:
             # Update lengths padded to longest sequence in clone
             val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val['SEQUENCE_GAP']))
             val['SEQUENCE_GAP'] += '.'*(max_length - len(val['SEQUENCE_GAP']))
@@ -310,13 +321,17 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
             if 'dmask' in germ_types: val['GERMLINE_GAP_D_MASK'] = germs['dmask']
             if 'vonly' in germ_types: val['GERMLINE_GAP_V_REGION'] = germs['vonly']
             
+            result_log['SEQUENCE'] = cons
+            result_log['GERMLINE'] = germs['full']
+            result_log['REGIONS'] = germs['regions']
+            
             # Write to pass file
             counts['pass'] += 1
             writers['pass'].writerow(val)
         else:
             # Write to fail file
             counts['fail'] += 1
-            writers['fail'].writerow(val)
+            if writers['fail'] is not None: writers['fail'].writerow(val)
     # Return log
     return result_log
         
@@ -364,14 +379,14 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
     pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                 out_name=out_args['out_name'], out_type=out_args['out_type']) if not out_args['clean'] else None
     add_fields = []
     if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
     if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
     writers = {}
     writers['pass'] = getDbWriter(pass_handle, db_file, add_fields=add_fields)
-    writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+    writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields) if not out_args['clean'] else None
     
     # Initialize time and total count for progress bar
     start_time = time()
@@ -417,7 +432,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
         
     # Close file handles
     pass_handle.close()
-    fail_handle.close()
+    if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()
 
 

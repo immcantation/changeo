@@ -53,7 +53,7 @@ os.chdir(py_wd)
 
 # Defaults
 default_translate = False
-default_distance = 0.01
+default_distance = 0.0
 default_bygroup_model = 's5f'
 default_hclust_model = 'chen2010'
 
@@ -641,7 +641,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
     
             else:
                 for i, rec in enumerate(result.data):
-                    fail_writer.writerow(rec.toDict())
+                    if fail_writer is not None: fail_writer.writerow(rec.toDict())
                     fail_count += 1
                     result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
                     

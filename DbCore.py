@@ -94,8 +94,8 @@ class IgRecord:
                   'j_germ_length': '_integer',
                   'junction_gap_length': '_integer'}
 
-    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False}
-    _logical_deparse = {False:'F', True:'T'}
+    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None}
+    _logical_deparse = {False:'F', True:'T', None:'NA'}
     
     # Public variables
     allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
