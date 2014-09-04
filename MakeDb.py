@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.10'
+__date__      = '2014.9.4'
 
 # Imports
 import re
@@ -301,7 +301,7 @@ def getArgParser():
                                        help='Aligner used', metavar='')
     
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=True)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_out=True, log=False)
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
@@ -316,9 +316,9 @@ def getArgParser():
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
     parser_imgt.add_argument('-s', action='store', nargs='+', dest='in_files',
                              help='List of input FASTA files containing sequences')
-    parser_imgt.add_argument('--id', action='store_true', dest='id_only', default=False,
+    parser_imgt.add_argument('--id', action='store_true', dest='id_only', 
                              help='Specify if only sequence ID passed to IMGT')
-    parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', default=False,
+    parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='Specify if input IDs should not be parsed to add new columns to CLIP-tab')
     
     return parser
@@ -330,7 +330,7 @@ if __name__ == "__main__":
     """
     parser = getArgParser()    
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args)
+    args_dict = parseCommonArgs(args, in_arg='imgt_output')
     
     if 'in_files' in args_dict: del args_dict['in_files']
     else: args_dict['no_parse'] = True

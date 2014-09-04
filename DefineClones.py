@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.6.24'
+__date__      = '2014.9.4'
 
 # Imports
 import os, signal, sys
@@ -1026,7 +1026,8 @@ def getArgParser():
                                        help='Cloning method', metavar='')
     
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, multiproc=True)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 
+                                       db_out=True, multiproc=True)
     
     # Distance cloning method
     parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],

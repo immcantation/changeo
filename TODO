@@ -1,4 +1,4 @@
-August 7, 2014
+September 4, 2014
 Version 0.4.0
 
 High Priority
@@ -7,3 +7,9 @@ High Priority
 
 Low Priority
 + Add VDJML and SQL I/O to ParseDb
++ Fix broken IMGT output (were same sequence is assigned to 
+  both CDR3 and J) during parsing by MakeDb
+
+Potential Features
++ Remove output folder for zipped IMGT files during parsing 
+  by MakeDb

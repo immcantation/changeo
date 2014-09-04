@@ -52,12 +52,17 @@ $RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . >> $RUNLOG
 
 # Create germlines
 echo "   2: CreateGermlines        $(date +'%H:%M %D')"
-$RUN CreateGermlines.py -d "${BASENAME}_db-pass.tab" -r $GERMLINE_FOLDER \
+#$RUN CreateGermlines.py -d "${BASENAME}_db-pass.tab" -r $GERMLINE_FOLDER \
+#    --log GermlineLog.log >> $RUNLOG
+$RUN CreateGermlines.py -d *_db-pass.tab -r $GERMLINE_FOLDER \
     --log GermlineLog.log >> $RUNLOG
+
 
 # Assign clones
 echo "   3: DefineClones bygroup   $(date +'%H:%M %D')"
-$RUN DefineClones.py bygroup -d "${BASENAME}_db-pass_germ-pass.tab" --model $DC_MODEL --dist $DC_DIST \
+#$RUN DefineClones.py bygroup -d "${BASENAME}_db-pass_germ-pass.tab" --model $DC_MODEL --dist $DC_DIST \
+#    --log CloneLog.log >> $RUNLOG 
+$RUN DefineClones.py bygroup -d *_db-pass_germ-pass.tab --model $DC_MODEL --dist $DC_DIST \
     --log CloneLog.log >> $RUNLOG 
 
 if $ZIP_FILES; then

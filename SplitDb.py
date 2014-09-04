@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.14'
+__date__      = '2014.9.4'
 
 # Imports
 import os, sys
@@ -330,12 +330,14 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, 
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(dest='command', help='Parsing mode')
     
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, log=False, annotation=False)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 
+                                       log=False, annotation=False)
 
 
     # Subparser to downsize files to a maximum count

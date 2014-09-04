@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Daniel Gadala-Maria'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.15'
+__date__      = '2014.9.4'
 
 # Imports
 import re
@@ -177,12 +177,17 @@ def getArgParser():
                       
     Returns: 
     an ArgumentParser object
-    """    
+    """
+    # Parent parser    
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, annotation=False, 
+                                       db_in=True, log=False)
     # Define argument parser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(seq_in=False, seq_out=False, annotation=False, db_in=True, log=False)],
+    parser = ArgumentParser(description=__doc__, 
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
+                            parents=[parser_parent], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     # parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
+    
     return parser
 
 

@@ -6,7 +6,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.7.8'
+__date__      = '2014.9.4'
 
 # Imports
 import os, sys
@@ -446,10 +446,13 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Parent parser
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, db_out=True, 
+                                       annotation=False)
     # Define argument parser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonArgParser(seq_in=False, seq_out=False, 
-                                                        annotation=False, db_in=True)],
+    parser = ArgumentParser(description=__doc__, 
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+                            parents=[parser_parent],
                             formatter_class=ArgumentDefaultsHelpFormatter)
                                      
     parser.add_argument('-r', action='store', dest='repo', default=default_repo,
@@ -458,7 +461,7 @@ def getArgParser():
                         nargs='+', choices=('full','dmask','vonly'),
                         help='Specify type(s) of germlines to include full germline, \
                               germline with D-region masked, or germline for V region only.')
-    parser.add_argument('--cloned', action='store_true', dest='byClone', default=False,
+    parser.add_argument('--cloned', action='store_true', dest='byClone', 
                         help='Specify to create only one germline per clone \
                              (assumes input file is sorted by clone column)')
     parser.add_argument('--vfield', action='store', dest='v_field', default=default_v_field,
