@@ -12,11 +12,10 @@ library(doMC)
 library(plyr)
 registerDoMC(cores=detectCores()) 
 
-load("S5F_Targeting.RData")
-load("Old_Symmetric_Distance.RData")
-S5F_Substitution <- S5F_Targeting[["Substitution"]]
-S5F_Mutability <- S5F_Targeting[["Mutability"]]  
-S5F_Substitution_Array <- S5F_Targeting[["S5F_Substitution_Array"]]
+
+#S5F_Substitution <- S5F_Targeting[["Substitution"]]
+#S5F_Mutability <- S5F_Targeting[["Mutability"]]  
+#S5F_Substitution_Array <- S5F_Targeting[["S5F_Substitution_Array"]]
 
 #' String to Character
 #'
@@ -49,11 +48,13 @@ dist_seq_fast<-function(seq1,seq2){
   seq2 <- seq2[fivemersWithMu & fivemersWithNonNuc] 
   a <- tryCatch({
   if(length(seq1)==1){
-    seq1_to_seq2 <- S5F_Substitution[substr(seq2,3,3),seq1] * S5F_Mutability[seq1]
-    seq2_to_seq1 <- S5F_Substitution[substr(seq1,3,3),seq2] * S5F_Mutability[seq2]
+    #seq1_to_seq2 <- S5F_Substitution[substr(seq2,3,3),seq1] * S5F_Mutability[seq1]
+    seq1_to_seq2 <- Targeting[["Targeting"]][substr(seq2,3,3),seq1]
+    #seq2_to_seq1 <- S5F_Substitution[substr(seq1,3,3),seq2] * S5F_Mutability[seq2]
+    seq2_to_seq1 <- Targeting[["Targeting"]][substr(seq1,3,3),seq2]
   }else{
-    seq1_to_seq2 <- sum( diag(S5F_Substitution[substr(seq2,3,3),seq1]) *  S5F_Mutability[seq1] )
-    seq2_to_seq1 <- sum( diag(S5F_Substitution[substr(seq1,3,3),seq2]) *  S5F_Mutability[seq2] )
+    seq1_to_seq2 <- sum( diag(Targeting[["Targeting"]][substr(seq2,3,3),seq1]) )
+    seq2_to_seq1 <- sum( diag(Targeting[["Targeting"]][substr(seq1,3,3),seq2]) )
   }
   return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
   },error = function(e){
@@ -126,7 +127,8 @@ getDistanceToClosest <- function(arrJunctions){
 #' @param   grouping    'first' means first gene call is used
 #' @param   dist        'S5F' uses S5F distance function, anything else uses old function
 #' @return  DB dataframe with DIST_NEAREST column added
-distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', distMeasure="S5F") {
+distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', distMeasure="HS5F") {
+  
 	cat("Opening/reading DB\n")
 	if(file != "") {
     # Read input file into dataframe
@@ -159,6 +161,17 @@ distToNearest <- function(file="", db=NA, genotyped=F, grouping='first', distMea
 		stop("Error: Unrecognized grouping method\n")
 	}
 	
+  
+  # Load targeting model
+  if(distMeasure=="HS5F"){
+    load("HS5F_Targeting.RData", envir=.GlobalEnv)
+  } else if(distMeasure==""){
+    load("MRS5NF_Targeting.RData", envir=.GlobalEnv)
+  } else if(distMeasure=="MTri"){
+    load("MTri_Targeting.RData", envir=.GlobalEnv)
+  } else{
+    stop("Error: Unrecognized targeting model\n")
+  }
 	# Create new column for distance to nearest neighbor
 	db$DIST_NEIGHBOR = rep(NA, nrow(db))
 	
