@@ -5,10 +5,10 @@
 #' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
 #' @date       2013.12.09
 
-load("S5F_Targeting.RData")
-S5F_Substitution <- S5F_Targeting[["Substitution"]]
-S5F_Mutability <- S5F_Targeting[["Mutability"]]  
-S5F_Substitution_Array <- S5F_Targeting[["S5F_Substitution_Array"]]
+load("HS5F_Targeting.RData")
+S5F_Substitution <- Targeting[["Substitution"]]
+S5F_Mutability <- Targeting[["Mutability"]]  
+#S5F_Substitution_Array <- S5F_Targeting[["S5F_Substitution_Array"]]
 
 #' Get S5F distance between two sequences of same length broken down into fivemers
 #'
@@ -35,11 +35,6 @@ dist_seq_fast<-function(seq1,seq2){
   })
 }
 
-dist_seq_fast2<-function(seq1,seq2){  
-  seq1_to_seq2 <- sum( (S5F_Substitution_Array[paste(substr(seq2,3,3),seq1,sep=":")]) *  S5F_Mutability[seq1] )
-  seq2_to_seq1 <- sum( (S5F_Substitution_Array[paste(substr(seq1,3,3),seq2,sep=":")]) *  S5F_Mutability[seq2] )
-  return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
-}
 
 switch_row <- function(Mat, i, j){
 	if (i != j) {
