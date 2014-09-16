@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 Sorts, samples and splits tab-delimited database files
+Required columns: SEQUENCE_ID, SEQUENCE, V_CALL, D_CALL, J_CALL
+Output columns:   None
 """
 
 __author__    = 'Namita Gupta, Jason Vander Heiden'

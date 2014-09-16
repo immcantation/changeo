@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
-Parses tab delimited Change-O files
+Parses tab delimited database files
+Required columns: SEQUENCE_ID, SEQUENCE_GAP, (GERMLINE_GAP, 
+                  GERMLINE_GAP_D_MASK, OR GERMLINE_GAP_V_REGION)
+Output columns:   None
 """
 
 __author__    = 'Jason Anthony Vander Heiden'

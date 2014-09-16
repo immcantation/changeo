@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 Assign Ig sequences into clones
+Required columns: SEQUENCE_ID, SEQUENCE, V_CALL (or V_CALL_GENOTYPED), D_CALL,
+                  J_CALL, JUNCTION_GAP_LENGTH, JUNCTION
+Output columns:   CLONE
 """
 
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'

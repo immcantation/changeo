@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """
 Performs amino acid analysis of Ig sequences
+Required columns: JUNCTION
+Output columns:   CDR3_AA_LENGTH, CDR3_AA_POSITIVE, CDR3_AA_NEGATIVE, 
+                  CDR3_ARGININE, CDR3_HISTIDINE, CDR3_LYSINE, 
+                  CDR3_TYROSINE, CDR3_ALIPHATIC, CDR3_AROMATIC, CDR3_GRAVY
 """
 
 __author__    = 'Namita Gupta, Daniel Gadala-Maria'

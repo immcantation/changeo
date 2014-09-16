@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 """
 Reconstructs germline sequences from alignment data
+Required columns: V_CALL (or V_CALL_GENOTYPED), D_CALL, J_CALL, SEQUENCE_GAP,
+                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START, V_GERM_LENGTH, D_SEQ_START,
+                  D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
+                  J_GERM_START, J_GERM_LENGTH, (SEQUENCE_ID, CLONE if --cloned)
+Output columns:   GERMLINE_GAP, GERMLINE_GAP_D_MASK, and/or GERMLINE_GAP_V_REGION
 """
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
@@ -48,7 +53,7 @@ def getRepo(repo):
         with open(file_name, "rU") as file_handle:
             germlines = SeqIO.parse(file_handle, "fasta")
             for g in germlines:
-                repo_dict[tuple(IgRecord.allele_regex.findall(g.description))] = str(g.seq)
+                repo_dict[tuple(IgRecord.allele_regex.findall(g.description))] = str(g.seq).upper()
     return repo_dict
 
     
@@ -132,7 +137,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     regions += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
-    germs['full'] = germ_seq
+    germs['full'] = germ_seq.upper()
     germs['regions'] = regions
     if 'dmask' in germ_types: germs['dmask'] = germ_seq[:len(germ_vseq)] + \
                                   "N" * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
@@ -143,6 +148,8 @@ def joinGermline(align, repo_dict, germ_types, v_field):
         result_log['ERROR'] = 'Gapped sequence is missing from SEQUENCE_GAP column'
     elif len(germs['full']) != len(align['SEQUENCE_GAP']):
         result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align['SEQUENCE_GAP']))
+        
+    for v in germs.itervalues(): v = v.upper()
     
     return result_log, germs
 
