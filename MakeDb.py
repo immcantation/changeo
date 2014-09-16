@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 """
 Create tab-delimited database file to store sequence alignment information
+Output Columns: SEQUENCE_ID, SEQUENCE, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT, INDELS,
+                V_MATCH, V_LENGTH, J_MATCH, J_LENGTH, V_CALL, D_CALL, J_CALL, SEQUENCE_GAP,
+                V_SEQ_START, V_SEQ_LENGTH, V_GERM_START, V_GERM_LENGTH, N1_LENGTH, D_SEQ_START,
+                D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
+                J_GERM_START, J_GERM_LENGTH, JUNCTION_GAP_LENGTH, JUNCTION 
 """
 
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
@@ -24,13 +29,14 @@ from time import time
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args, parseAnnotation, printLog, printProgress
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs, countSeqFile
 from DbCore import getDbWriter, IgRecord, countDbFile
 
 # Default parameters
 default_V_regex = re.compile(r"(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)")
 default_D_regex = re.compile(r"(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)")
 default_J_regex = re.compile(r"(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)")
+default_delimiter = ('\t', ',', '-')
 
 
 def extractIMGT(imgt_output):
@@ -147,6 +153,9 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     
     Arguments: 
     seq_file = a fasta file of sequences input to IMGT
+    start_time = time from which to count elapsed time
+    total_count = number of records (for progress bar)
+    out_args = common output argument dictionary from parseCommonArgs
     id_only = flag whether only sequence ID 
               (not full description) was used for IMGT input
                     
@@ -168,26 +177,251 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     return ids
 
 
-def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}):
+def getGapDict(vgap_file, delimiter=default_delimiter):
+    """
+    Gets dictionary of gap locations and length by V allele from file
+    
+    Arguments:
+    vgap_file = file with gapping information
+    delimiter = a tuple of delimiters for between (ID and gaps, gaps, and gap start and gap length)
+    
+    Returns:
+    Dictionary of {V_GL: [list of (gap_start, gap_length),...] } 
+    """
+    gap_dict = {}
+    gap_handle = open(vgap_file, 'rU')
+    line = gap_handle.readline()
+    while line:
+        w = line.split(delimiter[0])
+        gaps = w[1].split(delimiter[1])
+        
+        # Make each gap a tuple of (start, length)
+        gaps = [tuple(gap.split(delimiter[2])) for gap in gaps]
+        gap_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = gaps
+        
+        line = gap_handle.readline()
+        
+    return gap_dict
+
+
+def getJaaDict(jaa_file, delimiter=default_delimiter):
+    """
+    Gets dictionary of location of conserved aa by J allele from file
+    
+    Arguments:
+    jaa_file = file with conserved aa information for each J-allele
+    delimiter = a tuple of delimiters for between (ID and gaps, gaps, and gap start and gap length)
+    
+    Returns:
+    Dictionary of {J_GL: conserved aa position}
+    """
+    j_dict = {}
+    j_handle = open(jaa_file, 'rU')
+    line = j_handle.readline()
+    while line:
+        w = line.split(delimiter[0])
+        j_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = w[1]
+        line = j_handle.readline()
+        
+    return j_dict
+
+
+def gapIgBlastQuery(record, gap_dict, j_dict):
+    """
+    Adds gapped sequences and IMGT junctions to IgBlast aligned database files
+
+    Arguments:
+    record = dictionary with one IgBlast result
+    gap_dict = dictionary of {IgBlast_GL: [list of (gap_start, gap_length),...] }
+    j_dict = dictionary of {J_GL: conserved aa start}
+
+    Returns:
+    dictionary with gapped IgBlast result and IMGT junction
+    """
+    v_call_col = 'V_CALL'
+    if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None:
+        return record
+    else:
+        record = record.toDict()
+ 
+    seq = (int(record['V_GERM_START'] or 0)-1)*'.' + \
+           record['SEQUENCE'][(int(record['V_SEQ_START'] or 0)-1):(int(record['V_SEQ_LENGTH'] or 0)-int(record['V_SEQ_START'] or 0))]
+    v_call = record[v_call_col]
+    if v_call in gap_dict:
+        gap_seq = seq
+        for gap_event in gap_dict[v_call]:
+            gap_seq = gap_seq[:gap_event[0]] + gap_event[1]*'.' + gap_seq[gap_event[0]:]
+        record['V_GERM_LENGTH'] = len(gap_seq)
+        gap_seq = gap_seq + record['JUNCTION']
+        pre_j_len = len(gap_seq)
+        gap_seq = gap_seq + seq[int(record['J_START_SEQ'] or 0):(int(record['J_SEQ_LENGTH'] or 0)-int(record['J_SEQ_START'] or 0))]
+    else: 
+        gap_seq = ''
+        record['V_GERM_LENGTH'] = int(record['V_SEQ_GERM'] or 0)
+
+    record['N1_LENGTH'] = int(record['D_SEQ_START'] or 0) - \
+                        int(record['V_SEQ_END'] or 0) - 1
+    record['N2_LENGTH'] = int(record['J_SEQ_START'] or 0) - \
+                        int(record['D_SEQ_END'] or 0) - 1
+                        
+    if(record['J_CALL'] in j_dict):
+        record['JUNCTION'] = gap_seq[312:(pre_j_len+j_dict[record['J_CALL']]-record['J_GERM_START']+3)]
+        record['JUNCTION_GAP_LENGTH'] = len(record['JUNCTION'])
+                            
+    return IgRecord(record)
+
+
+def getSeqforIgBlast(seq_file):
+    """
+    Fetch input sequences for IgBlast queries
+    
+    Arguments: 
+    seq_file = a fasta file of sequences input to IgBlast
+                    
+    Returns: 
+    a dictionary of {ID:Seq} 
+    """
+    
+    seq_dict = SeqIO.index(seq_file, "fasta", IUPAC.ambiguous_dna)
+    
+    # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
+    seqs = {}
+    for seq in seq_dict.itervalues():
+        seqs.update({seq.description:str(seq.seq)})
+    return seqs
+    
+    
+def findLine(handle, query):
+    """
+    Finds line with query string in file
+    
+    Arguments:
+    handle = file handle in which to search for line
+    query = query string for which to search in file
+    
+    Returns:
+    line from handle in which query string was found
+    """
+    for line in handle:
+        if(re.match(query, line)):
+            return line
+
+
+def readIgBlast(igblast_output, seq_dict):
+    """
+    Reads IgBlast output
+
+    Arguments: ma
+    igblast_output = IgBlast output file (format 7)
+    seq_dict = a dictionary of {ID:Seq} from input fasta file
+        
+    Returns: 
+    a generator of dictionaries containing alignment data
+    """
+    db_gen = {}
+    igblast_handle = open(igblast_output, 'rU')
+    
+    for line in igblast_handle:
+        if(re.match("# Query:", line)):
+            if 'SEQUENCE_ID' in db_gen and db_gen['FUNCTIONAL'] != 'No Results': yield db_gen
+            words = line.split()
+            db_gen = {}
+            db_gen['SEQUENCE_ID'] = ' '.join(words[2:])
+            db_gen['SEQUENCE'] = seq_dict[db_gen['SEQUENCE_ID']]
+        if(re.match("# 0 hits found", line)):
+            db_gen = IgRecord({'SEQUENCE_ID':db_gen['SEQUENCE_ID'], 'SEQUENCE':db_gen['SEQUENCE'],
+                               'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
+            yield db_gen
+        if(re.match(r"# V-\(D\)-J rearrangement summary", line)):
+            line = next(igblast_handle)
+            words = line.split()
+            db_gen['V_CALL'] = ','.join(re.findall(default_V_regex, line))
+            db_gen['D_CALL'] = ','.join(re.findall(default_D_regex, line))
+            db_gen['J_CALL'] = ','.join(re.findall(default_J_regex, line))
+            cnt = 4 if db_gen['D_CALL'] else 3
+            if(words[cnt]=='No'): 
+                db_gen['STOP'] = 'F'
+            elif(words[cnt]=='Yes'): 
+                db_gen['STOP'] = 'T'
+            else: '?'
+            cnt += 1
+            if(words[cnt]=='In-frame'): 
+                db_gen['IN_FRAME'] = 'T'
+            elif(words[cnt]=='Out-of-frame'): 
+                db_gen['IN_FRAME'] = 'F'
+            else: db_gen['IN_FRAME'] = '?'
+            cnt += 1
+            if(words[cnt]=='No'): 
+                db_gen['FUNCTIONAL'] = 'F'
+            elif(words[cnt]=='Yes'): 
+                db_gen['FUNCTIONAL'] = 'T'
+            else: db_gen['FUNCTIONAL'] = '?'
+        if(re.match(r"# V-\(D\)-J junction", line)):
+            line = next(igblast_handle)
+            db_gen['JUNCTION'] = re.sub("(N/A)|\[|\(|\)|\]",'',''.join(line.split()))
+            db_gen['JUNCTION_GAP_LENGTH'] = len(db_gen['JUNCTION'])
+        if(re.match(r"# Hit table", line)):
+            if('V_CALL' in db_gen and db_gen['V_CALL']):
+                    line = findLine(igblast_handle,"V")
+                    words = line.split()
+                    db_gen['V_LENGTH'] = words[4]
+                    db_gen['V_MATCH'] = str(int(words[4]) - int(words[5]))
+                    db_gen['V_SEQ_START'] =  words[8]
+                    db_gen['V_SEQ_LENGTH'] =  words[9] - words[8] + 1
+                    db_gen['V_GERM_START'] =  words[10]
+                    db_gen['V_GERM_LENGTH'] =  words[11] - words[10] + 1
+                    if(words[6] == '0'):
+                        db_gen['INDELS'] = 'F'
+                    else: db_gen['INDELS'] = 'T'
+            if('D_CALL' in db_gen and db_gen['D_CALL']):
+                    line = findLine(igblast_handle,"D")
+                    words = line.split()
+                    db_gen['D_LENGTH'] = words[4]
+                    db_gen['D_MATCH'] = str(int(words[4]) - int(words[5]))
+                    db_gen['D_SEQ_START'] = words[8]
+                    db_gen['D_SEQ_LENGTH'] = words[9] - words[8] + 1
+                    db_gen['D_GERM_START'] = words[10]
+                    db_gen['D_GERM_LENGTH'] = words[11] - words[10] + 1
+            if('J_CALL' in db_gen and db_gen['J_CALL']):
+                    line = findLine(igblast_handle,"J")
+                    words = line.split()
+                    db_gen['J_LENGTH'] = words[4]
+                    db_gen['J_MATCH'] = str(int(words[4]) - int(words[5]))
+                    db_gen['J_SEQ_START'] = words[8] - words[8] + 1
+                    db_gen['J_SEQ_LENGTH'] = words[9]
+                    db_gen['J_GERM_START'] = words[10]
+                    db_gen['J_GERM_LENGTH'] = words[11] - words[10] + 1
+    igblast_handle.close()
+    yield IgRecord(db_gen)
+
+
+def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}, gap_dict={}, j_dict={}):
     """
     Writes tab-delimited database file in output directory
     
     Arguments:
     db_gen = a generator of IgRecord objects containing alignment data
-    id_dict = a dictionary of {truncated ID: full seq description}
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
     file_prefix = directory and prefix for CLIP tab-delim file
+    aligner = which aligner was used
+    start_time = time from which to count elapsed time
+    total_count = number of records (for progress bar)
+    out_args = common output argument dictionary from parseCommonArgs
+    id_dict = a dictionary of {truncated ID: full seq description}
+    seq_dict = a dictionary of {ID:Seq} from input fasta file
+    gap_dict = dictionary of {IgBlast_GL: [list of (gap_start, gap_length),...] }
+    j_dict = dictionary of {J_GL: conserved aa start}
     
     Returns:
     None
     """
     pass_file = "%s_db-pass.tab" % file_prefix
     fail_file = "%s_db-fail.tab" % file_prefix
-    if aligner=='imgt':
-        ordered_fields = ['SEQUENCE_ID','SEQUENCE','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
-                          'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_GAP',
-                          'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START',
-                          'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
-                          'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
+    ordered_fields = ['SEQUENCE_ID','SEQUENCE','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
+                      'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_GAP',
+                      'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START',
+                      'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
+                      'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
    
     pass_handle = open(pass_file, 'wb')
     fail_handle = open(fail_file, 'wb') if not out_args['clean'] else None
@@ -204,14 +438,24 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     pass_count = fail_count = 0
     
     for i,record in enumerate(db_gen):
-        printProgress(i + (total_count/2 if not no_parse else 0), total_count, 0.05, start_time)
+        printProgress(i + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
+        
+        # Gap sequence and form IMGT-defined junction region
+        if aligner=='igblast':
+            db_gen =  gapIgBlastQuery(db_gen, gap_dict, j_dict)
+        
         # Count pass or fail
-        if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None or not record.seq_gap: 
+        if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None or not record.seq_gap or not record.junction: 
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
         else: 
             pass_count += 1
+            record.seq = record.seq.upper()
+            record.seq_gap = record.seq_gap.upper()
+            record.junction = record.junction.upper() 
+            
+            
         # Build sample sequence description
         if record.id.split(' ')[0] in id_dict:
             record.id = id_dict[record.id]
@@ -220,16 +464,17 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
             record.id = record.annotations['ID']
             del record.annotations['ID']
+            
         # Write row to tab-delim CLIP file
         pass_writer.writerow(record.toDict())
     
     # Print log
-    printProgress(i+1 + (total_count/2 if not no_parse else 0), total_count, 0.05, start_time)
+    printProgress(i+1 + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = pass_file
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['END'] = 'MakeClip'
+    log['END'] = 'MakeDb'
     printLog(log)
     
     pass_handle.close()
@@ -243,13 +488,16 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     Arguments: 
     seq_file = FASTA file input to IMGT (from which to get seqID)
     imgt_output = zipped file or unzipped folder output by IMGT
+    id_only = whether only the sequence ID (with no pRESTO information) was passed to IMGT
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    out_args = common output argument dictionary from parseCommonArgs
         
     Returns: 
     None
     """
     # Print parameter info
     log = OrderedDict()
-    log['START'] = 'MakeDB'
+    log['START'] = 'MakeDb'
     log['ALIGNER'] = 'IMGT'
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ALIGN_RESULTS'] = imgt_output
@@ -259,10 +507,6 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     
     # Get individual IMGT result files
     imgt_files = extractIMGT(imgt_output)
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.splitext(os.path.split(os.path.abspath(imgt_output))[1])[0]
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
@@ -270,6 +514,10 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     else:
         out_dir = os.path.abspath(out_args['out_dir'])
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.splitext(os.path.split(os.path.abspath(imgt_output))[1])[0]
     file_prefix = os.path.join(out_dir, file_prefix)
     
     total_count = countDbFile(imgt_files[0]) * (2 if not no_parse else 1)
@@ -280,7 +528,58 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeDb(imgt_dict, no_parse, file_prefix, 'imgt', start_time, total_count, out_args, id_dict)
+    writeDb(imgt_dict, no_parse, file_prefix, 'imgt', start_time, total_count, out_args, id_dict=id_dict)
+    
+
+def parseIgBlast(seq_file, vgap_file, jaa_file, igblast_output, no_parse, out_args=default_out_args):
+    """
+    Main for IgBlast aligned sample sequences
+
+    Arguments: 
+    seq_file = fasta file input to IgBlast (from which to get sequence)
+    vgap_file = file with gapping information for V germlines
+    jaa_file = file with conserved amino acid position for J germlines
+    igblast_output = IgBlast output file to process
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    out_args = common output argument dictionary from parseCommonArgs
+        
+    Returns: 
+    None
+    """
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'MakeDB'
+    log['ALIGNER'] = 'IgBlast'
+    log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['V_GAP_FILE'] = os.path.basename(vgap_file)
+    log['J_AA_FILE'] = os.path.basename(jaa_file)
+    log['ALIGN_RESULTS'] = os.path.basename(igblast_output)
+    log['NO_PARSE'] = no_parse
+    printLog(log)
+    
+    # Get various dictionaries for sequence, gapping, and junction determination
+    seq_dict = getSeqforIgBlast(seq_file)
+    gap_dict = getGapDict(vgap_file)
+    j_dict = getJaaDict(jaa_file)
+    
+    # Formalize out_dir and file-prefix
+    if not out_args['out_dir']:
+        out_dir = os.path.split(igblast_output)[0]
+    else:
+        out_dir = os.path.abspath(out_args['out_dir'])
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.basename(os.path.splitext(igblast_output)[0])
+    file_prefix = os.path.join( out_dir, file_prefix)
+    
+    total_count = countSeqFile(seq_file)
+    start_time = time()
+    
+    # Create
+    igblast_dict = readIgBlast(igblast_output, seq_dict)
+    writeDb(igblast_dict, no_parse, file_prefix, 'igblast', start_time, total_count, out_args, seq_dict=seq_dict, gap_dict=gap_dict, j_dict=j_dict)
     
 
 def getArgParser():
@@ -309,9 +608,9 @@ def getArgParser():
                                         formatter_class=ArgumentDefaultsHelpFormatter)
     parser_imgt.set_defaults(func=parseIMGT)
     imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
-    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='imgt_output',
+    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='aligner_output',
                                 help='Zipped IMGT output files')
-    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='imgt_output', 
+    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='aligner_output', 
                                 help='Folder with unzipped IMGT output files \
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
     parser_imgt.add_argument('-s', action='store', nargs='+', dest='in_files',
@@ -319,7 +618,23 @@ def getArgParser():
     parser_imgt.add_argument('--id', action='store_true', dest='id_only', 
                              help='Specify if only sequence ID passed to IMGT')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
-                             help='Specify if input IDs should not be parsed to add new columns to CLIP-tab')
+                             help='Specify if input IDs should not be parsed to add new columns to database')
+    
+    # IgBlast Aligner
+    parser_igblast = subparsers.add_parser('igblast', help='Process IgBlast output',
+                                           parents=[parser_parent],
+                                           formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_igblast.set_defaults(func=parseIgBlast)
+    parser_igblast.add_argument('-o', nargs='+', action='store', dest='aligner_output', required=True,
+                                help='IgBlast output files')
+    parser_igblast.add_argument('-s', action='store', nargs='+', dest='in_files', required=True,
+                                help='List of input FASTA files containing sequences')
+    parser_igblast.add_argument('-j', action='store', nargs='+', dest='jaa_files', required=True,
+                                help='List of files with conserved amino acid position for J germlines')
+    parser_igblast.add_argument('--vgap', action='store', nargs='+', dest='vgap_files', required=True,
+                                help='List of files with gapping information for V germlines')
+    parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse', 
+                                help='Specify if input IDs should not be parsed to add new columns to database')
     
     return parser
 
@@ -330,21 +645,35 @@ if __name__ == "__main__":
     """
     parser = getArgParser()    
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args, in_arg='imgt_output')
+    args_dict = parseCommonArgs(args, in_arg='aligner_output')
     
     if 'in_files' in args_dict: del args_dict['in_files']
     else: args_dict['no_parse'] = True
-    if 'imgt_output' in args_dict: del args_dict['imgt_output']
+    if 'aligner_output' in args_dict: del args_dict['aligner_output']
+    if 'jaa_files' in args_dict: del args_dict['jaa_files']
+    if 'vgap_files' in args_dict: del args_dict['vgap_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
     # IMGT parser
     if args.command == 'imgt':
-        if args.__dict__['imgt_output']:
-            for i in range(len(args.__dict__['imgt_output'])):
+        if args.__dict__['aligner_output']:
+            for i in range(len(args.__dict__['aligner_output'])):
                 args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
-                args_dict['imgt_output'] = args.__dict__['imgt_output'][i]
+                args_dict['imgt_output'] = args.__dict__['aligner_output'][i]
                 args.func(**args_dict)
         else:
             parser.error('Must include either (-z) zipped IMGT files or \
                          (-f) folder with individual files 1_, 2_, 3_, and 6_')
+    elif args.command == 'igblast':
+        if args.__dict__['aligner_output']:
+            for i in range(len(args.__dict__['aligner_output'])):
+                args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else \
+                                        parser.error('Must include fasta file input to IgBlast')
+                args_dict['vgap_file'] = args.__dict__['vgap_files'][i] if args.__dict__['vgap_files'] else \
+                                         parser.error('Must include file with gapping information for V germlines')
+                args_dict['jaa_file'] = args.__dict__['jaa_files'][i] if args.__dict__['jaa_files'] else \
+                                        parser.error('Must include fasta file input to IgBlast')
+                args_dict['igblast_output'] =  args.__dict__['aligner_output'][i]
+        else:
+            parser.error('Must include IgBlast output file (-o)')
