@@ -116,11 +116,11 @@ distToNearest <- function(db, genotyped=F, grouping='first', model="HS5F") {
 	cat("V+J Column parsing\n")
 	
 	if(grouping == 'first') {
-		V <- as.character(sapply(db[,v_col], function(x){
+		db$V <- as.character(sapply(db[,v_col], function(x){
 							return(unique(na.omit(str_extract(strsplit(x,',')[[1]][1], 
 															perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) }))
 		
-		J <- as.character(sapply(db[,j_col], function(x){
+		db$J <- as.character(sapply(db[,j_col], function(x){
 							return(unique(na.omit(str_extract(strsplit(x,',')[[1]][1], 
 															perl('IG[HLK][VDJ]\\d+[-/\\w]*'))))) }))
 	} else if(grouping == 'set') {
@@ -143,17 +143,12 @@ distToNearest <- function(db, genotyped=F, grouping='first', model="HS5F") {
 	}
 	# Create new column for distance to nearest neighbor
 	db$DIST_NEIGHBOR = rep(NA, nrow(db))
-	
-	# Create new column for parsed V and J
-	junc_len <- "JUNCTION_GAP_LENGTH"
-	db[,"V"] <- V
-	db[,"J"] <- J
 	db[,"ROW_ID"] <- 1:nrow(db)
 	
 	cat("Calculating distance to nearest neighbor\n")
-	db <- ddply( ddply(db,c("V","J","JUNCTION_GAP_LENGTH"), transform, 
-					"DIST_NEIGHBOR"=getDistanceToClosest(JUNCTION), .parallel=TRUE), 
-			.(ROW_ID) , .parallel=TRUE)
+	db <- arrange( ddply(db, .(V,J,JUNCTION_GAP_LENGTH), mutate,
+                       DIST_NEIGHBOR=getDistanceToClosest(JUNCTION), .parallel=TRUE), 
+                 ROW_ID)
 	
 	db <- db[,!(names(db) %in% c("V","J","ROW_ID"))]
 	return(db)

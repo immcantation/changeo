@@ -109,7 +109,7 @@ def cdr3Properties(junc, out_args):
     return cdr3
 
 
-def aaAnalysis(db_file, cdr3=True, out_args=default_out_args):
+def analyzeAa(db_file, cdr3=True, out_args=default_out_args):
     """
     Calculate amino acid properties for specified regions and add to tab-delimited database
 
@@ -208,4 +208,4 @@ if __name__ == "__main__":
     
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
-        aaAnalysis(**args_dict)
+        analyzeAa(**args_dict)
