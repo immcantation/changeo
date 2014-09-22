@@ -238,7 +238,8 @@ def gapIgBlastQuery(record, gap_dict, j_dict):
     Returns:
     dictionary with gapped IgBlast result and IMGT junction
     """
-    v_call_col = 'V_CALL'
+    v_field = 'V_CALL'
+    #print gap_dict
     if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None:
         return record
     else:
@@ -246,28 +247,30 @@ def gapIgBlastQuery(record, gap_dict, j_dict):
  
     seq = (int(record['V_GERM_START'] or 0)-1)*'.' + \
            record['SEQUENCE'][(int(record['V_SEQ_START'] or 0)-1):(int(record['V_SEQ_LENGTH'] or 0)-int(record['V_SEQ_START'] or 0))]
-    v_call = record[v_call_col]
+    v = record[v_field]
+    v_call = (IgRecord.allele_regex.findall(v)[0],)
     if v_call in gap_dict:
         gap_seq = seq
         for gap_event in gap_dict[v_call]:
-            gap_seq = gap_seq[:gap_event[0]] + gap_event[1]*'.' + gap_seq[gap_event[0]:]
+            gap_seq = gap_seq[:int(gap_event[0])] + int(gap_event[1])*'.' + gap_seq[int(gap_event[0]):]
         record['V_GERM_LENGTH'] = len(gap_seq)
         gap_seq = gap_seq + record['JUNCTION']
         pre_j_len = len(gap_seq)
-        gap_seq = gap_seq + seq[int(record['J_START_SEQ'] or 0):(int(record['J_SEQ_LENGTH'] or 0)-int(record['J_SEQ_START'] or 0))]
+        gap_seq = gap_seq + seq[int(record['J_SEQ_START'] or 0):(int(record['J_SEQ_LENGTH'] or 0)-int(record['J_SEQ_START'] or 0))]
     else: 
         gap_seq = ''
-        record['V_GERM_LENGTH'] = int(record['V_SEQ_GERM'] or 0)
+        record['V_GERM_LENGTH'] = int(record['V_SEQ_LENGTH'] or 0)
 
+    record['SEQUENCE_GAP'] = gap_seq
     record['N1_LENGTH'] = int(record['D_SEQ_START'] or 0) - \
-                        int(record['V_SEQ_END'] or 0) - 1
+                        int(record['V_SEQ_LENGTH'] or 0) - int(record['V_SEQ_START'] or 0)
     record['N2_LENGTH'] = int(record['J_SEQ_START'] or 0) - \
-                        int(record['D_SEQ_END'] or 0) - 1
+                        int(record['D_SEQ_LENGTH'] or 0) - int(record['D_SEQ_START'] or 0)
                         
     if(record['J_CALL'] in j_dict):
         record['JUNCTION'] = gap_seq[312:(pre_j_len+j_dict[record['J_CALL']]-record['J_GERM_START']+3)]
         record['JUNCTION_GAP_LENGTH'] = len(record['JUNCTION'])
-                            
+                           
     return IgRecord(record)
 
 
@@ -362,37 +365,36 @@ def readIgBlast(igblast_output, seq_dict):
             db_gen['JUNCTION_GAP_LENGTH'] = len(db_gen['JUNCTION'])
         if(re.match(r"# Hit table", line)):
             if('V_CALL' in db_gen and db_gen['V_CALL']):
-                    line = findLine(igblast_handle,"V")
-                    words = line.split()
-                    db_gen['V_LENGTH'] = words[4]
-                    db_gen['V_MATCH'] = str(int(words[4]) - int(words[5]))
-                    db_gen['V_SEQ_START'] =  words[8]
-                    db_gen['V_SEQ_LENGTH'] =  words[9] - words[8] + 1
-                    db_gen['V_GERM_START'] =  words[10]
-                    db_gen['V_GERM_LENGTH'] =  words[11] - words[10] + 1
-                    if(words[6] == '0'):
-                        db_gen['INDELS'] = 'F'
-                    else: db_gen['INDELS'] = 'T'
+                line = findLine(igblast_handle,"V")
+                words = line.split()
+                db_gen['V_LENGTH'] = words[4]
+                db_gen['V_MATCH'] = int(words[4]) - int(words[5])
+                db_gen['V_SEQ_START'] =  words[8]
+                db_gen['V_SEQ_LENGTH'] =  int(words[9]) - int(words[8]) + 1
+                db_gen['V_GERM_START'] =  words[10]
+                db_gen['V_GERM_LENGTH'] =  int(words[11]) - int(words[10]) + 1
+                if(words[6] == '0'):
+                    db_gen['INDELS'] = 'F'
+                else: db_gen['INDELS'] = 'T'
             if('D_CALL' in db_gen and db_gen['D_CALL']):
-                    line = findLine(igblast_handle,"D")
-                    words = line.split()
-                    db_gen['D_LENGTH'] = words[4]
-                    db_gen['D_MATCH'] = str(int(words[4]) - int(words[5]))
-                    db_gen['D_SEQ_START'] = words[8]
-                    db_gen['D_SEQ_LENGTH'] = words[9] - words[8] + 1
-                    db_gen['D_GERM_START'] = words[10]
-                    db_gen['D_GERM_LENGTH'] = words[11] - words[10] + 1
+                line = findLine(igblast_handle,"D")
+                words = line.split()
+                db_gen['D_LENGTH'] = words[4]
+                db_gen['D_MATCH'] = int(words[4]) - int(words[5])
+                db_gen['D_SEQ_START'] = words[8]
+                db_gen['D_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
+                db_gen['D_GERM_START'] = words[10]
+                db_gen['D_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
             if('J_CALL' in db_gen and db_gen['J_CALL']):
-                    line = findLine(igblast_handle,"J")
-                    words = line.split()
-                    db_gen['J_LENGTH'] = words[4]
-                    db_gen['J_MATCH'] = str(int(words[4]) - int(words[5]))
-                    db_gen['J_SEQ_START'] = words[8] - words[8] + 1
-                    db_gen['J_SEQ_LENGTH'] = words[9]
-                    db_gen['J_GERM_START'] = words[10]
-                    db_gen['J_GERM_LENGTH'] = words[11] - words[10] + 1
-    igblast_handle.close()
-    yield IgRecord(db_gen)
+                line = findLine(igblast_handle,"J")
+                words = line.split()
+                db_gen['J_LENGTH'] = words[4]
+                db_gen['J_MATCH'] = int(words[4]) - int(words[5])
+                db_gen['J_SEQ_START'] = words[8]
+                db_gen['J_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
+                db_gen['J_GERM_START'] = words[10]
+                db_gen['J_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
+                yield IgRecord(db_gen)
 
 
 def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}, gap_dict={}, j_dict={}):
@@ -442,7 +444,7 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
         
         # Gap sequence and form IMGT-defined junction region
         if aligner=='igblast':
-            db_gen =  gapIgBlastQuery(db_gen, gap_dict, j_dict)
+            record =  gapIgBlastQuery(record, gap_dict, j_dict)
         
         # Count pass or fail
         if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None or not record.seq_gap or not record.junction: 
@@ -451,9 +453,9 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             continue
         else: 
             pass_count += 1
-            record.seq = record.seq.upper()
-            record.seq_gap = record.seq_gap.upper()
-            record.junction = record.junction.upper() 
+            record.seq = (record.seq.upper() if 'None' not in record.seq else '')
+            record.seq_gap = (record.seq_gap.upper() if 'None' not in record.seq_gap else '')
+            record.junction = (record.junction.upper() if 'None' not in record.junction else '')
             
             
         # Build sample sequence description
@@ -675,5 +677,6 @@ if __name__ == "__main__":
                 args_dict['jaa_file'] = args.__dict__['jaa_files'][i] if args.__dict__['jaa_files'] else \
                                         parser.error('Must include fasta file input to IgBlast')
                 args_dict['igblast_output'] =  args.__dict__['aligner_output'][i]
+                args.func(**args_dict)
         else:
             parser.error('Must include IgBlast output file (-o)')
