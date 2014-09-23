@@ -1,6 +1,6 @@
 Column Name	Type	Description
 SEQUENCE_ID	string	Unique sequence identifier
-SEQUENCE_ID	string	Input sequence
+SEQUENCE	string	Input sequence
 FUNCTIONAL	logical	T: productive, F: unproductive
 IN_FRAME	logical	T: junction is in-frame, F: junction is out-of-frame
 STOP	logical	T: stop codon and unproductive sequence, F: no stop codon
