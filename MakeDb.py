@@ -197,7 +197,7 @@ def getGapDict(vgap_file, delimiter=default_delimiter):
         
         # Make each gap a tuple of (start, length)
         gaps = [tuple(gap.split(delimiter[2])) for gap in gaps]
-        gap_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = gaps
+        gap_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = gaps # @UndefinedVariable
         
         line = gap_handle.readline()
         
@@ -220,7 +220,7 @@ def getJaaDict(jaa_file, delimiter=default_delimiter):
     line = j_handle.readline()
     while line:
         w = line.split(delimiter[0])
-        j_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = w[1]
+        j_dict[tuple(IgRecord.allele_regex.findall(w[0]))] = w[1] # @UndefinedVariable
         line = j_handle.readline()
         
     return j_dict
@@ -248,7 +248,7 @@ def gapIgBlastQuery(record, gap_dict, j_dict):
     seq = (int(record['V_GERM_START'] or 0)-1)*'.' + \
            record['SEQUENCE'][(int(record['V_SEQ_START'] or 0)-1):(int(record['V_SEQ_LENGTH'] or 0)-int(record['V_SEQ_START'] or 0))]
     v = record[v_field]
-    v_call = (IgRecord.allele_regex.findall(v)[0],)
+    v_call = (IgRecord.allele_regex.findall(v)[0],) # @UndefinedVariable
     if v_call in gap_dict:
         gap_seq = seq
         for gap_event in gap_dict[v_call]:

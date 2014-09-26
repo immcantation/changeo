@@ -15,8 +15,6 @@
 # arg<-c("5","tgtgcgagaactggtacggtggtaacgtcagggtactactacggaatggacgtctgg|tgtgcggtgactacggtggagactccgatgttccagtcctacggtatgaacgtctgg")
 #source("http://selection.med.yale.edu/baseline/Baseline_Functions.r")
 
-
-source("Baseline_Functions.R")
 dyn.load("SHMDistance.so")
 
 #' Switch two named rows in a matrix
@@ -78,8 +76,8 @@ getClones <- function(Strings, Thresh) {
 	colnames(t)<-Strings
 	rownames(t)<-Strings
 	BinaryDist<-t
-	BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
 	BinaryDist[BinaryDist>=Thresh]<-0
+	BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
 	diag(BinaryDist) <- rep(1,N)
 	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<-BinaryDist[i,1:i])
 	Mat <- BinaryDist

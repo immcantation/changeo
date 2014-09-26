@@ -53,7 +53,7 @@ def getRepo(repo):
         with open(file_name, "rU") as file_handle:
             germlines = SeqIO.parse(file_handle, "fasta")
             for g in germlines:
-                repo_dict[tuple(IgRecord.allele_regex.findall(g.description))] = str(g.seq).upper()
+                repo_dict[tuple(IgRecord.allele_regex.findall(g.description))] = str(g.seq).upper() # @UndefinedVariable
     return repo_dict
 
     
@@ -78,10 +78,9 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     
     # Find germline V-Region
     v = align[v_field]
-    v_match = IgRecord.allele_regex.findall(v)
+    v_match = IgRecord.allele_regex.findall(v) # @UndefinedVariable
     if v_match:
-        vgene = tuple(IgRecord.allele_regex.findall(v)) if v_field == 'V_CALL_GENOTYPED' \
-                else (IgRecord.allele_regex.findall(v)[0],)
+        vgene = tuple(IgRecord.allele_regex.findall(v)) if v_field == 'V_CALL_GENOTYPED' else (IgRecord.allele_regex.findall(v)[0],) # @UndefinedVariable
         if vgene in repo_dict:
             result_log['V_CALL'] = ','.join(vgene)
             germ_vseq = repo_dict[vgene]
@@ -96,7 +95,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
 
     # Find germline D-Region
     if align['D_CALL']:
-        dgene = (IgRecord.allele_regex.search(align['D_CALL']).group(0), )
+        dgene = (IgRecord.allele_regex.search(align['D_CALL']).group(0), ) # @UndefinedVariable
         if dgene in repo_dict:
             result_log['D_CALL'] = ','.join(dgene)
             germ_dseq = repo_dict[dgene]
@@ -110,7 +109,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     
     # Find germline J-Region
     j = align[j_field]
-    j_match = IgRecord.allele_regex.search(j)
+    j_match = IgRecord.allele_regex.search(j) # @UndefinedVariable
     if j_match is not None:
         jgene = (j_match.group(0), )
         if jgene in repo_dict:

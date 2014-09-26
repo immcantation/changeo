@@ -5,35 +5,10 @@
 #' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
 #' @date       2014.09.16
 
-load("HS5F_Targeting.RData")
+library(shm)
+load(system.file("extdata", "HS5F_Targeting.RData", package="shm"), envir=.GlobalEnv)
 S5F_Substitution <- Targeting[["Substitution"]]
 S5F_Mutability <- Targeting[["Mutability"]]
-
-
-#' Get S5F distance between two sequences of same length broken down into fivemers
-#'
-#' @param   seq1   the first nucleotide sequence
-#' @param   seq2   the second nucleotide sequence
-#' @return  distance between two sequences based on S5F model
-dist_seq_fast<-function(seq1,seq2){  
-	#Compute distance only on fivemers that have mutations
-	fivemersWithMu <- substr(seq1,3,3)!=substr(seq2,3,3)
-	fivemersWithNonNuc <- ( !is.na(match(substr(seq1,3,3),c("A","C","G","T"))) & !is.na(match(substr(seq2,3,3),c("A","C","G","T"))) )
-	seq1 <- seq1[fivemersWithMu & fivemersWithNonNuc]
-	seq2 <- seq2[fivemersWithMu & fivemersWithNonNuc]  
-	a <- tryCatch({
-				if(length(seq1)==1){
-					seq1_to_seq2 <- S5F_Substitution[substr(seq2,3,3),seq1] * S5F_Mutability[seq1]
-					seq2_to_seq1 <- S5F_Substitution[substr(seq1,3,3),seq2] * S5F_Mutability[seq2]
-				}else{
-					seq1_to_seq2 <- sum( diag(S5F_Substitution[substr(seq2,3,3),seq1]) *  S5F_Mutability[seq1] )
-					seq2_to_seq1 <- sum( diag(S5F_Substitution[substr(seq1,3,3),seq2]) *  S5F_Mutability[seq2] )
-				}
-				return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
-			},error = function(e){
-				return(NA)
-			})
-}
 
 
 #' Switch two rows in a matrix with named dimensions
