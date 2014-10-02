@@ -1,22 +1,18 @@
 #!/usr/bin/env python
 """
 Performs amino acid analysis of Ig sequences
-Required columns: JUNCTION
-Output columns:   CDR3_AA_LENGTH, CDR3_AA_POSITIVE, CDR3_AA_NEGATIVE, 
-                  CDR3_ARGININE, CDR3_HISTIDINE, CDR3_LYSINE, 
-                  CDR3_TYROSINE, CDR3_ALIPHATIC, CDR3_AROMATIC, CDR3_GRAVY
 """
 
 __author__    = 'Namita Gupta, Daniel Gadala-Maria'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
-import re
+import re, textwrap
 from os import path
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from Bio.Seq import Seq
 from collections import OrderedDict
 from time import time
@@ -24,8 +20,9 @@ from time import time
 # IgCore and DbCore imports 
 from sys import path as syspath
 syspath.append(path.dirname(path.realpath(__file__)))
-from IgCore import default_out_args, printLog, printProgress
-from IgCore import getCommonArgParser, parseCommonArgs, getOutputHandle
+from IgCore import default_out_args
+from IgCore import getOutputHandle, printLog, printProgress
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, countDbFile, readDbFile
 
 
@@ -182,14 +179,33 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define input and output field help message
+    fields = textwrap.dedent(
+             '''
+             required fields:
+                 JUNCTION
+                
+              output fields:
+                 CDR3_AA_LENGTH
+                 CDR3_AA_POSITIVE
+                 CDR3_AA_NEGATIVE 
+                 CDR3_ARGININE
+                 CDR3_HISTIDINE
+                 CDR3_LYSINE, 
+                 CDR3_TYROSINE
+                 CDR3_ALIPHATIC
+                 CDR3_AROMATIC
+                 CDR3_GRAVY
+              ''')
+                  
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, annotation=False, 
                                        db_in=True, log=False)
     # Define argument parser
-    parser = ArgumentParser(description=__doc__, 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[parser_parent], 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     # parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
     
     return parser

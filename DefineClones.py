@@ -1,22 +1,19 @@
 #!/usr/bin/env python
 """
 Assign Ig sequences into clones
-Required columns: SEQUENCE_ID, SEQUENCE, V_CALL (or V_CALL_GENOTYPED), D_CALL,
-                  J_CALL, JUNCTION_GAP_LENGTH, JUNCTION
-Output columns:   CLONE
 """
 
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
-import os, signal, sys
+import os, signal, sys, textwrap
 import multiprocessing as mp
 import numpy as np
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
 from itertools import chain, izip, product
@@ -29,7 +26,7 @@ from scipy.spatial.distance import squareform
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
@@ -1021,10 +1018,26 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define input and output fields
+    fields = textwrap.dedent(
+             '''
+             required fields:
+                 SEQUENCE_ID 
+                 SEQUENCE 
+                 V_CALL or V_CALL_GENOTYPED 
+                 D_CALL
+                 J_CALL
+                 JUNCTION_GAP_LENGTH 
+                 JUNCTION
+                
+              output fields:
+                 CLONE
+              ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, 
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),  
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+    parser = ArgumentParser(description=__doc__, epilog=fields,  
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', dest='command', 
                                        help='Cloning method', metavar='')
     
@@ -1034,7 +1047,7 @@ def getArgParser():
     
     # Distance cloning method
     parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],
-                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        formatter_class=CommonHelpFormatter,
                                         help='Defines clones as having same V assignment, \
                                               J assignment, and junction length with \
                                               specified substitution distance model')
@@ -1061,7 +1074,7 @@ def getArgParser():
     
     # Hierarchical clustering cloning method
     parser_hclust = subparsers.add_parser('hclust', parents=[parser_parent],
-                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        formatter_class=CommonHelpFormatter,
                                         help='Defines clones by specified distance metric on CDR3s and \
                                               cutting of hierarchical clustering tree')
 #     parser_hclust.add_argument('-f', nargs='+', action='store', dest='fields', default=None,

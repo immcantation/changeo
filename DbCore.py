@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.4.10'
+__date__      = '2014.10.2'
 
 # Imports
 import csv, os, re, sys
@@ -17,8 +17,8 @@ from Bio.Alphabet import IUPAC
 # Defaults
 default_repo = 'germlines'
 default_allele_regex = re.compile(r"(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)")
-
-
+    
+    
 class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment

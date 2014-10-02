@@ -1,29 +1,25 @@
 #!/usr/bin/env python
 """
 Reconstructs germline sequences from alignment data
-Required columns: V_CALL (or V_CALL_GENOTYPED), D_CALL, J_CALL, SEQUENCE_GAP,
-                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START, V_GERM_LENGTH, D_SEQ_START,
-                  D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
-                  J_GERM_START, J_GERM_LENGTH, (SEQUENCE_ID, CLONE if --cloned)
-Output columns:   GERMLINE_GAP, GERMLINE_GAP_D_MASK, and/or GERMLINE_GAP_V_REGION
 """
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
-import os, sys
+import os, sys, textwrap
 from Bio import SeqIO
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
 
 # IgCore and DbCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, printLog, printProgress
-from IgCore import getCommonArgParser, parseCommonArgs, getOutputHandle
+from IgCore import default_out_args 
+from IgCore import getOutputHandle, printLog, printProgress
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import readDbFile, getDbWriter, countDbFile
 from DbCore import default_repo, IgRecord
 
@@ -452,14 +448,46 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define input and output field help message
+    fields = textwrap.dedent(
+             '''
+             required fields:
+                 SEQUENCE_ID 
+                 SEQUENCE
+                 SEQUENCE_GAP
+                 V_CALL or V_CALL_GENOTYPED 
+                 D_CALL
+                 J_CALL
+                 V_SEQ_START
+                 V_SEQ_LENGTH
+                 V_GERM_START
+                 V_GERM_LENGTH
+                 D_SEQ_START
+                 D_SEQ_LENGTH
+                 D_GERM_START
+                 D_GERM_LENGTH
+                 J_SEQ_START
+                 J_SEQ_LENGTH
+                 J_GERM_START
+                 J_GERM_LENGTH
+              
+              optional fields:
+                 CLONE
+                
+              output fields:
+                 GERMLINE_GAP
+                 GERMLINE_GAP_D_MASK
+                 GERMLINE_GAP_V_REGION
+              ''')
+
     # Parent parser
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, db_out=True, 
                                        annotation=False)
     # Define argument parser
-    parser = ArgumentParser(description=__doc__, 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[parser_parent],
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
                                      
     parser.add_argument('-r', action='store', dest='repo', default=default_repo,
                         help='Folder where repertoire fasta files are located')

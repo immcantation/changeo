@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 """
 Parses tab delimited database files
-Required columns: SEQUENCE_ID, SEQUENCE_GAP, (GERMLINE_GAP, 
-                  GERMLINE_GAP_D_MASK, OR GERMLINE_GAP_V_REGION)
-Output columns:   None
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
-import os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import os, sys, textwrap
+from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
 from Bio import SeqIO
@@ -24,10 +21,10 @@ from Bio.Alphabet import IUPAC
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation 
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import default_delimiter, default_out_args
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import countDbFile, readDbFile, getDbWriter
 
 # Defaults
@@ -306,18 +303,40 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define input and output field help message
+    fields = textwrap.dedent(
+             '''
+             required fields:
+                 SEQUENCE_ID 
+                 SEQUENCE
+                 V_CALL
+                 D_CALL
+                 J_CALL
+                 
+              optional fields:
+                 JUNCTION
+                 SEQUENCE_GAP
+                 GERMLINE_GAP
+                 GERMLINE_GAP_D_MASK
+                 GERMLINE_GAP_V_REGION
+                
+              output fields:
+                 None
+              ''')
+    
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
-    subparsers = parser.add_subparsers()
+                            formatter_class=CommonHelpFormatter)
+    subparsers = parser.add_subparsers(title='subcommands', help='Parsing operation', 
+                                       metavar='')
     
     # Define parent parser
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, log=False)
 
     # Subparser to convert database entries to sequence file
     parser_seq = subparsers.add_parser('seq', parents=[parser_parent], 
-                                       formatter_class=ArgumentDefaultsHelpFormatter,
+                                       formatter_class=CommonHelpFormatter,
                                        help='Creates a fasta file from database records')
     parser_seq.add_argument('--if', action='store', dest='id_field', 
                             default=default_id_field,
@@ -331,7 +350,7 @@ def getArgParser():
     
     # Subparser to convert database entries to clip-fasta file
     parser_clip = subparsers.add_parser('clip', parents=[parser_parent], 
-                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        formatter_class=CommonHelpFormatter,
                                         help='Creates a fasta file from database records')
     parser_clip.add_argument('--if', action='store', dest='id_field', 
                              default=default_id_field,
@@ -350,7 +369,7 @@ def getArgParser():
 
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
-                                       formatter_class=ArgumentDefaultsHelpFormatter,
+                                       formatter_class=CommonHelpFormatter,
                                        help='Deletes database records')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for deletion criteria')

@@ -1,35 +1,29 @@
 #!/usr/bin/env python
 """
 Create tab-delimited database file to store sequence alignment information
-Output Columns: SEQUENCE_ID, SEQUENCE, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT, INDELS,
-                V_MATCH, V_LENGTH, J_MATCH, J_LENGTH, V_CALL, D_CALL, J_CALL, SEQUENCE_GAP,
-                V_SEQ_START, V_SEQ_LENGTH, V_GERM_START, V_GERM_LENGTH, N1_LENGTH, D_SEQ_START,
-                D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
-                J_GERM_START, J_GERM_LENGTH, JUNCTION_GAP_LENGTH, JUNCTION 
 """
 
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
-import re
-import csv
-import os, sys
+import csv, os, re, sys, textwrap
 from zipfile import ZipFile, is_zipfile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from itertools import izip
 from collections import OrderedDict
 from time import time
 
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, parseAnnotation, printLog, printProgress
-from IgCore import getCommonArgParser, parseCommonArgs, countSeqFile
+from IgCore import default_out_args
+from IgCore import parseAnnotation, printLog, printProgress
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
 
 # Default parameters
@@ -319,10 +313,46 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    fields = textwrap.dedent(
+             '''
+              output fields:
+                 SEQUENCE_ID
+                 SEQUENCE
+                 FUNCTIONAL
+                 IN_FRAME
+                 STOP
+                 MUTATED_INVARIANT
+                 INDELS
+                 V_MATCH
+                 V_LENGTH
+                 J_MATCH
+                 J_LENGTH
+                 V_CALL
+                 D_CALL
+                 J_CALL
+                 SEQUENCE_GAP
+                 V_SEQ_START
+                 V_SEQ_LENGTH
+                 V_GERM_START
+                 V_GERM_LENGTH
+                 N1_LENGTH
+                 D_SEQ_START
+                 D_SEQ_LENGTH
+                 D_GERM_START
+                 D_GERM_LENGTH
+                 N2_LENGTH
+                 J_SEQ_START
+                 J_SEQ_LENGTH
+                 J_GERM_START
+                 J_GERM_LENGTH
+                 JUNCTION_GAP_LENGTH
+                 JUNCTION
+              ''')
+                
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, 
+    parser = ArgumentParser(description=__doc__, epilog=fields, 
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),  
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', dest='command', 
                                        help='Aligner used', metavar='')
     
@@ -332,7 +362,7 @@ def getArgParser():
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
                                         parents=[parser_parent], 
-                                        formatter_class=ArgumentDefaultsHelpFormatter)
+                                        formatter_class=CommonHelpFormatter)
     parser_imgt.set_defaults(func=parseIMGT)
     imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
     imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='aligner_output',
@@ -346,6 +376,8 @@ def getArgParser():
                              help='Specify if only sequence ID passed to IMGT')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='Specify if input IDs should not be parsed to add new columns to database')
+    
+    return parser
     
     
 if __name__ == "__main__":
