@@ -19,9 +19,8 @@ INSTALL - LINUX
    according to the instructions at http://rpy.sourceforge.net. R can typically
    be installed using the package management features of your distribution.
 
-2) Unzip the Change-O bundle and copy all files into the same directory as the
-   pRESTO package (http://clip.med.yale.edu/presto). Add that directory to 
-   your $PATH.
+2) Unzip the Change-O bundle and copy all files into the same directory. Add 
+   that directory to your $PATH.
 
 
 INSTALL - WINDOWS
@@ -33,10 +32,9 @@ INSTALL - WINDOWS
 2) Install NumPy, SciPy, pandas, Biopython and rpy2 using the packages 
    available from http://www.lfd.uci.edu/~gohlke/pythonlibs.
 
-3) Unzip the Change-O bundle and copy all files into the same directory as the
-   pRESTO package (http://clip.med.yale.edu/presto). Add that directory to your 
-   %Path%.  On Windows 7 the %Path% setting is located under
-   'Control Panel' -> 'System and Security' -> 'System' -> 
+3) Unzip the Change-O bundle and copy all files into the same directory. Add 
+   that directory to your %Path%.  On Windows 7 the %Path% setting is located 
+   under 'Control Panel' -> 'System and Security' -> 'System' -> 
    'Advanced System Settings' -> 'Environment variables' -> 'System variables' 
    -> 'Path'
 
@@ -81,7 +79,7 @@ INSTALL - OS X
    > pip install rpy2
 
 7) Add the Change-O/pRESTO installation to your PATH setting. For example,
-   if you copied the tools into /Users/Username/pRESTO, then set:
-   > echo 'export PATH=$HOME/pRESTO:$PATH' >> ~/.profile
+   if you copied the tools into /Users/Username/changeo, then set:
+   > echo 'export PATH=$HOME/changeo:$PATH' >> ~/.profile
    Exit and reopen the terminal application so the PATH setting takes effect
    

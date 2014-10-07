@@ -27,9 +27,9 @@ from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
 
 # Default parameters
-default_V_regex = re.compile(r"(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)")
-default_D_regex = re.compile(r"(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)")
-default_J_regex = re.compile(r"(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)")
+default_V_regex = re.compile(r'(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)')
+default_D_regex = re.compile(r'(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)')
+default_J_regex = re.compile(r'(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)')
 default_delimiter = ('\t', ',', '-')
 
 

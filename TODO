@@ -1,11 +1,12 @@
-September 4, 2014
+October 2, 2014
 Version 0.4.0
 
 High Priority
-+ Remove R requirement from DefineClones
-+ Complete common features of ParseDb (collapses, expand, etc)
++ Complete SQL-ish features of ParseDb 
+  (select, update, collapse, expand, etc)
 
 Low Priority
++ Remove R requirement from DefineClones
 + Add VDJML and SQL I/O to ParseDb
 + Fix broken IMGT output (were same sequence is assigned to 
   both CDR3 and J) during parsing by MakeDb
