@@ -35,12 +35,15 @@ Extract all files to same directory and see INSTALL file for installation
 instructions
 
 shm and alakazam (in that order):  
-In R:  
+In R:
+
+```r
 > install.packages(c("devtools", "roxygen2", "testthat", "knitr"))
 > install.packages(c("ggplot2", "igraph", "plyr", "scales", "SDMTools", 
                      "seqinr", "stringr", "zoo"))
 > install.packages("path/to/shm/archive", repos=NULL, type="source")
 > install.packages("path/to/alakazam/archive", repos=NULL, type="source")
+```
 
 Installation from source on Windows requires Rtools to be installed and the 
 appropriate directories added to the PATH environment variable. Rtools may be
