@@ -2,25 +2,31 @@
 # Super script to run the Change-O clonal assignment pipeline on IMGT data 
 # 
 # Author:  Jason Anthony Vander Heiden
-# Date:    2014.8.24
+# Date:    2014.11.22
 # 
 # Required Arguments:
 #   $1 = IMGT zip file 
 #   $2 = FASTA file that was submitted to IMGT
-#   $3 = output directory
-#   $4 = number of subprocesses for multiprocessing tools
+#   $3 = the folder containing the IMGT reference database sequences
+#   $4 = output directory
+#   $5 = output file prefix
+#   $6 = number of subprocesses for multiprocessing tools
 
-# Define run parameters
+
+# Capture command line parameters
 IMGT_FILE=$(readlink -f $1)
 SEQ_FILE=$(readlink -f $2)
-OUTDIR=$(readlink -f $3)
-NPROC=$4
+GERM_DIR=$(readlink -f $3)
+OUTDIR=$(readlink -f $4)
+OUTNAME=$5
+NPROC=$6
+
+# Define run parameters
 LOG_RUNTIMES=false
 ZIP_FILES=false
 DC_MODEL=h3n
 DC_DIST=5
-GERMLINE_FOLDER=/mnt/data/germlines/IMGT_Human_2014-08-23
-BASENAME=$(basename $IMGT_FILE | tr -d ".zip")
+#BASENAME=$(basename $IMGT_FILE ".zip")
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
@@ -37,7 +43,7 @@ fi
 # Start
 echo "DIRECTORY: ${OUTDIR}"
 echo "VERSIONS:"
-echo "  $(AAnalysis.py -v 2>&1)"
+echo "  $(AnalyzeAa.py -v 2>&1)"
 echo "  $(CreateGermlines.py -v 2>&1)"
 echo "  $(DefineClones.py -v 2>&1)"
 echo "  $(MakeDb.py -v 2>&1)"
@@ -46,24 +52,32 @@ echo "  $(SplitDb.py -v 2>&1)"
 
 # Parse IMGT
 echo -e "\nSTART"
-echo "   1: MakeDb imgt            $(date +'%H:%M %D')"
-#$RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --log ParseIMGT.log --clean >> $RUNLOG
-$RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . >> $RUNLOG
+STEP=0
+
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MakeDb imgt"
+#echo $RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --clean ">>" $RUNLOG
+$RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
+    --outdir . --clean >> $RUNLOG
+
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitDb group"
+$RUN SplitDb.py group -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL >> $RUNLOG
+mv "${OUTNAME}_db-pass_F.tab" "${OUTNAME}_non-functional.tab"
+mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
 
 # Create germlines
-echo "   2: CreateGermlines        $(date +'%H:%M %D')"
-#$RUN CreateGermlines.py -d "${BASENAME}_db-pass.tab" -r $GERMLINE_FOLDER \
+#echo "   2: CreateGermlines        $(date +'%H:%M %D')"
+#$RUN CreateGermlines.py -d "${BASENAME}_db-pass.tab" -r $GERM_DIR \
 #    --log GermlineLog.log >> $RUNLOG
-$RUN CreateGermlines.py -d *_db-pass.tab -r $GERMLINE_FOLDER \
-    --log GermlineLog.log >> $RUNLOG
+#$RUN CreateGermlines.py -d *_db-pass.tab -r $GERM_DIR \
+#    --log GermlineLog.log >> $RUNLOG
 
 
 # Assign clones
-echo "   3: DefineClones bygroup   $(date +'%H:%M %D')"
+#echo "   3: DefineClones bygroup   $(date +'%H:%M %D')"
 #$RUN DefineClones.py bygroup -d "${BASENAME}_db-pass_germ-pass.tab" --model $DC_MODEL --dist $DC_DIST \
 #    --log CloneLog.log >> $RUNLOG 
-$RUN DefineClones.py bygroup -d *_db-pass_germ-pass.tab --model $DC_MODEL --dist $DC_DIST \
-    --log CloneLog.log >> $RUNLOG 
+#$RUN DefineClones.py bygroup -d *_db-pass_germ-pass.tab --model $DC_MODEL --dist $DC_DIST \
+#    --log CloneLog.log >> $RUNLOG
 
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *Log.log
