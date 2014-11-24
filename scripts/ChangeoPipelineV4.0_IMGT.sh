@@ -24,9 +24,10 @@ NPROC=$6
 # Define run parameters
 LOG_RUNTIMES=false
 ZIP_FILES=false
-DC_MODEL=h3n
-DC_DIST=5
-#BASENAME=$(basename $IMGT_FILE ".zip")
+DC_MODEL="h3n"
+DC_DIST="5"
+CG_GERM="dmask"
+CG_FIELD="V_CALL"
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
@@ -64,29 +65,24 @@ $RUN SplitDb.py group -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL >> $RUNLOG
 mv "${OUTNAME}_db-pass_F.tab" "${OUTNAME}_non-functional.tab"
 mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
 
-# Create germlines
-#echo "   2: CreateGermlines        $(date +'%H:%M %D')"
-#$RUN CreateGermlines.py -d "${BASENAME}_db-pass.tab" -r $GERM_DIR \
-#    --log GermlineLog.log >> $RUNLOG
-#$RUN CreateGermlines.py -d *_db-pass.tab -r $GERM_DIR \
-#    --log GermlineLog.log >> $RUNLOG
-
-
 # Assign clones
-#echo "   3: DefineClones bygroup   $(date +'%H:%M %D')"
-#$RUN DefineClones.py bygroup -d "${BASENAME}_db-pass_germ-pass.tab" --model $DC_MODEL --dist $DC_DIST \
-#    --log CloneLog.log >> $RUNLOG 
-#$RUN DefineClones.py bygroup -d *_db-pass_germ-pass.tab --model $DC_MODEL --dist $DC_DIST \
-#    --log CloneLog.log >> $RUNLOG
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
+$RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
+    --mode gene --act set --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
+
+# Create germlines
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
+$RUN CreateGermlines.py -d "${OUTNAME}_clone-pass.tab" -r $GERM_DIR -g $CG_GERM \
+    --vfield $CG_FIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
 
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *Log.log
     gzip LogFiles.tar
     rm *Log.log
     
-    tar -cf TempFiles.tar *fail.tab *db-pass.tab *germ-pass.tab
+    tar -cf TempFiles.tar *fail.tab *db-pass.tab *clone-pass.tab
     gzip TempFiles.tar
-    rm *fail.tab *db-pass.tab *germ-pass.tab
+    rm *fail.tab *db-pass.tab *clone-pass.tab
 fi
 
 # End

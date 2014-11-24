@@ -1,29 +1,67 @@
-#' Generates clones by distance method with mutability model
+#' Generates clones by distance method with S5F mutability model
 #' 
 #' @author     Gur Yaari, Mohamed Uduman
 #' @copyright  Copyright 2013 Kleinstein Lab, Yale University. All rights reserved
 #' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
-#' @date       2013.11.10
+#' @date       2014.11.24
 
-#dyn.load("/home/gur/SHMDistance.so")
-#arg<-c("5","AAAAAAAAA|TTTTTTAAA|ccccccccA|ttttttttA|AAcAgAAAA|ttttttttt|ggggggggg|gggAagggg|tAAAAAAAA|AAtAAAAAA")
-#arg <- commandArgs(TRUE) 
-#J_Length=50
-# N<-5000
-# arg<-c("5",paste(sapply(1:N,function(i)paste(sample(NUCLEOTIDES,J_Length,replace=TRUE),collapse="")),collapse="|"))
-# 
-# arg<-c("5","tgtgcgagaactggtacggtggtaacgtcagggtactactacggaatggacgtctgg|tgtgcggtgactacggtggagactccgatgttccagtcctacggtatgaacgtctgg")
-#source("http://selection.med.yale.edu/baseline/Baseline_Functions.r")
+# Imports
+library(shm)
 
-dyn.load("SHMDistance.so")
 
-#' Switch two named rows in a matrix
+#' Load targeting model data from the shm package
 #'
-#' @param   Mat  the matrix whose rows are to be switched
-#' @param   i    the first row to switch
-#' @param   j    the second row to switch
-#' 
-#' @return  matrix with rows i and j switched and corrected rownames
+#' @param   model   string defining name of the model to load.
+#'                  One of "hs5f" or "m3n".
+#' @return  a list containing the substitution (sub) and mutability (mut) models
+loadModel <- function(model) {
+    if (model == "hs5f") { data_file = "HS5F_Targeting.RData" }
+    else if (model == "m3n") { data_file = "MTri_Targeting.RData" }
+    else { stop("Are you sure you know what you're doing?\n") }
+
+    tmp_env <- new.env()
+    load(system.file("extdata", data_file, package="shm"), envir=tmp_env)
+    Targeting <- get("Targeting", envir=tmp_env)
+    rm(tmp_env)
+
+    return(list(sub=Targeting[["Substitution"]], mut=Targeting[["Mutability"]]))
+}
+
+
+#' Get S5F distance between two sequences of same length broken down into fivemers
+#'
+#' @param   seq1   the first nucleotide sequence
+#' @param   seq2   the second nucleotide sequence
+#' @param   sub    substitution model
+#' @param   mut    mutability model
+#' @return  distance between two sequences based on S5F model
+dist_seq_fast<-function(seq1, seq2, sub, mut){
+	#Compute distance only on fivemers that have mutations
+	fivemersWithMu <- substr(seq1,3,3)!=substr(seq2,3,3)
+	fivemersWithNonNuc <- ( !is.na(match(substr(seq1,3,3),c("A","C","G","T"))) & !is.na(match(substr(seq2,3,3),c("A","C","G","T"))) )
+	seq1 <- seq1[fivemersWithMu & fivemersWithNonNuc]
+	seq2 <- seq2[fivemersWithMu & fivemersWithNonNuc]
+	a <- tryCatch({
+				if(length(seq1)==1){
+					seq1_to_seq2 <- sub[substr(seq2,3,3),seq1] * mut[seq1]
+					seq2_to_seq1 <- sub[substr(seq1,3,3),seq2] * mut[seq2]
+				}else{
+					seq1_to_seq2 <- sum( diag(sub[substr(seq2,3,3),seq1]) *  mut[seq1] )
+					seq2_to_seq1 <- sum( diag(sub[substr(seq1,3,3),seq2]) *  mut[seq2] )
+				}
+				return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
+			},error = function(e){
+				return(NA)
+			})
+}
+
+
+#' Switch two rows in a matrix with named dimensions
+#'
+#' @param   Mat   input matrix
+#' @param   i     row index
+#' @param   j     row index
+#' @return  matrix with rows i and j switched
 switch_row <- function(Mat, i, j){
 	if (i != j) {
 		origNames <- rownames(Mat)[c(i,j)]
@@ -36,13 +74,12 @@ switch_row <- function(Mat, i, j){
 }
 
 
-#' Switch two named columns in a matrix
+#' Switch two columns in a matrix with named dimensions
 #'
-#' @param   Mat  the matrix whose columns are to be switched
-#' @param   i    the first column to switch
-#' @param   j    the second column to switch
-#' 
-#' @return  matrix with columns i and j switched and corrected columnnames
+#' @param   Mat   input matrix
+#' @param   i     column index
+#' @param   j     column index
+#' @return  matrix with columns i and j switched
 switch_col <- function(Mat, i, j){
 	if (i != j) {
 		origNames <- colnames(Mat)[c(i,j)]
@@ -55,67 +92,80 @@ switch_col <- function(Mat, i, j){
 }
 
 
-#' Generates clones by old distance method
+#' Generates clones by distance method with S5F mutability model
 #' 
 #' @param   Strings   a vector of junction sequences as strings
 #' @param   Thresh    a numerical distance threshold
-#' 
+#' @param   model     string defining name of the model to load.
+#'                    One of "hs5f" or "m3n".
 #' @return  a list of junction string vectors defining clones
-getClones <- function(Strings, Thresh) {
+getClones <- function(Strings, Thresh, model="hs5f") {
+
+    model_data <- loadModel(model)
+
 	Strings <- toupper(Strings)
-	StringsNumeric<-chartr(c("ACGTN.-"),"1234566",Strings)
+	
+	StringsOrig <- Strings
+	# Change '.' gaps to '-'
+	Strings <- gsub('.', '-', Strings, fixed=T)
+	# Add "NN" to the start and end of each sequence (junction)
+	Strings <- as.vector(sapply(Strings,function(x){paste("NN",x,"NN",sep="")}))
 	
 	N<-length(Strings)
 	Mat<-diag(N)
 	
-	tmp<-.C("SHMDistance", Nstrings=as.integer(length(StringsNumeric[1:N])), Nnucs=as.integer(nchar(StringsNumeric[1])),S=StringsNumeric[1:N],MATRIX=matrix(0,N,N))
+	Clone1 <- sapply(Strings,function(x){  
+				lenString <- nchar(x)
+				fivemersPos <- 3:(lenString-2)
+				fivemers <-  substr(rep(x,lenString-4),(fivemersPos-2),(fivemersPos+2))
+				return(fivemers)
+			},simplify="matrix")
 	
-	t<-tmp[[4]]
-	
-	# Create binary matrix based on whether values are below threshold
-	colnames(t)<-Strings
-	rownames(t)<-Strings
+	t<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
+									dist_seq_fast(Clone1[,i],Clone1[,j],
+									              model_data[["sub"]], model_data[["mut"]])
+								})))
 	BinaryDist<-t
+	colnames(BinaryDist)<-StringsOrig
+	rownames(BinaryDist)<-StringsOrig
 	BinaryDist[BinaryDist>=Thresh]<-0
 	BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
 	diag(BinaryDist) <- rep(1,N)
-	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<-BinaryDist[i,1:i])
+	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<<-BinaryDist[i,1:i])
 	Mat <- BinaryDist
 	
-	# Rearrange rows/columns (essentially single linkage clustering) to form blocks of junctions
 	if(N>2) {
 		Blocks<-NULL
 		Current<-2
-		for(i in 1:(N-1)){  
-			while(Mat[min(Current,N),i]==1 & Current<N) Current=Current+1;
+		for(i in 1:(N-1)) {  
+			while(Mat[min(Current,N),i]==1 & Current<N)Current=Current+1;
 			indices<-which(Mat[min(Current,N):N,i]==1)
-			#print(indices)
-			for(Ind in indices){
+			for(Ind in indices) {
 				if(Current>N) break    
 				Mat <- switch_row(Mat, Current+Ind-match(Ind,indices), Current)
 				Mat <- switch_col(Mat, Current+Ind-match(Ind,indices), Current)
 				Current<-Current+1
 			}
-			if(Current==i+1){
+			if(Current==i+1) {
 				Blocks<-c(Blocks,i)
 				Current<-i+2
 			}
 			if(Current>=N)break
 		}
-		if(sum(Mat[,N]==0)==N-1) Blocks <- c(Blocks,N-1)
-		Blocks <- c(Blocks,N)	
-	} else if (N==2) {
-		if(Mat[2,1]==0) Blocks=c(1,2)
+		if(sum(Mat[,N]==0)==N-1)  Blocks <- c(Blocks,N-1)
+		Blocks <- c(Blocks,N)
+		
+	} else if(N==2) {
+		if(Mat[2,1]==0)Blocks=c(1,2)
 		else Blocks=2 
 	} else {
 		Blocks=1
 	}
-
-	# Create list of junction string vectors that are single clones
+	
 	returnBlocks <- list()
 	startInd=c(1,1+Blocks[-length(Blocks)])
 	for(i in 1:length(startInd)) {
-    	returnBlocks[[i]] <- rownames(Mat)[(startInd[i]:Blocks[i])]
+		returnBlocks[[i]] <- rownames(Mat)[(startInd[i]:Blocks[i])]
 	}
 	return(returnBlocks)
 }

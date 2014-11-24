@@ -35,26 +35,26 @@ from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
 from rpy2.robjects.vectors import StrVector
 
-# >>> THIS IS AN AWFUL HACK. NEEDS FIXING.
+# FIXME: THIS IS AN AWFUL HACK!
 # Get into rlib folder with R scripts
 py_wd = os.getcwd()
 r_lib = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rlib')
 os.chdir(r_lib)
+# Source SHMClones
+with open('SHMClones.R', 'r') as f:
+    r_script = ''.join(f.readlines())
+SHMClones = STAP(r_script, 'SHMClones')
 # Source ClonesByDist
 with open('ClonesByDist.R', 'r') as f:
     r_script = ''.join(f.readlines())
 ClonesByDist = STAP(r_script, 'ClonesByDist')
-# Source ClonesByDistS5F
-with open('ClonesByDistS5F_Full.R', 'r') as f:
-    r_script = ''.join(f.readlines())
-ClonesByDistS5F = STAP(r_script, 'ClonesByDistS5F')
 # Move back to directory with DefineClones.py
 os.chdir(py_wd)
 
 # Defaults
 default_translate = False
 default_distance = 0.0
-default_bygroup_model = 's5f'
+default_bygroup_model = 'hs5f'
 default_hclust_model = 'chen2010'
 
 
@@ -213,13 +213,17 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     if len(junc_map) == 1:
         return {1:records}
     # Call distance function
-    elif model == 's5f':
+    elif model == 'm1n':
+        junctions = StrVector(junc_map.keys())
+        clone_list = SHMClones.getClones(junctions, distance)
+    elif model == 'm3n':
         junctions = StrVector(junc_map.keys())
         #print junctions
-        clone_list = ClonesByDistS5F.getClones(junctions, distance)
-    elif model == 'h3n':
+        clone_list = ClonesByDist.getClones(junctions, distance, "m3n")
+    elif model == 'hs5f':
         junctions = StrVector(junc_map.keys())
-        clone_list = ClonesByDist.getClones(junctions, distance)
+        #print junctions
+        clone_list = ClonesByDist.getClones(junctions, distance, "hs5f")
     elif model == 'aa':
         junctions = junc_map.keys()
         score_dict = getScoreDict(n_score=0, gap_score=0, alphabet='aa')
@@ -1060,8 +1064,12 @@ def getArgParser():
                              choices=('first', 'set'),
                              help='Specifies how to handle multiple V(D)J assignments for initial grouping')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'h3n', 's5f'), default=default_bygroup_model, 
-                             help='Specifies which substitution model to use for calculating distance between junctions')
+                             choices=('aa', 'm1n', 'm3n', 'hs5f'), default=default_bygroup_model,
+                             help='''Specifies which substitution model to use for calculating
+                                  distance between junctions. Where m1n is the single nucleotide
+                                  transition/trasversion model, m3n is the mouse trinucleotide
+                                  model of Smith et al, 1996; hs5f is the human S5F model of Yaari
+                                  et al, 2013; and aa is amino acid Hamming distance.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')

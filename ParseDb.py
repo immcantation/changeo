@@ -232,7 +232,7 @@ def convertDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field
 
 def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     """
-    Builds fasta files from database records
+    Deletes rows from a database file
 
     Arguments: 
     db_file = the database file name
