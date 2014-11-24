@@ -7,53 +7,7 @@
 
 # Imports
 library(shm)
-
-
-#' Load targeting model data from the shm package
-#'
-#' @param   model   string defining name of the model to load.
-#'                  One of "hs5f" or "m3n".
-#' @return  a list containing the substitution (sub) and mutability (mut) models
-loadModel <- function(model) {
-    if (model == "hs5f") { data_file = "HS5F_Targeting.RData" }
-    else if (model == "m3n") { data_file = "MTri_Targeting.RData" }
-    else { stop("Are you sure you know what you're doing?\n") }
-
-    tmp_env <- new.env()
-    load(system.file("extdata", data_file, package="shm"), envir=tmp_env)
-    Targeting <- get("Targeting", envir=tmp_env)
-    rm(tmp_env)
-
-    return(list(sub=Targeting[["Substitution"]], mut=Targeting[["Mutability"]]))
-}
-
-
-#' Get S5F distance between two sequences of same length broken down into fivemers
-#'
-#' @param   seq1   the first nucleotide sequence
-#' @param   seq2   the second nucleotide sequence
-#' @param   sub    substitution model
-#' @param   mut    mutability model
-#' @return  distance between two sequences based on S5F model
-dist_seq_fast<-function(seq1, seq2, sub, mut){
-	#Compute distance only on fivemers that have mutations
-	fivemersWithMu <- substr(seq1,3,3)!=substr(seq2,3,3)
-	fivemersWithNonNuc <- ( !is.na(match(substr(seq1,3,3),c("A","C","G","T"))) & !is.na(match(substr(seq2,3,3),c("A","C","G","T"))) )
-	seq1 <- seq1[fivemersWithMu & fivemersWithNonNuc]
-	seq2 <- seq2[fivemersWithMu & fivemersWithNonNuc]
-	a <- tryCatch({
-				if(length(seq1)==1){
-					seq1_to_seq2 <- sub[substr(seq2,3,3),seq1] * mut[seq1]
-					seq2_to_seq1 <- sub[substr(seq1,3,3),seq2] * mut[seq2]
-				}else{
-					seq1_to_seq2 <- sum( diag(sub[substr(seq2,3,3),seq1]) *  mut[seq1] )
-					seq2_to_seq1 <- sum( diag(sub[substr(seq1,3,3),seq2]) *  mut[seq2] )
-				}
-				return( mean(c(seq1_to_seq2, seq2_to_seq1)) )
-			},error = function(e){
-				return(NA)
-			})
-}
+library(alakazam)
 
 
 #' Switch two rows in a matrix with named dimensions
