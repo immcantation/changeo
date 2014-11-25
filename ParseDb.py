@@ -12,6 +12,7 @@ __date__      = '2014.10.2'
 # Imports
 import os, sys, textwrap
 from argparse import ArgumentParser
+from itertools import izip
 from collections import OrderedDict
 from time import time
 from Bio import SeqIO
@@ -32,6 +33,11 @@ default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_GAP'
 default_germ_field = 'GERMLINE_GAP_D_MASK'
 
+# TODO:  add regex support for values (with flag)
+# TODO:  add partial match support for values (with flag)
+# TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
+# TODO:  add select command
+# TODO:  add update command
 
 def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
                    delimiter=default_delimiter):
@@ -230,9 +236,117 @@ def convertDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field
     return pass_handle.name
 
 
+def addDbRecords(db_file, fields, values, out_args=default_out_args):
+    """
+    Adds field and value pairs to a database file
+
+    Arguments:
+    db_file = the database file name
+    fields = a list of fields to add
+    values = a list of values to assign to all rows of each field
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'add'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELDS'] = ','.join(fields)
+    log['VALUES'] = ','.join(values)
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file, add_fields=fields)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Define fields and values to append
+    add_dict = {k:v for k,v in izip(fields, values) if k not in db_iter.fieldnames}
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+        # Write updated row
+        rec.update(add_dict)
+        pass_writer.writerow(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
+def dropDbRecords(db_file, fields, out_args=default_out_args):
+    """
+    Deletes entire fields from a database file
+
+    Arguments:
+    db_file = the database file name
+    fields = a list of fields to drop
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'add'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELDS'] = ','.join(fields)
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file, exclude_fields=fields)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+        # Write row
+        pass_writer.writerow(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
 def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     """
-    Deletes rows from a database file
+    Deletes records from a database file
 
     Arguments: 
     db_file = the database file name
@@ -258,7 +372,7 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     pass_writer = getDbWriter(pass_handle, db_file)
     # Count records
     result_count = countDbFile(db_file)
-    
+
     # Iterate over records
     start_time = time()
     rec_count = pass_count = fail_count = 0
@@ -328,9 +442,9 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', help='Parsing operation', 
-                                       metavar='')
-    
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Database operation')
+
     # Define parent parser
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, log=False)
 
@@ -367,15 +481,33 @@ def getArgParser():
                              help='List of annotation fields to add to the sequence description')
     parser_clip.set_defaults(func=convertDbClip)
 
+    # Subparser to add records
+    parser_add = subparsers.add_parser('add', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Adds field and value pairs')
+    parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='The name of the fields to add.')
+    parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+                               help='The value to assign to all rows for each field.')
+    parser_add.set_defaults(func=addDbRecords)
+
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
                                        formatter_class=CommonHelpFormatter,
-                                       help='Deletes database records')
+                                       help='Deletes specific records')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='The name of the fields to check for deletion criteria')
+                               help='The name of the fields to check for deletion criteria.')
     parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
-                               help='The values defining with records to delete')
+                               help='The values defining with records to delete.')
     parser_delete.set_defaults(func=deleteDbRecords)
+
+    # Subparser to drop fields
+    parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Deletes entire fields')
+    parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='The name of the fields to delete from the database.')
+    parser_drop.set_defaults(func=dropDbRecords)
         
     return parser
 
@@ -393,7 +525,12 @@ if __name__ == '__main__':
     #args_dict['seq_field'] = args_dict['seq_field'].upper() 
     #if args_dict['meta_fields']:  args_dict['meta_fields'] = map(str.upper, args_dict['meta_fields']) 
 
+    # Check modify_args arguments
+    if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
+        parser.error('You must specify exactly one value (-u) per field (-f)')
+
     # Call parser function for each database file
+    del args_dict['command']
     del args_dict['func']
     del args_dict['db_files']
     for f in args.__dict__['db_files']:

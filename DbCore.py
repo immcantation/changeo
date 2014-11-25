@@ -214,6 +214,7 @@ class IgRecord:
         return IgRecord._parseAllele(self.j_call, self.family_regex, action)
 
 
+# TODO:  Change to require output fields rather than in_file?
 def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     """
     Opens a writer object for an output database file
@@ -255,7 +256,7 @@ def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     return db_writer
 
 
-# >>> HOW TO CLOSE db_handle?
+# TODO:  Need to close db_handle?
 def readDbFile(db_file, ig=True):
     """
     Reads database files

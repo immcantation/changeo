@@ -35,7 +35,7 @@ from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
 from rpy2.robjects.vectors import StrVector
 
-# FIXME: THIS IS AN AWFUL HACK!
+# TODO:  THIS IS AN AWFUL HACK!
 # Get into rlib folder with R scripts
 py_wd = os.getcwd()
 r_lib = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rlib')
