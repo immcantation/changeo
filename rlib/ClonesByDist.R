@@ -6,8 +6,8 @@
 #' @date       2014.11.24
 
 # Imports
-library(shm)
-library(alakazam)
+suppressPackageStartupMessages(require(shm))
+suppressPackageStartupMessages(require(alakazam))
 
 
 #' Switch two rows in a matrix with named dimensions

@@ -24,17 +24,18 @@ NPROC=$6
 # Define run parameters
 LOG_RUNTIMES=false
 ZIP_FILES=false
-DC_MODEL="h3n"
-DC_DIST="5"
-CG_GERM="dmask"
-CG_FIELD="V_CALL"
+DC_MODEL=m1n
+DC_DIST=5
+DC_ACT=set
+CG_GERM=dmask
+CG_FIELD=V_CALL
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
-RUNLOG="${OUTDIR}/Pipeline.log"
+RUNLOG="Pipeline.log"
 echo '' > $RUNLOG
 if $LOG_RUNTIMES; then
-    TIMELOG="${OUTDIR}/Time.log"
+    TIMELOG="Time.log"
     echo '' > $TIMELOG 
     RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
 else
@@ -68,7 +69,7 @@ mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
 # Assign clones
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
 $RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
-    --mode gene --act set --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
+    --mode gene --act $DC_ACT --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
 
 # Create germlines
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"

@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.10.2'
+__date__      = '2014.11.26'
 
 # Imports
 import os, signal, sys, textwrap
@@ -155,6 +155,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
         if all([k is not None for k in key]):
             
             #print key
+            # TODO:  Has much slow. Should have less slow.
             if action == 'set':
                 
                 f_range = range(2, 3 + (len(fields) if fields else 0) )
