@@ -77,7 +77,7 @@ getClones <- function(Strings, Thresh, model="hs5f") {
 	
 	t<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
 									dist_seq_fast(Clone1[,i],Clone1[,j],
-									              model_data[["sub"]], model_data[["mut"]])
+									              model_data[["subs"]], model_data[["mut"]])
 								})))
 	BinaryDist<-t
 	colnames(BinaryDist)<-StringsOrig
