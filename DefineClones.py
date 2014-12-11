@@ -180,6 +180,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
             elif action == 'first':
                 clone_index.setdefault(key, []).append(rec)
         else:
+            # TODO: weird return object for missing data case
             clone_index.setdefault((0,0,0), []).append(rec)
         
     return clone_index

@@ -161,9 +161,10 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     
     # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
     ids = {}
-    for i,seq in enumerate(seq_dict.itervalues()):
+    for i, seq in enumerate(seq_dict.itervalues()):
         if id_only:
-            id_key = parseAnnotation(seq.description, fields=['ID'], delimiter=out_args['delimiter'])['ID']
+            id_key = parseAnnotation(seq.description, fields=['ID'],
+                                     delimiter=out_args['delimiter'])['ID']
         else:
             id_key = re.sub('\||\s','_',seq.description[:50])
         ids.update({id_key:seq.description})
@@ -183,8 +184,8 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     start_time = time from which to count elapsed time
     total_count = number of records (for progress bar)
     out_args = common output argument dictionary from parseCommonArgs
-    id_dict = a dictionary of {truncated ID: full seq description}
-    seq_dict = a dictionary of {ID:Seq} from input fasta file
+    id_dict = a dictionary of {IMGT ID: full seq description}
+    seq_dict = a dictionary of {sequence ID:Seq} from input fasta file
     gap_dict = dictionary of {IgBlast_GL: [list of (gap_start, gap_length),...] }
     j_dict = dictionary of {J_GL: conserved aa start}
     

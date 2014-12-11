@@ -26,7 +26,7 @@ LOG_RUNTIMES=false
 ZIP_FILES=false
 DC_MODEL=m1n
 DC_DIST=5
-DC_ACT=set
+DC_ACT=first
 CG_GERM=dmask
 CG_FIELD=V_CALL
 

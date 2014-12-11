@@ -511,7 +511,7 @@ def getArgParser():
         
     return parser
 
-    
+
 if __name__ == '__main__':
     """
     Parses command line arguments and calls main function
