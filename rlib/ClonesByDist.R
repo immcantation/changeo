@@ -60,8 +60,8 @@ getClones <- function(Strings, Thresh, model="hs5f") {
 	Strings <- toupper(Strings)
 	
 	StringsOrig <- Strings
-	# Change '.' gaps to '-'
-	Strings <- gsub('.', '-', Strings, fixed=T)
+	# Change '.' gaps to 'N' - IGNORES GAPS FOR NOW TO ELIMINATE NA SITUATION
+	Strings <- gsub('.', 'N', Strings, fixed=T)
 	# Add "NN" to the start and end of each sequence (junction)
 	Strings <- as.vector(sapply(Strings,function(x){paste("NN",x,"NN",sep="")}))
 	
