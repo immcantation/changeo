@@ -70,7 +70,7 @@ INSTALL - OS X
    > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
    Exit and reopen the terminal application so the PATH setting takes effect
 
-6) Install NumPy, SciPy, pandas, Biopythonm and rpy2 using the Python package 
+6) Install NumPy, SciPy, pandas, Biopython and rpy2 using the Python package
    manager:
    > pip install numpy
    > pip install scipy

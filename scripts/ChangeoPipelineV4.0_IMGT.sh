@@ -24,24 +24,31 @@ NPROC=$6
 # Define run parameters
 LOG_RUNTIMES=false
 ZIP_FILES=false
-DC_MODEL=m1n
-DC_DIST=5
+DEFINE_CLONES=true
+
+# DefineClones parameters
+DC_MODEL=hs5f
+DC_DIST=0.01
 DC_ACT=first
+
+# Create germlines parameters
 CG_GERM=dmask
 CG_FIELD=V_CALL
 
-# Define script execution command and log files
-mkdir -p $OUTDIR; cd $OUTDIR
+# Define log files
 RUNLOG="Pipeline.log"
+TIMELOG="Time.log"
+
+# Make output directory and empty log files
+mkdir -p $OUTDIR; cd $OUTDIR
 echo '' > $RUNLOG
 if $LOG_RUNTIMES; then
-    TIMELOG="Time.log"
     echo '' > $TIMELOG 
     RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
 else
     RUN="nice -19"
 fi
-        
+
 # Start
 echo "DIRECTORY: ${OUTDIR}"
 echo "VERSIONS:"
@@ -51,11 +58,10 @@ echo "  $(DefineClones.py -v 2>&1)"
 echo "  $(MakeDb.py -v 2>&1)"
 echo "  $(ParseDb.py -v 2>&1)"
 echo "  $(SplitDb.py -v 2>&1)"
-
-# Parse IMGT
 echo -e "\nSTART"
 STEP=0
 
+# Parse IMGT output
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MakeDb imgt"
 #echo $RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --clean ">>" $RUNLOG
 $RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
@@ -66,24 +72,43 @@ $RUN SplitDb.py group -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL >> $RUNLOG
 mv "${OUTNAME}_db-pass_F.tab" "${OUTNAME}_non-functional.tab"
 mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
 
-# Assign clones
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
-$RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
-    --mode gene --act $DC_ACT --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
+Assign clones
+if $DEFINE_CLONES; then
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
+    $RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
+        --mode gene --act $DC_ACT --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
+    CG_FILE="${OUTNAME}_clone-pass.tab"
+else
+    CG_FILE="${OUTNAME}_functional.tab"
+fi
 
 # Create germlines
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
-$RUN CreateGermlines.py -d "${OUTNAME}_clone-pass.tab" -r $GERM_DIR -g $CG_GERM \
-    --vfield $CG_FIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
+if $DEFINE_CLONES; then
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
+    $RUN CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM \
+        --vfield $CG_FIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
+else
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
+    $RUN CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM \
+        --vfield $CG_FIELD --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
+fi
+
+# Zip intermediate and log files
 
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *Log.log
-    gzip LogFiles.tar
     rm *Log.log
-    
-    tar -cf TempFiles.tar *fail.tab *db-pass.tab *clone-pass.tab
+    gzip LogFiles.tar
+
+    if $DEFINE_CLONES; then
+        tar -cf TempFiles.tar *fail.tab *db-pass.tab *clone-pass.tab
+        rm *fail.tab *db-pass.tab *clone-pass.tab
+    else
+        tar -cf TempFiles.tar *fail.tab *db-pass.tab
+        rm *fail.tab *db-pass.tab
+    fi
     gzip TempFiles.tar
-    rm *fail.tab *db-pass.tab *clone-pass.tab
+
 fi
 
 # End
