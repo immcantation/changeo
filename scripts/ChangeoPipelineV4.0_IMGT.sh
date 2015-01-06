@@ -22,13 +22,13 @@ OUTNAME=$5
 NPROC=$6
 
 # Define run parameters
-LOG_RUNTIMES=false
-ZIP_FILES=false
+LOG_RUNTIMES=true
+ZIP_FILES=true
 DEFINE_CLONES=true
 
 # DefineClones parameters
 DC_MODEL=hs5f
-DC_DIST=0.01
+DC_DIST=3
 DC_ACT=first
 
 # Create germlines parameters
@@ -72,7 +72,7 @@ $RUN SplitDb.py group -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL >> $RUNLOG
 mv "${OUTNAME}_db-pass_F.tab" "${OUTNAME}_non-functional.tab"
 mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
 
-Assign clones
+# Assign clones
 if $DEFINE_CLONES; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
     $RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
@@ -94,7 +94,6 @@ else
 fi
 
 # Zip intermediate and log files
-
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *Log.log
     rm *Log.log
