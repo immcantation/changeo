@@ -10,9 +10,9 @@
 #   $2 = Output directory
 
 SCRIPT="/home/jason/apps/changeo-0.4/scripts/ChangeoPipelineV4.0_IMGT.sh"
-#GERM_DIR="/mnt/data/germlines/IMGT_Human_2014-08-23"
-GERM_DIR="/mnt/data/germlines/IMGT_Mouse_2014-11-22"
-RUN_ID=ABKV6
+GERM_DIR="/mnt/data/germlines/IMGT_Human_2014-08-23"
+#GERM_DIR="/mnt/data/germlines/IMGT_Mouse_2014-11-22"
+RUN_ID=RQ2410
 LOG_FILE="${RUN_ID}_ChangeoLog.out"
 NPROC=4
 
