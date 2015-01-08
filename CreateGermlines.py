@@ -74,9 +74,9 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     
     # Find germline V-Region
     v = align[v_field]
-    v_match = IgRecord.allele_regex.findall(v) # @UndefinedVariable
-    if v_match:
-        vgene = tuple(IgRecord.allele_regex.findall(v)) if v_field == 'V_CALL_GENOTYPED' else (IgRecord.allele_regex.findall(v)[0],) # @UndefinedVariable
+    vgene = IgRecord._parseAllele(v,IgRecord.allele_regex,'list') if v_field == 'V_CALL_GENOTYPED' else \
+        (IgRecord._parseAllele(v,IgRecord.allele_regex,'first'),) # @UndefinedVariable
+    if vgene is not None:
         if vgene in repo_dict:
             result_log['V_CALL'] = ','.join(vgene)
             germ_vseq = repo_dict[vgene]
@@ -90,8 +90,8 @@ def joinGermline(align, repo_dict, germ_types, v_field):
         germ_vseq = 'N' * int(align['V_GERM_LENGTH'] or 0)
 
     # Find germline D-Region
-    if align['D_CALL']:
-        dgene = (IgRecord.allele_regex.search(align['D_CALL']).group(0), ) # @UndefinedVariable
+    dgene = (IgRecord._parseAllele(align['D_CALL'],IgRecord.allele_regex,'first'), ) # @UndefinedVariable
+    if dgene is not None:
         if dgene in repo_dict:
             result_log['D_CALL'] = ','.join(dgene)
             germ_dseq = repo_dict[dgene]
@@ -105,9 +105,8 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     
     # Find germline J-Region
     j = align[j_field]
-    j_match = IgRecord.allele_regex.search(j) # @UndefinedVariable
-    if j_match is not None:
-        jgene = (j_match.group(0), )
+    jgene = (IgRecord._parseAllele(j,IgRecord.allele_regex,'first'), ) # @UndefinedVariable
+    if jgene is not None:
         if jgene in repo_dict:
             result_log['J_CALL'] = ','.join(jgene)
             germ_jseq = repo_dict[jgene]
