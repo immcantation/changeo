@@ -98,9 +98,9 @@ class IgRecord:
     _logical_deparse = {False:'F', True:'T', None:'NA'}
     
     # Public variables
-    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
-    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
+    allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*)')
+    family_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+)')
 
     # Private methods
     @staticmethod    
