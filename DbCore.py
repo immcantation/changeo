@@ -96,11 +96,15 @@ class IgRecord:
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None}
     _logical_deparse = {False:'F', True:'T', None:'NA'}
-    
+
+    # TODO: inclusion of TR (additional match group) caused issues in DefineClones; needs fixing.
     # Public variables
-    allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*)')
-    family_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+)')
+    #allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    #gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*)')
+    #family_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+)')
+    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
+    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
 
     # Private methods
     @staticmethod    

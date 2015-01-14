@@ -166,7 +166,10 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
             id_key = parseAnnotation(seq.description, fields=['ID'],
                                      delimiter=out_args['delimiter'])['ID']
         else:
-            id_key = re.sub('\||\s','_',seq.description[:50])
+            #id_key = re.sub('\||\s','_',seq.description[:50])
+            id_key = parseAnnotation(seq.description, fields=['ID'],
+                                     delimiter=out_args['delimiter'])['ID']
+        #print id_key, "=", seq.description
         ids.update({id_key:seq.description})
         printProgress(i, total_count, 0.05, start_time)
     return ids
@@ -228,14 +231,15 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             record.seq_gap = (record.seq_gap.upper() if 'None' not in record.seq_gap else '')
             record.junction = (record.junction.upper() if 'None' not in record.junction else '')
             
-            
         # Build sample sequence description
         if record.id.split(' ')[0] in id_dict:
             record.id = id_dict[record.id]
         # Parse sequence description into new columns
         if not no_parse:
-            record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
-            record.id = record.annotations['ID']
+            record.id = parseAnnotation(record.id, fields=['ID'],
+                                        delimiter=out_args['delimiter'])['ID']
+            record.annotations = parseAnnotation(id_dict[record.id],
+                                                 delimiter=out_args['delimiter'])
             del record.annotations['ID']
             
         # Write row to tab-delim CLIP file
@@ -371,7 +375,7 @@ def getArgParser():
     imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='aligner_output', 
                                 help='Folder with unzipped IMGT output files \
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
-    parser_imgt.add_argument('-s', action='store', nargs='+', dest='in_files',
+    parser_imgt.add_argument('-s', action='store', nargs='+', dest='seq_files',
                              help='List of input FASTA files containing sequences')
     parser_imgt.add_argument('--id', action='store_true', dest='id_only', 
                              help='Specify if only sequence ID passed to IMGT')
@@ -389,7 +393,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='aligner_output')
     
-    if 'in_files' in args_dict: del args_dict['in_files']
+    if 'seq_files' in args_dict: del args_dict['seq_files']
     else: args_dict['no_parse'] = True
     if 'aligner_output' in args_dict: del args_dict['aligner_output']
     if 'command' in args_dict: del args_dict['command']
@@ -399,7 +403,7 @@ if __name__ == "__main__":
     if args.command == 'imgt':
         if args.__dict__['aligner_output']:
             for i in range(len(args.__dict__['aligner_output'])):
-                args_dict['seq_file'] = args.__dict__['in_files'][i] if args.__dict__['in_files'] else None
+                args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
                 args_dict['imgt_output'] = args.__dict__['aligner_output'][i]
                 args.func(**args_dict)
         else:

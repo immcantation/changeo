@@ -206,7 +206,10 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             return None
         
         if model == 'aa':
-            # print r.junction.transcribe().translate().upper()
+            #from Bio.Data import CodonTable
+            #from Bio.Alphabet import IUPAC
+            #print r.junction.translate("ATG..C")
+            #print r.junction.translate(table=IUPAC.ExtendedIUPACProtein())
             junc_map.setdefault(str(r.junction.transcribe().translate().upper()), []).append(r)
         else:
             junc_map.setdefault(str(r.junction.upper()), []).append(r)
@@ -232,7 +235,9 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         
         dists = np.zeros((len(junctions),len(junctions)))
         for i,j in product(range(len(junctions)),range(len(junctions))):
-            dists[i,j] = dists[j,i] = len(junctions[0]) - sum([score_dict[(c1,c2)] for c1,c2 in izip(junctions[i],junctions[j])])
+            dists[i, j] = dists[j, i] = len(junctions[0]) - \
+                                        sum([score_dict[(c1, c2)] for c1, c2 in \
+                                             izip(junctions[i], junctions[j])])
         dists = squareform(dists)
         links = linkage(dists, 'single')
         clusters = fcluster(links, distance, criterion='distance')
