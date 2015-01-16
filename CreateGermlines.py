@@ -71,52 +71,59 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     germs = {'full': '', 'dmask':'', 'vonly':''}
     result_log = OrderedDict()
     result_log['ID'] = align['SEQUENCE_ID']
-    
+
     # Find germline V-Region
-    v = align[v_field]
-    vgene = IgRecord._parseAllele(v,IgRecord.allele_regex,'list') if v_field == 'V_CALL_GENOTYPED' else \
-        (IgRecord._parseAllele(v,IgRecord.allele_regex,'first'),) # @UndefinedVariable
+    if v_field == 'V_CALL_GENOTYPED':
+        vgene = IgRecord._parseAllele(align[v_field], IgRecord.allele_regex, 'list')
+        vkey = vgene
+    else:
+        vgene = IgRecord._parseAllele(align[v_field], IgRecord.allele_regex, 'first')
+        vkey = (vgene, )
     if vgene is not None:
-        if vgene in repo_dict:
-            result_log['V_CALL'] = ','.join(vgene)
-            germ_vseq = repo_dict[vgene]
-            germ_vseq = germ_vseq[int(align['V_GERM_START'] or 1)-1:int(align['V_GERM_START'] or 1)-1+int(align['V_GERM_LENGTH'] or 0)] + \
-                        'N' * (int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1)-1:]))
+        result_log['V_CALL'] = ','.join(vkey)
+        if vkey in repo_dict:
+            x = int(align['V_GERM_START'] or 1) - 1
+            y = x + int(align['V_GERM_LENGTH'] or 0)
+            # TODO:  not sure what this line is doing
+            z = int(align['V_GERM_LENGTH'] or 0) - len(repo_dict[vkey][int(align['V_GERM_START'] or 1) - 1:])
+            germ_vseq = repo_dict[vkey][x:y] + ('N' * z)
         else:
-            result_log['ERROR'] = 'Germline %s not in repertoire' % ','.join(vgene)
+            result_log['ERROR'] = 'Germline %s not in repertoire' % result_log['V_CALL']
             return result_log, germs
     else:
-        result_log['V_CALL'] = 'None'
+        result_log['V_CALL'] = None
         germ_vseq = 'N' * int(align['V_GERM_LENGTH'] or 0)
 
     # Find germline D-Region
-    dgene = (IgRecord._parseAllele(align['D_CALL'],IgRecord.allele_regex,'first'), ) # @UndefinedVariable
+    dgene = IgRecord._parseAllele(align['D_CALL'], IgRecord.allele_regex, 'first')
+    result_log['D_CALL'] = dgene
     if dgene is not None:
-        if dgene in repo_dict:
-            result_log['D_CALL'] = ','.join(dgene)
-            germ_dseq = repo_dict[dgene]
-            germ_dseq = germ_dseq[int(align['D_GERM_START'] or 1)-1:int(align['D_GERM_START'] or 1)-1+int(align['D_GERM_LENGTH'] or 0)]
+        dkey = (dgene, )
+        if dkey in repo_dict:
+            x = int(align['D_GERM_START'] or 1) - 1
+            y = x + int(align['D_GERM_LENGTH'] or 0)
+            germ_dseq = repo_dict[dkey][x:y]
         else:
             result_log['ERROR'] = 'Germline %s not in repertoire' % dgene
             return result_log, germs
     else:
-        result_log['D_CALL'] = 'None'
         germ_dseq = ''
-    
+
     # Find germline J-Region
-    j = align[j_field]
-    jgene = (IgRecord._parseAllele(j,IgRecord.allele_regex,'first'), ) # @UndefinedVariable
+    jgene = IgRecord._parseAllele(align[j_field], IgRecord.allele_regex,'first')
+    result_log['J_CALL'] = jgene
     if jgene is not None:
-        if jgene in repo_dict:
-            result_log['J_CALL'] = ','.join(jgene)
-            germ_jseq = repo_dict[jgene]
-            germ_jseq = germ_jseq[int(align['J_GERM_START'] or 1)-1:int(align['J_GERM_START'] or 1)-1+int(align['J_GERM_LENGTH'] or 0)] + \
-                        'N' * (int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1)-1:]))
+        jkey = (jgene, )
+        if jkey in repo_dict:
+            x = int(align['J_GERM_START'] or 1) - 1
+            y = x + int(align['J_GERM_LENGTH'] or 0)
+            # TODO:  not sure what this line is doing either
+            z = int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1) - 1:])
+            germ_jseq = repo_dict[jkey][x:y] + ('N' * z)
         else:
             result_log['ERROR'] = 'Germline %s not in repertoire' % jgene
             return result_log, germs
     else: 
-        result_log['J_CALL'] = 'None'
         germ_jseq = 'N' * int(align['J_GERM_LENGTH'] or 0)
     
     germ_seq = germ_vseq
@@ -178,8 +185,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
 
     # Exit if V call field does not exist in reader
     if v_field not in reader.fieldnames:
-        sys.stderr.write('Error: V field does not exist in input database file.')
-        exit
+        sys.exit('Error: V field does not exist in input database file.')
     
     # Define log handle
     if out_args['log_file'] is None:  
