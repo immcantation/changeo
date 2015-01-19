@@ -141,7 +141,7 @@ def readIMGT(imgt_files):
     return db_gen
 
     
-def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
+def getIDforIMGT(seq_file, start_time, total_count):
     """
     Create a sequence ID translation using IMGT truncation
     
@@ -149,9 +149,6 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     seq_file = a fasta file of sequences input to IMGT
     start_time = time from which to count elapsed time
     total_count = number of records (for progress bar)
-    out_args = common output argument dictionary from parseCommonArgs
-    id_only = flag whether only sequence ID 
-              (not full description) was used for IMGT input
                     
     Returns: 
     a dictionary of {truncated ID: full seq description} 
@@ -162,20 +159,17 @@ def getIDforIMGT(seq_file, start_time, total_count, out_args, id_only=False):
     # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
     ids = {}
     for i, seq in enumerate(seq_dict.itervalues()):
-        if id_only:
-            id_key = parseAnnotation(seq.description, fields=['ID'],
-                                     delimiter=out_args['delimiter'])['ID']
+        if len(seq.description) <= 50:
+            id_key = seq.description
         else:
-            #id_key = re.sub('\||\s','_',seq.description[:50])
-            id_key = parseAnnotation(seq.description, fields=['ID'],
-                                     delimiter=out_args['delimiter'])['ID']
-        #print id_key, "=", seq.description
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?','_',seq.description[:50])
         ids.update({id_key:seq.description})
         printProgress(i, total_count, 0.05, start_time)
     return ids
 
 
-def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args, id_dict={}, seq_dict={}, gap_dict={}, j_dict={}):
+def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args,
+            id_dict={}, seq_dict={}, gap_dict={}, j_dict={}):
     """
     Writes tab-delimited database file in output directory
     
@@ -221,7 +215,8 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
         printProgress(i + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
                 
         # Count pass or fail
-        if (record.v_call == 'None' and record.j_call == 'None') or record.functional is None or not record.seq_gap or not record.junction: 
+        if (record.v_call == 'None' and record.j_call == 'None') or \
+                        record.functional is None or not record.seq_gap or not record.junction:
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
@@ -232,14 +227,11 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             record.junction = (record.junction.upper() if 'None' not in record.junction else '')
             
         # Build sample sequence description
-        if record.id.split(' ')[0] in id_dict:
+        if record.id in id_dict:
             record.id = id_dict[record.id]
         # Parse sequence description into new columns
         if not no_parse:
-            record.id = parseAnnotation(record.id, fields=['ID'],
-                                        delimiter=out_args['delimiter'])['ID']
-            record.annotations = parseAnnotation(id_dict[record.id],
-                                                 delimiter=out_args['delimiter'])
+            record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
             del record.annotations['ID']
             
         # Write row to tab-delim CLIP file
@@ -258,14 +250,13 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     if fail_handle is not None: fail_handle.close()
     
 
-def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_args):
+def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
     Arguments: 
     seq_file = FASTA file input to IMGT (from which to get seqID)
     imgt_output = zipped file or unzipped folder output by IMGT
-    id_only = whether only the sequence ID (with no pRESTO information) was passed to IMGT
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     out_args = common output argument dictionary from parseCommonArgs
         
@@ -278,7 +269,6 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     log['ALIGNER'] = 'IMGT'
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ALIGN_RESULTS'] = imgt_output
-    log['ID_ONLY'] = id_only 
     log['NO_PARSE'] = no_parse
     printLog(log)
     
@@ -301,7 +291,7 @@ def parseIMGT(seq_file, imgt_output, id_only, no_parse, out_args=default_out_arg
     start_time = time()
     
     # Get (parsed) IDs from fasta file submitted to IMGT
-    id_dict = getIDforIMGT(seq_file, start_time, total_count, out_args, id_only) if seq_file else {}
+    id_dict = getIDforIMGT(seq_file, start_time, total_count) if seq_file else {}
     
     # Create
     imgt_dict = readIMGT(imgt_files)
@@ -377,8 +367,6 @@ def getArgParser():
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
     parser_imgt.add_argument('-s', action='store', nargs='+', dest='seq_files',
                              help='List of input FASTA files containing sequences')
-    parser_imgt.add_argument('--id', action='store_true', dest='id_only', 
-                             help='Specify if only sequence ID passed to IMGT')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='Specify if input IDs should not be parsed to add new columns to database')
     

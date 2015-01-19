@@ -10,7 +10,7 @@ __version__   = '0.4.0'
 __date__      = '2014.11.26'
 
 # Imports
-import os, signal, sys, textwrap
+import os, signal, sys, textwrap, re
 import multiprocessing as mp
 import numpy as np
 from argparse import ArgumentParser
@@ -19,6 +19,7 @@ from ctypes import c_bool
 from itertools import chain, izip, product
 from time import time
 from Bio import pairwise2
+from Bio.Seq import Seq
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 
@@ -186,7 +187,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
     return clone_index
 
 
-def distanceClones(records, model=default_bygroup_model, distance=default_distance):
+def distanceClones(records, model=default_bygroup_model, distance=default_distance, score_dict=None):
     """
     Separates a set of IgRecords into clones
 
@@ -210,7 +211,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             #from Bio.Alphabet import IUPAC
             #print r.junction.translate("ATG..C")
             #print r.junction.translate(table=IUPAC.ExtendedIUPACProtein())
-            junc_map.setdefault(str(r.junction.transcribe().translate().upper()), []).append(r)
+            junc_map.setdefault(str(Seq(re.sub('\.|-','N',str(r.junction))).translate()), []).append(r)
         else:
             junc_map.setdefault(str(r.junction.upper()), []).append(r)
     
@@ -231,13 +232,14 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         clone_list = ClonesByDist.getClones(junctions, distance, "hs5f")
     elif model == 'aa':
         junctions = junc_map.keys()
-        score_dict = getScoreDict(n_score=0, gap_score=0, alphabet='aa')
+        #print junctions
         
         dists = np.zeros((len(junctions),len(junctions)))
         for i,j in product(range(len(junctions)),range(len(junctions))):
-            dists[i, j] = dists[j, i] = len(junctions[0]) - \
-                                        sum([score_dict[(c1, c2)] for c1, c2 in \
-                                             izip(junctions[i], junctions[j])])
+            dists[i,j] = dists[j,i] = len(junctions[0]) - \
+                                      sum([score_dict[(c1,c2)] for c1,c2 in 
+                                           izip(junctions[i],junctions[j])])
+        #print dists
         dists = squareform(dists)
         links = linkage(dists, 'single')
         clusters = fcluster(links, distance, criterion='distance')
@@ -1125,6 +1127,8 @@ if __name__ == '__main__':
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance']}
+        if args_dict['model'] == 'aa':
+            args_dict['clone_args']['score_dict'] = getScoreDict(n_score=1, gap_score=0, alphabet='aa')
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']
