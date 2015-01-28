@@ -191,7 +191,7 @@ def getArgParser():
                  CDR3_AA_NEGATIVE 
                  CDR3_ARGININE
                  CDR3_HISTIDINE
-                 CDR3_LYSINE, 
+                 CDR3_LYSINE
                  CDR3_TYROSINE
                  CDR3_ALIPHATIC
                  CDR3_AROMATIC

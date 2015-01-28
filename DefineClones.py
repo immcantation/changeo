@@ -186,7 +186,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
         
     return clone_index
 
-
+# TODO:  there is no catch for score_dict=None.
 def distanceClones(records, model=default_bygroup_model, distance=default_distance, score_dict=None):
     """
     Separates a set of IgRecords into clones
@@ -195,7 +195,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    
+    score_dict = a dictionary of amino acid scores
+
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
     """
