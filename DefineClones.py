@@ -208,6 +208,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             return None
         
         if model == 'aa':
+            # TODO: needs a better solution to the gap character problem at some point
             #from Bio.Data import CodonTable
             #from Bio.Alphabet import IUPAC
             #print r.junction.translate("ATG..C")

@@ -58,10 +58,12 @@ def cdr3Properties(junc, out_args):
     """    
     # Trim junction to CDR3
     cdr3_in = junc[3:len(junc)-3].upper()
-    
+    # TODO: needs a better solution to the gap character problem at some point
+    cdr3_in = re.sub('\.|-', 'N', cdr3_in)
+
     # Remove sequences that are too short to translate
     not_empty = cdr3_in if len(cdr3_in) > 2 else ''
-    cdr3_aa = str( Seq(not_empty).translate() )
+    cdr3_aa = str(Seq(not_empty).translate())
     
 
     cdr3 = {}
