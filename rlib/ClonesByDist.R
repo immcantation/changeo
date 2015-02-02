@@ -1,5 +1,5 @@
 #' Generates clones by distance method with S5F mutability model
-#' 
+#'
 #' @author     Gur Yaari, Mohamed Uduman
 #' @copyright  Copyright 2013 Kleinstein Lab, Yale University. All rights reserved
 #' @license    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
@@ -22,7 +22,7 @@ switch_row <- function(Mat, i, j){
 		tmp<-Mat[j,]
 		Mat[j,] <- Mat[i,]
 		Mat[i,] <- tmp
-		rownames(Mat)[c(j,i)] <- origNames 
+		rownames(Mat)[c(j,i)] <- origNames
 	}
 	return(Mat)
 }
@@ -47,7 +47,7 @@ switch_col <- function(Mat, i, j){
 
 
 #' Generates clones by distance method with S5F mutability model
-#' 
+#'
 #' @param   Strings   a vector of junction sequences as strings
 #' @param   Thresh    a numerical distance threshold
 #' @param   model     string defining name of the model to load.
@@ -55,71 +55,47 @@ switch_col <- function(Mat, i, j){
 #' @return  a list of junction string vectors defining clones
 getClones <- function(Strings, Thresh, model="hs5f") {
 
-    model_data <- loadModel(model)
+  model_data <- loadModel(model)
 
-	Strings <- toupper(Strings)
-	
-	StringsOrig <- Strings
-	# Change '.' gaps to 'N' - IGNORES GAPS FOR NOW TO ELIMINATE NA SITUATION
+	Strings <- toupper(Strings) #Convert junctions to upper-case
+  StringsOrig <- Strings #Save original Strings
+
+  # Change '.' gaps to 'N' - IGNORES GAPS FOR NOW TO ELIMINATE NA SITUATION
 	Strings <- gsub('.', 'N', Strings, fixed=T)
-	# Add "NN" to the start and end of each sequence (junction)
+
+  # Add "NN" to the start and end of each sequence (junction)
+  # This helps determine targeting for the first 2 and the last 2 nucletides
 	Strings <- as.vector(sapply(Strings,function(x){paste("NN",x,"NN",sep="")}))
-	
+
 	N<-length(Strings)
 	Mat<-diag(N)
-	
-	Clone1 <- sapply(Strings,function(x){  
-				lenString <- nchar(x)
-				fivemersPos <- 3:(lenString-2)
-				fivemers <-  substr(rep(x,lenString-4),(fivemersPos-2),(fivemersPos+2))
-				return(fivemers)
+
+  # Break the junctions into 5-mers and create a sliding window matrix
+  # (each column is a sequence)
+	matSeqSlidingFiveMer <- sapply(Strings,function(x){
+	  slidingArrayOf5mers(x)
 			},simplify="matrix")
-	
-	t<-sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
-									dist_seq_fast(Clone1[,i],Clone1[,j],
-									              model_data[["subs"]], model_data[["mut"]])
+
+  # Compute pairwise distance between all sequences' fivemers (by column)
+  BinaryDist <- sapply(1:N, function(i)c(rep.int(0,i-1),sapply(i:N,function(j){
+									dist_seq_fast(matSeqSlidingFiveMer[,i], matSeqSlidingFiveMer[,j],
+									              model_data[["subs"]],
+                                model_data[["mut"]])
 								})))
-	BinaryDist<-t
 	colnames(BinaryDist)<-StringsOrig
 	rownames(BinaryDist)<-StringsOrig
-	BinaryDist[BinaryDist>=Thresh]<-0
-	BinaryDist[BinaryDist<Thresh & BinaryDist>0]<-1
-	diag(BinaryDist) <- rep(1,N)
-	tmp <- sapply(1:nrow(BinaryDist),function(i)BinaryDist[1:i,i]<<-BinaryDist[i,1:i])
-	Mat <- BinaryDist
-	
-	if(N>2) {
-		Blocks<-NULL
-		Current<-2
-		for(i in 1:(N-1)) {  
-			while(Mat[min(Current,N),i]==1 & Current<N)Current=Current+1;
-			indices<-which(Mat[min(Current,N):N,i]==1)
-			for(Ind in indices) {
-				if(Current>N) break    
-				Mat <- switch_row(Mat, Current+Ind-match(Ind,indices), Current)
-				Mat <- switch_col(Mat, Current+Ind-match(Ind,indices), Current)
-				Current<-Current+1
-			}
-			if(Current==i+1) {
-				Blocks<-c(Blocks,i)
-				Current<-i+2
-			}
-			if(Current>=N)break
-		}
-		if(sum(Mat[,N]==0)==N-1)  Blocks <- c(Blocks,N-1)
-		Blocks <- c(Blocks,N)
-		
-	} else if(N==2) {
-		if(Mat[2,1]==0)Blocks=c(1,2)
-		else Blocks=2 
-	} else {
-		Blocks=1
-	}
-	
-	returnBlocks <- list()
-	startInd=c(1,1+Blocks[-length(Blocks)])
-	for(i in 1:length(startInd)) {
-		returnBlocks[[i]] <- rownames(Mat)[(startInd[i]:Blocks[i])]
-	}
-	return(returnBlocks)
+
+  #colnames(BinaryDist)<- 1:ncol(BinaryDist)
+  #rownames(BinaryDist)<- 1:nrow(BinaryDist)
+
+  # Perform single linkage clustering to determine clones
+  hc <- hclust(as.dist(BinaryDist), method="single")
+  #plot(hc)
+  clones <- cutree(hc,h=Thresh)
+  listClones <- list()
+  for(i in unique(sort(clones))){
+    listClones[[i]] <- names(clones)[clones==i]
+  }
+
+	return(listClones)
 }
