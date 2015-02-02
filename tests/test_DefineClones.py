@@ -50,6 +50,7 @@ class Test_DefineClones(unittest.TestCase):
         # Build preclone IgRecord list
         for x in seq_list:  x.update(clone_dict)
         self.records = [IgRecord(x) for x in seq_list]
+        self.clones = {1:self.records[0:4], 2:self.records[4:]}
 
         self.start = time.time()
 
@@ -70,7 +71,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.iteritems():
             for s in v:
                 print '  CLONE-%i> %s' % (k, s.id)
-        self.fail()
+
+        self.assertEqual(results, self.clones)
 
 
 if __name__ == '__main__':
