@@ -99,7 +99,7 @@ def readIMGT(imgt_files):
                'D_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
                'J_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
                'SEQUENCE_GAP':       gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
-               'V_SEQ_START':        1,
+               'V_SEQ_START':        nt['V-REGION start'],
                'V_SEQ_LENGTH':       len(nt['V-REGION']) if nt['V-REGION'] else 0,
                'V_GERM_START':       1,
                'V_GERM_LENGTH':      len(gp['V-REGION']) if gp['V-REGION'] else 0,
@@ -232,6 +232,7 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
         # Parse sequence description into new columns
         if not no_parse:
             record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
+            record.id = record.annotations['ID']
             del record.annotations['ID']
             
         # Write row to tab-delim CLIP file

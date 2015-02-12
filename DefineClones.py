@@ -17,6 +17,7 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
 from itertools import chain, izip, product
+from pandas import DataFrame
 from time import time
 from Bio import pairwise2
 from Bio.Seq import Seq
@@ -29,7 +30,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict
+from IgCore import getDistMat
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 
 # R imports
@@ -187,7 +188,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
     return clone_index
 
 # TODO:  there is no catch for score_dict=None.
-def distanceClones(records, model=default_bygroup_model, distance=default_distance, score_dict=None):
+def distanceClones(records, model=default_bygroup_model, distance=default_distance, dist_mat=None):
     """
     Separates a set of IgRecords into clones
 
@@ -222,8 +223,20 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         return {1:records}
     # Call distance function
     elif model == 'm1n':
-        junctions = StrVector(junc_map.keys())
-        clone_list = SHMClones.getClones(junctions, distance)
+        junctions = junc_map.keys()
+        # Calculate pairwise distances
+        dists = np.zeros((len(junctions),len(junctions)))
+        for i,j in product(range(len(junctions)),range(len(junctions))):
+            dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
+                                           izip(junctions[i],junctions[j])])
+        #print dists
+        # Perform single-linkage hierarchical clustering
+        dists = squareform(dists)
+        links = linkage(dists, 'single')
+        clusters = fcluster(links, distance, criterion='distance')
+        clone_list = [[] for i in range(len(set(clusters)))]
+        for i,c in enumerate(clusters):
+            clone_list[c-1].append(junctions[i])
     elif model == 'm3n':
         junctions = StrVector(junc_map.keys())
         #print junctions
@@ -235,13 +248,13 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     elif model == 'aa':
         junctions = junc_map.keys()
         #print junctions
-        
+        # Calculate pairwise distances
         dists = np.zeros((len(junctions),len(junctions)))
         for i,j in product(range(len(junctions)),range(len(junctions))):
-            dists[i,j] = dists[j,i] = len(junctions[0]) - \
-                                      sum([score_dict[(c1,c2)] for c1,c2 in 
+            dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
                                            izip(junctions[i],junctions[j])])
         #print dists
+        # Perform single-linkage hierarchical clustering
         dists = squareform(dists)
         links = linkage(dists, 'single')
         clusters = fcluster(links, distance, criterion='distance')
@@ -1130,7 +1143,11 @@ if __name__ == '__main__':
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance']}
         if args_dict['model'] == 'aa':
-            args_dict['clone_args']['score_dict'] = getScoreDict(n_score=1, gap_score=0, alphabet='aa')
+            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+        elif args_dict['model'] == 'm1n':
+            smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
+                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
+            args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']
