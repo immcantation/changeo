@@ -1066,8 +1066,8 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, epilog=fields,  
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', 
-                                       help='Cloning method', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Cloning method')
     
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 

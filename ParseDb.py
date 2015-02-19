@@ -36,8 +36,6 @@ default_germ_field = 'GERMLINE_GAP_D_MASK'
 # TODO:  add regex support for values (with flag)
 # TODO:  add partial match support for values (with flag)
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
-# TODO:  add select command
-# TODO:  add update command
 
 def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
                    delimiter=default_delimiter):
@@ -407,6 +405,132 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     return pass_handle.name
 
 
+def selectDbRecords(db_file, fields, values, out_args=default_out_args):
+    """
+    Selects records from a database file
+
+    Arguments:
+    db_file = the database file name
+    fields = a list of fields to check for selection criteria
+    values = a list of values defining selection targets
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'select'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELDS'] = ','.join(fields)
+    log['VALUES'] = ','.join(values)
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = fail_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Check for deletion values in all fields
+        select = any([rec.get(f, False) in values for f in fields])
+
+        # Write sequences
+        if select:
+            pass_count += 1
+            pass_writer.writerow(rec)
+        else:
+            fail_count += 1
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['SELECTED'] = pass_count
+    log['DISCARDED'] = fail_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
+def updateDbRecords(db_file, field, values, updates, out_args=default_out_args):
+    """
+    Updates field and value pairs to a database file
+
+    Arguments:
+    db_file = the database file name
+    field = the field to update
+    values = a list of values to specifying which rows to update
+    updates = a list of values to update each value with
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'update'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELD'] = ','.join(field)
+    log['VALUES'] = ','.join(values)
+    log['UPDATES'] = ','.join(updates)
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Updated values if found
+        for x, y in izip(values, updates):
+            if rec[field] == x:
+                rec[field] = y
+                pass_count += 1
+
+        # Write records
+        pass_writer.writerow(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['UPDATED'] = pass_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -493,22 +617,46 @@ def getArgParser():
 
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
-                                       formatter_class=CommonHelpFormatter,
-                                       help='Deletes specific records')
+                                          formatter_class=CommonHelpFormatter,
+                                          help='Deletes specific records')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for deletion criteria.')
     parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
-                               help='The values defining with records to delete.')
+                               help='''The values defining which records to delete. A value
+                                    may appear in any of the fields specified with -f.''')
     parser_delete.set_defaults(func=deleteDbRecords)
 
     # Subparser to drop fields
     parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
-                                       help='Deletes entire fields')
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Deletes entire fields')
     parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
     parser_drop.set_defaults(func=dropDbRecords)
-        
+
+    # Subparser to select records
+    parser_select = subparsers.add_parser('select', parents=[parser_parent],
+                                          formatter_class=CommonHelpFormatter,
+                                          help='Selects specific records')
+    parser_select.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='The name of the fields to check for selection criteria.')
+    parser_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+                               help='''The values defining with records to select. A value
+                                    may appear in any of the fields specified with -f.''')
+    parser_select.set_defaults(func=selectDbRecords)
+
+    # Subparser to update records
+    parser_update = subparsers.add_parser('update', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Updates field and value pairs')
+    parser_update.add_argument('-f', action='store', dest='field', required=True,
+                               help='The name of the field to update.')
+    parser_update.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+                               help='The values that will be replaced.')
+    parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
+                               help='''The new value to assign to each selected row.''')
+    parser_update.set_defaults(func=updateDbRecords)
+
     return parser
 
 
@@ -528,6 +676,8 @@ if __name__ == '__main__':
     # Check modify_args arguments
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
         parser.error('You must specify exactly one value (-u) per field (-f)')
+    elif args.command == 'update' and len(args_dict['values']) != len(args_dict['updates']):
+        parser.error('You must specify exactly one value (-u) per replacement (-t)')
 
     # Call parser function for each database file
     del args_dict['command']
