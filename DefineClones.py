@@ -30,7 +30,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getDistMat
+from IgCore import getDistMat, getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 
 # R imports
@@ -172,7 +172,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
         
     return clone_index
 
-# TODO:  there is no catch for score_dict=None.
+
 def distanceClones(records, model=default_bygroup_model, distance=default_distance, dist_mat=None):
     """
     Separates a set of IgRecords into clones
@@ -181,7 +181,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    score_dict = a dictionary of amino acid scores
+    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'm1n')
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
@@ -207,66 +207,38 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     if len(junc_map) == 1:
         return {1:records}
     # Call distance function
-    elif model == 'm1n':
+    elif model in ['m1n','aa']:
         junctions = junc_map.keys()
         # Calculate pairwise distances
         dists = np.zeros((len(junctions),len(junctions)))
+        # Check for no distance matrix
+        # TODO:  yucky catch for dist_mat=None.
+        if dist_mat is None:
+            if model == 'm1n': dist_mat = getDistMat(smith96)
+            if model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+        # Calculate pairwise distances
         for i,j in product(range(len(junctions)),range(len(junctions))):
             dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
                                            izip(junctions[i],junctions[j])])
-        #print dists
-        # Perform single-linkage hierarchical clustering
-        dists = squareform(dists)
-        links = linkage(dists, 'single')
-        clusters = fcluster(links, distance, criterion='distance')
-        clone_list = [[] for i in range(len(set(clusters)))]
-        for i,c in enumerate(clusters):
-            clone_list[c-1].append(junctions[i])
-    elif model == 'm3n':
+    elif model in ['m3n','hs5f']:
         junctions = StrVector(junc_map.keys())
-        #print junctions
-        dists = np.array(shm.getPairwiseDistances(junctions, "m3n"))
+        dists = np.array(shm.getPairwiseDistances(junctions, model))
         #clone_list = ClonesByDist.getClones(junctions, distance, "m3n")
-        dists = squareform(dists)
-        links = linkage(dists, 'single')
-        clusters = fcluster(links, distance, criterion='distance')
-        clone_list = [[] for i in range(len(set(clusters)))]
-        for i,c in enumerate(clusters):
-            clone_list[c-1].append(junctions[i])
-    elif model == 'hs5f':
-        junctions = StrVector(junc_map.keys())
-        #print junctions
-        dists = np.array(shm.getPairwiseDistances(junctions, "hs5f"))
-        #clone_list = ClonesByDist.getClones(junctions, distance, "hs5f")
-        dists = squareform(dists)
-        links = linkage(dists, 'single')
-        clusters = fcluster(links, distance, criterion='distance')
-        clone_list = [[] for i in range(len(set(clusters)))]
-        for i,c in enumerate(clusters):
-            clone_list[c-1].append(junctions[i])
-    elif model == 'aa':
-        junctions = junc_map.keys()
-        #print junctions
-        # Calculate pairwise distances
-        dists = np.zeros((len(junctions),len(junctions)))
-        for i,j in product(range(len(junctions)),range(len(junctions))):
-            dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
-                                           izip(junctions[i],junctions[j])])
-        #print dists
-        # Perform single-linkage hierarchical clustering
-        dists = squareform(dists)
-        links = linkage(dists, 'single')
-        clusters = fcluster(links, distance, criterion='distance')
-        clone_list = [[] for i in range(len(set(clusters)))]
-        for i,c in enumerate(clusters):
-            clone_list[c-1].append(junctions[i])
+    else: sys.stderr.write('Unrecognized distance model.\n')
+
+    # Perform single-linkage hierarchical clustering
+    dists = squareform(dists)
+    links = linkage(dists, 'single')
+    clusters = fcluster(links, distance, criterion='distance')
+    clone_list = [[] for i in range(len(set(clusters)))]
+    for i,c in enumerate(clusters):
+        clone_list[c-1].append(junctions[i])
                         
-    # Parse R output        
+    # Turn clone list into clone dictionary
     clone_dict = {}
     for i, c in enumerate(clone_list):
         clone_dict[i + 1] = list(chain(*[junc_map[str(j).upper()] for j in c]))
-    
-    #print clone_dict
+
     return clone_dict
 
 

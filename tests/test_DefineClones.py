@@ -64,10 +64,32 @@ class Test_DefineClones(unittest.TestCase):
         self.fail()
 
     def test_distanceClones(self):
-        score_dict = getScoreDict(n_score=1, gap_score=0, alphabet='aa')
-        results = mod.distanceClones(self.records, model='hs5f', distance=3.0, score_dict=score_dict)
-
+        results = mod.distanceClones(self.records, model='hs5f', distance=1.0)
         print 'MODEL> hs5f'
+        for k, v in results.iteritems():
+            for s in v:
+                print '  CLONE-%i> %s' % (k, s.id)
+
+        self.assertEqual(results, self.clones)
+
+        results = mod.distanceClones(self.records, model='m3n', distance=1.0)
+        print 'MODEL> m3n'
+        for k, v in results.iteritems():
+            for s in v:
+                print '  CLONE-%i> %s' % (k, s.id)
+
+        self.assertEqual(results, self.clones)
+
+        results = mod.distanceClones(self.records, model='aa', distance=0.0)
+        print 'MODEL> aa'
+        for k, v in results.iteritems():
+            for s in v:
+                print '  CLONE-%i> %s' % (k, s.id)
+
+        self.assertEqual(results, self.clones)
+
+        results = mod.distanceClones(self.records, model='m1n', distance=10.0)
+        print 'MODEL> m1n'
         for k, v in results.iteritems():
             for s in v:
                 print '  CLONE-%i> %s' % (k, s.id)
