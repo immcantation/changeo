@@ -34,24 +34,9 @@ from IgCore import getDistMat
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
 
 # R imports
-from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage as STAP
+from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import StrVector
-
-# TODO:  THIS IS AN AWFUL HACK!
-# Get into rlib folder with R scripts
-py_wd = os.getcwd()
-r_lib = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rlib')
-os.chdir(r_lib)
-# Source SHMClones
-with open('SHMClones.R', 'r') as f:
-    r_script = ''.join(f.readlines())
-SHMClones = STAP(r_script, 'SHMClones')
-# Source ClonesByDist
-with open('ClonesByDist.R', 'r') as f:
-    r_script = ''.join(f.readlines())
-ClonesByDist = STAP(r_script, 'ClonesByDist')
-# Move back to directory with DefineClones.py
-os.chdir(py_wd)
+shm = importr("shm")
 
 # Defaults
 default_translate = False
@@ -240,11 +225,25 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     elif model == 'm3n':
         junctions = StrVector(junc_map.keys())
         #print junctions
-        clone_list = ClonesByDist.getClones(junctions, distance, "m3n")
+        dists = np.array(shm.getPairwiseDistances(junctions, "m3n"))
+        #clone_list = ClonesByDist.getClones(junctions, distance, "m3n")
+        dists = squareform(dists)
+        links = linkage(dists, 'single')
+        clusters = fcluster(links, distance, criterion='distance')
+        clone_list = [[] for i in range(len(set(clusters)))]
+        for i,c in enumerate(clusters):
+            clone_list[c-1].append(junctions[i])
     elif model == 'hs5f':
         junctions = StrVector(junc_map.keys())
         #print junctions
-        clone_list = ClonesByDist.getClones(junctions, distance, "hs5f")
+        dists = np.array(shm.getPairwiseDistances(junctions, "hs5f"))
+        #clone_list = ClonesByDist.getClones(junctions, distance, "hs5f")
+        dists = squareform(dists)
+        links = linkage(dists, 'single')
+        clusters = fcluster(links, distance, criterion='distance')
+        clone_list = [[] for i in range(len(set(clusters)))]
+        for i,c in enumerate(clusters):
+            clone_list[c-1].append(junctions[i])
     elif model == 'aa':
         junctions = junc_map.keys()
         #print junctions
