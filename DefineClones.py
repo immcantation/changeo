@@ -589,17 +589,17 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
         pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
         
         # Defined failed alignment output handle
-        if out_args['clean']:   
-            fail_handle = None
-            fail_writer = None
-        else:  
-            fail_handle = getOutputHandle(db_file, 
+        if out_args['failed']:
+            fail_handle = getOutputHandle(db_file,
                                           out_label='clone-fail', 
                                           out_dir=out_args['out_dir'], 
                                           out_name=out_args['out_name'], 
                                           out_type=out_type)
             fail_writer = getDbWriter(fail_handle, db_file)
-    
+        else:
+            fail_handle = None
+            fail_writer = None
+
         # Define log handle
         if out_args['log_file'] is None:  
             log_handle = None
@@ -723,17 +723,17 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
         pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
         
         # Defined failed cloning output handle
-        if out_args['clean']:   
-            fail_handle = None
-            fail_writer = None
-        else:  
-            fail_handle = getOutputHandle(db_file, 
+        if out_args['failed']:
+            fail_handle = getOutputHandle(db_file,
                                           out_label='clone-fail', 
                                           out_dir=out_args['out_dir'], 
                                           out_name=out_args['out_name'], 
                                           out_type=out_type)
             fail_writer = getDbWriter(fail_handle, db_file)
-        
+        else:
+            fail_handle = None
+            fail_writer = None
+
         # Open log file
         if out_args['log_file'] is None:
             log_handle = None
@@ -1042,7 +1042,7 @@ def getArgParser():
     
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 
-                                       db_out=True, multiproc=True)
+                                       multiproc=True)
     
     # Distance cloning method
     parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],

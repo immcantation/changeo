@@ -168,7 +168,7 @@ def convertDbClip(db_file, id_field=default_id_field, seq_field=default_seq_fiel
     return pass_handle.name
 
 
-def convertDbSeq(db_file, id_field=default_id_field, seq_field=default_seq_field, 
+def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_field,
                  meta_fields=None, out_args=default_out_args):
     """
     Builds fasta files from database records
@@ -570,10 +570,11 @@ def getArgParser():
                                        help='Database operation')
 
     # Define parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, log=False)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
+                                       failed=False, log=False)
 
     # Subparser to convert database entries to sequence file
-    parser_seq = subparsers.add_parser('seq', parents=[parser_parent], 
+    parser_seq = subparsers.add_parser('fasta', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
                                        help='Creates a fasta file from database records')
     parser_seq.add_argument('--if', action='store', dest='id_field', 
@@ -584,12 +585,14 @@ def getArgParser():
                             help='The name of the field containing sequences')
     parser_seq.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                             help='List of annotation fields to add to the sequence description')
-    parser_seq.set_defaults(func=convertDbSeq)
+    parser_seq.set_defaults(func=convertDbFasta)
     
     # Subparser to convert database entries to clip-fasta file
     parser_clip = subparsers.add_parser('clip', parents=[parser_parent], 
                                         formatter_class=CommonHelpFormatter,
-                                        help='Creates a fasta file from database records')
+                                        help='''Creates a clip-fasta file from database
+                                             records, wherein germline sequences precede
+                                             each clone and are denoted by ">>" headers.''')
     parser_clip.add_argument('--if', action='store', dest='id_field', 
                              default=default_id_field,
                              help='The name of the field containing identifiers')

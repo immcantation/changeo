@@ -201,8 +201,8 @@ def getArgParser():
               ''')
                   
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, annotation=False, 
-                                       db_in=True, log=False)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
+                                       failed=False, annotation=False, log=False)
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),

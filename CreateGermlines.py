@@ -192,19 +192,29 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
         log_handle = None
     else:  
         log_handle = open(out_args['log_file'], 'w')
-    
-    # Create output file handle and Db writer
-    pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
-    fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type']) if not out_args['clean'] else None
+
     add_fields = []
     if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
     if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
+
+    # Create output file handle and Db writer
+    pass_handle = getOutputHandle(db_file, 'germ-pass',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type=out_args['out_type'])
     pass_writer = getDbWriter(pass_handle, db_file, add_fields=add_fields)
-    fail_writer = getDbWriter(fail_handle, db_file, add_fields=add_fields) if not out_args['clean'] else None
-    
+
+    if out_args['failed']:
+        fail_handle = getOutputHandle(db_file, 'germ-fail',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
+        fail_writer = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+    else:
+        fail_handle = None
+        fail_writer = None
+
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
@@ -373,28 +383,33 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
 
     # Exit if V call field does not exist in reader
     if v_field not in reader.fieldnames:
-        sys.stderr.write('Error: V field does not exist in input database file.')
-        exit
+        sys.exit('Error: V field does not exist in input database file.')
     
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
     else:  
         log_handle = open(out_args['log_file'], 'w')
-    
-    # Create output file handle and Db writer
-    pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
-    fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type']) if not out_args['clean'] else None
+
     add_fields = []
     if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
     if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
+
+    # Create output file handle and Db writer
     writers = {}
+    pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
     writers['pass'] = getDbWriter(pass_handle, db_file, add_fields=add_fields)
-    writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields) if not out_args['clean'] else None
-    
+
+    if out_args['failed']:
+        fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'], out_type=out_args['out_type'])
+        writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+    else:
+        fail_handle = None
+        writers['fail'] = None
+
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
@@ -413,7 +428,8 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
         # Clone just finished
         elif clone_dict:
             clone_count += 1
-            result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts, writers, out_args)
+            result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types,
+                                           v_field, counts, writers, out_args)
             printLog(result_log, handle=log_handle)
             # Now deal with current row (first of next clone)
             clone = row['CLONE']
@@ -423,7 +439,8 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
             clone = row['CLONE']
             clone_dict = OrderedDict([(row['SEQUENCE_ID'],row)])
     clone_count += 1
-    result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts, writers, out_args)
+    result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
+                                   counts, writers, out_args)
     printLog(result_log, handle=log_handle)
     
     # Print log
@@ -486,7 +503,7 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, db_out=True, 
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
                                        annotation=False)
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,

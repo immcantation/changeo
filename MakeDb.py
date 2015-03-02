@@ -197,8 +197,6 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
                       'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
                       'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
    
-    pass_handle = open(pass_file, 'wb')
-    fail_handle = open(fail_file, 'wb') if not out_args['clean'] else None
     # Create DbWriter
     if not no_parse:
         for v in id_dict.itervalues():
@@ -206,8 +204,16 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             del tmp['ID']
             ordered_fields.extend(tmp.keys())
             break
+    pass_handle = open(pass_file, 'wb')
     pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
-    fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE']) if not out_args['clean'] else None
+
+    if out_args['failed']:
+        fail_handle = open(fail_file, 'wb')
+        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE'])
+    else:
+        fail_handle = None
+        fail_writer = None
+
     # Initialize counters
     pass_count = fail_count = 0
     
@@ -353,7 +359,7 @@ def getArgParser():
                                        help='Aligner used', metavar='')
     
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_out=True, log=False)
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=False)
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 

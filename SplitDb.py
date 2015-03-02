@@ -353,7 +353,7 @@ def getArgParser():
     
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 
-                                       log=False, annotation=False)
+                                       failed=False, annotation=False, log=False)
 
 
     # Subparser to downsize files to a maximum count
