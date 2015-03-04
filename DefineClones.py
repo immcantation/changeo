@@ -478,7 +478,7 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
             result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
             result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
-            result.log['READS'] = len(records)
+            result.log['SEQUENCES'] = len(records)
              
             # Checking for preclone failure and assign clones
             clones = clone_func(records, **clone_args) if data else None
