@@ -129,8 +129,9 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     germ_seq = germ_vseq
     regions = 'V' * len(germ_vseq)
     # Nucleotide additions before D (before J for light chains)
-    germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - int(align['V_SEQ_START'] or 0))
-    regions += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - int(align['V_SEQ_START'] or 0))
+    # TODO: HACK, the 1 is suppposed to be 'V_SEQ_START' but that isn't working!
+    germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
+    regions += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
     germ_seq += germ_dseq
     regions += 'D' * len(germ_dseq)
     # Nucleotide additions after D (heavy chains only)
