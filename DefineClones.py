@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.11.26'
+__date__      = '2015.03.02'
 
 # Imports
 import os, signal, sys, textwrap, re
@@ -23,7 +23,6 @@ from Bio import pairwise2
 from Bio.Seq import Seq
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
-
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -44,6 +43,8 @@ default_distance = 0.0
 default_bygroup_model = 'hs5f'
 default_hclust_model = 'chen2010'
 
+# TODO:  Merge duplicate feed, process and collect functions.
+# TODO:  Update feed, process and collect functions to current pRESTO implementation.
 
 class DbData:
     """
@@ -822,6 +823,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
     return None
 
 
+# TODO: Replace with IgCore.manageProcesses
 def manageProcesses(feed_func, work_func, collect_func, 
                     feed_args={}, work_args={}, collect_args={}, 
                     nproc=None, queue_size=None):
