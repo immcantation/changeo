@@ -223,8 +223,9 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
                                            izip(junctions[i],junctions[j])])
     elif model in ['m3n','hs5f']:
         junctions = StrVector(junc_map.keys())
-        dists = np.array(shm.getPairwiseDistances(junctions, model))
-        #clone_list = ClonesByDist.getClones(junctions, distance, "m3n")
+        # TODO: add option to handle normalizing shm distance
+        dists = np.array(shm.getPairwiseDistances(junctions, model, normalize='none'))
+        #clone_list = ClonesByDist.getClones(junctions, distance, "m3n")m
     else: sys.stderr.write('Unrecognized distance model.\n')
 
     # Perform single-linkage hierarchical clustering
