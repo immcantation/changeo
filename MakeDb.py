@@ -12,6 +12,7 @@ __date__      = '2014.10.2'
 # Imports
 import csv, os, re, sys, textwrap
 from zipfile import ZipFile, is_zipfile
+from tempfile import mkdtemp
 from shutil import rmtree
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
@@ -45,12 +46,13 @@ def extractIMGT(imgt_output):
     sorted list of filenames from which information will be read
     """
     imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"]
+    temp_dir = mkdtemp()
     if is_zipfile(imgt_output):
-        # Extract selected files from the IMGT zip file
-        # Try to retain compressed format
+        # Extract selected files from the IMGT zip file to temp directory
         imgt_zip = ZipFile(imgt_output, 'r')
         imgt_files = sorted([n for n in imgt_zip.namelist() for i in imgt_flags if i in n])
-        for f in imgt_files:  imgt_zip.extract(f)
+        imgt_zip.extractall(temp_dir, imgt_files)
+        imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
     elif os.path.isdir(imgt_output):
         imgt_files = sorted([ (imgt_output + ('/' if imgt_output[-1]!='/' else '') + n) \
                              for n in os.listdir(imgt_output) for j in imgt_flags if j in n ])
@@ -62,7 +64,7 @@ def extractIMGT(imgt_output):
     elif len(imgt_files) < len(imgt_flags):
         sys.exit('ERROR: Missing necessary file in folder %s' % imgt_output)
         
-    return imgt_files
+    return temp_dir, imgt_files
 
 
 def readIMGT(imgt_files):
@@ -281,7 +283,7 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     printLog(log)
     
     # Get individual IMGT result files
-    imgt_files = extractIMGT(imgt_output)
+    temp_dir, imgt_files = extractIMGT(imgt_output)
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
@@ -304,7 +306,10 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     # Create
     imgt_dict = readIMGT(imgt_files)
     writeDb(imgt_dict, no_parse, file_prefix, 'imgt', start_time, total_count, out_args, id_dict=id_dict)
-    
+
+    # Delete temp directory
+    rmtree(temp_dir)
+
 
 def getArgParser():
     """
