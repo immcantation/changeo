@@ -16,8 +16,9 @@ import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain, izip, product
+from itertools import chain, izip, product, combinations
 from pandas import DataFrame
+from pandas.io.parsers import read_csv
 from time import time
 from Bio import pairwise2
 from Bio.Seq import Seq
@@ -31,11 +32,6 @@ from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getDistMat, getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
-
-# R imports
-from rpy2.robjects.packages import importr
-from rpy2.robjects.vectors import StrVector
-shm = importr("shm")
 
 # Defaults
 default_translate = False
@@ -218,14 +214,32 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             if model == 'm1n': dist_mat = getDistMat(smith96)
             if model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
         # Calculate pairwise distances
-        for i,j in product(range(len(junctions)),range(len(junctions))):
+        for i,j in combinations(range(len(junctions)), 2):
             dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
                                            izip(junctions[i],junctions[j])])
     elif model in ['m3n','hs5f']:
-        junctions = StrVector(junc_map.keys())
-        # TODO: add option to handle normalizing shm distance
-        dists = np.array(shm.getPairwiseDistances(junctions, model, normalize='none'))
-        #clone_list = ClonesByDist.getClones(junctions, distance, "m3n")m
+        junctions = ['NN' + j + 'NN' for j in junc_map.keys()]
+        # Initiate pairwise distance matrix
+        dists = np.zeros((len(junctions),len(junctions)))
+        # Check for no distance matrix
+        # TODO:  yucky catch for dist_mat=None.
+        if dist_mat is None:
+            if model == 'm3n': dist_mat = read_csv('models/M3N_Targeting.tab', sep='\t', index_col=0)
+            if model == 'hs5f': dist_mat = read_csv('mdoels/HS5F_Targeting.tab', sep='\t', index_col=0)
+        # Get list of acceptable nucleotides
+        nucs = ['A','C','G','T']
+        # Make sliding five-mers for each junction sequence
+        fivemers = DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
+        # Calculate pairwise distances
+        for i,j in combinations(range(len(junctions)), 2):
+            seqs = fivemers[[i,j]]
+            criterion = [a!=b and a in nucs and b in nucs for a,b in zip(seqs[i].str.slice(2,3),seqs[j].str.slice(2,3))]
+            seqs = seqs[criterion]
+            # TODO: add option to handle normalizing shm distance
+            # nmut = sum(criterion)
+            dists[i,j] = dists[j,i] = \
+                sum([dist_mat.loc[a[2:3], b] + dist_mat.loc[b[2:3], a] for a,b in zip(seqs[i],seqs[j])])/2
+
     else: sys.stderr.write('Unrecognized distance model.\n')
 
     # Perform single-linkage hierarchical clustering
@@ -1122,6 +1136,10 @@ if __name__ == '__main__':
             smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
             args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
+        elif args_dict['model'] == 'hs5f':
+            args_dict['clone_args']['dist_mat'] = read_csv('models/HS5F_Targeting.tab', sep='\t', index_col=0)
+        elif args_dict['model'] == 'm3n':
+            args_dict['clone_args']['dist_mat'] = read_csv('models/M3N_Targeting.tab', sep='\t', index_col=0)
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']

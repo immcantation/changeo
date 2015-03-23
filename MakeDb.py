@@ -12,6 +12,7 @@ __date__      = '2014.10.2'
 # Imports
 import csv, os, re, sys, textwrap
 from zipfile import ZipFile, is_zipfile
+from shutil import rmtree
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from argparse import ArgumentParser
@@ -401,6 +402,8 @@ if __name__ == "__main__":
                 args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
                 args_dict['imgt_output'] = args.__dict__['aligner_output'][i]
                 args.func(**args_dict)
+                if is_zipfile(args_dict['imgt_output']):
+                    rmtree(os.path.splitext(args_dict['imgt_output'])[0])
         else:
             parser.error('Must include either (-z) zipped IMGT files or \
                          (-f) folder with individual files 1_, 2_, 3_, and 6_')
