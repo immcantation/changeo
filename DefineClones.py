@@ -30,8 +30,9 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getDistMat, getScoreDict
-from DbCore import countDbFile, readDbFile, getDbWriter, IgRecord
+from IgCore import getScoreDict, scoreDNA, scoreAA
+from DbCore import countDbFile, readDbFile, getDbWriter
+from DbCore import DbData, DbResult, IgRecord
 
 # Defaults
 default_translate = False
@@ -42,58 +43,49 @@ default_hclust_model = 'chen2010'
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
 
-class DbData:
+def getDistMat(mat=None, n_score=0, gap_score=0, alphabet='dna'):
     """
-    A class defining IgRecord data objects for worker processes
-    """
-    # Instantiation
-    def __init__(self, key, records):
-        self.id = key
-        self.data = records
-        self.valid = (key is not None and records is not None)
-    
-    # Boolean evaluation
-    def __nonzero__(self): 
-        return self.valid
-    
-    # Length evaluation
-    def __len__(self):
-        if isinstance(self.data, IgRecord):
-            return 1
-        elif self.data is None:
-            return 0
-        else:
-            return len(self.data)
+    Generates a distance matrix
 
+    Arguments:
+    mat = input distance matrix to extend to full alphabet;
+          if unspecified, creates Hamming distance matrix that incorporates IUPAC equivalencies
+    n_score = score for all matches against an N character
+    gap_score = score for all matches against a [-, .] character
+    alphabet = the type of score dictionary to generate;
+               one of [dna, aa] for DNA and amino acid characters
 
-class DbResult:
+    Returns:
+    a distance matrix (pandas DataFrame)
     """
-    A class defining IgRecord result objects for collector processes
-    """
-    # Instantiation
-    def __init__(self, key, records):
-        self.id = key
-        self.data = records
-        self.results = None
-        self.valid = False
-        self.log = OrderedDict([('ID', key)])
-        #if isinstance(values, list):
-        #    for v in values:  setattr(self, v, None)
-        #else:
-        #    setattr(self, values, None)
-            
-    # Boolean evaluation
-    def __nonzero__(self): 
-        return self.valid
-    
-    # Length evaluation
-    def __len__(self):
-        if isinstance(self.results, IgRecord):
-            return 1
-        elif self.data is None:
-            return 0
-        else:
-            return len(self.results)
+    if alphabet=='dna':
+        IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
+        n = 'N'
+        score_func = scoreDNA
+    elif alphabet=='aa':
+        IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        n = 'X'
+        score_func = scoreAA
+    else:
+        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type.\n' % alphabet)
+
+    # Default matrix to inf
+    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars, dtype=float)
+    # Set gap score
+    for c in '-.':
+        dist_mat.loc[c] = dist_mat.loc[:,c] = gap_score
+    # Set n score
+    dist_mat.loc[n] = dist_mat.loc[:,n] = n_score
+    # Fill in provided distances from input matrix
+    if mat is not None:
+        for i,j in product(mat.index, mat.columns):
+            dist_mat.loc[i,j] = mat.loc[i,j]
+    # If no input matrix, create IUPAC-defined Hamming distance
+    else:
+        for i,j in product(dist_mat.index, dist_mat.columns):
+            dist_mat.loc[i,j] = 1 - score_func(i, j, n_score=1-n_score, gap_score=1-gap_score)
+
+    return dist_mat
 
 
 def indexJunctions(db_iter, fields=None, mode='gene', action='first', 
@@ -199,7 +191,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             junc_map.setdefault(str(Seq(re.sub('\.|-','N',str(r.junction))).translate()), []).append(r)
         else:
             junc_map.setdefault(str(r.junction.upper()), []).append(r)
-    
+
+    # TODO:  this would be cleaner as a distance matrix function which takes in sequences and a model
     # Process records
     if len(junc_map) == 1:
         return {1:records}

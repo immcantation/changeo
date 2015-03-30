@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.10.2'
+__date__      = '2015.03.30'
 
 # Imports
 import csv, os, re, sys
@@ -216,6 +216,60 @@ class IgRecord:
 
     def getJFamily(self, action='first'):
         return IgRecord._parseAllele(self.j_call, self.family_regex, action)
+
+
+class DbData:
+    """
+    A class defining IgRecord data objects for worker processes
+    """
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
+        self.valid = (key is not None and records is not None)
+
+    # Boolean evaluation
+    def __nonzero__(self):
+        return self.valid
+
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.data, IgRecord):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.data)
+
+
+class DbResult:
+    """
+    A class defining IgRecord result objects for collector processes
+    """
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
+        self.results = None
+        self.valid = False
+        self.log = OrderedDict([('ID', key)])
+        #if isinstance(values, list):
+        #    for v in values:  setattr(self, v, None)
+        #else:
+        #    setattr(self, values, None)
+
+    # Boolean evaluation
+    def __nonzero__(self):
+        return self.valid
+
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.results, IgRecord):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.results)
 
 
 # TODO:  Change to require output fields rather than in_file?

@@ -77,6 +77,7 @@ def readIMGT(imgt_files):
     Returns: 
     a generator of dictionaries containing alignment data
     """
+    # TODO:  would be cleaner if we used a function for the generator
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a generator of dictionaries for each sequence alignment
     db_gen = (IgRecord(
