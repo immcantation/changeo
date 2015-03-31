@@ -334,11 +334,7 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              required fields:
-                 SEQUENCE_ID 
-                 SEQUENCE
-                 V_CALL
-                 D_CALL
-                 J_CALL
+                 SEQUENCE_ID
                 
               output fields:
                  None

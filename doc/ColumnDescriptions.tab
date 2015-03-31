@@ -1,19 +1,15 @@
 Column Name	Type	Description
 SEQUENCE_ID	string	Unique sequence identifier
-SEQUENCE	string	Input sequence
+SEQUENCE_INPUT	string	"Input sequence"
 FUNCTIONAL	logical	T: productive, F: unproductive
 IN_FRAME	logical	T: junction is in-frame, F: junction is out-of-frame
 STOP	logical	T: stop codon and unproductive sequence, F: no stop codon
 MUTATED_INVARIANT	logical	T: 'missing' found in comments and unproductive sequence, F: no 'missing' found
 INDELS	logical	T: potential or definite indels
-V_MATCH	integer	Number of nucleotides matching V germline
-V_LENGTH	integer	Total number of V nucleotides excluding gaps
-J_MATCH	integer	Number of nucleotides matching J germline
-J_LENGTH	integer	Total number of J nucleotides
 V_CALL	string	V gene assignment(s)
 D_CALL	string	D gene assignment(s)
 J_CALL	string	J gene assignment(s)
-SEQUENCE_GAP	string	IMGT-gapped sequence
+SEQUENCE_IMGT	string	"IMGT-gapped sequence"
 V_SEQ_START	integer	Position of first V nucleotide in sequence
 V_SEQ_LENGTH	integer	Length of V in sequence
 V_GERM_START	integer	Position of first V nucleotide in germline
@@ -28,12 +24,12 @@ J_SEQ_START	integer	Position of first J nucleotide in sequence
 J_SEQ_LENGTH	integer	Length of J in sequence
 J_GERM_START	integer	Position of first J nucleotide in germline
 J_GERM_LENGTH	integer	Length of J in germline
-JUNCTION_GAP_LENGTH	integer	Length of junction region
+JUNCTION_LENGTH	integer	"Length of junction region"
 JUNCTION	string	Nucleotide sequence of junction region
 PRCONS	string	pRESTO output: list of primers
 CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID group
 DUPCOUNT	integer	pRESTO output: number of duplicate molecules
 V_CALL_GENOTYPED	string	Adjusted V gene assignment(s) after inferring genotype
 CLONE	integer	Numerical clone identifier
-GERMLINE_GAP	string	Aligned germline sequence
+GERMLINE	string	"Aligned germline sequence"
 GERMLINE_GAP_D_MASK	string	Aligned germline sequence with Ns masking the N1, D, and N2 regions

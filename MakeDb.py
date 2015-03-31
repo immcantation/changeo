@@ -82,7 +82,7 @@ def readIMGT(imgt_files):
     # Create a generator of dictionaries for each sequence alignment
     db_gen = (IgRecord(
               {'SEQUENCE_ID':        sm['Sequence ID'],
-               'SEQUENCE':           sm['Sequence'],
+               'SEQUENCE_INPUT':     sm['Sequence'],
                'FUNCTIONAL':         ['?','T','F'][('productive' in sm['Functionality']) + ('unprod' in sm['Functionality'])],
                'IN_FRAME':           ['?','T','F'][('in-frame' in sm['JUNCTION frame']) + ('out-of-frame' in sm['JUNCTION frame'])],
                'STOP':               ['F','?','T'][('stop codon' in sm['Functionality comment']) + ('unprod' in sm['Functionality'])],
@@ -91,18 +91,11 @@ def readIMGT(imgt_files):
                'INDELS':             ['F','T'][any((sm['V-REGION potential ins/del'], 
                                                     sm['V-REGION insertions'], 
                                                     sm['V-REGION deletions']))],
-               'V_MATCH':            0 if sm['V-REGION identity nt'] == 'null' or not sm['V-REGION identity nt'] \
-                                        else int(sm['V-REGION identity nt'].split('/')[0] or 0) + nt['V-REGION'].count('n'),
-               'V_LENGTH':           0 if sm['V-REGION identity nt'] == 'null' or not sm['V-REGION identity nt'] \
-                                        else int(sm['V-REGION identity nt'].split('/')[1].split()[0]),
-               'J_MATCH':            0 if sm['J-REGION identity nt'] == 'null' or not sm['J-REGION identity nt'] \
-                                        else int(sm['J-REGION identity nt'].split('/')[0] or 0) + nt['J-REGION'].count('n'),
-               'J_LENGTH':           0 if sm['J-REGION identity nt'] == 'null' or not sm['J-REGION identity nt'] \
-                                        else int(sm['J-REGION identity nt'].split('/')[1].split()[0]),
                'V_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['V-GENE and allele']) ), # replace or with comma
                'D_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
                'J_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
-               'SEQUENCE_GAP':       gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
+               'SEQUENCE_VDJ':       nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION'],
+               'SEQUENCE_IMGT':      gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
                'V_SEQ_START':        nt['V-REGION start'],
                'V_SEQ_LENGTH':       len(nt['V-REGION']) if nt['V-REGION'] else 0,
                'V_GERM_START':       1,
@@ -136,9 +129,9 @@ def readIMGT(imgt_files):
                'J_SEQ_LENGTH':       len(nt['J-REGION']) if nt['J-REGION'] else 0,
                'J_GERM_START':       int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1,
                'J_GERM_LENGTH':      len(gp['J-REGION']) if gp['J-REGION'] else 0,
-               'JUNCTION_GAP_LENGTH': len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
+               'JUNCTION_LENGTH':    len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
                'JUNCTION':           jn['JUNCTION']}) if "No results" not in sm['Functionality'] else \
-              IgRecord({'SEQUENCE_ID':sm['Sequence ID'], 'SEQUENCE':sm['Sequence'],
+              IgRecord({'SEQUENCE_ID':sm['Sequence ID'], 'SEQUENCE_INPUT':sm['Sequence'],
                         'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
               for sm, gp, nt, jn in izip(*imgt_iters) )
     
@@ -195,11 +188,11 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     """
     pass_file = "%s_db-pass.tab" % file_prefix
     fail_file = "%s_db-fail.tab" % file_prefix
-    ordered_fields = ['SEQUENCE_ID','SEQUENCE','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
-                      'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_GAP',
+    ordered_fields = ['SEQUENCE_ID','SEQUENCE_INPUT','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
+                      'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_VDJ',
                       'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START',
                       'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
-                      'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION']
+                      'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION','SEQUENCE_IMGT']
    
     # Create DbWriter
     if not no_parse:
@@ -213,7 +206,7 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
 
     if out_args['failed']:
         fail_handle = open(fail_file, 'wb')
-        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE'])
+        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE_INPUT'])
     else:
         fail_handle = None
         fail_writer = None
@@ -226,14 +219,15 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
                 
         # Count pass or fail
         if (record.v_call == 'None' and record.j_call == 'None') or \
-                        record.functional is None or not record.seq_gap or not record.junction:
+                        record.functional is None or not record.seq_vdj or not record.junction:
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
         else: 
             pass_count += 1
-            record.seq = (record.seq.upper() if 'None' not in record.seq else '')
-            record.seq_gap = (record.seq_gap.upper() if 'None' not in record.seq_gap else '')
+            record.seq_in = (record.seq_in.upper() if 'None' not in record.seq_in else '')
+            record.seq_imgt = (record.seq_imgt.upper() if 'None' not in record.seq_imgt else '')
+            record.seq_vdj = (record.seq_vdj.upper() if 'None' not in record.seq_vdj else '')
             record.junction = (record.junction.upper() if 'None' not in record.junction else '')
             
         # Build sample sequence description
@@ -326,7 +320,7 @@ def getArgParser():
              '''
               output fields:
                  SEQUENCE_ID
-                 SEQUENCE
+                 SEQUENCE_INPUT
                  FUNCTIONAL
                  IN_FRAME
                  STOP
@@ -339,7 +333,7 @@ def getArgParser():
                  V_CALL
                  D_CALL
                  J_CALL
-                 SEQUENCE_GAP
+                 SEQUENCE_VDJ and/or SEQUENCE_IMGT
                  V_SEQ_START
                  V_SEQ_LENGTH
                  V_GERM_START

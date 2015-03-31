@@ -135,7 +135,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     junc_map = {}
     for r in records:
         # Check if junction length is 0
-        if r.junction_gap_length == 0:
+        if r.junction_length == 0:
             return None
         
         if model == 'aa':
@@ -196,6 +196,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             # nmut = sum(criterion)
             dists[i,j] = dists[j,i] = \
                 sum([dist_mat.loc[a[2:3], b] + dist_mat.loc[b[2:3], a] for a,b in zip(seqs[i],seqs[j])])/2
+        # Remove extra Ns from junctions
+        junctions = [j[2:-2] for j in junctions]
 
     else: sys.stderr.write('Unrecognized distance model.\n')
 
@@ -380,7 +382,7 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
         db_iter = readDbFile(db_file)
         for rec in db_iter:
             records[rec.id] = rec
-        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_gap_length))
+        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_length))
         dist_dict = {}
         for __ in range(len(records)):
             k,v = records.popitem(last=False)
@@ -679,7 +681,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
         for rec in db_iter:
             records[rec.id] = rec
             result_count += 1
-        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_gap_length))
+        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_length))
                 
         # Define empty matrix to store assembled results
         dist_mat = np.zeros((result_count,result_count))
@@ -1001,12 +1003,11 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              required fields:
-                 SEQUENCE_ID 
-                 SEQUENCE 
+                 SEQUENCE_ID
                  V_CALL or V_CALL_GENOTYPED 
                  D_CALL
                  J_CALL
-                 JUNCTION_GAP_LENGTH 
+                 JUNCTION_LENGTH
                  JUNCTION
                 
               output fields:

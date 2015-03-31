@@ -30,8 +30,8 @@ from DbCore import countDbFile, readDbFile, getDbWriter
 
 # Defaults
 default_id_field = 'SEQUENCE_ID'
-default_seq_field = 'SEQUENCE_GAP'
-default_germ_field = 'GERMLINE_GAP_D_MASK'
+default_seq_field = 'SEQUENCE_IMGT'
+default_germ_field = 'GERMLINE_IMGT_D_MASK'
 
 # TODO:  add regex support for values (with flag)
 # TODO:  add partial match support for values (with flag)
@@ -545,18 +545,18 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              required fields:
-                 SEQUENCE_ID 
-                 SEQUENCE
-                 V_CALL
-                 D_CALL
-                 J_CALL
+                 SEQUENCE_ID
                  
               optional fields:
                  JUNCTION
-                 SEQUENCE_GAP
-                 GERMLINE_GAP
-                 GERMLINE_GAP_D_MASK
-                 GERMLINE_GAP_V_REGION
+                 SEQUENCE_IMGT
+                 GERMLINE_IMGT
+                 GERMLINE_IMGT_D_MASK
+                 GERMLINE_IMGT_V_REGION
+                 SEQUENCE_VDJ
+                 GERMLINE_VDJ
+                 GERMLINE_VDJ_D_MASK
+                 GERMLINE_VDJ_V_REGION
                 
               output fields:
                  None

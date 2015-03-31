@@ -33,18 +33,15 @@ class IgRecord:
                 'v_call_geno': 'V_CALL_GENOTYPED',
                 'd_call': 'D_CALL',
                 'j_call': 'J_CALL',
-                'seq': 'SEQUENCE', 
-                'seq_gap': 'SEQUENCE_GAP',
+                'seq_in': 'SEQUENCE_INPUT',
+                'seq_vdj': 'SEQUENCE_VDJ',
+                'seq_imgt': 'SEQUENCE_IMGT',
                 'junction': 'JUNCTION',
                 'functional': 'FUNCTIONAL', 
                 'in_frame': 'IN_FRAME', 
                 'stop': 'STOP', 
                 'mutated_invariant': 'MUTATED_INVARIANT', 
                 'indels': 'INDELS',
-                'v_match': 'V_MATCH',
-                'v_length': 'V_LENGTH',
-                'j_match': 'J_MATCH',
-                'j_length': 'J_LENGTH',
                 'v_seq_start': 'V_SEQ_START',
                 'v_seq_length': 'V_SEQ_LENGTH',
                 'v_germ_start': 'V_GERM_START',
@@ -61,25 +58,22 @@ class IgRecord:
                 'j_seq_length': 'J_SEQ_LENGTH',
                 'j_germ_start': 'J_GERM_START',
                 'j_germ_length': 'J_GERM_LENGTH',
-                'junction_gap_length': 'JUNCTION_GAP_LENGTH'}
+                'junction_length': 'JUNCTION_LENGTH'}
     
     _parse_map = {'id': '_identity',
                   'v_call': '_identity',
                   'v_call_geno': '_identity',
                   'd_call': '_identity',
                   'j_call': '_identity',
-                  'seq': '_sequence', 
-                  'seq_gap': '_sequence',
+                  'seq_in': '_sequence',
+                  'seq_vdj': '_sequence',
+                  'seq_imgt': '_sequence',
                   'junction': '_sequence',
                   'functional': '_logical', 
                   'in_frame': '_logical', 
                   'stop': '_logical', 
                   'mutated_invariant': '_logical', 
                   'indels': '_logical',
-                  'v_match': '_integer',
-                  'v_length': '_integer',
-                  'j_match': '_integer',
-                  'j_length': '_integer',
                   'v_seq_start': '_integer',
                   'v_seq_length': '_integer',
                   'v_germ_start': '_integer',
@@ -96,7 +90,7 @@ class IgRecord:
                   'j_seq_length': '_integer',
                   'j_germ_start': '_integer',
                   'j_germ_length': '_integer',
-                  'junction_gap_length': '_integer'}
+                  'junction_length': '_integer'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None}
     _logical_deparse = {False:'F', True:'T', None:'NA'}
@@ -156,7 +150,7 @@ class IgRecord:
 
     # Initializer
     def __init__(self, row, genotyped=True):
-        required_keys = ('id', 'seq', 'v_call', 'd_call', 'j_call')
+        required_keys = ('id',)
         optional_keys = (x for x in IgRecord._parse_map if x not in required_keys)
         
         # Not ideal. Will place V_CALL_GENOTYPED in annotations

@@ -26,6 +26,7 @@ from DbCore import default_repo, IgRecord
 # Defaults
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
+default_seq_field = 'SEQUENCE_IMGT'
 
 def getRepo(repo):
     """
@@ -53,7 +54,7 @@ def getRepo(repo):
     return repo_dict
 
     
-def joinGermline(align, repo_dict, germ_types, v_field):
+def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     """
     Join gapped germline sequences aligned with sample sequences
     
@@ -63,6 +64,7 @@ def joinGermline(align, repo_dict, germ_types, v_field):
     germ_types = types of germline sequences to be output
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
+    seq_field = field in which to look for sequence
     
     Returns:
     dictionary of germline_type: germline_sequence
@@ -146,17 +148,17 @@ def joinGermline(align, repo_dict, germ_types, v_field):
                                   germ_seq[-len(germ_jseq):]
     if 'vonly' in germ_types: germs['vonly'] = germ_vseq
 
-    if len(align['SEQUENCE_GAP']) == 0:
+    if len(align[seq_field]) == 0:
         result_log['ERROR'] = 'Gapped sequence is missing from SEQUENCE_GAP column'
-    elif len(germs['full']) != len(align['SEQUENCE_GAP']):
-        result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align['SEQUENCE_GAP']))
+    elif len(germs['full']) != len(align[seq_field]):
+        result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align[seq_field]))
         
     for v in germs.itervalues(): v = v.upper()
     
     return result_log, germs
 
 
-def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_out_args):
+def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
     """
     Write germline sequences to tab-delimited database file
     
@@ -166,6 +168,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
     germ_types = types of germline sequences to be output
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
+    seq_field = field in which to look for sequence
     out_args = arguments for output preferences
     
     Returns:
@@ -178,6 +181,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
     log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
     log['CLONED'] = 'False'
     log['V_FIELD'] = v_field
+    log['SEQ_FIELD'] = seq_field
     printLog(log)
     
     # Get repertoire and open Db reader
@@ -195,9 +199,10 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
         log_handle = open(out_args['log_file'], 'w')
 
     add_fields = []
-    if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
-    if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
-    if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
+    seq_type = seq_field.split('_')[-1]
+    if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
+    if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
+    if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file, 'germ-pass',
@@ -225,19 +230,19 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
         
-        result_log, germs = joinGermline(row, repo_dict, germ_types, v_field)
+        result_log, germs = joinGermline(row, repo_dict, germ_types, v_field, seq_field)
         
         # Add germline field(s) to dictionary
-        if 'full' in germ_types: row['GERMLINE_GAP'] = germs['full']
-        if 'dmask' in germ_types: row['GERMLINE_GAP_D_MASK'] = germs['dmask']
-        if 'vonly' in germ_types: row['GERMLINE_GAP_V_REGION'] = germs['vonly']
+        if 'full' in germ_types: row['GERMLINE_' + seq_type] = germs['full']
+        if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germs['dmask']
+        if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germs['vonly']
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(row)
         else:
-            result_log['SEQUENCE'] = row['SEQUENCE_GAP']
+            result_log['SEQUENCE'] = row[seq_field]
             result_log['GERMLINE'] = germs['full']
             result_log['REGIONS'] = germs['regions']
             
@@ -261,7 +266,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, out_args=default_ou
     if log_handle is not None:  log_handle.close()
 
 
-def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts, writers, out_args):
+def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_field, counts, writers, out_args):
     """
     Determine consensus clone sequence and create germline for clone
 
@@ -272,6 +277,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
     germ_types = types of germline sequences to be output
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
+    seq_field = field in which to look for sequence
     counts = dictionary of pass counter and fail counter
     writers = dictionary with pass and fail DB writers
     out_args = arguments for output preferences
@@ -279,6 +285,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
     Returns:
     None
     """
+    seq_type = seq_field.split('_')[-1]
     j_field = 'J_CALL'
     
     # Create dictionaries to count observed V/J calls
@@ -292,7 +299,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
         v_dict[v] = v_dict.get(v,0) + 1
         j = val[j_field]
         j_dict[j] = j_dict.get(j,0) + 1
-        if len(val['SEQUENCE_GAP']) > max_length: max_length = len(val['SEQUENCE_GAP'])
+        if len(val[seq_field]) > max_length: max_length = len(val[seq_field])
     
     # Consensus V and J having most observations
     v_cons = [k for k in v_dict.keys() if v_dict[k] == max(v_dict.values())]
@@ -300,7 +307,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
     # Consensus sequence(s) with consensus V/J calls and longest sequence
     cons = [val for val in clone_dict.values() if val.get(v_field,'') in v_cons and \
                                                   val.get(j_field,'') in j_cons and \
-                                                  len(val['SEQUENCE_GAP'])==max_length]
+                                                  len(val[seq_field])==max_length]
     # Sequence(s) with consensus V/J are not longest
     if not cons:
         # Sequence(s) with consensus V/J (not longest)
@@ -316,14 +323,14 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
         else:
             # Pad end of consensus sequence with gaps to make it the max length
             cons = cons[0]
-            cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons['SEQUENCE_GAP']))
-            cons['SEQUENCE_GAP'] += '.'*(max_length - len(cons['SEQUENCE_GAP']))
-            result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field)
+            cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
+            cons[seq_field] += '.'*(max_length - len(cons[seq_field]))
+            result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
             result_log['ID'] = clone
             result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
-        result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field)
+        result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
         result_log['ID'] = clone
         result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
@@ -331,13 +338,13 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
     for val in clone_dict.itervalues():
         if 'ERROR' not in result_log:
             # Update lengths padded to longest sequence in clone
-            val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val['SEQUENCE_GAP']))
-            val['SEQUENCE_GAP'] += '.'*(max_length - len(val['SEQUENCE_GAP']))
+            val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val[seq_field]))
+            val[seq_field] += '.'*(max_length - len(val[seq_field]))
             
             # Add column(s) to tab-delimited database file
-            if 'full' in germ_types: val['GERMLINE_GAP'] = germs['full']
-            if 'dmask' in germ_types: val['GERMLINE_GAP_D_MASK'] = germs['dmask']
-            if 'vonly' in germ_types: val['GERMLINE_GAP_V_REGION'] = germs['vonly']
+            if 'full' in germ_types: val['GERMLINE_' + seq_type] = germs['full']
+            if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germs['dmask']
+            if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germs['vonly']
             
             result_log['SEQUENCE'] = cons
             result_log['GERMLINE'] = germs['full']
@@ -354,7 +361,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, counts,
     return result_log
         
         
-def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_out_args):
+def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
     """
     Assemble one germline sequence for each clone in a tab-delimited database file
     
@@ -364,6 +371,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
     germ_types = types of germline sequences to be output
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
+    seq_field = field in which to look for sequence
     out_args = arguments for output preferences
     
     Returns:
@@ -376,6 +384,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
     log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
     log['CLONED'] = 'True'
     log['V_FIELD'] = v_field
+    log['SEQ_FIELD'] = seq_field
     printLog(log)
     
     # Get repertoire and open Db reader
@@ -393,9 +402,10 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
         log_handle = open(out_args['log_file'], 'w')
 
     add_fields = []
-    if 'full' in germ_types: add_fields +=  ['GERMLINE_GAP']
-    if 'dmask' in germ_types: add_fields += ['GERMLINE_GAP_D_MASK']
-    if 'vonly' in germ_types: add_fields += ['GERMLINE_GAP_V_REGION']
+    seq_type = seq_field.split('_')[-1]
+    if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
+    if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
+    if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
 
     # Create output file handle and Db writer
     writers = {}
@@ -430,7 +440,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
         elif clone_dict:
             clone_count += 1
             result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types,
-                                           v_field, counts, writers, out_args)
+                                           v_field, seq_field, counts, writers, out_args)
             printLog(result_log, handle=log_handle)
             # Now deal with current row (first of next clone)
             clone = row['CLONE']
@@ -441,7 +451,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, out_args=default_o
             clone_dict = OrderedDict([(row['SEQUENCE_ID'],row)])
     clone_count += 1
     result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
-                                   counts, writers, out_args)
+                                   seq_field, counts, writers, out_args)
     printLog(result_log, handle=log_handle)
     
     # Print log
@@ -476,8 +486,8 @@ def getArgParser():
              '''
              required fields:
                  SEQUENCE_ID 
-                 SEQUENCE
-                 SEQUENCE_GAP
+                 SEQUENCE_INPUT
+                 SEQUENCE_VDJ or SEQUENCE_IMGT
                  V_CALL or V_CALL_GENOTYPED 
                  D_CALL
                  J_CALL
@@ -498,9 +508,12 @@ def getArgParser():
                  CLONE
                 
               output fields:
-                 GERMLINE_GAP
-                 GERMLINE_GAP_D_MASK
-                 GERMLINE_GAP_V_REGION
+                 GERMLINE_VDJ
+                 GERMLINE_VDJ_D_MASK
+                 GERMLINE_VDJ_V_REGION
+                 GERMLINE_IMGT
+                 GERMLINE_IMGT_D_MASK
+                 GERMLINE_IMGT_V_REGION
               ''')
 
     # Parent parser
@@ -521,8 +534,10 @@ def getArgParser():
     parser.add_argument('--cloned', action='store_true', dest='byClone', 
                         help='Specify to create only one germline per clone \
                              (assumes input file is sorted by clone column)')
-    parser.add_argument('--vfield', action='store', dest='v_field', default=default_v_field,
+    parser.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
                         help='Specify field to use for germline V call')
+    parser.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
+                        help='Specify field to use for sequence')
 
     return parser
 
