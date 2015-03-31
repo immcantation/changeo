@@ -30,9 +30,9 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_separator, default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict, scoreDNA, scoreAA
+from IgCore import getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter
-from DbCore import DbData, DbResult, IgRecord
+from DbCore import DbData, DbResult, IgRecord, getDistMat
 
 # Defaults
 default_translate = False
@@ -42,50 +42,6 @@ default_hclust_model = 'chen2010'
 
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
-
-def getDistMat(mat=None, n_score=0, gap_score=0, alphabet='dna'):
-    """
-    Generates a distance matrix
-
-    Arguments:
-    mat = input distance matrix to extend to full alphabet;
-          if unspecified, creates Hamming distance matrix that incorporates IUPAC equivalencies
-    n_score = score for all matches against an N character
-    gap_score = score for all matches against a [-, .] character
-    alphabet = the type of score dictionary to generate;
-               one of [dna, aa] for DNA and amino acid characters
-
-    Returns:
-    a distance matrix (pandas DataFrame)
-    """
-    if alphabet=='dna':
-        IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
-        n = 'N'
-        score_func = scoreDNA
-    elif alphabet=='aa':
-        IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        n = 'X'
-        score_func = scoreAA
-    else:
-        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type.\n' % alphabet)
-
-    # Default matrix to inf
-    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars, dtype=float)
-    # Set gap score
-    for c in '-.':
-        dist_mat.loc[c] = dist_mat.loc[:,c] = gap_score
-    # Set n score
-    dist_mat.loc[n] = dist_mat.loc[:,n] = n_score
-    # Fill in provided distances from input matrix
-    if mat is not None:
-        for i,j in product(mat.index, mat.columns):
-            dist_mat.loc[i,j] = mat.loc[i,j]
-    # If no input matrix, create IUPAC-defined Hamming distance
-    else:
-        for i,j in product(dist_mat.index, dist_mat.columns):
-            dist_mat.loc[i,j] = 1 - score_func(i, j, n_score=1-n_score, gap_score=1-gap_score)
-
-    return dist_mat
 
 
 def indexJunctions(db_iter, fields=None, mode='gene', action='first', 
@@ -209,19 +165,27 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
             dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
-                                           izip(junctions[i],junctions[j])])
+                                           izip(junctions[i], junctions[j])])
     elif model in ['m3n','hs5f']:
         junctions = ['NN' + j + 'NN' for j in junc_map.keys()]
         # Initiate pairwise distance matrix
-        dists = np.zeros((len(junctions),len(junctions)))
+        dists = np.zeros((len(junctions), len(junctions)))
+
         # Check for no distance matrix
         # TODO:  yucky catch for dist_mat=None.
+        # TODO:  this can be abstracted into a model class with N-mer count and substitution matrix
+        # TODO:  yucky path business can be handled in DbCore instead.
         if dist_mat is None:
-            if model == 'm3n': dist_mat = read_csv('models/M3N_Targeting.tab', sep='\t', index_col=0)
-            if model == 'hs5f': dist_mat = read_csv('mdoels/HS5F_Targeting.tab', sep='\t', index_col=0)
+            model_path = os.path.dirname(os.path.realpath(__file__))
+            if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
+            if model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
+            dist_mat = read_csv(model_file, sep='\t', index_col=0)
+
         # Get list of acceptable nucleotides
+        # TODO:  does this account for Ns?
         nucs = ['A','C','G','T']
         # Make sliding five-mers for each junction sequence
+        # TODO:  this can be abstracted into N-mers
         fivemers = DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
@@ -235,6 +199,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
 
     else: sys.stderr.write('Unrecognized distance model.\n')
 
+    # TODO:  could be a clustering function
     # Perform single-linkage hierarchical clustering
     dists = squareform(dists)
     links = linkage(dists, 'single')
@@ -985,10 +950,15 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluste
         log['GROUP_FUNC'] = group_func.__name__
         log['GROUP_ARGS'] = group_args
     log['CLONE_FUNC'] = clone_func.__name__
-    log['CLONE_ARGS'] = clone_args
+
+    # TODO:  this is yucky, but can be fixed by using a model class
+    clone_log = clone_args.copy()
+    if 'dist_mat' in clone_log:  del clone_log['dist_mat']
+    log['CLONE_ARGS'] = clone_log
+
     if cluster_func is not None:
         log['CLUSTER_FUNC'] = cluster_func.__name__
-        log['CLUSTER_ARGS'] = cluster_args
+        log['CLUSTER_ARGS'] = cluster_log
     log['NPROC'] = nproc
     printLog(log)
     
@@ -1118,11 +1088,14 @@ if __name__ == '__main__':
     
     # Define clone_args
     if args.command == 'bygroup':
+        model_path = os.path.dirname(os.path.realpath(__file__))
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance']}
+
+        # TODO: can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
         elif args_dict['model'] == 'm1n':
@@ -1130,9 +1103,12 @@ if __name__ == '__main__':
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
             args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
         elif args_dict['model'] == 'hs5f':
-            args_dict['clone_args']['dist_mat'] = read_csv('models/HS5F_Targeting.tab', sep='\t', index_col=0)
+            model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
+            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
         elif args_dict['model'] == 'm3n':
-            args_dict['clone_args']['dist_mat'] = read_csv('models/M3N_Targeting.tab', sep='\t', index_col=0)
+            model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
+            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
+
         del args_dict['fields']
         del args_dict['action']
         del args_dict['mode']
