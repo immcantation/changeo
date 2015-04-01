@@ -23,7 +23,7 @@ from time import time
 
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args
+from IgCore import default_out_args, countSeqFile
 from IgCore import parseAnnotation, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
@@ -33,6 +33,42 @@ default_V_regex = re.compile(r'(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)')
 default_D_regex = re.compile(r'(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)')
 default_J_regex = re.compile(r'(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)')
 default_delimiter = ('\t', ',', '-')
+
+
+def getSeqforIgBlast(seq_file):
+    """
+    Fetch input sequences for IgBlast queries
+
+    Arguments:
+    seq_file = a fasta file of sequences input to IgBlast
+
+    Returns:
+    a dictionary of {ID:Seq}
+    """
+
+    seq_dict = SeqIO.index(seq_file, "fasta", IUPAC.ambiguous_dna)
+
+    # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
+    seqs = {}
+    for seq in seq_dict.itervalues():
+        seqs.update({seq.description:str(seq.seq)})
+    return seqs
+
+
+def findLine(handle, query):
+    """
+    Finds line with query string in file
+
+    Arguments:
+    handle = file handle in which to search for line
+    query = query string for which to search in file
+
+    Returns:
+    line from handle in which query string was found
+    """
+    for line in handle:
+        if(re.match(query, line)):
+            return line
 
 
 def extractIMGT(imgt_output):
@@ -67,6 +103,97 @@ def extractIMGT(imgt_output):
     return temp_dir, imgt_files
 
 
+def readIgBlast(igblast_output, seq_dict):
+    """
+    Reads IgBlast output
+
+    Arguments: ma
+    igblast_output = IgBlast output file (format 7)
+    seq_dict = a dictionary of {ID:Seq} from input fasta file
+
+    Returns:
+    a generator of dictionaries containing alignment data
+    """
+    db_gen = {}
+    igblast_handle = open(igblast_output, 'rU')
+
+    for line in igblast_handle:
+        if(re.match("# Query:", line)):
+            if 'SEQUENCE_ID' in db_gen and db_gen['FUNCTIONAL'] != 'No Results': yield db_gen
+            words = line.split()
+            db_gen = {}
+            db_gen['SEQUENCE_ID'] = ' '.join(words[2:])
+            db_gen['SEQUENCE_INPUT'] = seq_dict[db_gen['SEQUENCE_ID']]
+        if(re.match("# 0 hits found", line)):
+            db_gen = IgRecord({'SEQUENCE_ID':db_gen['SEQUENCE_ID'], 'SEQUENCE_INPUT':db_gen['SEQUENCE_INPUT'],
+                               'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
+            yield db_gen
+        if(re.match(r"# V-\(D\)-J rearrangement summary", line)):
+            line = next(igblast_handle)
+            words = line.split()
+            db_gen['V_CALL'] = ','.join(re.findall(default_V_regex, line))
+            db_gen['D_CALL'] = ','.join(re.findall(default_D_regex, line))
+            db_gen['J_CALL'] = ','.join(re.findall(default_J_regex, line))
+            cnt = 4 if db_gen['D_CALL'] else 3
+            if(words[cnt]=='No'):
+                db_gen['STOP'] = 'F'
+            elif(words[cnt]=='Yes'):
+                db_gen['STOP'] = 'T'
+            else: '?'
+            cnt += 1
+            if(words[cnt]=='In-frame'):
+                db_gen['IN_FRAME'] = 'T'
+            elif(words[cnt]=='Out-of-frame'):
+                db_gen['IN_FRAME'] = 'F'
+            else: db_gen['IN_FRAME'] = '?'
+            cnt += 1
+            if(words[cnt]=='No'):
+                db_gen['FUNCTIONAL'] = 'F'
+            elif(words[cnt]=='Yes'):
+                db_gen['FUNCTIONAL'] = 'T'
+            else: db_gen['FUNCTIONAL'] = '?'
+        if(re.match(r"# V-\(D\)-J junction", line)):
+            line = next(igblast_handle)
+            db_gen['JUNCTION'] = re.sub("(N/A)|\[|\(|\)|\]",'',''.join(line.split()))
+            db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
+        #if(re.match(r"# Alignment summary", line)):
+        if(re.match(r"# Hit table", line)):
+            if('V_CALL' in db_gen and db_gen['V_CALL']):
+                line = findLine(igblast_handle,"V")
+                words = line.split()
+                db_gen['V_SEQ_START'] =  words[8]
+                db_gen['V_SEQ_LENGTH'] =  int(words[9]) - int(words[8]) + 1
+                db_gen['V_GERM_START'] =  words[10]
+                db_gen['V_GERM_LENGTH'] =  int(words[11]) - int(words[10]) + 1
+                if(words[6] == '0'):
+                    db_gen['INDELS'] = 'F'
+                else: db_gen['INDELS'] = 'T'
+            if('D_CALL' in db_gen and db_gen['D_CALL']):
+                line = findLine(igblast_handle,"D")
+                words = line.split()
+                db_gen['D_SEQ_START'] = words[8]
+                db_gen['N1_LENGTH'] = int(db_gen['D_SEQ_START']) - int(db_gen['V_SEQ_LENGTH']) - \
+                                      int(db_gen['V_SEQ_START'])
+                db_gen['D_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
+                db_gen['D_GERM_START'] = words[10]
+                db_gen['D_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
+            if('J_CALL' in db_gen and db_gen['J_CALL']):
+                line = findLine(igblast_handle,"J")
+                words = line.split()
+                db_gen['J_SEQ_START'] = words[8]
+                if('D_CALL' in db_gen and db_gen['D_CALL']):
+                    db_gen['N2_LENGTH'] = int(db_gen['J_SEQ_START']) - int(db_gen['D_SEQ_LENGTH']) - \
+                                          int(db_gen['D_SEQ_START'])
+                else:
+                    db_gen['N1_LENGTH'] = int(db_gen['J_SEQ_START']) - int(db_gen['V_SEQ_LENGTH']) - \
+                                          int(db_gen['V_SEQ_START'])
+                db_gen['J_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
+                db_gen['J_GERM_START'] = words[10]
+                db_gen['J_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
+                db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][(int(db_gen['V_SEQ_START'])-1):(int(words[9])-1)]
+                yield IgRecord(db_gen)
+
+
 def readIMGT(imgt_files):
     """
     Reads IMGT/HighV-Quest output
@@ -77,65 +204,67 @@ def readIMGT(imgt_files):
     Returns: 
     a generator of dictionaries containing alignment data
     """
-    # TODO:  would be cleaner if we used a function for the generator
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
-    # Create a generator of dictionaries for each sequence alignment
-    db_gen = (IgRecord(
-              {'SEQUENCE_ID':        sm['Sequence ID'],
-               'SEQUENCE_INPUT':     sm['Sequence'],
-               'FUNCTIONAL':         ['?','T','F'][('productive' in sm['Functionality']) + ('unprod' in sm['Functionality'])],
-               'IN_FRAME':           ['?','T','F'][('in-frame' in sm['JUNCTION frame']) + ('out-of-frame' in sm['JUNCTION frame'])],
-               'STOP':               ['F','?','T'][('stop codon' in sm['Functionality comment']) + ('unprod' in sm['Functionality'])],
-               'MUTATED_INVARIANT':  ['F','?','T'][(any(('missing' in sm['Functionality comment'],
-                                                       'missing' in sm['V-REGION potential ins/del']))) + ('unprod' in sm['Functionality'])],
-               'INDELS':             ['F','T'][any((sm['V-REGION potential ins/del'], 
-                                                    sm['V-REGION insertions'], 
-                                                    sm['V-REGION deletions']))],
-               'V_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['V-GENE and allele']) ), # replace or with comma
-               'D_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
-               'J_CALL':             re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
-               'SEQUENCE_VDJ':       nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION'],
-               'SEQUENCE_IMGT':      gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
-               'V_SEQ_START':        nt['V-REGION start'],
-               'V_SEQ_LENGTH':       len(nt['V-REGION']) if nt['V-REGION'] else 0,
-               'V_GERM_START':       1,
-               'V_GERM_LENGTH':      len(gp['V-REGION']) if gp['V-REGION'] else 0,
-               'N1_LENGTH':          sum(int(i) for i in [jn["P3'V-nt nb"], 
-                                                          jn['N-REGION-nt nb'], 
-                                                          jn['N1-REGION-nt nb'], 
-                                                          jn["P5'D-nt nb"]] if i),
-               #'D_5_TRIM':           int(jn["5'D-REGION trimmed-nt nb"] or 0),
-               'D_SEQ_START':        sum(int(i) for i in [1, len(nt['V-REGION']),
-                                                          jn["P3'V-nt nb"], 
-                                                          jn['N-REGION-nt nb'], 
-                                                          jn['N1-REGION-nt nb'], 
-                                                          jn["P5'D-nt nb"]] if i),
-               'D_SEQ_LENGTH':       int(jn["D-REGION-nt nb"] or 0),
-               'D_GERM_START':       int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1,
-               'D_GERM_LENGTH':      int(jn["D-REGION-nt nb"] or 0),
-               'N2_LENGTH':          sum(int(i) for i in [jn["P3'D-nt nb"],
-                                                          jn['N2-REGION-nt nb'],
-                                                          jn["P5'J-nt nb"]] if i),   
-               #'J_5_TRIM':           int(jn["5'J-REGION trimmed-nt nb"] or 0),
-               'J_SEQ_START':        sum(int(i) for i in [1, len(nt['V-REGION']),
-                                                          jn["P3'V-nt nb"], 
-                                                          jn['N-REGION-nt nb'], 
-                                                          jn['N1-REGION-nt nb'], 
-                                                          jn["P5'D-nt nb"],
-                                                          jn["D-REGION-nt nb"],
-                                                          jn["P3'D-nt nb"],
-                                                          jn['N2-REGION-nt nb'],
-                                                          jn["P5'J-nt nb"]] if i),
-               'J_SEQ_LENGTH':       len(nt['J-REGION']) if nt['J-REGION'] else 0,
-               'J_GERM_START':       int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1,
-               'J_GERM_LENGTH':      len(gp['J-REGION']) if gp['J-REGION'] else 0,
-               'JUNCTION_LENGTH':    len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
-               'JUNCTION':           jn['JUNCTION']}) if "No results" not in sm['Functionality'] else \
-              IgRecord({'SEQUENCE_ID':sm['Sequence ID'], 'SEQUENCE_INPUT':sm['Sequence'],
-                        'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
-              for sm, gp, nt, jn in izip(*imgt_iters) )
-    
-    return db_gen
+    # Create a dictionary for each sequence alignment and yield its generator
+    for sm, gp, nt, jn in izip(*imgt_iters):
+        if "No results" not in sm['Functionality']:
+            db_gen = {'SEQUENCE_ID':       sm['Sequence ID'],
+                      'SEQUENCE_INPUT':    sm['Sequence'],
+                      'FUNCTIONAL':        ['?','T','F'][('productive' in sm['Functionality']) +
+                                                         ('unprod' in sm['Functionality'])],
+                      'IN_FRAME':          ['?','T','F'][('in-frame' in sm['JUNCTION frame']) +
+                                                         ('out-of-frame' in sm['JUNCTION frame'])],
+                      'STOP':              ['F','?','T'][('stop codon' in sm['Functionality comment']) +
+                                                         ('unprod' in sm['Functionality'])],
+                      'MUTATED_INVARIANT': ['F','?','T'][(any(('missing' in sm['Functionality comment'],
+                                                               'missing' in sm['V-REGION potential ins/del']))) +
+                                                         ('unprod' in sm['Functionality'])],
+                      'INDELS':            ['F','T'][any((sm['V-REGION potential ins/del'],
+                                                          sm['V-REGION insertions'],
+                                                          sm['V-REGION deletions']))],
+                      'V_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['V-GENE and allele']) ),
+                      'D_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
+                      'J_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
+                      'SEQUENCE_VDJ':      nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION'],
+                      'SEQUENCE_IMGT':     gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
+                      'V_SEQ_START':       nt['V-REGION start'],
+                      'V_SEQ_LENGTH':      len(nt['V-REGION']) if nt['V-REGION'] else 0,
+                      'V_GERM_START':      1,
+                      'V_GERM_LENGTH':     len(gp['V-REGION']) if gp['V-REGION'] else 0,
+                      'N1_LENGTH':         sum(int(i) for i in [jn["P3'V-nt nb"],
+                                                                jn['N-REGION-nt nb'],
+                                                                jn['N1-REGION-nt nb'],
+                                                                jn["P5'D-nt nb"]] if i),
+                      'D_SEQ_START':       sum(int(i) for i in [1, len(nt['V-REGION']),
+                                                                jn["P3'V-nt nb"],
+                                                                jn['N-REGION-nt nb'],
+                                                                jn['N1-REGION-nt nb'],
+                                                                jn["P5'D-nt nb"]] if i),
+                      'D_SEQ_LENGTH':      int(jn["D-REGION-nt nb"] or 0),
+                      'D_GERM_START':      int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1,
+                      'D_GERM_LENGTH':     int(jn["D-REGION-nt nb"] or 0),
+                      'N2_LENGTH':         sum(int(i) for i in [jn["P3'D-nt nb"],
+                                                                jn['N2-REGION-nt nb'],
+                                                                jn["P5'J-nt nb"]] if i),
+                      'J_SEQ_START':       sum(int(i) for i in [1, len(nt['V-REGION']),
+                                                                jn["P3'V-nt nb"],
+                                                                jn['N-REGION-nt nb'],
+                                                                jn['N1-REGION-nt nb'],
+                                                                jn["P5'D-nt nb"],
+                                                                jn["D-REGION-nt nb"],
+                                                                jn["P3'D-nt nb"],
+                                                                jn['N2-REGION-nt nb'],
+                                                                jn["P5'J-nt nb"]] if i),
+                      'J_SEQ_LENGTH':      len(nt['J-REGION']) if nt['J-REGION'] else 0,
+                      'J_GERM_START':      int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1,
+                      'J_GERM_LENGTH':     len(gp['J-REGION']) if gp['J-REGION'] else 0,
+                      'JUNCTION_LENGTH':   len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
+                      'JUNCTION':          jn['JUNCTION']}
+        else:
+            db_gen = {'SEQUENCE_ID':sm['Sequence ID'],
+                      'SEQUENCE_INPUT':sm['Sequence'],
+                      'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'}
+        yield IgRecord(db_gen)
 
     
 def getIDforIMGT(seq_file, start_time, total_count):
@@ -165,8 +294,8 @@ def getIDforIMGT(seq_file, start_time, total_count):
     return ids
 
 
-def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out_args,
-            id_dict={}, seq_dict={}, gap_dict={}, j_dict={}):
+def writeDb(db_gen, no_parse, file_prefix, start_time, total_count, out_args,
+            id_dict={}):
     """
     Writes tab-delimited database file in output directory
     
@@ -174,14 +303,10 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     db_gen = a generator of IgRecord objects containing alignment data
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     file_prefix = directory and prefix for CLIP tab-delim file
-    aligner = which aligner was used
     start_time = time from which to count elapsed time
     total_count = number of records (for progress bar)
     out_args = common output argument dictionary from parseCommonArgs
     id_dict = a dictionary of {IMGT ID: full seq description}
-    seq_dict = a dictionary of {sequence ID:Seq} from input fasta file
-    gap_dict = dictionary of {IgBlast_GL: [list of (gap_start, gap_length),...] }
-    j_dict = dictionary of {J_GL: conserved aa start}
     
     Returns:
     None
@@ -189,10 +314,10 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     pass_file = "%s_db-pass.tab" % file_prefix
     fail_file = "%s_db-fail.tab" % file_prefix
     ordered_fields = ['SEQUENCE_ID','SEQUENCE_INPUT','FUNCTIONAL','IN_FRAME','STOP','MUTATED_INVARIANT','INDELS',
-                      'V_MATCH','V_LENGTH','J_MATCH','J_LENGTH','V_CALL','D_CALL','J_CALL','SEQUENCE_VDJ',
-                      'V_SEQ_START','V_SEQ_LENGTH','V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START',
-                      'D_SEQ_LENGTH','D_GERM_START','D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH',
-                      'J_GERM_START','J_GERM_LENGTH','JUNCTION_GAP_LENGTH','JUNCTION','SEQUENCE_IMGT']
+                      'V_CALL','D_CALL','J_CALL','SEQUENCE_VDJ','SEQUENCE_IMGT','V_SEQ_START','V_SEQ_LENGTH',
+                      'V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START','D_SEQ_LENGTH','D_GERM_START',
+                      'D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH','J_GERM_START','J_GERM_LENGTH',
+                      'JUNCTION_LENGTH','JUNCTION']
    
     # Create DbWriter
     if not no_parse:
@@ -225,10 +350,10 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
             continue
         else: 
             pass_count += 1
-            record.seq_in = (record.seq_in.upper() if 'None' not in record.seq_in else '')
-            record.seq_imgt = (record.seq_imgt.upper() if 'None' not in record.seq_imgt else '')
-            record.seq_vdj = (record.seq_vdj.upper() if 'None' not in record.seq_vdj else '')
-            record.junction = (record.junction.upper() if 'None' not in record.junction else '')
+            record.seq_in = (record.seq_in.upper() if record.seq_in else '')
+            record.seq_imgt = (record.seq_imgt.upper() if record.seq_imgt else '')
+            record.seq_vdj = (record.seq_vdj.upper() if record.seq_vdj else '')
+            record.junction = (record.junction.upper() if record.junction else '')
             
         # Build sample sequence description
         if record.id in id_dict:
@@ -253,6 +378,51 @@ def writeDb(db_gen, no_parse, file_prefix, aligner, start_time, total_count, out
     
     pass_handle.close()
     if fail_handle is not None: fail_handle.close()
+
+
+def parseIgBlast(seq_file, igblast_output, no_parse, out_args=default_out_args):
+    """
+    Main for IgBlast aligned sample sequences
+
+    Arguments:
+    seq_file = fasta file input to IgBlast (from which to get sequence)
+    igblast_output = IgBlast output file to process
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    None
+    """
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'MakeDB'
+    log['ALIGNER'] = 'IgBlast'
+    log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['ALIGN_RESULTS'] = os.path.basename(igblast_output)
+    log['NO_PARSE'] = no_parse
+    printLog(log)
+
+    # Get input sequence dictionary
+    seq_dict = getSeqforIgBlast(seq_file)
+
+    # Formalize out_dir and file-prefix
+    if not out_args['out_dir']:
+        out_dir = os.path.split(igblast_output)[0]
+    else:
+        out_dir = os.path.abspath(out_args['out_dir'])
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.basename(os.path.splitext(igblast_output)[0])
+    file_prefix = os.path.join( out_dir, file_prefix)
+
+    total_count = countSeqFile(seq_file)
+    start_time = time()
+
+    # Create
+    igblast_dict = readIgBlast(igblast_output, seq_dict)
+    writeDb(igblast_dict, no_parse, file_prefix, start_time, total_count, out_args)
     
 
 def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
@@ -300,7 +470,7 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeDb(imgt_dict, no_parse, file_prefix, 'imgt', start_time, total_count, out_args, id_dict=id_dict)
+    writeDb(imgt_dict, no_parse, file_prefix, start_time, total_count, out_args, id_dict=id_dict)
 
     # Delete temp directory
     rmtree(temp_dir)
@@ -326,10 +496,6 @@ def getArgParser():
                  STOP
                  MUTATED_INVARIANT
                  INDELS
-                 V_MATCH
-                 V_LENGTH
-                 J_MATCH
-                 J_LENGTH
                  V_CALL
                  D_CALL
                  J_CALL
@@ -348,7 +514,7 @@ def getArgParser():
                  J_SEQ_LENGTH
                  J_GERM_START
                  J_GERM_LENGTH
-                 JUNCTION_GAP_LENGTH
+                 JUNCTION_LENGTH
                  JUNCTION
               ''')
                 
@@ -361,6 +527,18 @@ def getArgParser():
     
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=False)
+
+    # IgBlast Aligner
+    parser_igblast = subparsers.add_parser('igblast', help='Process IgBlast output',
+                                           parents=[parser_parent],
+                                           formatter_class=CommonHelpFormatter)
+    parser_igblast.set_defaults(func=parseIgBlast)
+    parser_igblast.add_argument('-o', nargs='+', action='store', dest='aligner_output', required=True,
+                                help='IgBlast output files')
+    parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
+                                help='List of input FASTA files containing sequences')
+    parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
+                                help='Specify if input IDs should not be parsed to add new columns to database')
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
@@ -408,3 +586,12 @@ if __name__ == "__main__":
         else:
             parser.error('Must include either (-z) zipped IMGT files or \
                          (-f) folder with individual files 1_, 2_, 3_, and 6_')
+    elif args.command == 'igblast':
+        if args.__dict__['aligner_output']:
+            for i in range(len(args.__dict__['aligner_output'])):
+                args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else \
+                                        parser.error('Must include fasta file input to IgBlast')
+                args_dict['igblast_output'] =  args.__dict__['aligner_output'][i]
+                args.func(**args_dict)
+        else:
+            parser.error('Must include IgBlast output file (-o)')
