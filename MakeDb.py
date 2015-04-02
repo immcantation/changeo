@@ -191,7 +191,7 @@ def readIgBlast(igblast_output, seq_dict):
                 db_gen['J_GERM_START'] = words[10]
                 db_gen['J_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
                 db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][(int(db_gen['V_SEQ_START'])-1):(int(words[9])-1)]
-                yield IgRecord(db_gen)
+            yield IgRecord(db_gen)
 
 
 def readIMGT(imgt_files):
@@ -318,16 +318,6 @@ def writeDb(db_gen, no_parse, file_prefix, start_time, total_count, out_args,
                       'V_GERM_START','V_GERM_LENGTH','N1_LENGTH','D_SEQ_START','D_SEQ_LENGTH','D_GERM_START',
                       'D_GERM_LENGTH','N2_LENGTH','J_SEQ_START','J_SEQ_LENGTH','J_GERM_START','J_GERM_LENGTH',
                       'JUNCTION_LENGTH','JUNCTION']
-   
-    # Create DbWriter
-    if not no_parse:
-        for v in id_dict.itervalues():
-            tmp = parseAnnotation(v, delimiter=out_args['delimiter'])
-            del tmp['ID']
-            ordered_fields.extend(tmp.keys())
-            break
-    pass_handle = open(pass_file, 'wb')
-    pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
 
     if out_args['failed']:
         fail_handle = open(fail_file, 'wb')
@@ -363,6 +353,11 @@ def writeDb(db_gen, no_parse, file_prefix, start_time, total_count, out_args,
             record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
             record.id = record.annotations['ID']
             del record.annotations['ID']
+            # If first sequence, use parsed description to create new columns and initialize writer
+            if i == 0:
+                ordered_fields.extend(record.annotations.keys())
+                pass_handle = open(pass_file, 'wb')
+                pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
             
         # Write row to tab-delim CLIP file
         pass_writer.writerow(record.toDict())
