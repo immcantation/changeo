@@ -1,15 +1,21 @@
 Column Name	Type	Description
 SEQUENCE_ID	string	Unique sequence identifier
-SEQUENCE_INPUT	string	"Input sequence"
+SEQUENCE_INPUT	string	Input sequence
+SEQUENCE_VDJ	string	Ungapped V(D)J sequence
+SEQUENCE_IMGT	string	IMGT-gapped V(D)J sequence
+GERMLINE_VDJ	string	Ungapped germline V(D)J sequence
+GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J sequence with Ns masking the N1-D-N2 regions
+GERMLINE_IMGT	string	IMGT-gapped V(D)J germline sequence
+GERMLINE_IMGT_D_MASK	string	IMGT-gapped V(D)J germline sequence with Ns masking the N1-D-N2 regions
 FUNCTIONAL	logical	T: productive; F: unproductive
 IN_FRAME	logical	T: junction is in-frame; F: junction is out-of-frame
 STOP	logical	T: stop codon and unproductive sequence; F: no stop codon
 MUTATED_INVARIANT	logical	T: 'missing' found in comments and unproductive sequence; F: no 'missing' found
 INDELS	logical	T: potential or definite indels
 V_CALL	string	V gene assignment(s)
+V_CALL_GENOTYPED	string	Adjusted V gene assignment(s) after inferring genotype
 D_CALL	string	D gene assignment(s)
 J_CALL	string	J gene assignment(s)
-SEQUENCE_IMGT	string	"IMGT-gapped sequence"
 V_SEQ_START	integer	Position of first V nucleotide in sequence
 V_SEQ_LENGTH	integer	Length of V in sequence
 V_GERM_START	integer	Position of first V nucleotide in germline
@@ -24,12 +30,9 @@ J_SEQ_START	integer	Position of first J nucleotide in sequence
 J_SEQ_LENGTH	integer	Length of J in sequence
 J_GERM_START	integer	Position of first J nucleotide in germline
 J_GERM_LENGTH	integer	Length of J in germline
-JUNCTION_LENGTH	integer	"Length of junction region"
+JUNCTION_LENGTH	integer	Length of junction region
 JUNCTION	string	Nucleotide sequence of junction region
 PRCONS	string	pRESTO output: list of primers
 CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID group
 DUPCOUNT	integer	pRESTO output: number of duplicate molecules
-V_CALL_GENOTYPED	string	Adjusted V gene assignment(s) after inferring genotype
 CLONE	integer	Numerical clone identifier
-GERMLINE	string	"Aligned germline sequence"
-GERMLINE_GAP_D_MASK	string	Aligned germline sequence with Ns masking the N1, D, and N2 regions
