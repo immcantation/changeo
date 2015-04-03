@@ -96,12 +96,12 @@ class IgRecord:
 
     # TODO: inclusion of TR (additional match group) caused issues in DefineClones; needs fixing.
     # Public variables
-    #allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    #gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+[-/\w]*)')
-    #family_regex = re.compile(r'((IG[HLK]|TR[ABGD])[VDJ]\d+)')
-    allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
-    family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
+    allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
+    gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
+    family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+))')
+    #allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+    #gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
+    #family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
 
     # Private methods
     @staticmethod    
@@ -134,16 +134,25 @@ class IgRecord:
         else:
             try:  return str(v)
             except:  return ''
-    
+
+    # Extract alleles from strings
+    #
+    # Arguments:  alleles = string with allele calls
+    #             regex = compiled regular expression for allele match
+    #             action = action to perform for multiple alleles;
+    #                      one of ('first', 'set', 'list').
+    # Returns:    string of the allele for action='first';
+    #             tuple of allele calls for 'set' or 'list' actions.
     @staticmethod
     def _parseAllele(alleles, regex, action='first'):
-        x = regex.findall(alleles)
+        try:  match = [x.group(0) for x in regex.finditer(alleles)]
+        except:  match = None
         if action == 'first':
-            return x[0] if x else None
+            return match[0] if match else None
         elif action == 'set':
-            return tuple(sorted(set(x))) if x else None
+            return tuple(sorted(set(match))) if match else None
         elif action == 'list':
-            return tuple(sorted(x)) if x else None
+            return tuple(sorted(match)) if match else None
         else:
             return None
 
