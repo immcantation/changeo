@@ -6,7 +6,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.10.2'
+__date__      = '2015.04.03'
 
 # Imports
 import os, sys, textwrap
@@ -24,6 +24,7 @@ from DbCore import readDbFile, getDbWriter, countDbFile
 from DbCore import default_repo, IgRecord
 
 # Defaults
+default_repo = 'germlines'
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'

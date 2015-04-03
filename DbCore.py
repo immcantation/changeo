@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.04.02'
+__date__      = '2015.04.03'
 
 # Imports
 import csv, os, re, sys
@@ -22,15 +22,17 @@ from IgCore import getOutputHandle, getFileType
 from IgCore import printLog, printProgress
 
 # Defaults
-default_repo = 'germlines'
-default_allele_regex = re.compile(r"(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)")
-    
-    
+#default_repo = 'germlines'
+#default_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
+#default_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
+#default_family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+))')
+
+# TODO:  might be better to just use the column name as the member variable name. there is probably a decorator for this.
 class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment
     """
-    # Private variables
+    # Mapping of member variables to column names
     _key_map = {'id': 'SEQUENCE_ID',
                 'v_call': 'V_CALL',
                 'v_call_geno': 'V_CALL_GENOTYPED',
@@ -60,7 +62,11 @@ class IgRecord:
                 'j_germ_start': 'J_GERM_START',
                 'j_germ_length': 'J_GERM_LENGTH',
                 'junction_length': 'JUNCTION_LENGTH'}
-    
+
+    # Mapping of column names to member variables
+    _field_map = {v: k for k, v in _key_map.iteritems()}
+
+    # Mapping of member variables to parsing functions
     _parse_map = {'id': '_identity',
                   'v_call': '_identity',
                   'v_call_geno': '_identity',
@@ -157,6 +163,10 @@ class IgRecord:
             return None
 
     # Initializer
+    #
+    # Arguments:  row = dictionary of {field:value} data
+    #             genotyped = if True assign v_call from genotyped field
+    # Returns:    IgRecord
     def __init__(self, row, genotyped=True):
         required_keys = ('id',)
         optional_keys = (x for x in IgRecord._parse_map if x not in required_keys)
@@ -181,7 +191,19 @@ class IgRecord:
         # Add remaining elements as annotations dictionary
         self.annotations = row
     
-    # Return a dictionary of the namespace
+    # Get a field value by column name
+    #
+    # Arguments:  field = column name
+    # Returns:    value in the field
+    def getField(self, field):
+        if field in IgRecord._field_map:
+            return getattr(self, IgRecord._field_map[field])
+        elif field in self.annotations:
+            return self.annotations[field]
+        else:
+            return None
+
+    # Returns: dictionary of the namespace
     def toDict(self):
         d = {}
         n = self.__dict__
@@ -549,7 +571,8 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
     return None
 
 
-def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_args):
+def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_args,
+                   add_fields=None):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
@@ -561,6 +584,8 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
     db_file = the database file name
     task_label = the task label used to tag the output files
     out_args = common output argument dictionary from parseCommonArgs
+    add_fields = a list of fields added to the writer not present in the in_file;
+                 if None do not add fields
 
     Returns:
     None
@@ -579,6 +604,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
                                       out_type=out_type)
+        pass_writer = getDbWriter(pass_handle, db_file, add_fields=add_fields)
         # Defined failed alignment output handle
         if out_args['failed']:
             fail_handle = getOutputHandle(db_file,
@@ -586,6 +612,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
                                           out_dir=out_args['out_dir'],
                                           out_name=out_args['out_name'],
                                           out_type=out_type)
+            fail_writer = getDbWriter(fail_handle, db_file)
         else:
             fail_handle = None
 
@@ -610,7 +637,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(set_count, result_count, 0.05, start_time)
+            printProgress(pass_count, result_count, 0.05, start_time)
 
             # Update counts for current iteration
             set_count += 1
@@ -621,20 +648,21 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
 
             # Write alignments
             if result:
-                pass_count += 1
-                print result.id
-                #SeqIO.write(result.results, pass_handle, out_type)
+                pass_count += result.data_count
+                for rec in result.results:
+                    pass_writer.writerow(rec.toDict())
             else:
-                fail_count += 1
-                #if fail_handle is not None:
-                #    SeqIO.write(result.data, fail_handle, out_type)
+                fail_count += result.data_count
+                if fail_handle is not None:
+                    for rec in result.data:
+                        pass_writer.writerow(rec.toDict())
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
 
         # Print total counts
-        printProgress(set_count, result_count, 0.05, start_time)
+        printProgress(pass_count, result_count, 0.05, start_time)
 
         # Update return values
         log = OrderedDict()
