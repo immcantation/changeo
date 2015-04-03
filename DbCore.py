@@ -91,8 +91,8 @@ class IgRecord:
                   'j_germ_length': '_integer',
                   'junction_length': '_integer'}
 
-    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None}
-    _logical_deparse = {False:'F', True:'T', None:'NA'}
+    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
+    _logical_deparse = {False:'F', True:'T', None:'None'}
 
     # TODO: inclusion of TR (additional match group) caused issues in DefineClones; needs fixing.
     # Public variables

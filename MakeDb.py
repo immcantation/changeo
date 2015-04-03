@@ -17,9 +17,10 @@ from shutil import rmtree
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from argparse import ArgumentParser
-from itertools import izip
+from itertools import izip, groupby
 from collections import OrderedDict
 from time import time
+from pandas import DataFrame
 
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -29,9 +30,9 @@ from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, IgRecord, countDbFile
 
 # Default parameters
-default_V_regex = re.compile(r'(IG[HLK][V]\d+[-/\w]*[-\*][\.\w]+)')
-default_D_regex = re.compile(r'(IG[HLK][D]\d+[-/\w]*[-\*][\.\w]+)')
-default_J_regex = re.compile(r'(IG[HLK][J]\d+[-/\w]*[-\*][\.\w]+)')
+default_V_regex = re.compile(r'((IG[HLK]|TR[ABGD])V\d+[-/\w]*[-\*][\.\w]+)')
+default_D_regex = re.compile(r'((IG[HLK]|TR[ABGD])D\d+[-/\w]*[-\*][\.\w]+)')
+default_J_regex = re.compile(r'((IG[HLK]|TR[ABGD])J\d+[-/\w]*[-\*][\.\w]+)')
 default_delimiter = ('\t', ',', '-')
 
 
@@ -103,118 +104,105 @@ def extractIMGT(imgt_output):
     return temp_dir, imgt_files
 
 
+def readOneIgBlastResult(block):
+    """
+    Parse a single IgBlast query result
+
+    :param block: itertools groupby object of single result
+    :return: None if no results, otherwise list of dataframes for each result block
+    """
+    results = list()
+    for i, (match, subblock) in enumerate(groupby(block, lambda l: l=='\n')):
+        if not match:
+            sub = [s.strip() for s in subblock if not s.startswith('#')]
+            if i==2 or i==4:
+                results.append(sub[0])
+            else:
+                sub = [s.split('\t') for s in sub]
+                df = DataFrame(sub)
+                if not df.empty: results.append(df)
+    if not results: return None
+    return results
+
+
 def readIgBlast(igblast_output, seq_dict):
     """
     Reads IgBlast output
 
-    Arguments: ma
+    Arguments:
     igblast_output = IgBlast output file (format 7)
     seq_dict = a dictionary of {ID:Seq} from input fasta file
 
     Returns:
     a generator of dictionaries containing alignment data
     """
-    db_gen = {}
-    igblast_handle = open(igblast_output, 'rU')
+    # Open IgBlast output file
+    with open(igblast_output) as f:
+        # Iterate over individual results (separated by # IGBLASTN)
+        for k1,block in groupby(f, lambda l: re.match('# IGBLASTN', l)):
+            if not k1:
+                # Extract sequence ID
+                q = ' '.join(block.next().strip().split(' ')[2:])
+                # Initialize db_gen to have ID and input sequence
+                db_gen = {'SEQUENCE_ID':     q,
+                          'SEQUENCE_INPUT':  seq_dict[q]}
 
-    # Iterate over lines and parse IgBLAST blocks
-    for line in igblast_handle:
-        if(re.match("# Query:", line)):
-            #print line
-            if 'SEQUENCE_ID' in db_gen and db_gen['FUNCTIONAL'] != 'No Results':
-                yield db_gen
+                # Parse further sub-blocks
+                block_list = readOneIgBlastResult(block)
 
-            words = line.split()
-            db_gen = {}
-            db_gen['SEQUENCE_ID'] = ' '.join(words[2:])
-            db_gen['SEQUENCE_INPUT'] = seq_dict[db_gen['SEQUENCE_ID']]
+                # If results exist, parse further to obtain full db_gen
+                if block_list is not None:
+                    # Parse V, D, and J calls
+                    V = IgRecord._parseAllele(block_list[0], default_V_regex, action='list')
+                    db_gen['V_CALL'] = ','.join(V) if V is not None else 'None'
+                    D = IgRecord._parseAllele(block_list[0], default_D_regex, action='list')
+                    db_gen['D_CALL'] = ','.join(D) if D is not None else 'None'
+                    J = IgRecord._parseAllele(block_list[0], default_J_regex, action='list')
+                    db_gen['J_CALL'] = ','.join(J) if J is not None else 'None'
 
-        # Yield mostly empty record if no hits
-        if(re.match("# 0 hits found", line)):
-            db_gen = IgRecord({'SEQUENCE_ID':db_gen['SEQUENCE_ID'], 'SEQUENCE_INPUT':db_gen['SEQUENCE_INPUT'],
-                               'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'})
-            yield db_gen
+                    # Parse quality information
+                    quals = block_list[0].split()
+                    db_gen['STOP'] = 'T' if quals[-4]=='Yes' else 'F'
+                    db_gen['IN_FRAME'] = 'T' if quals[-3]=='In-frame' else 'F'
+                    db_gen['FUNCTIONAL'] = 'T' if quals[-2]=='Yes' else 'F'
 
-        # Parse allele call block
-        if(re.match(r"# V-\(D\)-J rearrangement summary", line)):
-            line = next(igblast_handle)
-            words = line.split()
-            db_gen['V_CALL'] = ','.join(re.findall(default_V_regex, line))
-            db_gen['D_CALL'] = ','.join(re.findall(default_D_regex, line))
-            db_gen['J_CALL'] = ','.join(re.findall(default_J_regex, line))
-            cnt = 4 if db_gen['D_CALL'] else 3
+                    # Parse junction sequence
+                    db_gen['JUNCTION'] = re.sub("(N/A)|\[|\(|\)|\]",'',''.join(block_list[1].split()))
+                    db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
 
-            if(words[cnt]=='No'):
-                db_gen['STOP'] = 'F'
-            elif(words[cnt]=='Yes'):
-                db_gen['STOP'] = 'T'
-            else: '?'
+                    # Parse segment start and stop positions
+                    # If V call exists, parse V alignment information
+                    if db_gen['V_CALL'] != 'None':
+                        V = block_list[3][block_list[3][0] == 'V'].iloc[0]
+                        db_gen['V_SEQ_START'] = V[8]
+                        db_gen['V_SEQ_LENGTH'] = int(V[9]) - int(V[8]) + 1
+                        db_gen['V_GERM_START'] = V[10]
+                        db_gen['V_GERM_LENGTH'] = int(V[11]) - int(V[10]) + 1
+                        db_gen['INDELS'] = 'F' if int(V[6])==0 else 'T'
 
-            cnt += 1
-            if(words[cnt]=='In-frame'):
-                db_gen['IN_FRAME'] = 'T'
-            elif(words[cnt]=='Out-of-frame'):
-                db_gen['IN_FRAME'] = 'F'
-            else: db_gen['IN_FRAME'] = '?'
+                    # If D call exists, parse D alignment information
+                    if db_gen['D_CALL'] != 'None':
+                        D = block_list[3][block_list[3][0] == 'D'].iloc[0]
+                        db_gen['D_SEQ_START'] = D[8]
+                        db_gen['N1_LENGTH'] = int(D[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
+                        db_gen['D_SEQ_LENGTH'] = int(D[9]) - int(D[8]) + 1
+                        db_gen['D_GERM_START'] = D[10]
+                        db_gen['D_GERM_LENGTH'] = int(D[11]) - int(D[10]) + 1
 
-            cnt += 1
-            if(words[cnt]=='No'):
-                db_gen['FUNCTIONAL'] = 'F'
-            elif(words[cnt]=='Yes'):
-                db_gen['FUNCTIONAL'] = 'T'
-            else: db_gen['FUNCTIONAL'] = '?'
+                    # If J call exists, parse J alignment information
+                    if db_gen['J_CALL'] != 'None':
+                        J = block_list[3][block_list[3][0] == 'J'].iloc[0]
+                        db_gen['J_SEQ_START'] = J[8]
+                        if db_gen['D_CALL'] != 'None':
+                            db_gen['N2_LENGTH'] = int(J[8]) - int(db_gen['D_SEQ_LENGTH']) - int(db_gen['D_SEQ_START'])
+                        else:
+                            db_gen['N1_LENGTH'] = int(J[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
+                        db_gen['J_SEQ_LENGTH'] = int(J[9]) - int(J[8]) + 1
+                        db_gen['J_GERM_START'] = J[10]
+                        db_gen['J_GERM_LENGTH'] = int(J[11]) - int(J[10]) + 1
+                        db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][(int(db_gen['V_SEQ_START'])-1):(int(J[9])-1)]
 
-        # Parse junction block
-        if(re.match(r"# V-\(D\)-J junction", line)):
-            line = next(igblast_handle)
-            db_gen['JUNCTION'] = re.sub("(N/A)|\[|\(|\)|\]",'',''.join(line.split()))
-            db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
-
-        # Parse alignment block
-        #if(re.match(r"# Alignment summary", line)):
-        if(re.match(r"# Hit table", line)):
-            # Parse V-region alignment
-            if('V_CALL' in db_gen and db_gen['V_CALL']):
-                line = findLine(igblast_handle,"V")
-                words = line.split()
-                db_gen['V_SEQ_START'] =  words[8]
-                db_gen['V_SEQ_LENGTH'] =  int(words[9]) - int(words[8]) + 1
-                db_gen['V_GERM_START'] =  words[10]
-                db_gen['V_GERM_LENGTH'] =  int(words[11]) - int(words[10]) + 1
-                if(words[6] == '0'):
-                    db_gen['INDELS'] = 'F'
-                else: db_gen['INDELS'] = 'T'
-
-            # Parse N1-D-N2-region alignment
-            if('D_CALL' in db_gen and db_gen['D_CALL']):
-                line = findLine(igblast_handle,"D")
-                words = line.split()
-                db_gen['D_SEQ_START'] = words[8]
-                db_gen['N1_LENGTH'] = int(db_gen['D_SEQ_START']) - int(db_gen['V_SEQ_LENGTH']) - \
-                                      int(db_gen['V_SEQ_START'])
-                db_gen['D_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
-                db_gen['D_GERM_START'] = words[10]
-                db_gen['D_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
-
-            # Parse J-region alignment
-            if('J_CALL' in db_gen and db_gen['J_CALL']):
-                line = findLine(igblast_handle,"J")
-                words = line.split()
-                db_gen['J_SEQ_START'] = words[8]
-
-                if('D_CALL' in db_gen and db_gen['D_CALL']):
-                    db_gen['N2_LENGTH'] = int(db_gen['J_SEQ_START']) - int(db_gen['D_SEQ_LENGTH']) - \
-                                          int(db_gen['D_SEQ_START'])
-                else:
-                    db_gen['N1_LENGTH'] = int(db_gen['J_SEQ_START']) - int(db_gen['V_SEQ_LENGTH']) - \
-                                          int(db_gen['V_SEQ_START'])
-
-                db_gen['J_SEQ_LENGTH'] = int(words[9]) - int(words[8]) + 1
-                db_gen['J_GERM_START'] = words[10]
-                db_gen['J_GERM_LENGTH'] = int(words[11]) - int(words[10]) + 1
-                db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][(int(db_gen['V_SEQ_START'])-1):(int(words[9])-1)]
-
-            yield IgRecord(db_gen)
+                yield IgRecord(db_gen)
 
 
 def readIMGT(imgt_files):
