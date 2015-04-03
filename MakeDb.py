@@ -120,6 +120,7 @@ def readIgBlast(igblast_output, seq_dict):
     # Iterate over lines and parse IgBLAST blocks
     for line in igblast_handle:
         if(re.match("# Query:", line)):
+            #print line
             if 'SEQUENCE_ID' in db_gen and db_gen['FUNCTIONAL'] != 'No Results':
                 yield db_gen
 

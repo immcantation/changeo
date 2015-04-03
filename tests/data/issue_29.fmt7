@@ -1,0 +1,71 @@
+# IGBLASTN 2.2.29+
+# Query: GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL
+# Database: /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.V.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.D.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.J.human.F+ORF+infrP.ungapped.fasta
+# Domain classification requested: imgt
+
+# V-(D)-J rearrangement summary for query sequence (Top V gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand).  Multiple equivalent top matches having the same score and percent identity, if present, are separated by a comma.
+IGLV1-40*01,IGLV1-40*02	IGLJ1*01	VL	No	In-frame	Yes	+
+
+# V-(D)-J junction details based on top germline gene matches (V end, V-J junction, J start).  Note that possible overlapping nucleotides at VDJ junction (i.e, nucleotides that could be assigned to either rearranging gene) are indicated in parentheses (i.e., (TACT)) but are not included under the V, D, or J gene itself
+AGTGC	(TT)	ATGTC	
+
+# Alignment summary between query and top germline V gene hit (from, to, length, matches, mismatches, gaps, percent identity)
+FR1-IMGT	15	24	10	8	2	0	80
+CDR1-IMGT	25	51	27	20	7	0	74.1
+FR2-IMGT	52	102	51	46	5	0	90.2
+CDR2-IMGT	103	111	9	7	2	0	77.8
+FR3-IMGT	112	219	108	107	1	0	99.1
+CDR3-IMGT (germline)	220	247	28	23	5	0	82.1
+Total	N/A	N/A	233	211	22	0	90.6
+
+# Hit table (the first field indicates the chain type of the hit)
+# Fields: query id, subject id, % identity, alignment length, mismatches, gap opens, gaps, q. start, q. end, s. start, s. end, evalue, bit score
+# 7 hits found
+V	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLV1-40*01	90.56	233	22	0	0	15	247	66	298	2e-82	  296
+V	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLV1-40*02	90.56	233	22	0	0	15	247	66	298	2e-82	  296
+J	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLJ1*01	97.22	36	1	0	0	246	281	1	36	2e-14	63.9
+J	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLJ6*01	85.29	34	5	0	0	248	281	3	36	0.001	28.2
+J	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLJ2*01	90.00	20	2	0	0	262	281	17	36	0.017	24.3
+J	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLJ3*01	90.00	20	2	0	0	262	281	17	36	0.017	24.3
+J	GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL	IGLJ3*02	90.00	20	2	0	0	262	281	17	36	0.017	24.3
+# IGBLASTN 2.2.29+
+# Query: CTTGGTACCAAATATAA|CONSCOUNT=12|PRCONS=IGK
+# Database: /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.V.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.D.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.J.human.F+ORF+infrP.ungapped.fasta
+# Domain classification requested: imgt
+# 0 hits found
+# IGBLASTN 2.2.29+
+# Query: ACAAGAAGACTAGTGAA|CONSCOUNT=3|PRCONS=IGA
+# Database: /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.V.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.D.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.J.human.F+ORF+infrP.ungapped.fasta
+# Domain classification requested: imgt
+# 0 hits found
+# IGBLASTN 2.2.29+
+# Query: CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL
+# Database: /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.V.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.D.human.F+ORF+infrP.ungapped.fasta /vol100/repos/vdj_annotation_utils/parseIgBlastN/db/IG.J.human.F+ORF+infrP.ungapped.fasta
+# Domain classification requested: imgt
+
+# V-(D)-J rearrangement summary for query sequence (Top V gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand).  Multiple equivalent top matches having the same score and percent identity, if present, are separated by a comma.
+IGLV1-51*01	IGLJ2*01,IGLJ3*01	VL	No	In-frame	Yes	+
+
+# V-(D)-J junction details based on top germline gene matches (V end, V-J junction, J start).  Note that possible overlapping nucleotides at VDJ junction (i.e, nucleotides that could be assigned to either rearranging gene) are indicated in parentheses (i.e., (TACT)) but are not included under the V, D, or J gene itself
+AGTGC	(TG)	TGGTA	
+
+# Alignment summary between query and top germline V gene hit (from, to, length, matches, mismatches, gaps, percent identity)
+FR1-IMGT	1	27	27	17	10	0	63
+CDR1-IMGT	28	51	24	21	3	0	87.5
+FR2-IMGT	52	102	51	44	7	0	86.3
+CDR2-IMGT	103	111	9	7	2	0	77.8
+FR3-IMGT	112	219	108	103	5	0	95.4
+CDR3-IMGT (germline)	220	247	28	27	1	0	96.4
+Total	N/A	N/A	247	219	28	0	88.7
+
+# Hit table (the first field indicates the chain type of the hit)
+# Fields: query id, subject id, % identity, alignment length, mismatches, gap opens, gaps, q. start, q. end, s. start, s. end, evalue, bit score
+# 7 hits found
+V	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLV1-51*01	88.66	247	28	0	0	1	247	49	295	3e-83	  299
+V	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLV1-51*02	88.26	247	29	0	0	1	247	49	295	2e-82	  296
+J	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLJ2*01	100.00	38	0	0	0	246	283	1	38	5e-18	75.8
+J	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLJ3*01	100.00	38	0	0	0	246	283	1	38	5e-18	75.8
+J	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLJ3*02	100.00	31	0	0	0	253	283	8	38	8e-14	61.9
+J	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLJ5*01	95.45	22	1	0	0	262	283	17	38	4e-06	36.2
+J	CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL	IGLJ7*01	89.66	29	3	0	0	253	281	8	36	2e-05	34.2
+# BLAST processed 4 queries
