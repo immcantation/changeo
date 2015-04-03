@@ -184,9 +184,36 @@ class IgRecord:
                 d[IgRecord._key_map[k]] = f(v, deparse=True)
         return d
     
-    # Allele, gene and family getter functions
+
+    # Methods to get multiple allele, gene and family calls
+    #
+    # Arguments:  calls = iterable of calls to get; one or more of ('v','d','j')
+    #             actions = one of ('first','set')
+    # Returns:    list of requested calls in order
+    def getAlleleCalls(self, calls, action='first'):
+        vdj = {'v': self.getVAllele(action),
+               'd': self.getDAllele(action),
+               'j': self.getJAllele(action)}
+        return [vdj[k] for k in calls]
+
+    def getGeneCalls(self, calls, action='first'):
+        vdj = {'v':self.getVGene(action),
+               'd':self.getDGene(action),
+               'j':self.getJGene(action)}
+        return [vdj[k] for k in calls]
+
+    def getFamilyCalls(self, calls, action='first'):
+        vdj = {'v':self.getVFamily(action),
+               'd':self.getDFamily(action),
+               'j':self.getJFamily(action)}
+        return [vdj[k] for k in calls]
+
+    # Individual allele, gene and family getter methods
+    #
+    # Arguments:  actions = one of ('first','set')
+    # Returns:    call as a string
     def getVAllele(self, action='first'):
-        # NOTE: Can't distinguish empty value ("") from missing field (no column)
+        # TODO: this can't distinguish empty value ("") from missing field (no column)
         x = self.v_call_geno if self.v_call_geno is not None else self.v_call
         return IgRecord._parseAllele(x, self.allele_regex, action)
 

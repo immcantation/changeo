@@ -14,7 +14,7 @@ import csv, os, sys, textwrap
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
-from itertools import izip
+from itertools import chain, izip
 from subprocess import PIPE, Popen
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
@@ -32,11 +32,15 @@ from IgCore import manageProcesses
 from DbCore import feedDbQueue, processDbQueue, collectDbQueue
 from DbCore import DbData, DbResult
 
+# Globals
+# TODO: not convinced this is the best way to deal with fails in grouping. a class may be better.
+FAIL_GROUP_KEY = 'FAIL_GROUP_KEY'
+
 # Defaults
 default_muscle_exec = r'/usr/local/bin/muscle'
 
 
-def groupRecords(records, fields=None, mode='gene', action='first',
+def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='first',
                  separator=default_separator):
     """
     Groups IgRecords based on gene or annotation
@@ -44,6 +48,8 @@ def groupRecords(records, fields=None, mode='gene', action='first',
     Arguments:
     records = an iterator of IgRecord objects to group
     fields = gene field to group by
+    calls = allele calls to use for grouping;
+            one or more of ('v', 'd', 'j')
     mode = specificity of alignment call to use for allele call fields;
            one of ('allele', 'gene')
     action = how to handle multiple calls in alleles fields;
@@ -53,7 +59,34 @@ def groupRecords(records, fields=None, mode='gene', action='first',
     Returns:
     dictionary of grouped records
     """
-    return {r.id:r for r in records}
+    # Define functions for grouping keys
+    if mode == 'allele' and fields is None:
+        def _get_key(rec, calls, action):
+            return (tuple(rec.getAlleleCalls(calls, action)))
+    elif mode == 'gene' and fields is None:
+        def _get_key(rec, calls, action):
+            return (tuple(rec.getGeneCalls(calls, action)))
+    elif mode == 'allele' and fields is not None:
+        def _get_key(rec, calls, action):
+            vdj = rec.getAlleleCalls(calls, action)
+            ann = [rec.toDict().get(k, None) for k in fields]
+            return tuple(chain(vdj, ann))
+    elif mode == 'gene' and fields is not None:
+        def _get_key(rec, call, action):
+            vdj = rec.getGeneCalls(calls, action)
+            ann = [rec.toDict().get(k, None) for k in fields]
+            return tuple(chain(vdj, ann))
+
+    rec_index = {}
+    for rec in records:
+        key = _get_key(rec, calls, action)
+        # Assigned grouped records to individual keys and all failed to a single key
+        if all([k is not None for k in key]):
+            rec_index.setdefault(key, []).append(rec)
+        else:
+            rec_index.setdefault(FAIL_GROUP_KEY, []).append(rec)
+
+    return rec_index
 
 
 def alignRecords(data, fields=None, muscle_exec=default_muscle_exec):
@@ -68,7 +101,8 @@ def alignRecords(data, fields=None, muscle_exec=default_muscle_exec):
     Returns:
     a list of modified IgRecords with multiple aligned sequence fields
     """
-    result = DbResult("group", data.data)
+    result = DbResult(data.id, data.data)
+
     result.results = data.data
     result.valid = True
 
@@ -220,22 +254,24 @@ def getArgParser():
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
                                          help='Multiple aligns sequence groups using MUSCLE')
+
     parser_align.add_argument('--sf', action='store', dest='seq_fields',
                               default=['SEQUENCE_VDJ', 'GERMLINE_VDJ'],
                               help='The sequence field to multiple align within each group.')
     parser_align.add_argument('--gf', nargs='+', action='store', dest='group_fields',
-                              default=['V_CALL', 'J_CALL', 'JUNCTION_LENGTH'],
-                              help='Fields to use for grouping.')
+                              default=None,
+                              help='Additional (not allele call) fields to use for grouping.')
+    parser_align.add_argument('-a', nargs='+', action='store', dest='calls',
+                              choices=('v', 'd', 'j'), default=['v', 'j'],
+                              help='Segment calls (allele assignments) to use for grouping.')
     parser_align.add_argument('--mode', action='store', dest='mode',
                               choices=('allele', 'gene'), default='gene',
                               help='''Specifies whether to use the V(D)J allele or gene when
-                                   a default allele call field is including in the grouping
-                                   field list (-f). Default allele call fields are: V_CALL,
-                                   V_CALL_GENOTYPED, D_CALL and J_CALL.''')
+                                   an allele call field (--cf) is specified.''')
     parser_align.add_argument('--act', action='store', dest='action', default='first',
-                              choices=('first', 'set'),
+                              choices=('first'),
                               help='''Specifies how to handle multiple values within default
-                                   allele call fields.''')
+                                   allele call fields. Currently, only first is supported.''')
     parser_align.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
@@ -266,9 +302,11 @@ if __name__ == '__main__':
     # Define group_args
     if args_dict['group_func'] is groupRecords:
         args_dict['group_args'] = {'fields':args_dict['group_fields'],
+                                   'calls':args_dict['calls'],
                                    'mode':args_dict['mode'],
                                    'action':args_dict['action']}
         del args_dict['group_fields']
+        del args_dict['calls']
         del args_dict['mode']
         del args_dict['action']
 
