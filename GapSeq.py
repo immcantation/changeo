@@ -89,23 +89,33 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
-def alignRecords(data, fields=None, muscle_exec=default_muscle_exec):
+def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields
 
     Arguments:
     data = a DbData object with IgRecords to process
-    fields = the sequence fields to multiple align
+    seq_fields = the sequence fields to multiple align
     muscle_exec = the MUSCLE executable
 
     Returns:
     a list of modified IgRecords with multiple aligned sequence fields
     """
+    # Define return object
     result = DbResult(data.id, data.data)
-
     result.results = data.data
     result.valid = True
 
+    for f in seq_fields:
+        seq_list = [SeqRecord(r.getField(f), id=r.id) for r in data.data]
+        seq_aln = alignSeqSet(seq_list, muscle_exec=muscle_exec)
+        if seq_aln is not None:
+            for i, r in enumerate(result.results):
+                r.annotations['%s_ALIGN' % f] = str(seq_aln[i].seq)
+        else:
+            result.valid = False
+
+    #for r in result.results:  print r.annotations
     return result
 
 
@@ -149,13 +159,14 @@ def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):
     return align
 
 
-def gapSeq(db_file, group_func, align_func, group_args={}, align_args={},
+def gapSeq(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
            out_args=default_out_args, nproc=None, queue_size=None):
     """
     Performs a multiple alignment on sets of sequences
 
     Arguments: 
     db_file = filename of the input database
+    seq_fields = the sequence fields to multiple align
     group_func = function to use to group records
     align_func = function to use to multiple align sequence groups
     group_args = dictionary of arguments to pass to group_func
@@ -177,7 +188,7 @@ def gapSeq(db_file, group_func, align_func, group_args={}, align_args={},
     log['START'] = 'GapSeq'
     log['COMMAND'] = cmd_dict.get(align_func, align_func.__name__)
     log['FILE'] = os.path.basename(db_file)
-    if 'seq_fields' in align_args: log['SEQ_FIELDS'] = ','.join(align_args['seq_fields'])
+    log['SEQ_FIELDS'] = ','.join(seq_fields)
     if 'group_fields' in group_args: log['GROUP_FIELDS'] = ','.join(group_args['group_fields'])
     if 'mode' in group_args: log['MODE'] = group_args['mode']
     if 'action' in group_args: log['ACTION'] = group_args['action']
@@ -190,6 +201,7 @@ def gapSeq(db_file, group_func, align_func, group_args={}, align_args={},
                  'group_func': group_func,
                  'group_args': group_args}
     # Define worker function and arguments
+    align_args['seq_fields'] = seq_fields
     work_func = processDbQueue
     work_args = {'process_func': align_func,
                  'process_args': align_args}
@@ -197,7 +209,8 @@ def gapSeq(db_file, group_func, align_func, group_args={}, align_args={},
     collect_func = collectDbQueue
     collect_args = {'db_file': db_file,
                     'task_label': 'gap',
-                    'out_args': out_args}
+                    'out_args': out_args,
+                    'add_fields': ['%s_ALIGN' % f for f in seq_fields]}
     
     # Call process manager
     result = manageProcesses(feed_func, work_func, collect_func, 
@@ -230,14 +243,13 @@ def getArgParser():
 
          required fields:
              SEQUENCE_ID
-             SEQUENCE
-             V_START
-             V_LENGTH
-             J_START
-             J_LENGTH
+             SEQUENCE_VDJ
+             GERMLINE_VDJ
+             V_CALL
+             J_CALL
 
          output fields:
-             SEQUENCE_ALIGN
+             <sequence field>_ALIGN
          ''')
 
     # Define ArgumentParser
@@ -255,7 +267,7 @@ def getArgParser():
                                          formatter_class=CommonHelpFormatter,
                                          help='Multiple aligns sequence groups using MUSCLE')
 
-    parser_align.add_argument('--sf', action='store', dest='seq_fields',
+    parser_align.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
                               default=['SEQUENCE_VDJ', 'GERMLINE_VDJ'],
                               help='The sequence field to multiple align within each group.')
     parser_align.add_argument('--gf', nargs='+', action='store', dest='group_fields',
@@ -312,10 +324,8 @@ if __name__ == '__main__':
 
     # Define align_args
     if args_dict['align_func'] is alignRecords:
-        args_dict['align_args'] = {'fields':args_dict['seq_fields'],
-                                   'muscle_exec':args_dict['muscle_exec']}
+        args_dict['align_args'] = {'muscle_exec':args_dict['muscle_exec']}
         del args_dict['muscle_exec']
-        del args_dict['seq_fields']
 
 
     # Call gapSeq for each input file
