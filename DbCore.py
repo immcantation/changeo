@@ -11,6 +11,8 @@ __date__      = '2015.04.02'
 
 # Imports
 import csv, os, re, sys
+import pandas as pd
+from itertools import product
 from collections import OrderedDict
 from time import time
 from Bio.Seq import Seq

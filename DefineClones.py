@@ -16,7 +16,7 @@ import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain, izip, product, combinations
+from itertools import chain, izip, combinations
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
 from time import time
@@ -27,25 +27,25 @@ from scipy.spatial.distance import squareform
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_separator, default_out_args
+from IgCore import default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict
 from DbCore import countDbFile, readDbFile, getDbWriter
-from DbCore import DbData, DbResult, IgRecord, getDistMat
+from DbCore import DbData, DbResult, getDistMat
 
 # Defaults
 default_translate = False
 default_distance = 0.0
 default_bygroup_model = 'hs5f'
 default_hclust_model = 'chen2010'
+default_norm = 'none'
 
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
 
 
-def indexJunctions(db_iter, fields=None, mode='gene', action='first', 
-                   separator=default_separator):
+def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     """
     Identifies preclonal groups by V, J and junction length
 
@@ -57,7 +57,6 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
            one of ('allele', 'gene')
     action = how to handle multiple value fields when assigning preclones;
              one of ('first', 'set')
-    separator = the delimiter separating values within a field 
     
     Returns: 
     a dictionary of {(V, J, junction length):[IgRecords]}
@@ -118,7 +117,8 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first',
     return clone_index
 
 
-def distanceClones(records, model=default_bygroup_model, distance=default_distance, dist_mat=None):
+def distanceClones(records, model=default_bygroup_model, distance=default_distance,
+                   dist_mat=None, norm=default_norm):
     """
     Separates a set of IgRecords into clones
 
@@ -161,7 +161,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # TODO:  yucky catch for dist_mat=None.
         if dist_mat is None:
             if model == 'm1n': dist_mat = getDistMat(smith96)
-            if model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+            elif model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+            elif model == 'ham': dist_mat = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
             dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
@@ -178,7 +179,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         if dist_mat is None:
             model_path = os.path.dirname(os.path.realpath(__file__))
             if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
-            if model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
+            elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
             dist_mat = read_csv(model_file, sep='\t', index_col=0)
 
         # Get list of acceptable nucleotides
@@ -200,6 +201,10 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         junctions = [j[2:-2] for j in junctions]
 
     else: sys.stderr.write('Unrecognized distance model.\n')
+
+    # Normalize distance matrix if needed
+    if norm == 'len':
+        dists = dists/len(junctions[0])
 
     # TODO:  could be a clustering function
     # Perform single-linkage hierarchical clustering
@@ -278,7 +283,7 @@ def distAdemokun2011(records):
     scores = [0]*len(records)    
     for i in range(len(records)):
         
-        if abs(len(query_cdr3 - len(records[i].junction[3:-3]))) > 10: 
+        if abs(len(query_cdr3) - len(records[i].junction[3:-3])) > 10:
             scores[i] = 1
         elif query_v_family != records[i].getVFamily(): 
             scores[i] = 1
@@ -306,6 +311,7 @@ def hierClust(dist_mat, method='chen2010'):
     elif method == 'ademokun2011':
         links = linkage(dist_mat, 'complete')
         clusters = fcluster(links, 0.25, criterion='distance')
+    else: clusters = np.ones(dist_mat.shape[0])
         
     return clusters
 
@@ -748,8 +754,10 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
         
         # Calculate linkage and carry out clustering
         dist_mat = squareform(dist_mat)
+        print dist_mat
         clusters = cluster_func(dist_mat, **cluster_args) if dist_mat is not None else None
         clones = {}
+        print clusters
         for i, c in enumerate(clusters):
             clones.setdefault(c, []).append(records[records.keys()[i]])
         
@@ -836,7 +844,7 @@ def manageProcesses(feed_func, work_func, collect_func,
             w.join()
         # Terminate collector
         collector.terminate()
-        collector.join
+        collector.join()
         # Shutdown manager
         manager.shutdown()
         sys.stderr.write('  Done.\n')
@@ -960,7 +968,7 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluste
 
     if cluster_func is not None:
         log['CLUSTER_FUNC'] = cluster_func.__name__
-        log['CLUSTER_ARGS'] = cluster_log
+        log['CLUSTER_ARGS'] = cluster_args
     log['NPROC'] = nproc
     printLog(log)
     
@@ -1040,15 +1048,20 @@ def getArgParser():
                              choices=('first', 'set'),
                              help='Specifies how to handle multiple V(D)J assignments for initial grouping')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'm1n', 'm3n', 'hs5f'), default=default_bygroup_model,
+                             choices=('aa', 'ham','m1n', 'm3n', 'hs5f'), default=default_bygroup_model,
                              help='''Specifies which substitution model to use for calculating
                                   distance between junctions. Where m1n is the single nucleotide
-                                  transition/trasversion model, m3n is the mouse trinucleotide
+                                  transition/trasversion model; m3n is the mouse trinucleotide
                                   model of Smith et al, 1996; hs5f is the human S5F model of Yaari
-                                  et al, 2013; and aa is amino acid Hamming distance.''')
+                                  et al, 2013; ham is nucleotide Hamming distance; and aa is amino
+                                  acid Hamming distance.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
+    parser_bygroup.add_argument('--norm', action='store', dest='norm',
+                             choices=('len','none'), default=default_norm,
+                             help='''Specifies how to normalize distances where none is not at all and
+                             len is by number of non ambiguous/gap characters in the junction.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
     parser_bygroup.set_defaults(collect_func=collectQueue)  
@@ -1094,7 +1107,8 @@ if __name__ == '__main__':
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
-                                   'distance':  args_dict['distance']}
+                                   'distance':  args_dict['distance'],
+                                   'norm': args_dict['norm']}
 
         # TODO: can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
@@ -1103,6 +1117,8 @@ if __name__ == '__main__':
             smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
             args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
+        elif args_dict['model'] == 'ham':
+            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         elif args_dict['model'] == 'hs5f':
             model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
             args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
@@ -1115,6 +1131,7 @@ if __name__ == '__main__':
         del args_dict['mode']
         del args_dict['model']
         del args_dict['distance']
+        del args_dict['norm']
 
     # Define clone_args
     if args.command == 'hclust':
