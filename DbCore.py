@@ -102,7 +102,6 @@ class IgRecord:
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}
 
-    # TODO: inclusion of TR (additional match group) caused issues in DefineClones; needs fixing.
     # Public variables
     allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
     gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
@@ -143,6 +142,7 @@ class IgRecord:
             try:  return str(v)
             except:  return ''
 
+    # TODO:  this is used often enough it should be a set of standalone functions getAllele(), getGene(), getFamily()
     # Extract alleles from strings
     #
     # Arguments:  alleles = string with allele calls

@@ -2,7 +2,7 @@
 # Super script to run the Change-O clonal assignment pipeline on IMGT data 
 # 
 # Author:  Jason Anthony Vander Heiden
-# Date:    2014.11.22
+# Date:    2015.04.07
 # 
 # Required Arguments:
 #   $1 = IMGT zip file 
@@ -28,26 +28,21 @@ DEFINE_CLONES=true
 
 # DefineClones parameters
 DC_MODEL=hs5f
-DC_DIST=3
+DC_DIST=1.5
 DC_ACT=first
 
 # Create germlines parameters
 CG_GERM=dmask
-CG_FIELD=V_CALL
+CG_SFIELD=SEQUENCE_IMGT
+CG_VFIELD=V_CALL
 
 # Define log files
-RUNLOG="Pipeline.log"
-TIMELOG="Time.log"
+PIPELINE_LOG="Pipeline.log"
 
 # Make output directory and empty log files
 mkdir -p $OUTDIR; cd $OUTDIR
-echo '' > $RUNLOG
-if $LOG_RUNTIMES; then
-    echo '' > $TIMELOG 
-    RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
-else
-    RUN="nice -19"
-fi
+echo '' > $PIPELINE_LOG
+
 
 # Start
 echo "DIRECTORY: ${OUTDIR}"
@@ -63,51 +58,47 @@ STEP=0
 
 # Parse IMGT output
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MakeDb imgt"
-#echo $RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --clean ">>" $RUNLOG
-$RUN MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
-    --outdir . --clean >> $RUNLOG
+#echo MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --clean ">>" $PIPELINE_LOG
+MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
+    --outdir . >> $PIPELINE_LOG
 
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitDb group"
-$RUN SplitDb.py group -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL >> $RUNLOG
-mv "${OUTNAME}_db-pass_F.tab" "${OUTNAME}_non-functional.tab"
-mv "${OUTNAME}_db-pass_T.tab" "${OUTNAME}_functional.tab"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseDb select"
+ParseDb.py select -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL -u T \
+    --outname "${OUTNAME}" >> $PIPELINE_LOG
 
 # Assign clones
 if $DEFINE_CLONES; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
-    $RUN DefineClones.py bygroup -d "${OUTNAME}_functional.tab" --model $DC_MODEL --dist $DC_DIST \
-        --mode gene --act $DC_ACT --nproc $NPROC --outname "${OUTNAME}" --log CloneLog.log >> $RUNLOG
+    DefineClones.py bygroup -d "${OUTNAME}_parse-select.tab" --model $DC_MODEL \
+        --dist $DC_DIST --mode gene --act $DC_ACT --nproc $NPROC \
+        --outname "${OUTNAME}" --log CloneLog.log >> $PIPELINE_LOG
     CG_FILE="${OUTNAME}_clone-pass.tab"
 else
-    CG_FILE="${OUTNAME}_functional.tab"
+    CG_FILE="${OUTNAME}_parse-select.tab"
 fi
 
 # Create germlines
 if $DEFINE_CLONES; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
-    $RUN CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM \
-        --vfield $CG_FIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
+    CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM --sf $CG_SFIELD \
+    --vf $CG_VFIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $PIPELINE_LOG
 else
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
-    $RUN CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM \
-        --vfield $CG_FIELD --outname "${OUTNAME}" --log GermLog.log >> $RUNLOG
+    CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM --sf $CG_SFIELD \
+        --vf $CG_VFIELD --outname "${OUTNAME}" --log GermLog.log >> $PIPELINE_LOG
 fi
 
 # Zip intermediate and log files
 if $ZIP_FILES; then
-    tar -cf LogFiles.tar *Log.log
-    rm *Log.log
+    LOG_FILES_ZIP = $(ls *Log.log)
+    tar -cf LogFiles.tar $LOG_FILES_ZIP
+    rm $LOG_FILES_ZIP
     gzip LogFiles.tar
 
-    if $DEFINE_CLONES; then
-        tar -cf TempFiles.tar *fail.tab *db-pass.tab *clone-pass.tab
-        rm *fail.tab *db-pass.tab *clone-pass.tab
-    else
-        tar -cf TempFiles.tar *fail.tab *db-pass.tab
-        rm *fail.tab *db-pass.tab
-    fi
+    TEMP_FILES_ZIP = $(ls *.tab | grep -v "db-pass.tab\|germ-pass.tab")
+    tar -cf TempFiles.tar $TEMP_FILES_ZIP
+    rm $TEMP_FILES_ZIP
     gzip TempFiles.tar
-
 fi
 
 # End

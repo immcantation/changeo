@@ -137,16 +137,17 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # Check if junction length is 0
         if r.junction_length == 0:
             return None
-        
+
+        # TODO: needs a better solution to the gap character problem at some point.
+        # TODO: this could also probably be cleaner and faster.
         if model == 'aa':
-            # TODO: needs a better solution to the gap character problem at some point
             #from Bio.Data import CodonTable
             #from Bio.Alphabet import IUPAC
             #print r.junction.translate("ATG..C")
             #print r.junction.translate(table=IUPAC.ExtendedIUPACProtein())
-            junc_map.setdefault(str(Seq(re.sub('\.|-','N',str(r.junction))).translate()), []).append(r)
+            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction))).translate()), []).append(r)
         else:
-            junc_map.setdefault(str(r.junction.upper()), []).append(r)
+            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction)))), []).append(r)
 
     # TODO:  this would be cleaner as a distance matrix function which takes in sequences and a model
     # Process records
