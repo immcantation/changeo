@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.04.02'
+__date__      = '2015.04.06'
 
 # Imports
 import csv, os, sys, textwrap
@@ -33,13 +33,13 @@ from DbCore import feedDbQueue, processDbQueue, collectDbQueue
 from DbCore import DbData, DbResult
 
 # Globals
-# TODO: not convinced this is the best way to deal with fails in grouping. a class may be better.
+# TODO:  not convinced this is the best way to deal with fails in grouping. a class may be better.
 FAIL_GROUP_KEY = 'FAIL_GROUP_KEY'
 
 # Defaults
 default_muscle_exec = r'/usr/local/bin/muscle'
 
-
+# TODO:  maybe not bothering with 'set' is best. can just work off field identity
 def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='first',
                  separator=default_separator):
     """
@@ -62,10 +62,10 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     # Define functions for grouping keys
     if mode == 'allele' and fields is None:
         def _get_key(rec, calls, action):
-            return (tuple(rec.getAlleleCalls(calls, action)))
+            return tuple(rec.getAlleleCalls(calls, action))
     elif mode == 'gene' and fields is None:
         def _get_key(rec, calls, action):
-            return (tuple(rec.getGeneCalls(calls, action)))
+            return tuple(rec.getGeneCalls(calls, action))
     elif mode == 'allele' and fields is not None:
         def _get_key(rec, calls, action):
             vdj = rec.getAlleleCalls(calls, action)
@@ -238,13 +238,12 @@ def getArgParser():
     fields = textwrap.dedent(
          '''
          output files:
-             gap-pass   database with multiple aligned sequences.
-             gap-fail   database with records failing alignment.
+             gap-pass     database with multiple aligned sequences.
+             gap-fail     database with records failing alignment.
 
          required fields:
              SEQUENCE_ID
              SEQUENCE_VDJ
-             GERMLINE_VDJ
              V_CALL
              J_CALL
 
@@ -283,7 +282,7 @@ def getArgParser():
     parser_align.add_argument('--act', action='store', dest='action', default='first',
                               choices=('first'),
                               help='''Specifies how to handle multiple values within default
-                                   allele call fields. Currently, only first is supported.''')
+                                   allele call fields. Currently, only "first" is supported.''')
     parser_align.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')

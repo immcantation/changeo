@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.03.02'
+__date__      = '2015.04.06'
 
 # Imports
 import os, signal, sys, textwrap, re
@@ -1059,9 +1059,10 @@ def getArgParser():
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
     parser_bygroup.add_argument('--norm', action='store', dest='norm',
-                             choices=('len','none'), default=default_norm,
-                             help='''Specifies how to normalize distances where none is not at all and
-                             len is by number of non ambiguous/gap characters in the junction.''')
+                             choices=('len', 'none'), default=default_norm,
+                             help='''Specifies how to normalize distances. One of none
+                                  (do not normalize) or len (normalize by non-ambiguous/gap
+                                  characters in the junction.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
     parser_bygroup.set_defaults(collect_func=collectQueue)  

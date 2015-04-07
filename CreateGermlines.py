@@ -6,7 +6,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.04.03'
+__date__      = '2015.04.06'
 
 # Imports
 import os, sys, textwrap
@@ -20,8 +20,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args 
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import readDbFile, getDbWriter, countDbFile
-from DbCore import default_repo, IgRecord
+from DbCore import readDbFile, getDbWriter, countDbFile, IgRecord
 
 # Defaults
 default_repo = 'germlines'
@@ -51,7 +50,8 @@ def getRepo(repo):
         with open(file_name, "rU") as file_handle:
             germlines = SeqIO.parse(file_handle, "fasta")
             for g in germlines:
-                repo_dict[tuple(IgRecord.allele_regex.findall(g.description))] = str(g.seq).upper() # @UndefinedVariable
+                germ_key = IgRecord._parseAllele(g.description, IgRecord.allele_regex, 'list')
+                repo_dict[germ_key] = str(g.seq).upper() # @UndefinedVariable
     return repo_dict
 
     
@@ -532,7 +532,7 @@ def getArgParser():
                         nargs='+', choices=('full','dmask','vonly'),
                         help='Specify type(s) of germlines to include full germline, \
                               germline with D-region masked, or germline for V region only.')
-    parser.add_argument('--cloned', action='store_true', dest='byClone', 
+    parser.add_argument('--cloned', action='store_true', dest='cloned',
                         help='Specify to create only one germline per clone \
                              (assumes input file is sorted by clone column)')
     parser.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
@@ -553,9 +553,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     del args_dict['db_files']
-    del args_dict['byClone']
+    del args_dict['cloned']
     
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
-        if args.__dict__['byClone']: assembleCloneGermline(**args_dict)
-        else: assembleEachGermline(**args_dict)
+        if args.__dict__['cloned']:
+            assembleCloneGermline(**args_dict)
+        else:
+            assembleEachGermline(**args_dict)

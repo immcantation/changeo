@@ -1,54 +1,13 @@
 VERSION
 -------------------------------------------------------------------------------
-April 1, 2015
-Change-O:  Version 0.4.0_prerelease-2014-12-17
-alakazam:  Version 0.2.0_prerelease-2014-12-17
-TIgGER:  Version 1.0_prerelease-2014-09-26
-shm:  Version 1.0_prerelease-2014-12-17
+April 6, 2015
+Version 0.4.5
 
 REQUIREMENTS
 -------------------------------------------------------------------------------
-* Python 2.7.5
-* NumPy 1.7
-* SciPy 0.12
-* pandas 0.12
-* Biopython 1.59
-* rpy2 2.30
-* R 3.0
-
-R PACKAGE REQUIREMENTS
--------------------------------------------------------------------------------
-* ggplot2
-* igraph
-* plyr
-* scales
-* SDMTools
-* seqinr
-* sqlbf
-* stringr
-* zoo
-
-INSTALLATION INSTRUCTIONS
--------------------------------------------------------------------------------
-Change-O:  
-Extract all files to same directory and see INSTALL file for installation 
-instructions
-
-shm and alakazam (in that order):  
-In R:
-
-```r
-> install.packages(c("devtools", "roxygen2", "testthat", "knitr"))
-> install.packages(c("ggplot2", "igraph", "plyr", "scales", "SDMTools", 
-                     "seqinr", "stringr", "zoo"))
-> install.packages("path/to/shm/archive", repos=NULL, type="source")
-> install.packages("path/to/alakazam/archive", repos=NULL, type="source")
-```
-
-Installation from source on Windows requires Rtools to be installed and the 
-appropriate directories added to the PATH environment variable. Rtools may be
-downloaded from the R project http://cran.at.r-project.org/bin/windows/Rtools.
-
-TIgGER:  
-Extract all files to same directory and see TIgGER_config.R for installation 
-instructions
+* Python 2.7.5       http://python.org
+* NumPy 1.7          http://numpy.org
+* SciPy 0.12         http://scipy.org
+* pandas 0.12        http://pandas.pydata.org
+* Biopython 1.59     http://biopython.org
+* MUSCLE v3.8        http://www.drive5.com/muscle

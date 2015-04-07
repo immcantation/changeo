@@ -1,23 +1,9 @@
-COMPILING SHM DISTANCE FUNCTION - LINUX
--------------------------------------------------------------------------------
-gcc -c -fPIC SHMDistance.c -o SHMDistance.o
-gcc -shared -Wl,-soname,SHMDistance.so -o SHMDistance.so SHMDistance.o 
-
-
-COMPILING SHM DISTANCE FUNCTION - OS X
--------------------------------------------------------------------------------
-gcc -c -fPIC SHMDistance.c -o SHMDistance.o
-gcc -shared -Wl,-dylib_install_name,SHMDistance.so -o SHMDistance.so SHMDistance.o 
-
-
 INSTALL - LINUX
 -------------------------------------------------------------------------------
 1) The simplest way to install all Python dependencies is to install the full 
    SciPy stack using the instructions at http://scipy.org/install.html. Then 
    install Biopython according to the instructions at 
-   http://biopython.org/DIST/docs/install/Installation.html. And install rpy2
-   according to the instructions at http://rpy.sourceforge.net. R can typically
-   be installed using the package management features of your distribution.
+   http://biopython.org/DIST/docs/install/Installation.html.
 
 2) Unzip the Change-O bundle and copy all files into the same directory. Add 
    that directory to your $PATH.
@@ -27,9 +13,7 @@ INSTALL - WINDOWS
 -------------------------------------------------------------------------------
 1) Install Python 2.7.5+ from http://python.org/download.
 
-2) Install R from http://www.r-project.org
-
-2) Install NumPy, SciPy, pandas, Biopython and rpy2 using the packages 
+2) Install NumPy, SciPy, pandas, and Biopython using the packages
    available from http://www.lfd.uci.edu/~gohlke/pythonlibs.
 
 3) Unzip the Change-O bundle and copy all files into the same directory. Add 
@@ -70,7 +54,7 @@ INSTALL - OS X
    > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
    Exit and reopen the terminal application so the PATH setting takes effect
 
-6) Install NumPy, SciPy, pandas, Biopython and rpy2 using the Python package
+6) Install NumPy, SciPy, pandas and Biopython using the Python package
    manager:
    > pip install numpy
    > pip install scipy
@@ -78,7 +62,7 @@ INSTALL - OS X
    > pip install biopython
    > pip install rpy2
 
-7) Add the Change-O/pRESTO installation to your PATH setting. For example,
+7) Add the Change-O installation to your PATH setting. For example,
    if you copied the tools into /Users/Username/changeo, then set:
    > echo 'export PATH=$HOME/changeo:$PATH' >> ~/.profile
    Exit and reopen the terminal application so the PATH setting takes effect

@@ -7,10 +7,11 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2014.10.2'
+__date__      = '2015.04.06'
 
 # Imports
 import csv, os, re, sys, textwrap
+import pandas as pd
 from zipfile import ZipFile, is_zipfile
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -20,7 +21,7 @@ from argparse import ArgumentParser
 from itertools import izip, groupby
 from collections import OrderedDict
 from time import time
-from pandas import DataFrame
+
 
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -106,10 +107,10 @@ def extractIMGT(imgt_output):
 
 def readOneIgBlastResult(block):
     """
-    Parse a single IgBlast query result
+    Parse a single IgBLAST query result
 
     :param block: itertools groupby object of single result
-    :return: None if no results, otherwise list of dataframes for each result block
+    :return: None if no results, otherwise list of DataFrames for each result block
     """
     results = list()
     for i, (match, subblock) in enumerate(groupby(block, lambda l: l=='\n')):
@@ -119,7 +120,7 @@ def readOneIgBlastResult(block):
                 results.append(sub[0])
             else:
                 sub = [s.split('\t') for s in sub]
-                df = DataFrame(sub)
+                df = pd.DataFrame(sub)
                 if not df.empty: results.append(df)
     if not results: return None
     return results
@@ -139,13 +140,13 @@ def readIgBlast(igblast_output, seq_dict):
     # Open IgBlast output file
     with open(igblast_output) as f:
         # Iterate over individual results (separated by # IGBLASTN)
-        for k1,block in groupby(f, lambda l: re.match('# IGBLASTN', l)):
+        for k1, block in groupby(f, lambda x: re.match('# IGBLASTN', x)):
             if not k1:
                 # Extract sequence ID
-                q = ' '.join(block.next().strip().split(' ')[2:])
+                query_name = ' '.join(block.next().strip().split(' ')[2:])
                 # Initialize db_gen to have ID and input sequence
-                db_gen = {'SEQUENCE_ID':     q,
-                          'SEQUENCE_INPUT':  seq_dict[q]}
+                db_gen = {'SEQUENCE_ID':     query_name,
+                          'SEQUENCE_INPUT':  seq_dict[query_name]}
 
                 # Parse further sub-blocks
                 block_list = readOneIgBlastResult(block)
@@ -153,54 +154,88 @@ def readIgBlast(igblast_output, seq_dict):
                 # If results exist, parse further to obtain full db_gen
                 if block_list is not None:
                     # Parse V, D, and J calls
-                    V = IgRecord._parseAllele(block_list[0], default_V_regex, action='list')
-                    db_gen['V_CALL'] = ','.join(V) if V is not None else 'None'
-                    D = IgRecord._parseAllele(block_list[0], default_D_regex, action='list')
-                    db_gen['D_CALL'] = ','.join(D) if D is not None else 'None'
-                    J = IgRecord._parseAllele(block_list[0], default_J_regex, action='list')
-                    db_gen['J_CALL'] = ','.join(J) if J is not None else 'None'
+                    v_call = IgRecord._parseAllele(block_list[0], default_V_regex, action='list')
+                    d_call = IgRecord._parseAllele(block_list[0], default_D_regex, action='list')
+                    j_call = IgRecord._parseAllele(block_list[0], default_J_regex, action='list')
+                    db_gen['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
+                    db_gen['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
+                    db_gen['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
 
                     # Parse quality information
                     quals = block_list[0].split()
-                    db_gen['STOP'] = 'T' if quals[-4]=='Yes' else 'F'
-                    db_gen['IN_FRAME'] = 'T' if quals[-3]=='In-frame' else 'F'
-                    db_gen['FUNCTIONAL'] = 'T' if quals[-2]=='Yes' else 'F'
+                    db_gen['STOP'] = 'T' if quals[-4] == 'Yes' else 'F'
+                    db_gen['IN_FRAME'] = 'T' if quals[-3] == 'In-frame' else 'F'
+                    db_gen['FUNCTIONAL'] = 'T' if quals[-2] == 'Yes' else 'F'
 
                     # Parse junction sequence
-                    db_gen['JUNCTION'] = re.sub("(N/A)|\[|\(|\)|\]",'',''.join(block_list[1].split()))
+                    db_gen['JUNCTION'] = re.sub('(N/A)|\[|\(|\)|\]', '',
+                                                ''.join(block_list[1].split()))
                     db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
 
+                    # TODO:  IgBLAST does a stupid and doesn't output block #3 sometimes. why?
+                    # TODO:  maybe we should fail these. they look craptastic.
+                    #pd.set_option('display.width', 500)
+                    #print query_name, len(block_list), hit_idx
+                    #for i, x in enumerate(block_list):
+                    #    print '[%i]' % i
+                    #    print x
+
                     # Parse segment start and stop positions
+                    hit_df = block_list[-1]
+
                     # If V call exists, parse V alignment information
-                    if db_gen['V_CALL'] != 'None':
-                        V = block_list[3][block_list[3][0] == 'V'].iloc[0]
-                        db_gen['V_SEQ_START'] = V[8]
-                        db_gen['V_SEQ_LENGTH'] = int(V[9]) - int(V[8]) + 1
-                        db_gen['V_GERM_START'] = V[10]
-                        db_gen['V_GERM_LENGTH'] = int(V[11]) - int(V[10]) + 1
-                        db_gen['INDELS'] = 'F' if int(V[6])==0 else 'T'
+                    vdj_start, vdj_end = None, None
+                    if v_call is not None:
+                        v_align = hit_df[hit_df[0] == 'V'].iloc[0]
+                        db_gen['V_SEQ_START'] = v_align[8]
+                        db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - int(v_align[8]) + 1
+                        db_gen['V_GERM_START'] = v_align[10]
+                        db_gen['V_GERM_LENGTH'] = int(v_align[11]) - int(v_align[10]) + 1
+                        db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
+
+                        # Update input sequence positions
+                        vdj_start = int(v_align[8]) - 1
+                        vdj_end = int(v_align[9])
+
 
                     # If D call exists, parse D alignment information
-                    if db_gen['D_CALL'] != 'None':
-                        D = block_list[3][block_list[3][0] == 'D'].iloc[0]
-                        db_gen['D_SEQ_START'] = D[8]
-                        db_gen['N1_LENGTH'] = int(D[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
-                        db_gen['D_SEQ_LENGTH'] = int(D[9]) - int(D[8]) + 1
-                        db_gen['D_GERM_START'] = D[10]
-                        db_gen['D_GERM_LENGTH'] = int(D[11]) - int(D[10]) + 1
+                    if d_call is not None:
+                        d_align = hit_df[hit_df[0] == 'D'].iloc[0]
+                        db_gen['D_SEQ_START'] = d_align[8]
+                        db_gen['N1_LENGTH'] = int(d_align[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
+                        db_gen['D_SEQ_LENGTH'] = int(d_align[9]) - int(d_align[8]) + 1
+                        db_gen['D_GERM_START'] = d_align[10]
+                        db_gen['D_GERM_LENGTH'] = int(d_align[11]) - int(d_align[10]) + 1
+
+                        # Update input sequence positions
+                        if vdj_start is None:  vdj_start = int(d_align[8]) - 1
+                        vdj_end = int(d_align[9])
 
                     # If J call exists, parse J alignment information
-                    if db_gen['J_CALL'] != 'None':
-                        J = block_list[3][block_list[3][0] == 'J'].iloc[0]
-                        db_gen['J_SEQ_START'] = J[8]
-                        if db_gen['D_CALL'] != 'None':
-                            db_gen['N2_LENGTH'] = int(J[8]) - int(db_gen['D_SEQ_LENGTH']) - int(db_gen['D_SEQ_START'])
+                    if j_call is not None:
+                        j_align = hit_df[hit_df[0] == 'J'].iloc[0]
+                        db_gen['J_SEQ_START'] = j_align[8]
+                        if d_call is not None:
+                            db_gen['N2_LENGTH'] = int(j_align[8]) - \
+                                                  int(db_gen['D_SEQ_LENGTH']) - \
+                                                  int(db_gen['D_SEQ_START'])
                         else:
-                            db_gen['N1_LENGTH'] = int(J[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
-                        db_gen['J_SEQ_LENGTH'] = int(J[9]) - int(J[8]) + 1
-                        db_gen['J_GERM_START'] = J[10]
-                        db_gen['J_GERM_LENGTH'] = int(J[11]) - int(J[10]) + 1
-                        db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][(int(db_gen['V_SEQ_START'])-1):(int(J[9])-1)]
+                            db_gen['N1_LENGTH'] = int(j_align[8]) - \
+                                                  int(db_gen['V_SEQ_LENGTH']) - \
+                                                  int(db_gen['V_SEQ_START'])
+                        db_gen['J_SEQ_LENGTH'] = int(j_align[9]) - int(j_align[8]) + 1
+                        db_gen['J_GERM_START'] = j_align[10]
+                        db_gen['J_GERM_LENGTH'] = int(j_align[11]) - int(j_align[10]) + 1
+
+                        # Update input sequence positions
+                        if vdj_start is None:  vdj_start = int(j_align[8]) - 1
+                        vdj_end = int(j_align[9])
+
+                    # Set VDJ sequence
+                    if vdj_start is not None and vdj_end is not None:
+                        db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][vdj_start:vdj_end]
+                    else:
+                        db_gen['SEQUENCE_VDJ'] = 'None'
 
                 yield IgRecord(db_gen)
 
@@ -539,8 +574,8 @@ def getArgParser():
                                            parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter)
     parser_igblast.set_defaults(func=parseIgBlast)
-    parser_igblast.add_argument('-o', nargs='+', action='store', dest='aligner_output', required=True,
-                                help='IgBlast output files')
+    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_output', required=True,
+                                help='IgBLAST output files in format 7 (IgBLAST argument "-outfmt 7").')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
                                 help='List of input FASTA files containing sequences')
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
