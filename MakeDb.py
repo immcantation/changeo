@@ -313,38 +313,30 @@ def readIMGT(imgt_files):
         yield IgRecord(db_gen)
 
     
-def getIDforIMGT(seq_file, start_time, total_count):
+def getIDforIMGT(seq_file):
     """
     Create a sequence ID translation using IMGT truncation
     
     Arguments: 
     seq_file = a fasta file of sequences input to IMGT
-    start_time = time from which to count elapsed time
-    total_count = number of records (for progress bar)
                     
     Returns: 
     a dictionary of {truncated ID: full seq description} 
     """
-    # TODO:  using SeqIO.index is slow if you are going to parse all records anyway. try readSeqFile().
-    # TODO:  actually, this whole approach could should probably be different.
-    # TODO:  you could just pass the sequence file to writeDb, and use the key_function in SeqIO.index
-    # TODO:  then, if seq_file is None you no_parse, otherwise you parse.
-    seq_dict = SeqIO.index(seq_file, "fasta", IUPAC.ambiguous_dna)
     
     # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
     ids = {}
-    for i, seq in enumerate(seq_dict.itervalues()):
-        if len(seq.description) <= 50:
-            id_key = seq.description
+    for i, rec in enumerate(SeqIO.parse(seq_file, 'fasta', IUPAC.ambiguous_dna)):
+        if len(rec.description) <= 50:
+            id_key = rec.description
         else:
-            id_key = re.sub('\||\s|!|&|\*|<|>|\?','_',seq.description[:50])
-        ids.update({id_key:seq.description})
-        #printProgress(i, total_count, 0.05, start_time)
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?','_',rec.description[:50])
+        ids.update({id_key:rec.description})
 
     return ids
 
 
-def writeDb(db_gen, no_parse, file_prefix, start_time, total_count, out_args,
+def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
             id_dict={}):
     """
     Writes tab-delimited database file in output directory
@@ -353,7 +345,6 @@ def writeDb(db_gen, no_parse, file_prefix, start_time, total_count, out_args,
     db_gen = a generator of IgRecord objects containing alignment data
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     file_prefix = directory and prefix for CLIP tab-delim file
-    start_time = time from which to count elapsed time
     total_count = number of records (for progress bar)
     out_args = common output argument dictionary from parseCommonArgs
     id_dict = a dictionary of {IMGT ID: full seq description}
@@ -540,17 +531,15 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     else:
         file_prefix = os.path.splitext(os.path.split(os.path.abspath(imgt_output))[1])[0]
     file_prefix = os.path.join(out_dir, file_prefix)
-    
-    #total_count = countDbFile(imgt_files[0]) * (2 if not no_parse else 1)
+
     total_count = countDbFile(imgt_files[0])
-    start_time = time()
     
     # Get (parsed) IDs from fasta file submitted to IMGT
-    id_dict = getIDforIMGT(seq_file, start_time, total_count) if seq_file else {}
+    id_dict = getIDforIMGT(seq_file) if seq_file else {}
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeDb(imgt_dict, no_parse, file_prefix, start_time, total_count, out_args, id_dict=id_dict)
+    writeDb(imgt_dict, no_parse, file_prefix, total_count, out_args, id_dict=id_dict)
 
     # Delete temp directory
     rmtree(temp_dir)
