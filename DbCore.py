@@ -339,7 +339,7 @@ class DbResult:
             return len(self.data)
 
 
-# TODO:  Change to require output fields rather than in_file?
+# TODO:  Change to require output fields rather than in_file? probably better that way.
 def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     """
     Opens a writer object for an output database file

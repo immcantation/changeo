@@ -38,10 +38,12 @@ CG_VFIELD=V_CALL
 
 # Define log files
 PIPELINE_LOG="Pipeline.log"
+ERROR_LOG="Pipeline.err"
 
 # Make output directory and empty log files
 mkdir -p $OUTDIR; cd $OUTDIR
 echo '' > $PIPELINE_LOG
+echo '' > $ERROR_LOG
 
 
 # Start
@@ -60,18 +62,18 @@ STEP=0
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MakeDb imgt"
 #echo MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outdir . --clean ">>" $PIPELINE_LOG
 MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
-    --outdir . >> $PIPELINE_LOG
+    --outdir . >> $PIPELINE_LOG 2> $ERROR_LOG
 
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseDb select"
 ParseDb.py select -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL -u T \
-    --outname "${OUTNAME}" >> $PIPELINE_LOG
+    --outname "${OUTNAME}" >> $PIPELINE_LOG 2> $ERROR_LOG
 
 # Assign clones
 if $DEFINE_CLONES; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "DefineClones bygroup"
     DefineClones.py bygroup -d "${OUTNAME}_parse-select.tab" --model $DC_MODEL \
-        --dist $DC_DIST --mode gene --act $DC_ACT --nproc $NPROC \
-        --outname "${OUTNAME}" --log CloneLog.log >> $PIPELINE_LOG
+        --dist $DC_DIST --mode gene --act $DC_ACT --nproc $NPROC --outname "${OUTNAME}" \
+        --log CloneLog.log >> $PIPELINE_LOG 2> $ERROR_LOG
     CG_FILE="${OUTNAME}_clone-pass.tab"
 else
     CG_FILE="${OUTNAME}_parse-select.tab"
@@ -81,21 +83,23 @@ fi
 if $DEFINE_CLONES; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
     CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM --sf $CG_SFIELD \
-    --vf $CG_VFIELD --cloned --outname "${OUTNAME}" --log GermLog.log >> $PIPELINE_LOG
+    --vf $CG_VFIELD --cloned --outname "${OUTNAME}" \
+    --log GermLog.log >> $PIPELINE_LOG 2> $ERROR_LOG
 else
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CreateGermlines"
     CreateGermlines.py -d $CG_FILE -r $GERM_DIR -g $CG_GERM --sf $CG_SFIELD \
-        --vf $CG_VFIELD --outname "${OUTNAME}" --log GermLog.log >> $PIPELINE_LOG
+        --vf $CG_VFIELD --outname "${OUTNAME}" \
+        --log GermLog.log >> $PIPELINE_LOG 2> $ERROR_LOG
 fi
 
 # Zip intermediate and log files
 if $ZIP_FILES; then
-    LOG_FILES_ZIP = $(ls *Log.log)
+    LOG_FILES_ZIP=$(ls *Log.log)
     tar -cf LogFiles.tar $LOG_FILES_ZIP
     rm $LOG_FILES_ZIP
     gzip LogFiles.tar
 
-    TEMP_FILES_ZIP = $(ls *.tab | grep -v "db-pass.tab\|germ-pass.tab")
+    TEMP_FILES_ZIP=$(ls *.tab | grep -v "db-pass.tab\|germ-pass.tab")
     tar -cf TempFiles.tar $TEMP_FILES_ZIP
     rm $TEMP_FILES_ZIP
     gzip TempFiles.tar
