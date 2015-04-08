@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.04.06'
+__date__      = '2015.04.08'
 
 # Imports
-import os, sys, textwrap
+import os, re, sys, textwrap
 from argparse import ArgumentParser
 from itertools import izip
 from collections import OrderedDict
@@ -33,8 +33,6 @@ default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 
-# TODO:  add regex support for values (with flag)
-# TODO:  add partial match support for values (with flag)
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
 def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
@@ -342,7 +340,7 @@ def dropDbRecords(db_file, fields, out_args=default_out_args):
     return pass_handle.name
 
 
-def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
+def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_args):
     """
     Deletes records from a database file
 
@@ -350,11 +348,18 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     db_file = the database file name
     fields = a list of fields to check for deletion criteria
     values = a list of values defining deletion targets
+    regex = if False do exact full string matches; if True allow partial regex matches.
     out_args = common output argument dictionary from parseCommonArgs
                     
     Returns: 
     the output file name
     """
+    # Define string match function
+    if regex:
+        def _match_func(x, patterns):  return any([re.search(p, x) for p in patterns])
+    else:
+        def _match_func(x, patterns):  return x in patterns
+
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'delete'
@@ -380,7 +385,7 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
         rec_count += 1
 
         # Check for deletion values in all fields
-        delete = any([rec.get(f, False) in values for f in fields])
+        delete = any([_match_func(rec.get(f, False), values) for f in fields])
         
         # Write sequences
         if not delete:
@@ -405,7 +410,7 @@ def deleteDbRecords(db_file, fields, values, out_args=default_out_args):
     return pass_handle.name
 
 
-def selectDbRecords(db_file, fields, values, out_args=default_out_args):
+def selectDbRecords(db_file, fields, values, regex=False, out_args=default_out_args):
     """
     Selects records from a database file
 
@@ -413,17 +418,26 @@ def selectDbRecords(db_file, fields, values, out_args=default_out_args):
     db_file = the database file name
     fields = a list of fields to check for selection criteria
     values = a list of values defining selection targets
+    regex = if False do exact full string matches; if True allow partial regex matches.
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
     the output file name
     """
+    # Define string match function
+    if regex:
+        def _match_func(x, patterns):  return any([re.search(p, x) for p in patterns])
+    else:
+        def _match_func(x, patterns):  return x in patterns
+
+    # Print console log
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'select'
     log['FILE'] = os.path.basename(db_file)
     log['FIELDS'] = ','.join(fields)
     log['VALUES'] = ','.join(values)
+    log['REGEX'] =regex
     printLog(log)
 
     # Open file handles
@@ -442,8 +456,8 @@ def selectDbRecords(db_file, fields, values, out_args=default_out_args):
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
 
-        # Check for deletion values in all fields
-        select = any([rec.get(f, False) in values for f in fields])
+        # Check for selection values in all fields
+        select = any([_match_func(rec.get(f, False), values) for f in fields])
 
         # Write sequences
         if select:
@@ -627,6 +641,9 @@ def getArgParser():
     parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
                                help='''The values defining which records to delete. A value
                                     may appear in any of the fields specified with -f.''')
+    parser_delete.add_argument('--regex', action='store_true', dest='regex',
+                               help='''If specified, treat values as regular expressions
+                                    and allow partial string matches.''')
     parser_delete.set_defaults(func=deleteDbRecords)
 
     # Subparser to drop fields
@@ -646,6 +663,9 @@ def getArgParser():
     parser_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
                                help='''The values defining with records to select. A value
                                     may appear in any of the fields specified with -f.''')
+    parser_select.add_argument('--regex', action='store_true', dest='regex',
+                               help='''If specified, treat values as regular expressions
+                                    and allow partial string matches.''')
     parser_select.set_defaults(func=selectDbRecords)
 
     # Subparser to update records
