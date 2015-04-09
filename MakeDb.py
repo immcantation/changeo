@@ -383,10 +383,10 @@ def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
                       'JUNCTION_LENGTH',
                       'JUNCTION']
 
-    # TODO:  pass_writer is overwritten later if no_parse=True, which is not the best approach. should pass in output fields.
+    # TODO:  This is not the best approach. should pass in output fields.
     # Open passed file
-    pass_handle = open(pass_file, 'wb')
-    pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+    #pass_handle = open(pass_file, 'wb')
+    #pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
 
     # Open failed file
     if out_args['failed']:
@@ -397,9 +397,10 @@ def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
         fail_writer = None
 
     # Initialize counters and file
+    pass_writer = None
     start_time = time()
     rec_count = pass_count = fail_count = 0
-    for i, record in enumerate(db_gen):
+    for record in db_gen:
         #printProgress(i + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
         printProgress(rec_count, total_count, 0.05, start_time)
         rec_count += 1
@@ -427,10 +428,12 @@ def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
             record.id = record.annotations['ID']
             del record.annotations['ID']
 
-            # If first sequence, use parsed description to create new columns and re-initialize writer
-            if i == 0:
-                ordered_fields.extend(record.annotations.keys())
-                pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+        # TODO:  This is not the best approach. should pass in output fields.
+        # If first sequence, use parsed description to create new columns and initialize writer
+        if pass_writer is None:
+            if not no_parse:  ordered_fields.extend(record.annotations.keys())
+            pass_handle = open(pass_file, 'wb')
+            pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
 
         # Write row to tab-delim CLIP file
         pass_writer.writerow(record.toDict())

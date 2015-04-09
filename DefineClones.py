@@ -78,13 +78,22 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
             vdj = [rec.getVGene(act), rec.getJGene(act), len(rec.junction)]
             ann = [rec.toDict().get(k, None) for k in fields]
             return tuple(chain(vdj, ann))
- 
+
+    start_time = time()
     clone_index = {}
+    rec_count = 0
     for rec in db_iter:
         key = _get_key(rec, action)
+
+        # Print progress
+        if rec_count == 0:
+            print 'PROGRESS> Grouping sequences'
+
+        printProgress(rec_count, step=1000, start_time=start_time)
+        rec_count += 1
+
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None for k in key]):
-            
             #print key
             # TODO:  Has much slow. Should have less slow.
             if action == 'set':
@@ -106,14 +115,15 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
                 val = [rec]
                 val += list(chain(*(clone_index.pop(k) for k in to_remove)))
                 clone_index[tuple(key)] = clone_index.get(tuple(key),[]) + val 
-                
-            
+
             elif action == 'first':
                 clone_index.setdefault(key, []).append(rec)
         else:
             # TODO: weird return object for missing data case
             clone_index.setdefault((0,0,0), []).append(rec)
-        
+
+    printProgress(rec_count, step=1000, start_time=start_time, end=True)
+
     return clone_index
 
 
@@ -455,7 +465,7 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             # Define result object for iteration and get data records
             records = data.data
             result = DbResult(data.id, records)
-             
+
             # Add V(D)J to log
             result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
             result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
@@ -465,6 +475,12 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
              
             # Checking for preclone failure and assign clones
             clones = clone_func(records, **clone_args) if data else None
+
+            #import cProfile
+            #prof = cProfile.Profile()
+            #clones = prof.runcall(clone_func, records, **clone_args)
+            #prof.dump_stats('worker-%d.prof' % os.getpid())
+
             if clones is not None:
                 result.results = clones
                 result.valid = True
@@ -608,6 +624,8 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
             #print "COLLECT", alive.value, result['id']
             
             # Print progress for previous iteration and update record count
+            if rec_count == 0:
+                print 'PROGRESS> Assigning clones'
             printProgress(rec_count, result_count, 0.05, start_time) 
             rec_count += len(result.data)
             
@@ -738,6 +756,8 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
             if result is None:  break
 
             # Print progress for previous iteration
+            if row_count == 0:
+                print 'PROGRESS> Assigning clones'
             printProgress(row_count, result_count, 0.05, start_time)
             
             # Update counts for iteration

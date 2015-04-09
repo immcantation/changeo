@@ -67,6 +67,10 @@ MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseDb select"
 ParseDb.py select -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL -u T \
     --outname "${OUTNAME}" >> $PIPELINE_LOG 2> $ERROR_LOG
+ParseDb.py select -d "${OUTNAME}_select-pass.tab" -f V_CALL -u IGH --regex \
+    --outname "${OUTNAME}_heavy" >> $PIPELINE_LOG 2> $ERROR_LOG
+#ParseDb.py select -d "${OUTNAME}_select-pass.tab" -f V_CALL -u "IG[LK]" --regex \
+#    --outname "${OUTNAME}_light" >> $PIPELINE_LOG 2> $ERROR_LOG
 
 # Assign clones
 if $DEFINE_CLONES; then
