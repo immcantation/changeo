@@ -340,7 +340,8 @@ def dropDbRecords(db_file, fields, out_args=default_out_args):
     return pass_handle.name
 
 
-def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_args):
+def deleteDbRecords(db_file, fields, values, logic='any', regex=False,
+                    out_args=default_out_args):
     """
     Deletes records from a database file
 
@@ -348,6 +349,7 @@ def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
     db_file = the database file name
     fields = a list of fields to check for deletion criteria
     values = a list of values defining deletion targets
+    logic = one of 'any' or 'all' defining whether one or all fields must have a match.
     regex = if False do exact full string matches; if True allow partial regex matches.
     out_args = common output argument dictionary from parseCommonArgs
                     
@@ -359,6 +361,12 @@ def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
         def _match_func(x, patterns):  return any([re.search(p, x) for p in patterns])
     else:
         def _match_func(x, patterns):  return x in patterns
+
+    # Define logic function
+    if logic == 'any':
+        _logic_func = any
+    elif logic == 'all':
+        _logic_func = all
 
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -385,7 +393,7 @@ def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
         rec_count += 1
 
         # Check for deletion values in all fields
-        delete = any([_match_func(rec.get(f, False), values) for f in fields])
+        delete = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
         
         # Write sequences
         if not delete:
@@ -410,7 +418,8 @@ def deleteDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
     return pass_handle.name
 
 
-def selectDbRecords(db_file, fields, values, regex=False, out_args=default_out_args):
+def selectDbRecords(db_file, fields, values, logic='any', regex=False,
+                    out_args=default_out_args):
     """
     Selects records from a database file
 
@@ -418,6 +427,7 @@ def selectDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
     db_file = the database file name
     fields = a list of fields to check for selection criteria
     values = a list of values defining selection targets
+    logic = one of 'any' or 'all' defining whether one or all fields must have a match.
     regex = if False do exact full string matches; if True allow partial regex matches.
     out_args = common output argument dictionary from parseCommonArgs
 
@@ -429,6 +439,12 @@ def selectDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
         def _match_func(x, patterns):  return any([re.search(p, x) for p in patterns])
     else:
         def _match_func(x, patterns):  return x in patterns
+
+    # Define logic function
+    if logic == 'any':
+        _logic_func = any
+    elif logic == 'all':
+        _logic_func = all
 
     # Print console log
     log = OrderedDict()
@@ -457,7 +473,7 @@ def selectDbRecords(db_file, fields, values, regex=False, out_args=default_out_a
         rec_count += 1
 
         # Check for selection values in all fields
-        select = any([_match_func(rec.get(f, False), values) for f in fields])
+        select = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
 
         # Write sequences
         if select:
@@ -641,6 +657,10 @@ def getArgParser():
     parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
                                help='''The values defining which records to delete. A value
                                     may appear in any of the fields specified with -f.''')
+    parser_delete.add_argument('--logic', action='store', dest='logic',
+                               choices=('any', 'all'), default='any',
+                               help='''Defines whether a value may appear in any field (any)
+                                    or whether it must appear in all fields (all).''')
     parser_delete.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
@@ -663,6 +683,10 @@ def getArgParser():
     parser_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
                                help='''The values defining with records to select. A value
                                     may appear in any of the fields specified with -f.''')
+    parser_select.add_argument('--logic', action='store', dest='logic',
+                               choices=('any', 'all'), default='any',
+                               help='''Defines whether a value may appear in any field (any)
+                                    or whether it must appear in all fields (all).''')
     parser_select.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
