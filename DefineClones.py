@@ -136,7 +136,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'm1n')
+    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'm1n') or
+               dictionary of {5mer:{'A':val, 'C':val, ...}...} ('hs5f', 'm3n')
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
@@ -164,7 +165,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     if len(junc_map) == 1:
         return {1:records}
     # Call distance function
-    elif model in ['m1n','aa']:
+    elif model in ['m1n','aa','ham']:
         junctions = junc_map.keys()
         # Calculate pairwise distances
         dists = np.zeros((len(junctions),len(junctions)))
@@ -191,7 +192,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             model_path = os.path.dirname(os.path.realpath(__file__))
             if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
             elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
-            dist_mat = read_csv(model_file, sep='\t', index_col=0)
+            dist_mat = read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         # Get list of acceptable nucleotides
         # TODO:  does this account for Ns?
@@ -207,7 +208,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             # TODO: add option to handle normalizing shm distance
             # nmut = sum(criterion)
             dists[i,j] = dists[j,i] = \
-                sum([dist_mat.loc[a[2:3], b] + dist_mat.loc[b[2:3], a] for a,b in zip(seqs[i],seqs[j])])/2
+                sum([dist_mat[b][a[2:3]] + dist_mat[a][b[2:3]] for a,b in izip(seqs[i],seqs[j])])/2
         # Remove extra Ns from junctions
         junctions = [j[2:-2] for j in junctions]
 
@@ -476,10 +477,10 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             # Checking for preclone failure and assign clones
             clones = clone_func(records, **clone_args) if data else None
 
-            #import cProfile
-            #prof = cProfile.Profile()
-            #clones = prof.runcall(clone_func, records, **clone_args)
-            #prof.dump_stats('worker-%d.prof' % os.getpid())
+            # import cProfile
+            # prof = cProfile.Profile()
+            # clones = prof.runcall(clone_func, records, **clone_args)
+            # prof.dump_stats('worker-%d.prof' % os.getpid())
 
             if clones is not None:
                 result.results = clones
@@ -1143,10 +1144,10 @@ if __name__ == '__main__':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         elif args_dict['model'] == 'hs5f':
             model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
+            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
         elif args_dict['model'] == 'm3n':
             model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
+            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         del args_dict['fields']
         del args_dict['action']

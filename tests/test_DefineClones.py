@@ -9,13 +9,16 @@ __version__   = '0.4.0'
 __date__      = '2015.01.28'
 
 # Imports
-import time, unittest
+import time, unittest, os
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from IgCore import getScoreDict
-from DbCore import IgRecord
+from DbCore import IgRecord, readDbFile
 import DefineClones as mod
+from pandas import read_csv
 
+# Globals
+data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 
 class Test_DefineClones(unittest.TestCase):
     def setUp(self):
@@ -64,7 +67,17 @@ class Test_DefineClones(unittest.TestCase):
         self.fail()
 
     def test_distanceClones(self):
-        results = mod.distanceClones(self.records, model='hs5f', distance=1.0)
+
+        # import cProfile
+        # prof = cProfile.Profile()
+        # results = prof.runcall(mod.distanceClones, self.records, model='hs5f', distance=1.0, dist_mat=self.dist_mat)
+        # prof.dump_stats('hs5f-unit-test-dict.prof')
+
+        # Define data files
+        model_file = os.path.join(data_path, 'HS5F_Targeting.tab')
+        dist_dict = read_csv(model_file, sep='\t', index_col=0).to_dict()
+
+        results = mod.distanceClones(self.records, model='hs5f', distance=1.0, dist_mat=dist_dict)
         print 'MODEL> hs5f'
         for k, v in results.iteritems():
             for s in v:
@@ -72,7 +85,11 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(results, self.clones)
 
-        results = mod.distanceClones(self.records, model='m3n', distance=1.0)
+        # Define data files
+        model_file = os.path.join(data_path, 'M3N_Targeting.tab')
+        dist_dict = read_csv(model_file, sep='\t', index_col=0).to_dict()
+
+        results = mod.distanceClones(self.records, model='m3n', distance=1.0, dist_mat=dist_dict)
         print 'MODEL> m3n'
         for k, v in results.iteritems():
             for s in v:
