@@ -336,19 +336,19 @@ def getIDforIMGT(seq_file):
     return ids
 
 
-def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
-            id_dict={}):
+def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
+            out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
     Arguments:
     db_gen = a generator of IgRecord objects containing alignment data
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
     file_prefix = directory and prefix for CLIP tab-delim file
     total_count = number of records (for progress bar)
-    out_args = common output argument dictionary from parseCommonArgs
     id_dict = a dictionary of {IMGT ID: full seq description}
-    
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    out_args = common output argument dictionary from parseCommonArgs
+
     Returns:
     None
     """
@@ -453,13 +453,13 @@ def writeDb(db_gen, no_parse, file_prefix, total_count, out_args,
     if fail_handle is not None: fail_handle.close()
 
 
-def parseIgBlast(seq_file, igblast_output, no_parse, out_args=default_out_args):
+def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_args):
     """
     Main for IgBlast aligned sample sequences
 
     Arguments:
-    seq_file = fasta file input to IgBlast (from which to get sequence)
     igblast_output = IgBlast output file to process
+    seq_file = fasta file input to IgBlast (from which to get sequence)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     out_args = common output argument dictionary from parseCommonArgs
 
@@ -470,8 +470,8 @@ def parseIgBlast(seq_file, igblast_output, no_parse, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'MakeDB'
     log['ALIGNER'] = 'IgBlast'
-    log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ALIGN_RESULTS'] = os.path.basename(igblast_output)
+    log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     printLog(log)
 
@@ -488,23 +488,23 @@ def parseIgBlast(seq_file, igblast_output, no_parse, out_args=default_out_args):
         file_prefix = out_args['out_name']
     else:
         file_prefix = os.path.basename(os.path.splitext(igblast_output)[0])
-    file_prefix = os.path.join( out_dir, file_prefix)
+    file_prefix = os.path.join(out_dir, file_prefix)
 
     total_count = countSeqFile(seq_file)
-    start_time = time()
 
     # Create
     igblast_dict = readIgBlast(igblast_output, seq_dict)
-    writeDb(igblast_dict, no_parse, file_prefix, start_time, total_count, out_args)
+    writeDb(igblast_dict, file_prefix, total_count,
+            no_parse=no_parse, out_args=out_args)
     
 
-def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
+def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
-    Arguments: 
-    seq_file = FASTA file input to IMGT (from which to get seqID)
+    Arguments:
     imgt_output = zipped file or unzipped folder output by IMGT
+    seq_file = FASTA file input to IMGT (from which to get seqID)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     out_args = common output argument dictionary from parseCommonArgs
         
@@ -515,8 +515,8 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'MakeDb'
     log['ALIGNER'] = 'IMGT'
-    log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ALIGN_RESULTS'] = imgt_output
+    log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
     printLog(log)
     
@@ -542,7 +542,8 @@ def parseIMGT(seq_file, imgt_output, no_parse, out_args=default_out_args):
     
     # Create
     imgt_dict = readIMGT(imgt_files)
-    writeDb(imgt_dict, no_parse, file_prefix, total_count, out_args, id_dict=id_dict)
+    writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict,
+            no_parse=no_parse, out_args=out_args)
 
     # Delete temp directory
     rmtree(temp_dir)
@@ -605,7 +606,7 @@ def getArgParser():
                                            parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter)
     parser_igblast.set_defaults(func=parseIgBlast)
-    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_output', required=True,
+    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                                 help='IgBLAST output files in format 7 (IgBLAST argument "-outfmt 7").')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
                                 help='List of input FASTA files containing sequences')
@@ -616,18 +617,18 @@ def getArgParser():
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
                                         parents=[parser_parent], 
                                         formatter_class=CommonHelpFormatter)
-    parser_imgt.set_defaults(func=parseIMGT)
     imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
-    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='aligner_output',
+    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='aligner_files',
                                 help='Zipped IMGT output files')
-    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='aligner_output', 
+    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='aligner_files',
                                 help='Folder with unzipped IMGT output files \
                                      (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
-    parser_imgt.add_argument('-s', action='store', nargs='+', dest='seq_files',
+    parser_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
                              help='List of input FASTA files containing sequences')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='Specify if input IDs should not be parsed to add new columns to database')
-    
+    parser_imgt.set_defaults(func=parseIMGT)
+
     return parser
     
     
@@ -637,33 +638,37 @@ if __name__ == "__main__":
     """
     parser = getArgParser()    
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args, in_arg='aligner_output')
-    
+    args_dict = parseCommonArgs(args, in_arg='aligner_files')
+
+    # Set no ID parsing if sequence files are not provided
+    if 'seq_files' in args_dict and not args_dict['seq_files']:
+        args_dict['no_parse'] = True
+
+    # Delete
     if 'seq_files' in args_dict: del args_dict['seq_files']
-    else: args_dict['no_parse'] = True
-    if 'aligner_output' in args_dict: del args_dict['aligner_output']
+    if 'aligner_files' in args_dict: del args_dict['aligner_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
     # IMGT parser
     if args.command == 'imgt':
-        if args.__dict__['aligner_output']:
-            for i in range(len(args.__dict__['aligner_output'])):
+        if args.__dict__['aligner_files']:
+            for i in range(len(args.__dict__['aligner_files'])):
+                args_dict['imgt_output'] = args.__dict__['aligner_files'][i]
                 args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
-                args_dict['imgt_output'] = args.__dict__['aligner_output'][i]
                 args.func(**args_dict)
                 # TODO: figure out how to delete extracted zip files safely
                 # if is_zipfile(args_dict['imgt_output']):
                 #     rmtree(os.path.splitext(args_dict['imgt_output'])[0])
         else:
             parser.error('Must include either (-z) zipped IMGT files or \
-                         (-f) folder with individual files 1_, 2_, 3_, and 6_')
+                         (-f) folder with individual files 1_*, 2_*, 3_*, and 6_*')
     elif args.command == 'igblast':
-        if args.__dict__['aligner_output']:
-            for i in range(len(args.__dict__['aligner_output'])):
+        if args.__dict__['aligner_files']:
+            for i in range(len(args.__dict__['aligner_files'])):
+                args_dict['igblast_output'] =  args.__dict__['aligner_files'][i]
                 args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else \
-                                        parser.error('Must include fasta file input to IgBlast')
-                args_dict['igblast_output'] =  args.__dict__['aligner_output'][i]
+                        parser.error('Must include fasta file input to IgBLAST')
                 args.func(**args_dict)
         else:
-            parser.error('Must include IgBlast output file (-o)')
+            parser.error('Must include IgBLAST output file (-o)')

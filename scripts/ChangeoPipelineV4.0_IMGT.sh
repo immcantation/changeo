@@ -27,8 +27,8 @@ ZIP_FILES=true
 DEFINE_CLONES=true
 
 # DefineClones parameters
-DC_MODEL=hs5f
-DC_DIST=1.5
+DC_MODEL=m1n
+DC_DIST=5
 DC_ACT=first
 
 # Create germlines parameters
@@ -67,8 +67,8 @@ MakeDb.py imgt -z $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseDb select"
 ParseDb.py select -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL -u T \
     --outname "${OUTNAME}" >> $PIPELINE_LOG 2> $ERROR_LOG
-ParseDb.py select -d "${OUTNAME}_select-pass.tab" -f V_CALL -u IGH --regex \
-    --outname "${OUTNAME}_heavy" >> $PIPELINE_LOG 2> $ERROR_LOG
+ParseDb.py select -d "${OUTNAME}_select-pass.tab" -f V_CALL J_CALL -u IGH \
+    --logic all --regex --outname "${OUTNAME}_heavy" >> $PIPELINE_LOG 2> $ERROR_LOG
 #ParseDb.py select -d "${OUTNAME}_select-pass.tab" -f V_CALL -u "IG[LK]" --regex \
 #    --outname "${OUTNAME}_light" >> $PIPELINE_LOG 2> $ERROR_LOG
 
