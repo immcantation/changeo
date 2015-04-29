@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.04.06'
+__date__      = '2015.04.28'
 
 # Imports
 import csv, os, re, sys, textwrap
@@ -54,6 +54,7 @@ def getSeqforIgBlast(seq_file):
     seqs = {}
     for seq in seq_dict.itervalues():
         seqs.update({seq.description:str(seq.seq)})
+
     return seqs
 
 
@@ -83,17 +84,21 @@ def extractIMGT(imgt_output):
     Returns:
     sorted list of filenames from which information will be read
     """
-    imgt_flags = ["1_Summary", "2_IMGT-gapped", "3_Nt-sequences", "6_Junction"]
+    imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
     temp_dir = mkdtemp()
     if is_zipfile(imgt_output):
         # Extract selected files from the IMGT zip file to temp directory
         imgt_zip = ZipFile(imgt_output, 'r')
-        imgt_files = sorted([n for n in imgt_zip.namelist() for i in imgt_flags if i in n])
+        imgt_files = sorted([n for n in imgt_zip.namelist() \
+                             if os.path.basename(n).startswith(imgt_flags)])
         imgt_zip.extractall(temp_dir, imgt_files)
         imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
     elif os.path.isdir(imgt_output):
-        imgt_files = sorted([ (imgt_output + ('/' if imgt_output[-1]!='/' else '') + n) \
-                             for n in os.listdir(imgt_output) for j in imgt_flags if j in n ])
+        folder_files = []
+        for root, dirs, files in os.walk(imgt_output):
+            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
+        imgt_files = sorted([n for n in folder_files \
+                             if os.path.basename(n).startswith(imgt_flags)])
     else:
         sys.exit('ERROR: Unsupported IGMT output file-type - must be zipped file (-z) or folder (-f)')
     
@@ -109,21 +114,36 @@ def readOneIgBlastResult(block):
     """
     Parse a single IgBLAST query result
 
-    :param block: itertools groupby object of single result
-    :return: None if no results, otherwise list of DataFrames for each result block
+    Arguments:
+    block =  itertools groupby object of single result
+
+    Returns:
+    None if no results, otherwise list of DataFrames for each result block
     """
     results = list()
-    for i, (match, subblock) in enumerate(groupby(block, lambda l: l=='\n')):
+    i = 0
+    for match, subblock in groupby(block, lambda l: l=='\n'):
         if not match:
+            # Strip whitespace and comments
             sub = [s.strip() for s in subblock if not s.startswith('#')]
-            if i==2 or i==4:
+
+            # Continue on empty block
+            if not sub:  continue
+            else:  i += 1
+
+            # Split by tabs
+            sub = [s.split('\t') for s in sub]
+
+            # Append list for "V-(D)-J rearrangement summary" (i == 1)
+            # And "V-(D)-J junction details" (i == 2)
+            # Otherwise append DataFrame of subblock
+            if i == 1 or i == 2:
                 results.append(sub[0])
             else:
-                sub = [s.split('\t') for s in sub]
                 df = pd.DataFrame(sub)
                 if not df.empty: results.append(df)
-    if not results: return None
-    return results
+
+    return results if results else None
 
 
 def readIgBlast(igblast_output, seq_dict):
@@ -137,6 +157,7 @@ def readIgBlast(igblast_output, seq_dict):
     Returns:
     a generator of dictionaries containing alignment data
     """
+
     # Open IgBlast output file
     with open(igblast_output) as f:
         # Iterate over individual results (separated by # IGBLASTN)
@@ -153,23 +174,22 @@ def readIgBlast(igblast_output, seq_dict):
 
                 # If results exist, parse further to obtain full db_gen
                 if block_list is not None:
+                    # Parse quality information
+                    db_gen['STOP'] = 'T' if block_list[0][-4] == 'Yes' else 'F'
+                    db_gen['IN_FRAME'] = 'T' if block_list[0][-3] == 'In-frame' else 'F'
+                    db_gen['FUNCTIONAL'] = 'T' if block_list[0][-2] == 'Yes' else 'F'
+
                     # Parse V, D, and J calls
-                    v_call = IgRecord._parseAllele(block_list[0], default_V_regex, action='list')
-                    d_call = IgRecord._parseAllele(block_list[0], default_D_regex, action='list')
-                    j_call = IgRecord._parseAllele(block_list[0], default_J_regex, action='list')
+                    call_str = ' '.join(block_list[0])
+                    v_call = IgRecord._parseAllele(call_str, default_V_regex, action='list')
+                    d_call = IgRecord._parseAllele(call_str, default_D_regex, action='list')
+                    j_call = IgRecord._parseAllele(call_str, default_J_regex, action='list')
                     db_gen['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
                     db_gen['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
                     db_gen['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
 
-                    # Parse quality information
-                    quals = block_list[0].split()
-                    db_gen['STOP'] = 'T' if quals[-4] == 'Yes' else 'F'
-                    db_gen['IN_FRAME'] = 'T' if quals[-3] == 'In-frame' else 'F'
-                    db_gen['FUNCTIONAL'] = 'T' if quals[-2] == 'Yes' else 'F'
-
                     # Parse junction sequence
-                    db_gen['JUNCTION'] = re.sub('(N/A)|\[|\(|\)|\]', '',
-                                                ''.join(block_list[1].split()))
+                    db_gen['JUNCTION'] = re.sub('(N/A)|\[|\(|\)|\]', '', ''.join(block_list[1]))
                     db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
 
                     # TODO:  IgBLAST does a stupid and doesn't output block #3 sometimes. why?
@@ -196,7 +216,6 @@ def readIgBlast(igblast_output, seq_dict):
                         # Update input sequence positions
                         vdj_start = int(v_align[8]) - 1
                         vdj_end = int(v_align[9])
-
 
                     # If D call exists, parse D alignment information
                     if d_call is not None:
@@ -413,7 +432,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
             continue
         else: 
             pass_count += 1
-            record.seq_in = (record.seq_in.upper() if record.seq_in else '')
+            record.seq_input = (record.seq_input.upper() if record.seq_input else '')
             record.seq_imgt = (record.seq_imgt.upper() if record.seq_imgt else '')
             record.seq_vdj = (record.seq_vdj.upper() if record.seq_vdj else '')
             record.junction = (record.junction.upper() if record.junction else '')

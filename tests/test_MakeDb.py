@@ -23,8 +23,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Define data files
         self.igblast_fmt7_file = os.path.join(data_path, 'issue_29.fmt7')
-        self.igblast_seq_dict = SeqIO.index(os.path.join(data_path, 'issue_29.fasta'),
-                                       format='fasta')
+        self.igblast_seq_dict = mod.getSeqforIgBlast(os.path.join(data_path, 'issue_29.fasta'))
 
         self.start = time.time()
 
@@ -38,7 +37,11 @@ class Test_MakeDb(unittest.TestCase):
         #print self.igblast_seq_dict
         result = mod.readIgBlast(self.igblast_fmt7_file, self.igblast_seq_dict)
         for x in result:
-            print x
+            print '   ID> %s' % x.id
+            print 'VCALL> %s' % x.v_call
+            print 'INPUT> %s' % x.seq_input
+            print '  VDJ> %s' % x.seq_vdj
+            print ' JUNC> %s' % x.junction
 
         self.fail()
 
