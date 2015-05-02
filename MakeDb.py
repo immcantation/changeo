@@ -28,12 +28,11 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args, countSeqFile, readSeqFile
 from IgCore import parseAnnotation, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import getDbWriter, IgRecord, countDbFile
+from DbCore import getDbWriter, countDbFile
+from DbCore import IgRecord, parseAllele
+from DbCore import v_allele_regex, d_allele_regex, j_allele_regex
 
 # Default parameters
-default_V_regex = re.compile(r'((IG[HLK]|TR[ABGD])V\d+[-/\w]*[-\*][\.\w]+)')
-default_D_regex = re.compile(r'((IG[HLK]|TR[ABGD])D\d+[-/\w]*[-\*][\.\w]+)')
-default_J_regex = re.compile(r'((IG[HLK]|TR[ABGD])J\d+[-/\w]*[-\*][\.\w]+)')
 default_delimiter = ('\t', ',', '-')
 
 
@@ -145,7 +144,7 @@ def readOneIgBlastResult(block):
 
     return results if results else None
 
-
+# TODO:  needs more speeds. pandas is probably to blame.
 def readIgBlast(igblast_output, seq_dict):
     """
     Reads IgBlast output
@@ -181,9 +180,9 @@ def readIgBlast(igblast_output, seq_dict):
 
                     # Parse V, D, and J calls
                     call_str = ' '.join(block_list[0])
-                    v_call = IgRecord._parseAllele(call_str, default_V_regex, action='list')
-                    d_call = IgRecord._parseAllele(call_str, default_D_regex, action='list')
-                    j_call = IgRecord._parseAllele(call_str, default_J_regex, action='list')
+                    v_call = parseAllele(call_str, v_allele_regex, action='list')
+                    d_call = parseAllele(call_str, d_allele_regex, action='list')
+                    j_call = parseAllele(call_str, j_allele_regex, action='list')
                     db_gen['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
                     db_gen['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
                     db_gen['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'

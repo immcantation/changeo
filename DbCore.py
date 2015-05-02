@@ -25,11 +25,21 @@ from IgCore import printLog, printProgress
 
 # Defaults
 #default_repo = 'germlines'
-#default_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
-#default_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
-#default_family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+))')
 
-# TODO:  might be better to just use the column name as the member variable name. there is probably a decorator for this.
+# Regular expression globals
+allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
+gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
+family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+))')
+
+v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V\d+[-/\w]*[-\*][\.\w]+)')
+d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D\d+[-/\w]*[-\*][\.\w]+)')
+j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J\d+[-/\w]*[-\*][\.\w]+)')
+
+#allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
+#gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
+#family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
+
+# TODO:  might be better to just use the lower case column name as the member variable name. can use getattr and setattr.
 class IgRecord:
     """
     A class defining a V(D)J germline sequence alignment
@@ -102,14 +112,6 @@ class IgRecord:
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}
 
-    # Public variables
-    allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*[-\*][\.\w]+))')
-    gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+[-/\w]*))')
-    family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ]\d+))')
-    #allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-    #gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
-    #family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
-
     # Private methods
     @staticmethod    
     def _identity(v, deparse=False):
@@ -141,28 +143,6 @@ class IgRecord:
         else:
             try:  return str(v)
             except:  return ''
-
-    # TODO:  this is used often enough it should be a set of standalone functions getAllele(), getGene(), getFamily()
-    # Extract alleles from strings
-    #
-    # Arguments:  alleles = string with allele calls
-    #             regex = compiled regular expression for allele match
-    #             action = action to perform for multiple alleles;
-    #                      one of ('first', 'set', 'list').
-    # Returns:    string of the allele for action='first';
-    #             tuple of allele calls for 'set' or 'list' actions.
-    @staticmethod
-    def _parseAllele(alleles, regex, action='first'):
-        try:  match = [x.group(0) for x in regex.finditer(alleles)]
-        except:  match = None
-        if action == 'first':
-            return match[0] if match else None
-        elif action == 'set':
-            return tuple(sorted(set(match))) if match else None
-        elif action == 'list':
-            return tuple(sorted(match)) if match else None
-        else:
-            return None
 
     # Initializer
     #
@@ -248,31 +228,31 @@ class IgRecord:
     def getVAllele(self, action='first'):
         # TODO: this can't distinguish empty value ("") from missing field (no column)
         x = self.v_call_geno if self.v_call_geno is not None else self.v_call
-        return IgRecord._parseAllele(x, self.allele_regex, action)
+        return parseAllele(x, allele_regex, action)
 
     def getDAllele(self, action='first'):
-        return IgRecord._parseAllele(self.d_call, self.allele_regex, action)
+        return parseAllele(self.d_call, allele_regex, action)
 
     def getJAllele(self, action='first'):
-        return IgRecord._parseAllele(self.j_call, self.allele_regex, action)
+        return parseAllele(self.j_call, allele_regex, action)
     
     def getVGene(self, action='first'):
-        return IgRecord._parseAllele(self.v_call, self.gene_regex, action)
+        return parseAllele(self.v_call, gene_regex, action)
 
     def getDGene(self, action='first'):
-        return IgRecord._parseAllele(self.d_call, self.gene_regex, action)
+        return parseAllele(self.d_call, gene_regex, action)
 
     def getJGene(self, action='first'):
-        return IgRecord._parseAllele(self.j_call, self.gene_regex, action)
+        return parseAllele(self.j_call, gene_regex, action)
     
     def getVFamily(self, action='first'):
-        return IgRecord._parseAllele(self.v_call, self.family_regex, action)
+        return parseAllele(self.v_call, family_regex, action)
 
     def getDFamily(self, action='first'):
-        return IgRecord._parseAllele(self.d_call, self.family_regex, action)
+        return parseAllele(self.d_call, family_regex, action)
 
     def getJFamily(self, action='first'):
-        return IgRecord._parseAllele(self.j_call, self.family_regex, action)
+        return parseAllele(self.j_call, family_regex, action)
 
 
 class DbData:
@@ -339,7 +319,34 @@ class DbResult:
             return len(self.data)
 
 
-# TODO:  Change to require output fields rather than in_file? probably better that way.
+# TODO:  might be cleaner as getAllele(), getGene(), getFamily()
+def parseAllele(alleles, regex, action='first'):
+    """
+    Extract alleles from strings
+
+    Arguments:  alleles = string with allele calls
+                regex = compiled regular expression for allele match
+                action = action to perform for multiple alleles;
+                         one of ('first', 'set', 'list').
+    Returns:    string of the allele for action='first';
+                tuple of allele calls for 'set' or 'list' actions.
+    """
+    try:
+        match = [x.group(0) for x in regex.finditer(alleles)]
+    except:
+        match = None
+
+    if action == 'first':
+        return match[0] if match else None
+    elif action == 'set':
+        return tuple(sorted(set(match))) if match else None
+    elif action == 'list':
+        return tuple(sorted(match)) if match else None
+    else:
+        return None
+
+
+# TODO:  change to require output fields rather than in_file? probably better that way.
 def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     """
     Opens a writer object for an output database file

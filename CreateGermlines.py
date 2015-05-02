@@ -20,7 +20,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args 
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import readDbFile, getDbWriter, countDbFile, IgRecord
+from DbCore import readDbFile, getDbWriter, countDbFile
+from DbCore import allele_regex, IgRecord, parseAllele
 
 # Defaults
 default_repo = 'germlines'
@@ -50,7 +51,7 @@ def getRepo(repo):
         with open(file_name, "rU") as file_handle:
             germlines = SeqIO.parse(file_handle, "fasta")
             for g in germlines:
-                germ_key = IgRecord._parseAllele(g.description, IgRecord.allele_regex, 'list')
+                germ_key = parseAllele(g.description, allele_regex, 'list')
                 repo_dict[germ_key] = str(g.seq).upper() # @UndefinedVariable
     return repo_dict
 
@@ -77,10 +78,10 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
 
     # Find germline V-Region
     if v_field == 'V_CALL_GENOTYPED':
-        vgene = IgRecord._parseAllele(align[v_field], IgRecord.allele_regex, 'list')
+        vgene = parseAllele(align[v_field], allele_regex, 'list')
         vkey = vgene
     else:
-        vgene = IgRecord._parseAllele(align[v_field], IgRecord.allele_regex, 'first')
+        vgene = parseAllele(align[v_field], allele_regex, 'first')
         vkey = (vgene, )
     if vgene is not None:
         result_log['V_CALL'] = ','.join(vkey)
@@ -98,7 +99,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
         germ_vseq = 'N' * int(align['V_GERM_LENGTH'] or 0)
 
     # Find germline D-Region
-    dgene = IgRecord._parseAllele(align['D_CALL'], IgRecord.allele_regex, 'first')
+    dgene = parseAllele(align['D_CALL'], allele_regex, 'first')
     result_log['D_CALL'] = dgene
     if dgene is not None:
         dkey = (dgene, )
@@ -113,7 +114,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
         germ_dseq = ''
 
     # Find germline J-Region
-    jgene = IgRecord._parseAllele(align[j_field], IgRecord.allele_regex,'first')
+    jgene = parseAllele(align[j_field], allele_regex,'first')
     result_log['J_CALL'] = jgene
     if jgene is not None:
         jkey = (jgene, )
