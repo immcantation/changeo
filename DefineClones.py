@@ -37,7 +37,7 @@ from DbCore import DbData, DbResult, getDistMat
 # Defaults
 default_translate = False
 default_distance = 0.0
-default_bygroup_model = 'hs5f'
+default_bygroup_model = 'm1n'
 default_hclust_model = 'chen2010'
 default_norm = 'none'
 
@@ -175,6 +175,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             if model == 'm1n': dist_mat = getDistMat(smith96)
             elif model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
             elif model == 'ham': dist_mat = getDistMat(n_score=0, gap_score=0, alphabet='dna')
+        # print dist_mat
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
             dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
@@ -190,8 +191,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # TODO:  yucky path business can be handled in DbCore instead.
         if dist_mat is None:
             model_path = os.path.dirname(os.path.realpath(__file__))
-            if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
-            elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
+            if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
+            elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
             dist_mat = read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         # Get list of acceptable nucleotides
@@ -1143,10 +1144,10 @@ if __name__ == '__main__':
         elif args_dict['model'] == 'ham':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         elif args_dict['model'] == 'hs5f':
-            model_file = os.path.join(model_path, 'models', 'HS5F_Targeting.tab')
+            model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
             args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
         elif args_dict['model'] == 'm3n':
-            model_file = os.path.join(model_path, 'models', 'M3N_Targeting.tab')
+            model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
             args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         del args_dict['fields']
