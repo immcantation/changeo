@@ -24,7 +24,7 @@ from Bio.Alphabet import IUPAC
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation 
-from IgCore import getOutputHandle, printLog, printProgress
+from IgCore import getOutputHandle, printLog, printProgress, printMessage
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import countDbFile, readDbFile, getDbWriter
 
@@ -65,6 +65,116 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
                            id=desc_str, name=desc_str, description='')
         
     return seq_record
+
+
+def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
+    """
+    Divides a tab-delimited database file into segments by description tags
+
+    Arguments:
+    db_file = filename of the tab-delimited database file to split
+    field = the field name by which to split db_file
+    num_split = the numerical threshold by which to group sequences;
+                if None treat field as textual
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    a list of output file names
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'split'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELD'] = field
+    log['NUM_SPLIT'] = num_split
+    printLog(log)
+
+    # Open IgRecord reader iter object
+    reader = readDbFile(db_file, ig=False)
+
+    # Determine total numbers of records
+    rec_count = countDbFile(db_file)
+
+    start_time = time()
+    count = 0
+    # Sort records into files based on textual field
+    if num_split is None:
+        # Create set of unique field tags
+        tmp_iter = readDbFile(db_file, ig=False)
+        tag_list = list(set([row[field] for row in tmp_iter]))
+
+        # Forbidden characters in filename and replacements
+        noGood = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
+                  '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
+        # Replace forbidden characters in tag_list
+        tag_dict = {}
+        for tag in tag_list:
+            for c,r in noGood.iteritems():
+                tag_dict[tag] = (tag_dict.get(tag, tag).replace(c,r) \
+                                     if c in tag else tag_dict.get(tag, tag))
+
+        # Create output handles
+        handles_dict = {tag:getOutputHandle(db_file,
+                                            '%s=%s' % (field, label),
+                                            out_type = out_args['out_type'],
+                                            out_name = out_args['out_name'],
+                                            out_dir = out_args['out_dir'])
+                        for tag, label in tag_dict.iteritems()}
+
+        # Create Db writer instances
+        writers_dict = {tag:getDbWriter(handles_dict[tag], db_file)
+                        for tag in tag_dict}
+
+        # Iterate over IgRecords
+        for row in reader:
+            printProgress(count, rec_count, 0.05, start_time)
+            count += 1
+            # Write row to appropriate file
+            tag = row[field]
+            writers_dict[tag].writerow(row)
+
+    # Sort records into files based on numeric num_split
+    else:
+        num_split = float(num_split)
+
+        # Create output handles
+        handles_dict = {'under':getOutputHandle(db_file,
+                                                'under-%.1f' % num_split,
+                                                out_type = out_args['out_type'],
+                                                out_name = out_args['out_name'],
+                                                out_dir = out_args['out_dir']),
+                        'atleast':getOutputHandle(db_file,
+                                                  'atleast-%.1f' % num_split,
+                                                out_type = out_args['out_type'],
+                                                out_name = out_args['out_name'],
+                                                out_dir = out_args['out_dir'])}
+
+        # Create Db writer instances
+        writers_dict = {'under':getDbWriter(handles_dict['under'], db_file),
+                        'atleast':getDbWriter(handles_dict['atleast'], db_file)}
+
+        # Iterate over IgRecords
+        for row in reader:
+            printProgress(count, rec_count, 0.05, start_time)
+            count += 1
+            tag = row[field]
+            tag = 'under' if float(tag) < num_split else 'atleast'
+            writers_dict[tag].writerow(row)
+
+    # Write log
+    printProgress(count, rec_count, 0.05, start_time)
+    log = OrderedDict()
+    for i, k in enumerate(handles_dict):
+        log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
+    log['RECORDS'] = rec_count
+    log['PARTS'] = len(handles_dict)
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close output file handles
+    for t in handles_dict: handles_dict[t].close()
+
+    return [handles_dict[t].name for t in handles_dict]
 
 
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
@@ -232,7 +342,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     return pass_handle.name
 
 
-def addDbRecords(db_file, fields, values, out_args=default_out_args):
+def addDbFile(db_file, fields, values, out_args=default_out_args):
     """
     Adds field and value pairs to a database file
 
@@ -289,7 +399,7 @@ def addDbRecords(db_file, fields, values, out_args=default_out_args):
     return pass_handle.name
 
 
-def dropDbRecords(db_file, fields, out_args=default_out_args):
+def dropDbFile(db_file, fields, out_args=default_out_args):
     """
     Deletes entire fields from a database file
 
@@ -340,8 +450,8 @@ def dropDbRecords(db_file, fields, out_args=default_out_args):
     return pass_handle.name
 
 
-def deleteDbRecords(db_file, fields, values, logic='any', regex=False,
-                    out_args=default_out_args):
+def deleteDbFile(db_file, fields, values, logic='any', regex=False,
+                 out_args=default_out_args):
     """
     Deletes records from a database file
 
@@ -418,8 +528,8 @@ def deleteDbRecords(db_file, fields, values, logic='any', regex=False,
     return pass_handle.name
 
 
-def selectDbRecords(db_file, fields, values, logic='any', regex=False,
-                    out_args=default_out_args):
+def selectDbFile(db_file, fields, values, logic='any', regex=False,
+                 out_args=default_out_args):
     """
     Selects records from a database file
 
@@ -498,7 +608,77 @@ def selectDbRecords(db_file, fields, values, logic='any', regex=False,
     return pass_handle.name
 
 
-def updateDbRecords(db_file, field, values, updates, out_args=default_out_args):
+def sortDbFile(db_file, field, numeric=False, descend=False,
+               out_args=default_out_args):
+    """
+    Sorts records by values in an annotation field
+
+    Arguments:
+    db_file = the database filename
+    field = the field name to sort by
+    numeric = if True sort field numerically;
+              if False sort field alphabetically
+    descend = if True sort in descending order;
+              if False sort in ascending order
+
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'sort'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELD'] = field
+    log['NUMERIC'] = numeric
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file)
+
+
+    # Store all records in a dictionary
+    start_time = time()
+    printMessage("Indexing: Running", start_time=start_time)
+    db_dict = {i:r for i, r in enumerate(db_iter)}
+    result_count = len(db_dict)
+
+    # Sort db_dict by field values
+    tag_dict = {k:v[field] for k, v in db_dict.iteritems()}
+    if numeric:  tag_dict = {k:float(v or 0) for k, v in tag_dict.iteritems()}
+    sorted_keys = sorted(tag_dict, key=tag_dict.get, reverse=descend)
+    printMessage("Indexing: Done", start_time=start_time, end=True)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for key in sorted_keys:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Write records
+        pass_writer.writerow(db_dict[key])
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
+def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     """
     Updates field and value pairs to a database file
 
@@ -638,6 +818,18 @@ def getArgParser():
                              help='List of annotation fields to add to the sequence description')
     parser_clip.set_defaults(func=convertDbClip)
 
+    # Subparser to partition files by annotation values
+    parser_split = subparsers.add_parser('split', parents=[parser_parent],
+                                         formatter_class=CommonHelpFormatter,
+                                         help='Splits database files by field values')
+    parser_split.add_argument('-f', action='store', dest='field', type=str, required=True,
+                              help='Annotation field by which to split database files.')
+    parser_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
+                              help='''Specify to define the field as numeric and group
+                                   records by whether they are less than or at least
+                                   (greater than or equal to) the specified value.''')
+    parser_split.set_defaults(func=splitDbFile)
+
     # Subparser to add records
     parser_add = subparsers.add_parser('add', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
@@ -646,7 +838,7 @@ def getArgParser():
                                help='The name of the fields to add.')
     parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
                                help='The value to assign to all rows for each field.')
-    parser_add.set_defaults(func=addDbRecords)
+    parser_add.set_defaults(func=addDbFile)
 
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
@@ -664,7 +856,7 @@ def getArgParser():
     parser_delete.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
-    parser_delete.set_defaults(func=deleteDbRecords)
+    parser_delete.set_defaults(func=deleteDbFile)
 
     # Subparser to drop fields
     parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
@@ -672,7 +864,7 @@ def getArgParser():
                                         help='Deletes entire fields')
     parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
-    parser_drop.set_defaults(func=dropDbRecords)
+    parser_drop.set_defaults(func=dropDbFile)
 
     # Subparser to select records
     parser_select = subparsers.add_parser('select', parents=[parser_parent],
@@ -690,7 +882,21 @@ def getArgParser():
     parser_select.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
-    parser_select.set_defaults(func=selectDbRecords)
+    parser_select.set_defaults(func=selectDbFile)
+
+    # Subparser to sort file by records
+    parser_sort = subparsers.add_parser('sort', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Sorts records by field values')
+    parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
+                             help='The annotation field by which to sort records.')
+    parser_sort.add_argument('--num', action='store_true', dest='numeric', default=False,
+                             help='''Specify to define the sort column as numeric rather
+                                  than textual.''')
+    parser_sort.add_argument('--descend', action='store_true', dest='descend',
+                             help='''If specified, sort records in descending, rather
+                             than ascending, order by values in the target field.''')
+    parser_sort.set_defaults(func=sortDbFile)
 
     # Subparser to update records
     parser_update = subparsers.add_parser('update', parents=[parser_parent],
@@ -702,7 +908,7 @@ def getArgParser():
                                help='The values that will be replaced.')
     parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
                                help='''The new value to assign to each selected row.''')
-    parser_update.set_defaults(func=updateDbRecords)
+    parser_update.set_defaults(func=updateDbFile)
 
     return parser
 
