@@ -1059,33 +1059,37 @@ def getArgParser():
     # Distance cloning method
     parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Defines clones as having same V assignment, \
-                                              J assignment, and junction length with \
-                                              specified substitution distance model')
+                                        help='''Defines clones as having same V assignment,
+                                              J assignment, and junction length with
+                                              specified substitution distance model.''')
     parser_bygroup.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_bygroup.add_argument('--mode', action='store', dest='mode', 
                              choices=('allele', 'gene'), default='gene', 
-                             help='Specifies whether to use the V(D)J allele or gene for initial grouping')
+                             help='''Specifies whether to use the V(D)J allele or gene for
+                                  initial grouping.''')
     parser_bygroup.add_argument('--act', action='store', dest='action', default='set',
                              choices=('first', 'set'),
-                             help='Specifies how to handle multiple V(D)J assignments for initial grouping')
+                             help='''Specifies how to handle multiple V(D)J assignments
+                                  for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'ham','m1n', 'm3n', 'hs5f'), default=default_bygroup_model,
-                             help='''Specifies which substitution model to use for calculating
-                                  distance between junctions. Where m1n is the single nucleotide
-                                  transition/trasversion model; m3n is the mouse trinucleotide
-                                  model of Smith et al, 1996; hs5f is the human S5F model of Yaari
-                                  et al, 2013; ham is nucleotide Hamming distance; and aa is amino
-                                  acid Hamming distance.''')
+                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs5f'),
+                             default=default_bygroup_model,
+                             help='''Specifies which substitution model to use for
+                                  calculating distance between junctions. Where m1n is the
+                                  single nucleotide transition/trasversion model; m3n is
+                                  the mouse trinucleotide model of Smith et al, 1996; hs5f
+                                  is the human S5F model of Yaari et al, 2013; ham is
+                                  nucleotide Hamming distance; and aa is amino acid
+                                  Hamming distance. The m3n and hs5f models should be
+                                  considered experimental.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
     parser_bygroup.add_argument('--norm', action='store', dest='norm',
                              choices=('len', 'none'), default=default_norm,
                              help='''Specifies how to normalize distances. One of none
-                                  (do not normalize) or len (normalize by non-ambiguous/gap
-                                  characters in the junction.''')
+                                  (do not normalize) or len (normalize by junction length.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
     parser_bygroup.set_defaults(collect_func=collectQueue)  
