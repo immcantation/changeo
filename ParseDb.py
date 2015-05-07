@@ -32,6 +32,7 @@ from DbCore import countDbFile, readDbFile, getDbWriter
 default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
+default_index_field = "INDEX"
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -383,6 +384,59 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
         rec_count += 1
         # Write updated row
         rec.update(add_dict)
+        pass_writer.writerow(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
+def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
+    """
+    Adds an index column to a database file
+
+    Arguments:
+    db_file = the database file name
+    field = the name of the index field to add
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'index'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELD'] = field
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+    pass_writer = getDbWriter(pass_handle, db_file, add_fields=field)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Add count and write updated row
+        rec.update({field:rec_count})
         pass_writer.writerow(rec)
 
     # Print counts
@@ -865,6 +919,15 @@ def getArgParser():
     parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
     parser_drop.set_defaults(func=dropDbFile)
+
+    # Subparser to index fields
+    parser_index = subparsers.add_parser('index', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Adds a numeric index column')
+    parser_index.add_argument('-f', nargs='+', action='store', dest='field',
+                             default=default_index_field,
+                             help='The name of the index field to add to the database.')
+    parser_index.set_defaults(func=indexDbFile)
 
     # Subparser to select records
     parser_select = subparsers.add_parser('select', parents=[parser_parent],
