@@ -116,7 +116,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
 
         # Create output handles
         handles_dict = {tag:getOutputHandle(db_file,
-                                            '%s=%s' % (field, label),
+                                            '%s-%s' % (field, label),
                                             out_type = out_args['out_type'],
                                             out_name = out_args['out_name'],
                                             out_dir = out_args['out_dir'])

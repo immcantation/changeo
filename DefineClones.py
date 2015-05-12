@@ -469,6 +469,7 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             result = DbResult(data.id, records)
 
             # Add V(D)J to log
+            result.log['ID'] = ','.join([str(x) for x in data.id])
             result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
             result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
             result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
