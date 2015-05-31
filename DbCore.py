@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2015.05.30'
+__date__      = '2015.05.31'
 
 # Imports
 import csv, os, re, sys
@@ -18,8 +18,9 @@ from time import time
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-# Core imports
-from IgCore import getScoreDict, scoreDNA, scoreAA
+# IgCore imports
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from IgCore import scoreDNA, scoreAA
 from IgCore import getOutputHandle, getFileType
 from IgCore import printLog, printProgress
 
