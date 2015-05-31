@@ -22,8 +22,8 @@ class Test_MakeDb(unittest.TestCase):
         print '-> %s()' % self._testMethodName
 
         # Define data files
-        self.igblast_fmt7_file = os.path.join(data_path, 'issue_29.fmt7')
-        self.igblast_seq_dict = mod.getSeqforIgBlast(os.path.join(data_path, 'issue_29.fasta'))
+        self.igblast_fmt7_file = os.path.join(data_path, 'igblast_test.fmt7')
+        self.igblast_seq_dict = mod.getSeqforIgBlast(os.path.join(data_path, 'igblast_test.fasta'))
 
         self.start = time.time()
 
@@ -33,8 +33,6 @@ class Test_MakeDb(unittest.TestCase):
 
     #@unittest.skip("-> readIgBlast() skipped\n")
     def test_readIgBlast(self):
-        #print self.igblast_fmt7_file
-        #print self.igblast_seq_dict
         result = mod.readIgBlast(self.igblast_fmt7_file, self.igblast_seq_dict)
         for x in result:
             print '   ID> %s' % x.id

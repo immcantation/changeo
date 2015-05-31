@@ -119,6 +119,7 @@ def readOneIgBlastResult(block):
     Returns:
     None if no results, otherwise list of DataFrames for each result block
     """
+    print ''
     results = list()
     i = 0
     for match, subblock in groupby(block, lambda l: l=='\n'):
@@ -143,6 +144,7 @@ def readOneIgBlastResult(block):
                 if not df.empty: results.append(df)
 
     return results if results else None
+
 
 # TODO:  needs more speeds. pandas is probably to blame.
 def readIgBlast(igblast_output, seq_dict):

@@ -102,20 +102,16 @@ J	reversed|AGCGTATTACATCATAA|CONSCOUNT=70|PRCONS=IGG,267_20140102_TS_shift2	IGHJ
 # Domain classification requested: imgt
 
 # V-(D)-J rearrangement summary for query sequence (Top V gene match, Top D gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand).  Multiple equivalent top matches having the same score and percent identity, if present, are separated by a comma.
-TRGVA*01        TRBD1*01,TRBD2*02       N/A     VB      Yes     N/A     No      +
+TRGVA*01	TRBD1*01,TRBD2*02	N/A	VB	Yes	N/A	No	+
 
 # V-(D)-J junction details based on top germline gene matches (V end, V-D junction, D region, D-J junction, J start).  Note that possible overlapping nucleotides at VDJ junction (i.e, nucleotides that could be assigned to either rearranging gene) are indicated in parentheses (i.e., (TACT)) but are not included under the V, D, or J gene itself
-GGTCA   CCGTCTCCT       CAGGG   N/A     N/A
+GGTCA	CCGTCTCCT	CAGGG	N/A	N/A	
 
 # Hit table (the first field indicates the chain type of the hit)
 # Fields: query id, subject id, % identity, alignment length, mismatches, gap opens, gaps, q. start, q. end, s. start, s. end, evalue, bit score
 # 4 hits found
-V       GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM TRGVA*01        75.00   40      8       1
-       2       245     282     16      55      0.17    26.8
-V       GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM TRBV6-8*01      65.22   46      16      0
-       0       54      99      196     241     1.5     23.7
-D       GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM TRBD1*01        100.00  5       0       0
-       0       292     296     5       9       8.4     10.4
-D       GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM TRBD2*02        100.00  5       0       0
-       0       294     298     10      14      8.4     10.4
-# BLAST processed 5 queries
+V	GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM	TRGVA*01	75.00	40	8	1	2	245	282	16	55	0.17	26.8
+V	GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM	TRBV6-8*01	65.22	46	16	0	0	54	99	196	241	1.5	23.7
+D	GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM	TRBD1*01	100.00	5	0	0	0	292	296	5	9	8.4	10.4
+D	GTCATCCTTTGTTGTTT_GTTCGAGT|CONSCOUNT=2|PRCONS=0814-bs0-PCR2-IgM	TRBD2*02	100.00	5	0	0	0	294	298	10	14	8.4	10.4
+# BLAST processed 6 queries
