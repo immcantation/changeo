@@ -109,6 +109,7 @@ def extractIMGT(imgt_output):
     return temp_dir, imgt_files
 
 
+# TODO: return a dictionary with keys determined by the comment strings in the blocks, thus avoiding problems with missing blocks
 def readOneIgBlastResult(block):
     """
     Parse a single IgBLAST query result
@@ -218,6 +219,7 @@ def readIgBlast(igblast_output, seq_dict):
                         vdj_start = int(v_align[8]) - 1
                         vdj_end = int(v_align[9])
 
+                    # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If D call exists, parse D alignment information
                     if d_call is not None:
                         d_align = hit_df[hit_df[0] == 'D'].iloc[0]
@@ -231,6 +233,7 @@ def readIgBlast(igblast_output, seq_dict):
                         if vdj_start is None:  vdj_start = int(d_align[8]) - 1
                         vdj_end = int(d_align[9])
 
+                    # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If J call exists, parse J alignment information
                     if j_call is not None:
                         j_align = hit_df[hit_df[0] == 'J'].iloc[0]
@@ -260,6 +263,7 @@ def readIgBlast(igblast_output, seq_dict):
                 yield IgRecord(db_gen)
 
 
+# TODO:  should be more readable
 def readIMGT(imgt_files):
     """
     Reads IMGT/HighV-Quest output
@@ -473,6 +477,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     if fail_handle is not None: fail_handle.close()
 
 
+# TODO:  may be able to merge with parseIMGT
 def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_args):
     """
     Main for IgBlast aligned sample sequences
@@ -516,8 +521,9 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_a
     igblast_dict = readIgBlast(igblast_output, seq_dict)
     writeDb(igblast_dict, file_prefix, total_count,
             no_parse=no_parse, out_args=out_args)
-    
 
+
+# TODO:  may be able to merge with parseIgBlast
 def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences

@@ -1139,10 +1139,11 @@ if __name__ == '__main__':
                                    'distance':  args_dict['distance'],
                                    'norm': args_dict['norm']}
 
-        # TODO: can be cleaned up with abstract model class
+        # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
         elif args_dict['model'] == 'm1n':
+            # TODO:  this should not be defined here. this is no-man's land.
             smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
             args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
