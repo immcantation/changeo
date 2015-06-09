@@ -9,10 +9,12 @@ __version__   = '0.4.0'
 __date__      = '2015.04.03'
 
 # Imports
-import os, time, unittest
-from Bio import SeqIO
-from DbCore import IgRecord
-import MakeDb as mod
+import os
+import unittest
+
+import time
+from bin import MakeDb as mod
+
 
 # Globals
 data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')

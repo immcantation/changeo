@@ -9,8 +9,9 @@ __version__   = '0.4.0'
 __date__      = '2014.11.26'
 
 # Imports
-import time, unittest
-import ParseDb as mod
+import unittest
+
+import time
 
 
 class Test_ParseDb(unittest.TestCase):

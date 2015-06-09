@@ -9,13 +9,16 @@ __version__   = '0.4.0'
 __date__      = '2015.04.29'
 
 # Imports
-import time, unittest, os
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from IgCore import getScoreDict
-from DbCore import IgRecord, readDbFile, getDistMat
-import DefineClones as mod
+import unittest
+import os
+
 import pandas as pd
+
+import time
+from changeo.DbCore import IgRecord, getDistMat
+from bin import DefineClones as mod
+
+
 
 # Globals
 data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')

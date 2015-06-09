@@ -10,18 +10,21 @@ __version__   = '0.4.0'
 __date__      = '2015.05.30'
 
 # Imports
-import csv, os, sys, textwrap
+import os
+import textwrap
 from argparse import ArgumentParser
-from collections import deque, OrderedDict
-from cStringIO import StringIO
-from itertools import chain, izip
+from collections import OrderedDict
 from subprocess import PIPE, Popen
+
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Align.Applications import MuscleCommandline
-from Bio.Alphabet import IUPAC
-from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+
+import sys
+from cStringIO import StringIO
+from itertools import chain
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -29,8 +32,8 @@ from IgCore import default_out_args, default_separator
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import printLog
 from IgCore import manageProcesses
-from DbCore import feedDbQueue, processDbQueue, collectDbQueue
-from DbCore import DbData, DbResult
+from changeo.DbCore import feedDbQueue, processDbQueue, collectDbQueue
+from changeo.DbCore import DbResult
 
 # Globals
 # TODO:  not convinced this is the best way to deal with fails in grouping. a class may be better.

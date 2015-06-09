@@ -10,27 +10,34 @@ __version__   = '0.4.0'
 __date__      = '2015.05.30'
 
 # Imports
-import csv, os, re, sys, textwrap
-import pandas as pd
+import csv
+import os
+import re
+import textwrap
 from zipfile import ZipFile, is_zipfile
 from tempfile import mkdtemp
 from shutil import rmtree
+from argparse import ArgumentParser
+from collections import OrderedDict
+
+import pandas as pd
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser
+
+import sys
 from itertools import izip, groupby
-from collections import OrderedDict
 from time import time
+
 
 
 # IgCore and DbCore imports 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, countSeqFile, readSeqFile
+from IgCore import default_out_args, countSeqFile
 from IgCore import parseAnnotation, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import getDbWriter, countDbFile
-from DbCore import IgRecord, parseAllele
-from DbCore import v_allele_regex, d_allele_regex, j_allele_regex
+from changeo.DbCore import getDbWriter, countDbFile
+from changeo.DbCore import IgRecord, parseAllele
+from changeo.DbCore import v_allele_regex, d_allele_regex, j_allele_regex
 
 # Default parameters
 default_delimiter = ('\t', ',', '-')

@@ -10,20 +10,27 @@ __version__   = '0.4.0'
 __date__      = '2015.05.30'
 
 # Imports
-import os, signal, sys, textwrap, re
+import os
+import textwrap
+import re
 import multiprocessing as mp
-import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain, izip, combinations
+
+import numpy as np
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
-from time import time
 from Bio import pairwise2
 from Bio.Seq import Seq
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
+
+import signal
+import sys
+from itertools import chain, izip, combinations
+from time import time
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -31,8 +38,8 @@ from IgCore import default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict
-from DbCore import countDbFile, readDbFile, getDbWriter
-from DbCore import DbData, DbResult, getDistMat
+from changeo.DbCore import countDbFile, readDbFile, getDbWriter
+from changeo.DbCore import DbData, DbResult, getDistMat
 
 # Defaults
 default_translate = False

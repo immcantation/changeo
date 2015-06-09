@@ -9,19 +9,24 @@ __version__   = '0.4.0'
 __date__      = '2015.05.30'
 
 # Imports
-import os, sys, textwrap
-from Bio import SeqIO
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
+
+from Bio import SeqIO
+
+import sys
 from time import time
+
 
 # IgCore and DbCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args 
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import readDbFile, getDbWriter, countDbFile
-from DbCore import allele_regex, IgRecord, parseAllele
+from changeo.DbCore import readDbFile, getDbWriter, countDbFile
+from changeo.DbCore import allele_regex, parseAllele
 
 # Defaults
 default_repo = 'germlines'

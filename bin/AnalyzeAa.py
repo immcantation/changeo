@@ -10,12 +10,16 @@ __version__   = '0.4.0'
 __date__      = '2015.05.30'
 
 # Imports
-import re, textwrap
+import re
+import textwrap
 from os import path
 from argparse import ArgumentParser
-from Bio.Seq import Seq
 from collections import OrderedDict
+
+from Bio.Seq import Seq
+
 from time import time
+
 
 # IgCore and DbCore imports 
 from sys import path as syspath
@@ -23,7 +27,7 @@ syspath.append(path.dirname(path.realpath(__file__)))
 from IgCore import default_out_args
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import getDbWriter, countDbFile, readDbFile
+from changeo.DbCore import getDbWriter, countDbFile, readDbFile
 
 
 def gravy(aa_seq):
