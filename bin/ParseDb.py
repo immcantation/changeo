@@ -2,37 +2,29 @@
 """
 Parses tab delimited database files
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2015.05.30'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
 import os
 import re
-import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-
+from itertools import izip
+from textwrap import dedent
+from time import time
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
-import sys
-from itertools import izip
-from time import time
-
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import flattenAnnotation 
-from IgCore import getOutputHandle, printLog, printProgress, printMessage
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.DbCore import countDbFile, readDbFile, getDbWriter
+# Presto and changeo imports
+from presto.Defaults import default_delimiter, default_out_args
+from presto.Annotation import flattenAnnotation
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getOutputHandle, printLog, printProgress, printMessage
+from changeo.IO import getDbWriter, readDbFile, countDbFile
 
 # Defaults
 default_id_field = 'SEQUENCE_ID'
@@ -812,7 +804,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output field help message
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              required fields:
                  SEQUENCE_ID

@@ -2,42 +2,35 @@
 """
 Create tab-delimited database file to store sequence alignment information
 """
-
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2015.05.30'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
 import csv
 import os
 import re
-import textwrap
-from zipfile import ZipFile, is_zipfile
-from tempfile import mkdtemp
-from shutil import rmtree
+import sys
+import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
-
-import pandas as pd
+from itertools import izip, groupby
+from shutil import rmtree
+from tempfile import mkdtemp
+from textwrap import dedent
+from time import time
+from zipfile import ZipFile, is_zipfile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 
-import sys
-from itertools import izip, groupby
-from time import time
-
-
-
-# IgCore and DbCore imports 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, countSeqFile
-from IgCore import parseAnnotation, printLog, printProgress
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.DbCore import getDbWriter, countDbFile
-from changeo.DbCore import IgRecord, parseAllele
-from changeo.DbCore import v_allele_regex, d_allele_regex, j_allele_regex
+# Presto and changeo imports
+from presto.Defaults import default_out_args
+from presto.Annotation import parseAnnotation
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import countSeqFile, printLog, printProgress
+from changeo.Defaults import v_allele_regex, d_allele_regex, j_allele_regex
+from changeo.IO import getDbWriter, countDbFile
+from changeo.Sequence import IgRecord, parseAllele
 
 # Default parameters
 default_delimiter = ('\t', ',', '-')
@@ -591,7 +584,7 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
               output fields:
                  SEQUENCE_ID

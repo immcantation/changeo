@@ -1,19 +1,17 @@
 """
 Unit tests for MakeDb
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2015.04.03'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
 import os
+import time
 import unittest
 
-import time
-from changeo import DbCore as mod
+# Presto and changeo imports
+from changeo.Sequence import IgRecord
 
 
 # Globals
@@ -28,21 +26,21 @@ class Test_DbCore(unittest.TestCase):
                'V_CALL':         'IGHV6-1*01,IGHV6-1*02',
                'D_CALL':         'IGHD6-6*01',
                'J_CALL':         'IGHJ6*02',}
-        self.ig_rec = mod.IgRecord(row)
+        self.ig_rec = IgRecord(row)
 
         row = {'SEQUENCE_ID':    'TEST2',
                'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN',
                'V_CALL':         'TRAV6-1*01,TRAV6-1*02',
                'D_CALL':         'TRAD6-6*01',
                'J_CALL':         'TRAJ6*02',}
-        self.tr_rec = mod.IgRecord(row)
+        self.tr_rec = IgRecord(row)
 
         row = {'SEQUENCE_ID':    'TEST3',
                'SEQUENCE_INPUT': '',
                'V_CALL':         '',
                'D_CALL':         None,
                'J_CALL':         'princess,banana,hammock',}
-        self.bad_rec = mod.IgRecord(row)
+        self.bad_rec = IgRecord(row)
 
         self.start = time.time()
 

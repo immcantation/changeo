@@ -2,44 +2,37 @@
 """
 Assign Ig sequences into clones
 """
-
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2015.05.30'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
+from changeo import __version__, __date__
 
 # Imports
 import os
-import textwrap
 import re
+import signal
+import sys
 import multiprocessing as mp
+import numpy as np
+import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-
-import numpy as np
-from pandas import DataFrame
-from pandas.io.parsers import read_csv
-from Bio import pairwise2
-from Bio.Seq import Seq
+from itertools import chain, izip, combinations
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
-
-import signal
-import sys
-from itertools import chain, izip, combinations
+from textwrap import dedent
 from time import time
+from Bio import pairwise2
+from Bio.Seq import Seq
 
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict
-from changeo.DbCore import countDbFile, readDbFile, getDbWriter
-from changeo.DbCore import DbData, DbResult, getDistMat
+# Presto and changeo imports
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getFileType, getOutputHandle, printLog, printProgress
+from presto.Sequence import getDNAScoreDict, getAAScoreDict
+from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.Multiprocessing import DbData, DbResult
+from changeo.Sequence import getDistMat
 
 # Defaults
 default_translate = False
@@ -200,14 +193,14 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             model_path = os.path.dirname(os.path.realpath(__file__))
             if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
             elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            dist_mat = read_csv(model_file, sep='\t', index_col=0).to_dict()
+            dist_mat = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         # Get list of acceptable nucleotides
         # TODO:  does this account for Ns?
         nucs = ['A','C','G','T']
         # Make sliding five-mers for each junction sequence
         # TODO:  this can be abstracted into N-mers
-        fivemers = DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
+        fivemers = pd.DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
             seqs = fivemers[[i,j]]
@@ -262,7 +255,7 @@ def distChen2010(records):
     query_j_allele = query.getJAllele()
     query_j_gene = query.getJGene()
     # Create alignment scoring dictionary
-    score_dict = getScoreDict()
+    score_dict = getDNAScoreDict()
     
     scores = [0]*len(records)    
     for i in range(len(records)):
@@ -298,7 +291,7 @@ def distAdemokun2011(records):
     query_cdr3 = query.junction[3:-3]
     query_v_family = query.getVFamily()
     # Create alignment scoring dictionary
-    score_dict = getScoreDict()
+    score_dict = getDNAScoreDict()
     
     scores = [0]*len(records)    
     for i in range(len(records)):
@@ -958,7 +951,6 @@ def manageProcesses(feed_func, work_func, collect_func,
     return result
 
 
-    
 def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None, 
                  group_func=None, group_args={}, clone_args={}, cluster_args={}, 
                  out_args=default_out_args, nproc=None, queue_size=None):
@@ -1039,7 +1031,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              required fields:
                  SEQUENCE_ID
@@ -1151,17 +1143,17 @@ if __name__ == '__main__':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
         elif args_dict['model'] == 'm1n':
             # TODO:  this should not be defined here. this is no-man's land.
-            smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
+            smith96 = pd.DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
             args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
         elif args_dict['model'] == 'ham':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         elif args_dict['model'] == 'hs5f':
             model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
+            args_dict['clone_args']['dist_mat'] = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
         elif args_dict['model'] == 'm3n':
             model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0).to_dict()
+            args_dict['clone_args']['dist_mat'] = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
 
         del args_dict['fields']
         del args_dict['action']

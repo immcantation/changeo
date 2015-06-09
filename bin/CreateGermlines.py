@@ -2,37 +2,33 @@
 """
 Reconstructs germline sequences from alignment data
 """
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2015.05.30'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
 import os
-import textwrap
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-
+from textwrap import dedent
+from time import time
 from Bio import SeqIO
 
-import sys
-from time import time
-
-
-# IgCore and DbCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args 
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.DbCore import readDbFile, getDbWriter, countDbFile
-from changeo.DbCore import allele_regex, parseAllele
+# Presto and change imports
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getOutputHandle, printLog, printProgress
+from changeo.Defaults import allele_regex
+from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.Sequence import parseAllele
 
 # Defaults
 default_repo = 'germlines'
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'
+
 
 def getRepo(repo):
     """
@@ -489,7 +485,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output field help message
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              required fields:
                  SEQUENCE_ID 
