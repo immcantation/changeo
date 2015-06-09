@@ -120,7 +120,6 @@ def readOneIgBlastResult(block):
     Returns:
     None if no results, otherwise list of DataFrames for each result block
     """
-    print ''
     results = list()
     i = 0
     for match, subblock in groupby(block, lambda l: l=='\n'):
