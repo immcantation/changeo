@@ -13,16 +13,16 @@ import unittest
 import pandas as pd
 
 # Presto and changeo imports
-from changeo.Sequence import IgRecord, getDistMat
-
-# Import script
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
-import DefineClones
+from changeo.Sequence import IgRecord, getDNADistMatrix, getAADistMatrix
 
 # Paths
-data_path = os.path.join(test_dir, 'data')
-model_path = os.path.join(test_dir, os.pardir, 'models')
+test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
+model_path = os.path.join(test_path, os.pardir, 'models')
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import DefineClones
 
 
 class Test_DefineClones(unittest.TestCase):
@@ -106,7 +106,7 @@ class Test_DefineClones(unittest.TestCase):
 
         smith96 = pd.DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-        dist_dict = getDistMat(smith96)
+        dist_dict = getDNADistMatrix(smith96)
         results = DefineClones.distanceClones(self.records, model='m1n', distance=10, dist_mat=dist_dict)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> m1n'

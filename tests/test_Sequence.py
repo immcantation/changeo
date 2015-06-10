@@ -13,9 +13,10 @@ import unittest
 # Presto and changeo imports
 from changeo.Sequence import IgRecord
 
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
 
-# Globals
-data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 
 class Test_DbCore(unittest.TestCase):
     def setUp(self):

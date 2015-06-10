@@ -32,7 +32,7 @@ from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Sequence import getDNAScoreDict, getAAScoreDict
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
-from changeo.Sequence import getDistMat
+from changeo.Sequence import getAADistMatrix, getDNADistMatrix
 
 # Defaults
 default_translate = False
@@ -172,9 +172,10 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # Check for no distance matrix
         # TODO:  yucky catch for dist_mat=None.
         if dist_mat is None:
-            if model == 'm1n': dist_mat = getDistMat(smith96)
-            elif model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
-            elif model == 'ham': dist_mat = getDistMat(n_score=0, gap_score=0, alphabet='dna')
+            if model == 'm1n': dist_mat = getDNADistMatrix(smith96)
+            # TODO:  should AA have mask_dist=1 or mask_dist=0?
+            elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
+            elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
         # print dist_mat
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
@@ -1140,14 +1141,14 @@ if __name__ == '__main__':
 
         # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
-            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+            args_dict['clone_args']['dist_mat'] = getAADistMatrix(mask_dist=1, gap_dist=0)
         elif args_dict['model'] == 'm1n':
             # TODO:  this should not be defined here. this is no-man's land.
             smith96 = pd.DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
                                 index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
+            args_dict['clone_args']['dist_mat'] = getDNADistMatrix(smith96)
         elif args_dict['model'] == 'ham':
-            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
+            args_dict['clone_args']['dist_mat'] = getDNADistMatrix(mask_dist=0, gap_dist=0)
         elif args_dict['model'] == 'hs5f':
             model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
             args_dict['clone_args']['dist_mat'] = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()

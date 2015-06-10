@@ -261,47 +261,85 @@ def parseAllele(alleles, regex, action='first'):
         return None
 
 
-def getDistMat(mat=None, n_score=0, gap_score=0, alphabet='dna'):
+def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     """
-    Generates a distance matrix
+    Generates a DNA distance matrix
 
     Arguments:
     mat = input distance matrix to extend to full alphabet;
-          if unspecified, creates Hamming distance matrix that incorporates IUPAC equivalencies
-    n_score = score for all matches against an N character
-    gap_score = score for all matches against a [-, .] character
-    alphabet = the type of score dictionary to generate;
-               one of [dna, aa] for DNA and amino acid characters
+          if unspecified, creates Hamming distance matrix that incorporates
+          IUPAC equivalencies
+    mask_dist = distance for all matches against an N character
+    gap_dist = distance for all matches against a gap (-, .) character
 
     Returns:
-    a distance matrix (pandas DataFrame)
+    a pandas.DataFrame of distances
     """
-    if alphabet=='dna':
-        IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
-        n = 'N'
-        score_func = scoreDNA
-    elif alphabet=='aa':
-        IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        n = 'X'
-        score_func = scoreAA
-    else:
-        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type.\n' % alphabet)
+    IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
+    mask_char = 'N'
 
     # Default matrix to inf
-    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars, dtype=float)
-    # Set gap score
+    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars,
+                            dtype=float)
+    # Set gap distance
     for c in '-.':
-        dist_mat.loc[c] = dist_mat.loc[:,c] = gap_score
-    # Set n score
-    dist_mat.loc[n] = dist_mat.loc[:,n] = n_score
+        dist_mat.loc[c] = dist_mat.loc[:, c] = gap_dist
+
+    # Set mask distance
+    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = mask_dist
+
     # Fill in provided distances from input matrix
     if mat is not None:
         for i,j in product(mat.index, mat.columns):
-            dist_mat.loc[i,j] = mat.loc[i,j]
+            dist_mat.loc[i, j] = mat.loc[i, j]
     # If no input matrix, create IUPAC-defined Hamming distance
     else:
         for i,j in product(dist_mat.index, dist_mat.columns):
-            dist_mat.loc[i,j] = 1 - score_func(i, j, n_score=1-n_score, gap_score=1-gap_score)
+            dist_mat.loc[i, j] = 1 - scoreDNA(i, j,
+                                             mask_score=(1 - mask_dist, 1 - mask_dist),
+                                             gap_score=(1 - gap_dist, 1 - gap_dist))
+
+    return dist_mat
+
+
+def getAADistMatrix(mat=None, mask_dist=0, gap_dist=0):
+    """
+    Generates an amino acid distance matrix
+
+    Arguments:
+    mat = input distance matrix to extend to full alphabet;
+          if unspecified, creates Hamming distance matrix that incorporates
+          IUPAC equivalencies
+    mask_dict = score for all matches against an X character
+    gap_dist = score for all matches against a gap (-, .) character
+
+    Returns:
+    a pandas.DataFrame of distances
+    """
+    IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    mask_char = 'X'
+
+    # Default matrix to inf
+    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars,
+                            dtype=float)
+
+    # Set gap distance
+    for c in '-.':
+        dist_mat.loc[c] = dist_mat.loc[:, c] = gap_dist
+
+    # Set mask distance
+    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = mask_dist
+
+    # Fill in provided distances from input matrix
+    if mat is not None:
+        for i,j in product(mat.index, mat.columns):
+            dist_mat.loc[i, j] = mat.loc[i, j]
+    # If no input matrix, create IUPAC-defined Hamming distance
+    else:
+        for i,j in product(dist_mat.index, dist_mat.columns):
+            dist_mat.loc[i, j] = 1 - scoreAA(i, j,
+                                            mask_score=(1 - mask_dist, 1 - mask_dist),
+                                            gap_score=(1 - gap_dist, 1 - gap_dist))
 
     return dist_mat
 

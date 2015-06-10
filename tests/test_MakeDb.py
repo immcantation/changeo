@@ -11,13 +11,13 @@ import sys
 import time
 import unittest
 
-# Presto and changeo imports
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
-import MakeDb
-
 # Paths
-data_path = os.path.join(test_dir, 'data')
+test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import MakeDb
 
 
 class Test_MakeDb(unittest.TestCase):

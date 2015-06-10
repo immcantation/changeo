@@ -6,8 +6,18 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
-import unittest
+import os
+import sys
 import time
+import unittest
+
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import ParseDb
 
 
 class Test_ParseDb(unittest.TestCase):
