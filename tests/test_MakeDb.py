@@ -7,14 +7,18 @@ from changeo import __version__, __date__
 
 # Imports
 import os
+import sys
 import time
 import unittest
 
 # Presto and changeo imports
-from bin import MakeDb as script
+test_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
+import MakeDb
 
-# Globals
-data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+# Paths
+data_path = os.path.join(test_dir, 'data')
+
 
 class Test_MakeDb(unittest.TestCase):
     def setUp(self):
@@ -22,7 +26,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Define data files
         self.igblast_fmt7_file = os.path.join(data_path, 'igblast_test.fmt7')
-        self.igblast_seq_dict = script.getSeqforIgBlast(os.path.join(data_path, 'igblast_test.fasta'))
+        self.igblast_seq_dict = MakeDb.getSeqforIgBlast(os.path.join(data_path, 'igblast_test.fasta'))
 
         self.start = time.time()
 
@@ -32,7 +36,7 @@ class Test_MakeDb(unittest.TestCase):
 
     #@unittest.skip("-> readIgBlast() skipped\n")
     def test_readIgBlast(self):
-        result = script.readIgBlast(self.igblast_fmt7_file, self.igblast_seq_dict)
+        result = MakeDb.readIgBlast(self.igblast_fmt7_file, self.igblast_seq_dict)
         for x in result:
             print '   ID> %s' % x.id
             print 'VCALL> %s' % x.v_call

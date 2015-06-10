@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 import unittest
 import time
 
+
 class Test_ParseDb(unittest.TestCase):
     def setUp(self):
         print '-> %s()' % self._testMethodName
