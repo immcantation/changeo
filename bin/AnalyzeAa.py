@@ -117,7 +117,7 @@ def analyzeAa(db_file, cdr3=True, out_args=default_out_args):
     None
     """
     log = OrderedDict()
-    log['START'] = 'AAnalysis'
+    log['START'] = 'AnalyzeAa'
     log['FILE'] = path.basename(db_file)
     #log['CDR3'] = 'True'
     printLog(log)
@@ -160,7 +160,7 @@ def analyzeAa(db_file, cdr3=True, out_args=default_out_args):
     log = OrderedDict()
     log['OUTPUT'] = out_handle.name
     log['PASS'] = i+1
-    log['END'] = 'AAnalysis'
+    log['END'] = 'AnalyzeAa'
     printLog(log)
     
     # Close handles
