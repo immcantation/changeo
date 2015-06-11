@@ -47,67 +47,63 @@ def gravy(aa_seq):
     return g/len(aa_seq)
     
 
-def cdr3Properties(junc, out_args):
+def AaProperties(seq, out_args):
     """
-    Calculate amino acid properties of CDR3
+    Calculate amino acid properties of a sequence
 
     Arguments:
-    junc = input junction nucleotide sequence
+    seq = input nucleotide sequence
     out_args = arguments for output preferences
 
     Returns:
     dictionary with CDR3 amino acid properties
     """    
-    # Trim junction to CDR3
-    cdr3_in = junc[3:len(junc)-3].upper()
+    # Ensure sequence is uppercase for translation
+    seq = seq.upper()
     # TODO: needs a better solution to the gap character problem at some point
-    cdr3_in = re.sub('\.|-', 'N', cdr3_in)
+    seq = re.sub('\.|-', 'N', seq)
+    aa_seq = str(Seq(seq).translate())
 
-    # Remove sequences that are too short to translate
-    not_empty = cdr3_in if len(cdr3_in) > 2 else ''
-    cdr3_aa = str(Seq(not_empty).translate())
-    
-
-    cdr3 = {}
+    props = {}
     
     # Calculate CDR3 Lengths
-    cdr3['CDR3_AA_LENGTH'] = len(cdr3_aa)
+    props['_AA_LENGTH'] = len(aa_seq)
     
     # Count the percent of aa that are positively charged
-    cdr3['CDR3_AA_POSITIVE'] = round(100*float(len(re.findall("[RK]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_AA_POSITIVE'] = round(100*float(len(re.findall("[RK]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Count percent of aa that are negatively charged
-    cdr3['CDR3_AA_NEGATIVE'] = round(100*float(len(re.findall("[DE]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_AA_NEGATIVE'] = round(100*float(len(re.findall("[DE]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Count the percent of aa that are Arg
-    cdr3['CDR3_ARGININE'] = round(100*float(len(re.findall("[R]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_ARGININE'] = round(100*float(len(re.findall("[R]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Count percent of aa that are His
-    cdr3['CDR3_HISTIDINE'] = round(100*float(len(re.findall("[H]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_HISTIDINE'] = round(100*float(len(re.findall("[H]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Count the percent of aa that are Lys
-    cdr3['CDR3_LYSINE'] = round(100*float(len(re.findall("[K]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_LYSINE'] = round(100*float(len(re.findall("[K]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Count percent of aa that are Tyr
-    cdr3['CDR3_TYROSINE'] = round(100*float(len(re.findall("[Y]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_TYROSINE'] = round(100*float(len(re.findall("[Y]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # Aliphatic index
     # Some documentation: http://web.expasy.org/tools/protparam/protparam-doc.html
-    nAla    = len(re.findall("[A]", cdr3_aa))
-    nVal    = len(re.findall("[V]", cdr3_aa))
-    nLeuIle = len(re.findall("[LI]", cdr3_aa))
+    nAla    = len(re.findall("[A]", aa_seq))
+    nVal    = len(re.findall("[V]", aa_seq))
+    nLeuIle = len(re.findall("[LI]", aa_seq))
     a = 2.9
     b = 3.9
-    cdr3['CDR3_ALIPHATIC'] = round(100*float(nAla + a*nVal + b*nLeuIle)/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_ALIPHATIC'] = round(100*float(nAla + a*nVal + b*nLeuIle)/props['_AA_LENGTH'], 2)
     
     # Percent CDR3 Aromatic AAs
-    cdr3['CDR3_AROMATIC'] = round(100*float(len(re.findall("[FWHY]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
+    props['_AROMATIC'] = round(100*float(len(re.findall("[FWHY]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # GRAVY (Grand Average of Hydropathy) index
     # Some documentation: http://web.expasy.org/tools/protparam/protparam-doc.html
-    cdr3['CDR3_GRAVY'] = round(gravy(cdr3_aa), 2)
+    props['_GRAVY'] = round(gravy(aa_seq), 2)
     
-    return cdr3
+    return props
 
 
 def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
@@ -132,14 +128,16 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
     reader = readDbFile(db_file, ig=False)
     # Create passed output handle and writer
     pass_handle = getOutputHandle(db_file,
-                                 'aa',
+                                 'aa-pass',
                                  out_dir=out_args['out_dir'], 
                                  out_name=out_args['out_name'], 
                                  out_type=out_args['out_type'])
+    prop_fields = [seq_field + p for p in ['_AA_LENGTH', '_AA_POSITIVE',
+                                           '_AA_NEGATIVE','_ARGININE',
+                                           '_HISTIDINE', '_LYSINE', '_TYROSINE',
+                                           '_ALIPHATIC', '_AROMATIC', '_GRAVY']]
     pass_writer = getDbWriter(pass_handle, db_file,
-                         add_fields=['CDR3_AA_LENGTH', 'CDR3_AA_POSITIVE', 'CDR3_AA_NEGATIVE',
-                                     'CDR3_ARGININE', 'CDR3_HISTIDINE', 'CDR3_LYSINE',
-                                     'CDR3_TYROSINE', 'CDR3_ALIPHATIC', 'CDR3_AROMATIC', 'CDR3_GRAVY'])
+                         add_fields=prop_fields)
 
     # Defined failed output handle and writer
     if out_args['failed']:
@@ -167,8 +165,8 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
         # Check that sequence field is not empty and has length a multiple of three
         if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
             # Calculate amino acid properties
-            aacdr3 = cdr3Properties(row[seq_field], out_args)
-            for k,v in aacdr3.iteritems(): row[k] = v
+            aaprops = AaProperties(row[seq_field], out_args)
+            for k,v in aaprops.iteritems(): row[seq_field + k] = v
 
             pass_count += 1
             # Write row to pass file
@@ -207,19 +205,19 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              required fields:
-                 JUNCTION
+                 <user defined> sequence field specified by the --sf parameter
                 
               output fields:
-                 CDR3_AA_LENGTH
-                 CDR3_AA_POSITIVE
-                 CDR3_AA_NEGATIVE 
-                 CDR3_ARGININE
-                 CDR3_HISTIDINE
-                 CDR3_LYSINE
-                 CDR3_TYROSINE
-                 CDR3_ALIPHATIC
-                 CDR3_AROMATIC
-                 CDR3_GRAVY
+                 <user defined>_AA_LENGTH
+                 <user defined>_AA_POSITIVE
+                 <user defined>_AA_NEGATIVE
+                 <user defined>_ARGININE
+                 <user defined>_HISTIDINE
+                 <user defined>_LYSINE
+                 <user defined>_TYROSINE
+                 <user defined>_ALIPHATIC
+                 <user defined>_AROMATIC
+                 <user defined>_GRAVY
               ''')
                   
     # Parent parser    
