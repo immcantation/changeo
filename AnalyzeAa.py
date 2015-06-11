@@ -72,7 +72,6 @@ def cdr3Properties(junc, out_args):
     
     # Calculate CDR3 Lengths
     cdr3['CDR3_AA_LENGTH'] = len(cdr3_aa)
-    if(cdr3['CDR3_AA_LENGTH']==0): print junc, cdr3_aa
     
     # Count the percent of aa that are positively charged
     cdr3['CDR3_AA_POSITIVE'] = round(100*float(len(re.findall("[RK]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
@@ -117,7 +116,7 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
 
     Arguments:
     db_file = input tab-delimited database file
-    cdr3 = true if cdr3 amino acid properties are desired
+    seq_field = sequence field for which amino acid properties are analyzed
     out_args = arguments for output preferences
 
     Returns:
