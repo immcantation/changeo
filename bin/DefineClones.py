@@ -29,10 +29,11 @@ from Bio.Seq import Seq
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
-from presto.Sequence import getDNAScoreDict, getAAScoreDict
+from presto.Sequence import getDNAScoreDict
+from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
+                             m1n_distance, m3n_distance, hs5f_distance
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
-from changeo.Sequence import getAADistMatrix, getDNADistMatrix
 
 # Defaults
 default_translate = False
@@ -172,7 +173,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # Check for no distance matrix
         # TODO:  yucky catch for dist_mat=None.
         if dist_mat is None:
-            if model == 'm1n': dist_mat = getDNADistMatrix(smith96)
+            if model == 'm1n': dist_mat = m1n_distance
             # TODO:  should AA have mask_dist=1 or mask_dist=0?
             elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
             elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
@@ -191,10 +192,10 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         # TODO:  this can be abstracted into a model class with N-mer count and substitution matrix
         # TODO:  yucky path business can be handled in DbCore instead.
         if dist_mat is None:
-            model_path = os.path.dirname(os.path.realpath(__file__))
-            if model == 'm3n':   model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
-            elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            dist_mat = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
+            if model == 'm3n':
+                dist_mat = m3n_distance
+            elif model == 'hs5f':
+                dist_mat = hs5f_distance
 
         # Get list of acceptable nucleotides
         # TODO:  does this account for Ns?
@@ -1082,7 +1083,7 @@ def getArgParser():
                                   the mouse trinucleotide model of Smith et al, 1996; hs5f
                                   is the human S5F model of Yaari et al, 2013; ham is
                                   nucleotide Hamming distance; and aa is amino acid
-                                  Hamming distance. The m3n and hs5f models should be
+                                  Hamming distance. The m3n and hs5f data should be
                                   considered experimental.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
@@ -1143,18 +1144,13 @@ if __name__ == '__main__':
         if args_dict['model'] == 'aa':
             args_dict['clone_args']['dist_mat'] = getAADistMatrix(mask_dist=1, gap_dist=0)
         elif args_dict['model'] == 'm1n':
-            # TODO:  this should not be defined here. this is no-man's land.
-            smith96 = pd.DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            args_dict['clone_args']['dist_mat'] = getDNADistMatrix(smith96)
+            args_dict['clone_args']['dist_mat'] = m1n_distance
         elif args_dict['model'] == 'ham':
             args_dict['clone_args']['dist_mat'] = getDNADistMatrix(mask_dist=0, gap_dist=0)
         elif args_dict['model'] == 'hs5f':
-            model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
+            args_dict['clone_args']['dist_mat'] = hs5f_distance
         elif args_dict['model'] == 'm3n':
-            model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = pd.io.parsers.read_csv(model_file, sep='\t', index_col=0).to_dict()
+            args_dict['clone_args']['dist_mat'] = m3n_distance
 
         del args_dict['fields']
         del args_dict['action']

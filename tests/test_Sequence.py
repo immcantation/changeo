@@ -11,7 +11,7 @@ import time
 import unittest
 
 # Presto and changeo imports
-from changeo.Sequence import IgRecord
+from changeo.Receptor import IgRecord
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))

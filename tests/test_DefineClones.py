@@ -10,15 +10,15 @@ import os
 import sys
 import time
 import unittest
-import pandas as pd
 
 # Presto and changeo imports
-from changeo.Sequence import IgRecord, getDNADistMatrix, getAADistMatrix
+from changeo.Receptor import IgRecord
+from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
+                      m1n_distance, m3n_distance, hs5f_distance
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(test_path, 'data')
-model_path = os.path.join(test_path, os.pardir, 'models')
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -72,17 +72,13 @@ class Test_DefineClones(unittest.TestCase):
         self.fail()
 
     def test_distanceClones(self):
-
         # import cProfile
         # prof = cProfile.Profile()
         # results = prof.runcall(DefineClones.distanceClones, self.records, model='hs5f', distance=1.0, dist_mat=self.dist_mat)
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
-        # Define data files
-        model_file = os.path.join(model_path, 'HS5F_Distance.tab')
-        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0).to_dict()
-
-        results = DefineClones.distanceClones(self.records, model='hs5f', distance=1.0, dist_mat=dist_dict)
+        # hs5f model
+        results = DefineClones.distanceClones(self.records, model='hs5f', distance=1.0, dist_mat=hs5f_distance)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs5f'
         for k, v in results.iteritems():
@@ -91,11 +87,8 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        # Define data files
-        model_file = os.path.join(model_path, 'M3N_Distance.tab')
-        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0).to_dict()
-
-        results = DefineClones.distanceClones(self.records, model='m3n', distance=1.0, dist_mat=dist_dict)
+        # m3n model
+        results = DefineClones.distanceClones(self.records, model='m3n', distance=1.0, dist_mat=m3n_distance)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> m3n'
         for k, v in results.iteritems():
@@ -104,10 +97,8 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        smith96 = pd.DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-        dist_dict = getDNADistMatrix(smith96)
-        results = DefineClones.distanceClones(self.records, model='m1n', distance=10, dist_mat=dist_dict)
+        # m1n model
+        results = DefineClones.distanceClones(self.records, model='m1n', distance=10, dist_mat=m1n_distance)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> m1n'
         for k, v in results.iteritems():
@@ -115,6 +106,7 @@ class Test_DefineClones(unittest.TestCase):
                 print '  CLONE-%i> %s' % (k, s.id)
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
+        # aa model
         results = DefineClones.distanceClones(self.records, model='aa', distance=3.0)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> aa'

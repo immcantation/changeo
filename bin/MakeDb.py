@@ -28,9 +28,9 @@ from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import countSeqFile, printLog, printProgress
-from changeo.Defaults import v_allele_regex, d_allele_regex, j_allele_regex
 from changeo.IO import getDbWriter, countDbFile
-from changeo.Sequence import IgRecord, parseAllele
+from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
+                             j_allele_regex
 
 # Default parameters
 default_delimiter = ('\t', ',', '-')

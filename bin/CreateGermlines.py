@@ -19,9 +19,8 @@ from Bio import SeqIO
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getOutputHandle, printLog, printProgress
-from changeo.Defaults import allele_regex
 from changeo.IO import getDbWriter, readDbFile, countDbFile
-from changeo.Sequence import parseAllele
+from changeo.Receptor import allele_regex, parseAllele
 
 # Defaults
 default_repo = 'germlines'

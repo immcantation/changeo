@@ -14,7 +14,7 @@ from time import time
 # Presto and changeo imports
 from presto.IO import getFileType, getOutputHandle, printProgress, printLog
 from changeo.IO import readDbFile, countDbFile, getDbWriter
-from changeo.Sequence import IgRecord
+from changeo.Receptor import IgRecord
 
 
 class DbData:

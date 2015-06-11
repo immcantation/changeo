@@ -9,7 +9,7 @@ from changeo import __version__, __date__
 import csv
 
 # Presto and changeo imports
-from changeo.Sequence import IgRecord
+from changeo.Receptor import IgRecord
 
 
 # TODO:  change to require output fields rather than in_file? probably better that way.
