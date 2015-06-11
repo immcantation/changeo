@@ -25,6 +25,8 @@ from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import getDbWriter, countDbFile, readDbFile
 
+# Defaults
+default_seq_field = 'JUNCTION'
 
 def gravy(aa_seq):
     """
@@ -70,6 +72,7 @@ def cdr3Properties(junc, out_args):
     
     # Calculate CDR3 Lengths
     cdr3['CDR3_AA_LENGTH'] = len(cdr3_aa)
+    if(cdr3['CDR3_AA_LENGTH']==0): print junc, cdr3_aa
     
     # Count the percent of aa that are positively charged
     cdr3['CDR3_AA_POSITIVE'] = round(100*float(len(re.findall("[RK]", cdr3_aa)))/cdr3['CDR3_AA_LENGTH'], 2)
@@ -108,7 +111,7 @@ def cdr3Properties(junc, out_args):
     return cdr3
 
 
-def analyzeAa(db_file, cdr3=True, out_args=default_out_args):
+def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
     """
     Calculate amino acid properties for specified regions and add to tab-delimited database
 
@@ -123,52 +126,72 @@ def analyzeAa(db_file, cdr3=True, out_args=default_out_args):
     log = OrderedDict()
     log['START'] = 'AnalyzeAa'
     log['FILE'] = path.basename(db_file)
-    #log['CDR3'] = 'True'
+    log['SEQ_FIELD'] = seq_field
     printLog(log)
     
     # Create reader instance for input file
     reader = readDbFile(db_file, ig=False)
-    # Create output handle
-    out_handle = getOutputHandle(db_file, 
-                                 'aaproperties', 
+    # Create passed output handle and writer
+    pass_handle = getOutputHandle(db_file,
+                                 'aa',
                                  out_dir=out_args['out_dir'], 
                                  out_name=out_args['out_name'], 
                                  out_type=out_args['out_type'])
+    pass_writer = getDbWriter(pass_handle, db_file,
+                         add_fields=['CDR3_AA_LENGTH', 'CDR3_AA_POSITIVE', 'CDR3_AA_NEGATIVE',
+                                     'CDR3_ARGININE', 'CDR3_HISTIDINE', 'CDR3_LYSINE',
+                                     'CDR3_TYROSINE', 'CDR3_ALIPHATIC', 'CDR3_AROMATIC', 'CDR3_GRAVY'])
 
-    if(cdr3):
-        # Create writer instance
-        writer = getDbWriter(out_handle, db_file, 
-                             add_fields=['CDR3_AA_LENGTH', 'CDR3_AA_POSITIVE', 'CDR3_AA_NEGATIVE', 
-                                         'CDR3_ARGININE', 'CDR3_HISTIDINE', 'CDR3_LYSINE', 
-                                         'CDR3_TYROSINE', 'CDR3_ALIPHATIC', 'CDR3_AROMATIC', 'CDR3_GRAVY'])
-    
+    # Defined failed output handle and writer
+    if out_args['failed']:
+        fail_handle = getOutputHandle(db_file,
+                                      out_label='aa-fail',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
+        fail_writer = getDbWriter(fail_handle, db_file)
+    else:
+        fail_handle = None
+        fail_writer = None
+
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
     
     # Iterate over rows
+    pass_count = 0
+    fail_count = 0
     for i,row in enumerate(reader):
         # Print progress bar
         printProgress(i, rec_count, 0.05, start_time)
         
-        # Calculate CDR3 amino acid properties
-        if(cdr3): 
-            aacdr3 = cdr3Properties(row['JUNCTION'], out_args)
+        # Check that sequence field is not empty and has length a multiple of three
+        if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
+            # Calculate amino acid properties
+            aacdr3 = cdr3Properties(row[seq_field], out_args)
             for k,v in aacdr3.iteritems(): row[k] = v
-            
-        # Write row to output
-        writer.writerow(row)
+
+            pass_count += 1
+            # Write row to pass file
+            pass_writer.writerow(row)
+        else:
+            fail_count += 1
+            # Write row to fail file
+            if fail_writer is not None:
+                fail_writer.writerow(row)
         
     # Print log    
     printProgress(i+1, rec_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = out_handle.name
-    log['PASS'] = i+1
+    log['OUTPUT'] = pass_handle.name
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
     log['END'] = 'AnalyzeAa'
     printLog(log)
-    
-    # Close handles
-    out_handle.close()
+
+    # Close file handles
+    pass_handle.close()
+    if fail_handle is not None:  fail_handle.close()
     
     
 def getArgParser():
@@ -202,13 +225,16 @@ def getArgParser():
                   
     # Parent parser    
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       failed=False, annotation=False, log=False)
+                                       failed=True, annotation=False, log=False)
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[parser_parent], 
                             formatter_class=CommonHelpFormatter)
-    # parser.add_argument('--cdr3', action='store_true', dest='cdr3', default=True,
+
+    parser.add_argument('--sf', action='store', dest='seq_field',
+                        default=default_seq_field,
+                        help='The name of the field to be analyzed')
     
     return parser
 
