@@ -18,14 +18,15 @@ try:
 except ImportError:
     sys.exit('Please install setuptools before installing changeo.\n')
 
-# TODO: check pip version to avoid problem with parse_requirements(session=False)
 try:
     from pip.req import parse_requirements
 except ImportError:
     sys.exit('Please install pip before installing changeo.\n')
 
 # Get version, author and license information
-info_file = os.path.join('changeo', 'Version.py')
+info_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         'changeo',
+                         'Version.py')
 __version__, __author__, __license__ = None, None, None
 try:
     exec(open(info_file).read())
@@ -39,6 +40,7 @@ if __author__ is None:
 if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
+# TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
 try:
     requirements = parse_requirements("requirements.txt", session=False)
