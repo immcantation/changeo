@@ -40,7 +40,10 @@ if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
 # Parse requirements
-requirements = parse_requirements("requirements.txt", session=False)
+try:
+    requirements = parse_requirements("requirements.txt", session=False)
+except TypeError:
+    requirements = parse_requirements("requirements.txt")
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
