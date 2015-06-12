@@ -39,7 +39,7 @@ default_translate = False
 default_distance = 0.0
 default_bygroup_model = 'm1n'
 default_hclust_model = 'chen2010'
-default_norm = 'none'
+default_norm = 'length'
 
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
@@ -195,19 +195,14 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             elif model == 'hs5f':  model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
             dist_mat = read_csv(model_file, sep='\t', index_col=0).to_dict()
 
-        # Get list of acceptable nucleotides
-        # TODO:  does this account for Ns?
-        nucs = ['A','C','G','T']
         # Make sliding five-mers for each junction sequence
         # TODO:  this can be abstracted into N-mers
         fivemers = DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
         # Calculate pairwise distances
         for i,j in combinations(range(len(junctions)), 2):
             seqs = fivemers[[i,j]]
-            criterion = [a!=b and a in nucs and b in nucs for a,b in zip(seqs[i].str.slice(2,3),seqs[j].str.slice(2,3))]
+            criterion = [a!=b for a,b in zip(seqs[i].str.slice(2,3),seqs[j].str.slice(2,3))]
             seqs = seqs[criterion]
-            # TODO: add option to handle normalizing shm distance
-            # nmut = sum(criterion)
             dists[i,j] = dists[j,i] = \
                 sum([dist_mat[b][a[2:3]] + dist_mat[a][b[2:3]] for a,b in izip(seqs[i],seqs[j])])/2
         # Remove extra Ns from junctions
