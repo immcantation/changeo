@@ -17,9 +17,7 @@ import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain, izip, combinations
-from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.spatial.distance import squareform
+from itertools import chain
 from textwrap import dedent
 from time import time
 from Bio import pairwise2
@@ -31,7 +29,8 @@ from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCom
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Sequence import getDNAScoreDict
 from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                             m1n_distance, m3n_distance, hs5f_distance
+                             m1n_distance, m3n_distance, hs5f_distance, \
+                             calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
 
@@ -41,6 +40,7 @@ default_distance = 0.0
 default_bygroup_model = 'm1n'
 default_hclust_model = 'chen2010'
 default_norm = 'length'
+default_link = 'single'
 
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
@@ -129,7 +129,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,
-                   dist_mat=None, norm=default_norm):
+                   dist_mat=None, norm=default_norm, link=default_link):
     """
     Separates a set of IgRecords into clones
 
@@ -137,8 +137,9 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'm1n') or
+    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'ham', 'm1n') or
                dictionary of {5mer:{'A':val, 'C':val, ...}...} ('hs5f', 'm3n')
+    norm = normalization method
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
@@ -161,74 +162,40 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         else:
             junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction)))), []).append(r)
 
-    # TODO:  this would be cleaner as a distance matrix function which takes in sequences and a model
     # Process records
     if len(junc_map) == 1:
         return {1:records}
-    # Call distance function
-    elif model in ['m1n','aa','ham']:
-        junctions = junc_map.keys()
-        # Calculate pairwise distances
-        dists = np.zeros((len(junctions),len(junctions)))
-        # Check for no distance matrix
-        # TODO:  yucky catch for dist_mat=None.
-        if dist_mat is None:
-            if model == 'm1n': dist_mat = m1n_distance
-            # TODO:  should AA have mask_dist=1 or mask_dist=0?
-            elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
-            elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
-        # print dist_mat
-        # Calculate pairwise distances
-        for i,j in combinations(range(len(junctions)), 2):
-            dists[i,j] = dists[j,i] = sum([dist_mat.loc[c1,c2] for c1,c2 in
-                                           izip(junctions[i], junctions[j])])
+
+    # Define junction sequences
+    junctions = junc_map.keys()
+
+    # TODO:  yucky catch for dist_mat=None.
+    if dist_mat is None:
+        if model == 'm1n': dist_mat = m1n_distance
+        # TODO:  should AA have mask_dist=1 or mask_dist=0?
+        elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
+        elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
+        elif model == 'm3n': dist_mat = m3n_distance
+        elif model == 'hs5f': dist_mat = hs5f_distance
+
+    # Determine length of n-mers
+    if model in ['m1n','aa','ham']:
+        nmer_len = 1
     elif model in ['m3n','hs5f']:
-        junctions = ['NN' + j + 'NN' for j in junc_map.keys()]
-        # Initiate pairwise distance matrix
-        dists = np.zeros((len(junctions), len(junctions)))
+        nmer_len = 5
+    else:
+        sys.stderr.write('Unrecognized distance model.\n')
 
-        # Check for no distance matrix
-        # TODO:  yucky catch for dist_mat=None.
-        # TODO:  this can be abstracted into a model class with N-mer count and substitution matrix
-        # TODO:  yucky path business can be handled in DbCore instead.
-        if dist_mat is None:
-            if model == 'm3n':
-                dist_mat = m3n_distance
-            elif model == 'hs5f':
-                dist_mat = hs5f_distance
+    # Calculate pairwise distance matrix
+    dists = calcDistances(junctions, nmer_len, dist_mat, norm)
 
-        # Make sliding five-mers for each junction sequence
-        # TODO:  this can be abstracted into N-mers
-        fivemers = pd.DataFrame([[x[i:(i+5)] for x in junctions] for i in range(len(junctions[0])-4)])
-        # Calculate pairwise distances
-        for i,j in combinations(range(len(junctions)), 2):
-            seqs = fivemers[[i,j]]
-            criterion = [a!=b for a,b in zip(seqs[i].str.slice(2,3),seqs[j].str.slice(2,3))]
-            seqs = seqs[criterion]
-            dists[i,j] = dists[j,i] = \
-                sum([dist_mat[b][a[2:3]] + dist_mat[a][b[2:3]] for a,b in izip(seqs[i],seqs[j])])/2
-        # Remove extra Ns from junctions
-        junctions = [j[2:-2] for j in junctions]
-
-    else: sys.stderr.write('Unrecognized distance model.\n')
-
-    # Normalize distance matrix if needed
-    if norm == 'len':
-        dists = dists/len(junctions[0])
-
-    # TODO:  could be a clustering function
-    # Perform single-linkage hierarchical clustering
-    dists = squareform(dists)
-    links = linkage(dists, 'single')
-    clusters = fcluster(links, distance, criterion='distance')
-    clone_list = [[] for i in range(len(set(clusters)))]
-    for i,c in enumerate(clusters):
-        clone_list[c-1].append(junctions[i])
+    # Perform hierarchical clustering
+    clusters = formClusters(dists, link, distance)
                         
-    # Turn clone list into clone dictionary
+    # Turn clusters into clone dictionary
     clone_dict = {}
-    for i, c in enumerate(clone_list):
-        clone_dict[i + 1] = list(chain(*[junc_map[str(j).upper()] for j in c]))
+    for i,c in enumerate(clusters):
+        clone_dict.setdefault(c, []).append(junc_map[str(junctions[i]).upper()])
 
     return clone_dict
 
@@ -1084,9 +1051,13 @@ def getArgParser():
                              default=default_distance,
                              help='The junction distance threshold for clonal grouping')
     parser_bygroup.add_argument('--norm', action='store', dest='norm',
-                             choices=('len', 'none'), default=default_norm,
+                             choices=('len', 'mut', 'none'), default=default_norm,
                              help='''Specifies how to normalize distances. One of none
-                                  (do not normalize) or len (normalize by junction length.''')
+                                  (do not normalize), len (normalize by junction length,
+                                  or mut (normalize by number of mutations between sequences.''')
+    parser_bygroup.add_argument('--link', action='store', dest='link',
+                             choices=('single', 'average', 'complete'), default=default_link,
+                             help='''Type of linkage to use for hierarchical clustering.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
     parser_bygroup.set_defaults(collect_func=collectQueue)  
