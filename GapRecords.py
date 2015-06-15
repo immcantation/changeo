@@ -236,20 +236,20 @@ def getArgParser():
     """
     # Define output file names and header fields
     fields = textwrap.dedent(
-         '''
-         output files:
-             gap-pass     database with multiple aligned sequences.
-             gap-fail     database with records failing alignment.
+             '''
+             output files:
+               gap-pass       database with multiple aligned sequences.
+               gap-fail       database with records failing alignment.
 
-         required fields:
-             SEQUENCE_ID
-             SEQUENCE_VDJ
-             V_CALL
-             J_CALL
+             required fields:
+               SEQUENCE_ID
+               SEQUENCE_VDJ
+               V_CALL
+               J_CALL
 
-         output fields:
-             <sequence field>_ALIGN
-         ''')
+             output fields:
+               <sequence field>_ALIGN
+             ''')
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
