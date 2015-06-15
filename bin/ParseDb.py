@@ -7,6 +7,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
+import csv
 import os
 import re
 from argparse import ArgumentParser
@@ -580,6 +581,74 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     return pass_handle.name
 
 
+def renameDbFile(db_file, fields, names, out_args=default_out_args):
+    """
+    Renames fields in a database file
+
+    Arguments:
+    db_file = the database file name
+    fields = a list of fields to rename
+    values = a list of new names for fields
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'rename'
+    log['FILE'] = os.path.basename(db_file)
+    log['FIELDS'] = ','.join(fields)
+    log['NAMES'] = ','.join(names)
+    printLog(log)
+
+    # Open file handles
+    db_iter = readDbFile(db_file, ig=False)
+    pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tab')
+
+    # Get header and rename fields
+    header = (readDbFile(db_file, ig=False)).fieldnames
+    for f, n in zip(fields, names):
+        i = header.index(f)
+        header[i] = n
+
+    # Open writer and write new header
+    # TODO:  should modify getDbWriter to take a list of fields
+    pass_writer = csv.DictWriter(pass_handle, fieldnames=header, dialect='excel-tab')
+    pass_writer.writeheader()
+
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+        # TODO:  repeating renaming is unnecessary.  should had a non-dict reader/writer to DbCore
+        # Rename fields
+        for f, n in zip(fields, names):
+            rec[n] = rec.pop(f)
+        # Write
+        pass_writer.writerow(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
 def selectDbFile(db_file, fields, values, logic='any', regex=False,
                  out_args=default_out_args):
     """
@@ -806,23 +875,34 @@ def getArgParser():
     # Define input and output field help message
     fields = dedent(
              '''
+             output files:
+               sequences      FASTA formatted sequences output from the subcommands fasta
+                              and clip.
+               <field>-<value>
+                              database files partitioned by annotation <field> and <value>.
+               parse-<command>
+                              output of the database modification functions where <command>
+                              is one of the subcommands add, index, drop, delete, rename,
+                              select, sort or update.
+
+
              required fields:
-                 SEQUENCE_ID
+               SEQUENCE_ID
                  
-              optional fields:
-                 JUNCTION
-                 SEQUENCE_IMGT
-                 GERMLINE_IMGT
-                 GERMLINE_IMGT_D_MASK
-                 GERMLINE_IMGT_V_REGION
-                 SEQUENCE_VDJ
-                 GERMLINE_VDJ
-                 GERMLINE_VDJ_D_MASK
-                 GERMLINE_VDJ_V_REGION
+             optional fields:
+               JUNCTION
+               SEQUENCE_IMGT
+               GERMLINE_IMGT
+               GERMLINE_IMGT_D_MASK
+               GERMLINE_IMGT_V_REGION
+               SEQUENCE_VDJ
+               GERMLINE_VDJ
+               GERMLINE_VDJ_D_MASK
+               GERMLINE_VDJ_V_REGION
                 
-              output fields:
-                 None
-              ''')
+             output fields:
+               None
+             ''')
     
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -921,11 +1001,21 @@ def getArgParser():
     # Subparser to index fields
     parser_index = subparsers.add_parser('index', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Adds a numeric index column')
+                                        help='Adds a numeric index field')
     parser_index.add_argument('-f', nargs='+', action='store', dest='field',
                              default=default_index_field,
                              help='The name of the index field to add to the database.')
     parser_index.set_defaults(func=indexDbFile)
+
+    # Subparser to rename fields
+    parser_rename = subparsers.add_parser('rename', parents=[parser_parent],
+                                          formatter_class=CommonHelpFormatter,
+                                          help='Renames fields')
+    parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='List of fields to rename.')
+    parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
+                               help='List of new names for each field.')
+    parser_rename.set_defaults(func=renameDbFile)
 
     # Subparser to select records
     parser_select = subparsers.add_parser('select', parents=[parser_parent],
@@ -990,6 +1080,8 @@ if __name__ == '__main__':
     # Check modify_args arguments
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
         parser.error('You must specify exactly one value (-u) per field (-f)')
+    elif args.command == 'rename' and len(args_dict['fields']) != len(args_dict['names']):
+        parser.error('You must specify exactly one new name (-k) per field (-f)')
     elif args.command == 'update' and len(args_dict['values']) != len(args_dict['updates']):
         parser.error('You must specify exactly one value (-u) per replacement (-t)')
 
