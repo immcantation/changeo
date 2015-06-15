@@ -75,8 +75,8 @@ class Test_DefineClones(unittest.TestCase):
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
         # Define data files
-        model_file = os.path.join(model_path, 'HS5F_Targeting.tab')
-        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0).to_dict()
+        model_file = os.path.join(model_path, 'HS5F_Distance.tab')
+        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0)
 
         results = mod.distanceClones(self.records, model='hs5f', distance=1.0, dist_mat=dist_dict)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
@@ -88,8 +88,8 @@ class Test_DefineClones(unittest.TestCase):
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # Define data files
-        model_file = os.path.join(model_path, 'M3N_Targeting.tab')
-        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0).to_dict()
+        model_file = os.path.join(model_path, 'M3N_Distance.tab')
+        dist_dict = pd.read_csv(model_file, sep='\t', index_col=0)
 
         results = mod.distanceClones(self.records, model='m3n', distance=1.0, dist_mat=dist_dict)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}

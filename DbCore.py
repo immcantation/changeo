@@ -11,9 +11,12 @@ __date__      = '2015.05.31'
 
 # Imports
 import csv, os, re, sys
+import numpy as np
 import pandas as pd
-from itertools import product
+from itertools import combinations, izip, product
 from collections import OrderedDict
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
 from time import time
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -486,6 +489,80 @@ def getDistMat(mat=None, n_score=0, gap_score=0, alphabet='dna'):
             dist_mat.loc[i,j] = 1 - score_func(i, j, n_score=1-n_score, gap_score=1-gap_score)
 
     return dist_mat
+
+
+def getNmers(sequences, n):
+    """
+    Breaks input sequences down into n-mers
+
+    :param sequences: list of sequences to be broken into n-mers
+    :param n: length of n-mers to return
+    :return: dictionary of {sequence: [n-mers]}
+    """
+    sequences_n = ['N' * ((n-1)/2) + seq + 'N' * ((n-1)/2) for seq in sequences]
+    nmers = {}
+    for seq,seqn in izip(sequences,sequences_n):
+        nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
+    # nmers = {(seq, [seqn[i:i+n] for i in range(len(seqn)-n+1)]) for seq,seqn in izip(sequences,sequences_n)}
+
+    return nmers
+
+
+def calcDistances(sequences, n, dist_mat, norm):
+    """
+    Calculate pairwise distances between input sequences
+
+    :param sequences: list of sequences for which to calculate pairwise distances
+    :param n: length of n-mers to be used in calculating distance
+    :param dist_mat: pandas DataFrame of mutation distances
+    :param norm: normalization method
+    :return: numpy matrix of pairwise distances between input sequences
+    """
+    # Initialize output distance matrix
+    dists = np.zeros((len(sequences),len(sequences)))
+    # Generate dictionary of n-mers from input sequences
+    nmers = getNmers(sequences, n)
+    # Iterate over combinations of input sequences
+    for j,k in combinations(range(len(sequences)), 2):
+        # Only consider characters and n-mers with mutations
+        mutated = [i for i,(c1,c2) in enumerate(izip(sequences[j],sequences[k])) if c1 != c2]
+        seq1 = [sequences[j][i] for i in mutated]
+        seq2 = [sequences[k][i] for i in mutated]
+        nmer1 = [nmers[sequences[j]][i] for i in mutated]
+        nmer2 = [nmers[sequences[k]][i] for i in mutated]
+
+        # Determine normalizing factor
+        if norm == 'len':
+            norm_by = len(sequences[0])
+        elif norm == 'mut':
+            norm_by = len(mutated)
+        else:
+            norm_by = 1
+
+        # Calculate distances
+        dists[j,k] = dists[k,j] = \
+                sum([dist_mat.at[c1,n2] + dist_mat.at[c2,n1] \
+                     for c1,c2,n1,n2 in izip(seq1,seq2,nmer1,nmer2)]) / \
+                (2*norm_by)
+
+    return dists
+
+
+def formClusters(dists, link, distance):
+    """
+    Form clusters based on hierarchical clustering of input distance matrix with linkage type and cutoff distance
+    :param dists: numpy matrix of distances
+    :param link: linkage type for hierarchical clustering
+    :param distance: distance at which to cut into clusters
+    :return: list of cluster assignments
+    """
+    # Make distance matrix square
+    dists = squareform(dists)
+    # Compute linkage
+    links = linkage(dists, link)
+    # Break into clusters based on cutoff
+    clusters = fcluster(links, distance, criterion='distance')
+    return clusters
 
 
 def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
