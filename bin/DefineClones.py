@@ -140,6 +140,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'ham', 'm1n') or
                dictionary of {5mer:{'A':val, 'C':val, ...}...} ('hs5f', 'm3n')
     norm = normalization method
+    link = type of linkage
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
@@ -195,7 +196,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Turn clusters into clone dictionary
     clone_dict = {}
     for i,c in enumerate(clusters):
-        clone_dict.setdefault(c, []).append(junc_map[str(junctions[i]).upper()])
+        clone_dict.setdefault(c, []).extend(junc_map[str(junctions[i]).upper()])
 
     return clone_dict
 
@@ -1104,7 +1105,8 @@ if __name__ == '__main__':
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance'],
-                                   'norm': args_dict['norm']}
+                                   'norm': args_dict['norm'],
+                                   'link': args_dict['link']}
 
         # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
@@ -1124,6 +1126,7 @@ if __name__ == '__main__':
         del args_dict['model']
         del args_dict['distance']
         del args_dict['norm']
+        del args_dict['link']
 
     # Define clone_args
     if args.command == 'hclust':

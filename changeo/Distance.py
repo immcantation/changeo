@@ -124,9 +124,12 @@ def getNmers(sequences, n):
     :param n: length of n-mers to return
     :return: dictionary of {sequence: [n-mers]}
     """
-
-    sequences = ['N' * (n-1)/2 + seq + 'N' * (n-1)/2 for seq in sequences]
-    nmers = {(seq,[seq[i:i+n] for i in range(len(seq)-n+1)]) for seq in sequences}
+    # Add Ns so first nucleotide is center of first n-mer
+    sequences_n = ['N' * ((n-1)/2) + seq + 'N' * ((n-1)/2) for seq in sequences]
+    nmers = {}
+    for seq,seqn in izip(sequences,sequences_n):
+        nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
+    # nmers = {(seq, [seqn[i:i+n] for i in range(len(seqn)-n+1)]) for seq,seqn in izip(sequences,sequences_n)}
 
     return nmers
 
@@ -151,8 +154,8 @@ def calcDistances(sequences, n, dist_mat, norm):
         mutated = [i for i,(c1,c2) in enumerate(izip(sequences[j],sequences[k])) if c1 != c2]
         seq1 = [sequences[j][i] for i in mutated]
         seq2 = [sequences[k][i] for i in mutated]
-        nmer1 = [nmers[seq1][i] for i in mutated]
-        nmer2 = [nmers[seq2][i] for i in mutated]
+        nmer1 = [nmers[sequences[j]][i] for i in mutated]
+        nmer2 = [nmers[sequences[k]][i] for i in mutated]
 
         # Determine normalizing factor
         if norm == 'len':
@@ -164,7 +167,7 @@ def calcDistances(sequences, n, dist_mat, norm):
 
         # Calculate distances
         dists[j,k] = dists[k,j] = \
-                sum([dist_mat.at[n2,c1] + dist_mat.at[n1,c2] \
+                sum([dist_mat.at[c1,n2] + dist_mat.at[c2,n1] \
                      for c1,c2,n1,n2 in izip(seq1,seq2,nmer1,nmer2)]) / \
                 (2*norm_by)
 
