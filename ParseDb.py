@@ -1081,6 +1081,8 @@ if __name__ == '__main__':
     # Check modify_args arguments
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
         parser.error('You must specify exactly one value (-u) per field (-f)')
+    elif args.command == 'rename' and len(args_dict['fields']) != len(args_dict['names']):
+        parser.error('You must specify exactly one new name (-k) per field (-f)')
     elif args.command == 'update' and len(args_dict['values']) != len(args_dict['updates']):
         parser.error('You must specify exactly one value (-u) per replacement (-t)')
 
