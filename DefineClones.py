@@ -29,6 +29,7 @@ from IgCore import default_out_args
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict
+from IgCore import manageProcesses
 from DbCore import countDbFile, readDbFile, getDbWriter
 from DbCore import DbData, DbResult, getDistMat
 from DbCore import calcDistances, formClusters
@@ -210,7 +211,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
     """
     # Get distance matrix if not provided
-    if dist_mat is None:  getModelMatrix(model)
+    if dist_mat is None:  dist_mat = getModelMatrix(model)
 
     # Determine length of n-mers
     if model in ['hs1f', 'm1n', 'aa', 'ham']:
@@ -571,7 +572,7 @@ def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
     return None
 
 
-def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_func=None, cluster_args={}):
+def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_func=None, cluster_args={}):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -579,8 +580,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
     alive = a multiprocessing.Value boolean controlling whether processing continues
             if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    collect_queue = a multiprocessing.Queue to store collector return values
     db_file = the input database file name
     out_args = common output argument dictionary from parseCommonArgs
     cluster_func = the function to call for carrying out clustering on distance matrix
@@ -685,8 +685,8 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
     except:
         #sys.stderr.write('Exception in collector result processing step\n')
         alive.value = False
@@ -695,7 +695,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
     return None
 
 
-def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, cluster_func, cluster_args):
+def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, cluster_func, cluster_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -703,8 +703,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
     alive = a multiprocessing.Value boolean controlling whether processing continues
             if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    collect_queue = a multiprocessing.Queue to store collector return values
     db_file = the input database file name
     out_args = common output argument dictionary from parseCommonArgs
     cluster_func = the function to call for carrying out clustering on distance matrix
@@ -831,12 +830,8 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
-            
-        # Write log
-        # printLog(result.log, handle=log_handle)
-    
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
     except:
         alive.value = False
         raise
@@ -844,128 +839,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
     return None
 
 
-# TODO: Replace with IgCore.manageProcesses
-def manageProcesses(feed_func, work_func, collect_func, 
-                    feed_args={}, work_args={}, collect_args={}, 
-                    nproc=None, queue_size=None):
-    """
-    Manages feeder, worker and collector processes
-    
-    Arguments:
-    feed_func = the data Queue feeder function
-    work_func = the worker function
-    collect_func = the result Queue collector function
-    feed_args = a dictionary of arguments to pass to feed_func
-    work_args = a dictionary of arguments to pass to work_func
-    collect_args = a dictionary of arguments to pass to collect_func
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc    
-    
-    Returns:
-    a dictionary of collector results
-    """
-    # Raise KeyboardInterrupt
-    def _signalHandler(s, f):
-        raise SystemExit
-
-    # Terminate processes
-    def _terminate():
-        sys.stderr.write('Terminating child processes...')
-        # Terminate feeders
-        feeder.terminate()
-        feeder.join()
-        # Terminate workers
-        for w in workers:
-            w.terminate()
-            w.join()
-        # Terminate collector
-        collector.terminate()
-        collector.join()
-        # Shutdown manager
-        manager.shutdown()
-        sys.stderr.write('  Done.\n')
-    
-    # Raise SystemExit upon termination signal
-    signal.signal(signal.SIGTERM, _signalHandler)
-        
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
-    # Define shared child process keep alive flag
-    alive = mp.Value(c_bool, True)
-    
-    # Initiate manager and define shared data objects
-    manager = mp.Manager()
-    data_queue = manager.Queue(queue_size)
-    result_queue = manager.Queue(queue_size)
-    collect_dict = manager.dict()
-
-    try:  
-        # Initiate feeder process
-        feeder = mp.Process(target=feed_func, 
-                            args=(alive, data_queue), 
-                            kwargs=feed_args)
-        #feeder.daemon = True
-        feeder.start()
-    
-        # Initiate processQueue processes
-        workers = []
-        for __ in range(nproc):
-            w = mp.Process(target=work_func, 
-                           args=(alive, data_queue, result_queue), 
-                           kwargs=work_args) 
-            #w.daemon = True
-            w.start()
-            workers.append(w)
-    
-        # Initiate collector process
-        collector = mp.Process(target=collect_func, 
-                               args=(alive, result_queue, collect_dict), 
-                               kwargs=collect_args)
-        #collector.daemon = True
-        collector.start()
-    
-        # Wait for feeder to finish
-        feeder.join()
-        # Add sentinel object to data queue for each worker process
-        for __ in range(nproc):  data_queue.put(None)
-        
-        # Wait for worker processes to finish
-        for w in workers:  w.join()
-        # Add sentinel to result queue
-        result_queue.put(None)
-        
-        # Wait for collector process to finish
-        collector.join()
-
-        # Copy collector results and shutdown manager
-        result = dict(collect_dict)
-        manager.shutdown()
-    except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write('Exit signal received\n')
-        _terminate()
-        sys.exit()
-    except Exception as e:
-        sys.stderr.write('Error:  %s\n' % e)
-        _terminate()
-        sys.exit()
-    except:
-        sys.stderr.write('Error:  Exiting with unknown exception\n')
-        _terminate()
-        sys.exit()
-    else:
-        if not alive.value:
-            sys.stderr.write('Error:  Exiting due to child process error\n')
-            _terminate()
-            sys.exit()
-    
-    return result
-
-
-def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None, 
+def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None,
                  group_func=None, group_args={}, clone_args={}, cluster_args={}, 
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
