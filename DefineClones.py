@@ -298,11 +298,9 @@ def hierClust(dist_mat, method='chen2010'):
     list of cluster ids
     """
     if method == 'chen2010':
-        links = linkage(dist_mat, 'average')
-        clusters = fcluster(links, 0.32, criterion='distance')
+        formClusters(dist_mat, 'average', 0.32)
     elif method == 'ademokun2011':
-        links = linkage(dist_mat, 'complete')
-        clusters = fcluster(links, 0.25, criterion='distance')
+        formClusters(dist_mat, 'complete', 0.25)
     else: clusters = np.ones(dist_mat.shape[0])
         
     return clusters
