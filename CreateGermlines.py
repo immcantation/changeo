@@ -487,39 +487,39 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 germ-pass           database with assigned germline sequences.
-                 germ-fail           database with records failing germline assignment.
+               germ-pass             database with assigned germline sequences.
+               germ-fail             database with records failing germline assignment.
 
              required fields:
-                 SEQUENCE_ID 
-                 SEQUENCE_INPUT
-                 SEQUENCE_VDJ or SEQUENCE_IMGT
-                 V_CALL or V_CALL_GENOTYPED 
-                 D_CALL
-                 J_CALL
-                 V_SEQ_START
-                 V_SEQ_LENGTH
-                 V_GERM_START
-                 V_GERM_LENGTH
-                 D_SEQ_START
-                 D_SEQ_LENGTH
-                 D_GERM_START
-                 D_GERM_LENGTH
-                 J_SEQ_START
-                 J_SEQ_LENGTH
-                 J_GERM_START
-                 J_GERM_LENGTH
+               SEQUENCE_ID
+               SEQUENCE_INPUT
+               SEQUENCE_VDJ or SEQUENCE_IMGT
+               V_CALL or V_CALL_GENOTYPED
+               D_CALL
+               J_CALL
+               V_SEQ_START
+               V_SEQ_LENGTH
+               V_GERM_START
+               V_GERM_LENGTH
+               D_SEQ_START
+               D_SEQ_LENGTH
+               D_GERM_START
+               D_GERM_LENGTH
+               J_SEQ_START
+               J_SEQ_LENGTH
+               J_GERM_START
+               J_GERM_LENGTH
               
-              optional fields:
-                 CLONE
+             optional fields:
+               CLONE
                 
-              output fields:
-                 GERMLINE_VDJ
-                 GERMLINE_VDJ_D_MASK
-                 GERMLINE_VDJ_V_REGION
-                 GERMLINE_IMGT
-                 GERMLINE_IMGT_D_MASK
-                 GERMLINE_IMGT_V_REGION
+             output fields:
+               GERMLINE_VDJ
+               GERMLINE_VDJ_D_MASK
+               GERMLINE_VDJ_V_REGION
+               GERMLINE_IMGT
+               GERMLINE_IMGT_D_MASK
+               GERMLINE_IMGT_V_REGION
               ''')
 
     # Parent parser

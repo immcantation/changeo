@@ -922,19 +922,19 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 clone-pass   database with assigned clonal group numbers.
-                 clone-fail   database with records failing clonal grouping.
+               clone-pass     database with assigned clonal group numbers.
+               clone-fail     database with records failing clonal grouping.
 
              required fields:
-                 SEQUENCE_ID
-                 V_CALL or V_CALL_GENOTYPED 
-                 D_CALL
-                 J_CALL
-                 JUNCTION_LENGTH
-                 JUNCTION
-                
-              output fields:
-                 CLONE
+               SEQUENCE_ID
+               V_CALL or V_CALL_GENOTYPED
+               D_CALL
+               J_CALL
+               JUNCTION_LENGTH
+               JUNCTION
+
+             output fields:
+               CLONE
               ''')
 
     # Define ArgumentParser
