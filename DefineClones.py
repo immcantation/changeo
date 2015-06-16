@@ -21,7 +21,7 @@ from pandas import DataFrame
 from pandas.io.parsers import read_csv
 from time import time
 from Bio import pairwise2
-from Bio.Seq import Seq
+from Bio.Seq import translate, Seq
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -39,10 +39,12 @@ default_distance = 0.0
 default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
 default_norm = 'length'
-default_link = 'single'
+default_linkage = 'single'
 
 
 # TODO:  moved models into core, can wait until package conversion
+# Path to model files
+model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models')
 
 # Amino acid Hamming distance
 aa_model = getDistMat(n_score=1, gap_score=0, alphabet='aa')
@@ -71,15 +73,42 @@ smith96 = DataFrame([[0,2.86,1,2.14],
 m1n_model = getDistMat(smith96)
 
 # Human 5-mer DNA model
-hs5f_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
+hs5f_file = os.path.join(model_path, 'HS5F_Distance.tab')
 hs5f_model = read_csv(hs5f_file, sep='\t', index_col=0)
 
 # Mouse 3-mer DNA model with 5-mer windows
-m3n_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
+m3n_file = os.path.join(model_path, 'M3N_Distance.tab')
 m3n_model = read_csv(m3n_file, sep='\t', index_col=0)
 
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
+
+
+# TODO:  this function is an abstraction to facilitate later cleanup
+def getModelMatrix(model):
+    """
+    Simple wrapper to get distance matrix from model name
+
+    Arguments:
+    model = model name
+
+    Return:
+    a pandas.DataFrame containing the character distance matrix
+    """
+    if model == 'aa':
+        return(aa_model)
+    elif model == 'ham':
+        return(ham_model)
+    elif model == 'm1n':
+        return(m1n_model)
+    elif model == 'hs1f':
+        return(hs1f_model)
+    elif model == 'm3n':
+        return(m3n_model)
+    elif model == 'hs5f':
+        return(hs5f_model)
+    else:
+        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
 
 
 def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
@@ -165,7 +194,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,
-                   dist_mat=None, norm=default_norm, link=default_link):
+                   dist_mat=None, norm=default_norm, linkage=default_linkage):
     """
     Separates a set of IgRecords into clones
 
@@ -175,76 +204,51 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     distance = the distance threshold to assign clonal groups
     dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
     norm = normalization method
-    link = type of linkage
+    linkage = type of linkage
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
     """
+    # Get distance matrix if not provided
+    if dist_mat is None:  getModelMatrix(model)
+
+    # Determine length of n-mers
+    if model in ['hs1f', 'm1n', 'aa', 'ham']:
+        nmer_len = 1
+    elif model in ['m3n', 'hs5f']:
+        nmer_len = 5
+    else:
+        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
+
     # Define unique junction mapping
     junc_map = {}
-    for r in records:
+    for ig in records:
         # Check if junction length is 0
-        if r.junction_length == 0:
+        if ig.junction_length == 0:
             return None
 
-        # TODO: needs a better solution to the gap character problem at some point.
-        # TODO: this could also probably be cleaner and faster.
-        if model == 'aa':
-            #from Bio.Data import CodonTable
-            #from Bio.Alphabet import IUPAC
-            #print r.junction.translate("ATG..C")
-            #print r.junction.translate(table=IUPAC.ExtendedIUPACProtein())
-            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction))).translate()), []).append(r)
-        else:
-            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction)))), []).append(r)
+        junc = re.sub('[\.-]','N', str(ig.junction))
+        if model == 'aa':  junc = translate(junc)
+
+        junc_map.setdefault(junc, []).append(ig)
 
     # Process records
     if len(junc_map) == 1:
         return {1:records}
 
     # Define junction sequences
-    junctions = junc_map.keys()
-
-    # TODO:  yucky catch for dist_mat=None.
-    # TODO:  yucky path business can be handled in DbCore instead.
-    if dist_mat is None:
-        if model == 'm1n':
-            smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            dist_mat = getDistMat(smith96)
-        elif model == 'hs1f':
-            hs1f = DataFrame([[0,2.08,1,1.75],[2.08,0,1.75,1],[1,1.75,0,2.08],[1.75,1,2.08,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            dist_mat = getDistMat(hs1f)
-        elif model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
-        elif model == 'ham': dist_mat = getDistMat(n_score=0, gap_score=0, alphabet='dna')
-        elif model == 'm3n':
-            model_path = os.path.dirname(os.path.realpath(__file__))
-            model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
-            dist_mat = read_csv(model_file, sep='\t', index_col=0)
-        elif model == 'hs5f':
-            model_path = os.path.dirname(os.path.realpath(__file__))
-            model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            dist_mat = read_csv(model_file, sep='\t', index_col=0)
-
-    # Determine length of n-mers
-    if model in ['hs1f','m1n','aa','ham']:
-        nmer_len = 1
-    elif model in ['m3n','hs5f']:
-        nmer_len = 5
-    else:
-        sys.stderr.write('Unrecognized distance model.\n')
+    junctions = list(junc_map.keys())
 
     # Calculate pairwise distance matrix
     dists = calcDistances(junctions, nmer_len, dist_mat, norm)
 
     # Perform hierarchical clustering
-    clusters = formClusters(dists, link, distance)
+    clusters = formClusters(dists, linkage, distance)
 
     # Turn clusters into clone dictionary
     clone_dict = {}
-    for i,c in enumerate(clusters):
-        clone_dict.setdefault(c, []).extend(junc_map[str(junctions[i]).upper()])
+    for i, c in enumerate(clusters):
+        clone_dict.setdefault(c, []).extend(junc_map[junctions[i]])
 
     return clone_dict
 
@@ -1103,8 +1107,8 @@ def getArgParser():
                              help='''Specifies how to normalize distances. One of none
                                   (do not normalize), len (normalize by junction length,
                                   or mut (normalize by number of mutations between sequences.''')
-    parser_bygroup.add_argument('--link', action='store', dest='link',
-                             choices=('single', 'average', 'complete'), default=default_link,
+    parser_bygroup.add_argument('--link', action='store', dest='linkage',
+                             choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
@@ -1146,28 +1150,16 @@ if __name__ == '__main__':
     
     # Define clone_args
     if args.command == 'bygroup':
-        model_path = os.path.dirname(os.path.realpath(__file__))
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance'],
                                    'norm': args_dict['norm'],
-                                   'link': args_dict['link']}
+                                   'linkage': args_dict['linkage']}
 
         # TODO:  can be cleaned up with abstract model class
-        if args_dict['model'] == 'aa':
-            args_dict['clone_args']['dist_mat'] = aa_model
-        elif args_dict['model'] == 'hs1f':
-            args_dict['clone_args']['dist_mat'] = hs1f_model
-        elif args_dict['model'] == 'm1n':
-            args_dict['clone_args']['dist_mat'] = m1n_model
-        elif args_dict['model'] == 'ham':
-            args_dict['clone_args']['dist_mat'] = ham_model
-        elif args_dict['model'] == 'hs5f':
-            args_dict['clone_args']['dist_mat'] = hs5f_model
-        elif args_dict['model'] == 'm3n':
-            args_dict['clone_args']['dist_mat'] = m3n_model
+        args_dict['clone_args']['dist_mat'] = getModelMatrix(args_dict['model'])
 
         del args_dict['fields']
         del args_dict['action']
@@ -1175,7 +1167,7 @@ if __name__ == '__main__':
         del args_dict['model']
         del args_dict['distance']
         del args_dict['norm']
-        del args_dict['link']
+        del args_dict['linkage']
 
     # Define clone_args
     if args.command == 'hclust':
