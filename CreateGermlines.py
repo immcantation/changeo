@@ -157,7 +157,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     if 'vonly' in germ_types: germs['vonly'] = germ_vseq
 
     if len(align[seq_field]) == 0:
-        result_log['ERROR'] = 'Gapped sequence is missing from SEQUENCE_GAP column'
+        result_log['ERROR'] = 'Gapped sequence is missing from %s column' % seq_field
     elif len(germs['full']) != len(align[seq_field]):
         result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align[seq_field]))
         
