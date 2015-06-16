@@ -32,7 +32,7 @@ from DbCore import countDbFile, readDbFile, getDbWriter
 default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
-default_index_field = "INDEX"
+default_index_field = 'INDEX'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 

@@ -41,6 +41,43 @@ default_hclust_model = 'chen2010'
 default_norm = 'length'
 default_link = 'single'
 
+
+# TODO:  moved models into core, can wait until package conversion
+
+# Amino acid Hamming distance
+aa_model = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+
+# DNA Hamming distance
+ham_model = getDistMat(n_score=0, gap_score=0, alphabet='dna')
+
+# Human 1-mer model
+hs1f = DataFrame([[0,2.08,1,1.75],
+                  [2.08,0,1.75,1],
+                  [1,1.75,0,2.08],
+                  [1.75,1,2.08,0]],
+                 index=['A','C','G','T'],
+                 columns=['A','C','G','T'],
+                 dtype=float)
+hs1f_model = getDistMat(hs1f)
+
+# Mouse 1-mer model
+smith96 = DataFrame([[0,2.86,1,2.14],
+                     [2.86,0,2.14,1],
+                     [1,2.14,0,2.86],
+                     [2.14,1,2.86,0]],
+                    index=['A','C','G','T'],
+                    columns=['A','C','G','T'],
+                    dtype=float)
+m1n_model = getDistMat(smith96)
+
+# Human 5-mer DNA model
+hs5f_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
+hs5f_model = read_csv(hs5f_file, sep='\t', index_col=0)
+
+# Mouse 3-mer DNA model with 5-mer windows
+m3n_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
+m3n_model = read_csv(m3n_file, sep='\t', index_col=0)
+
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
 
@@ -1120,25 +1157,17 @@ if __name__ == '__main__':
 
         # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
-            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+            args_dict['clone_args']['dist_mat'] = aa_model
         elif args_dict['model'] == 'hs1f':
-            # TODO:  this should not be defined here. this is no-man's land.
-            hs1f = DataFrame([[0,2.08,1,1.75],[2.08,0,1.75,1],[1,1.75,0,2.08],[1.75,1,2.08,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            args_dict['clone_args']['dist_mat'] = getDistMat(hs1f)
+            args_dict['clone_args']['dist_mat'] = hs1f_model
         elif args_dict['model'] == 'm1n':
-            # TODO:  this should not be defined here. this is no-man's land.
-            smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
-                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
-            args_dict['clone_args']['dist_mat'] = getDistMat(smith96)
+            args_dict['clone_args']['dist_mat'] = m1n_model
         elif args_dict['model'] == 'ham':
-            args_dict['clone_args']['dist_mat'] = getDistMat(n_score=0, gap_score=0, alphabet='dna')
+            args_dict['clone_args']['dist_mat'] = ham_model
         elif args_dict['model'] == 'hs5f':
-            model_file = os.path.join(model_path, 'models', 'HS5F_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
+            args_dict['clone_args']['dist_mat'] = hs5f_model
         elif args_dict['model'] == 'm3n':
-            model_file = os.path.join(model_path, 'models', 'M3N_Distance.tab')
-            args_dict['clone_args']['dist_mat'] = read_csv(model_file, sep='\t', index_col=0)
+            args_dict['clone_args']['dist_mat'] = m3n_model
 
         del args_dict['fields']
         del args_dict['action']
