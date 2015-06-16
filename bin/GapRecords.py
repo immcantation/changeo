@@ -236,9 +236,12 @@ def getArgParser():
 
              required fields:
                SEQUENCE_ID
-               SEQUENCE_VDJ
                V_CALL
                J_CALL
+               <sequence field>
+                              user specified sequence fields to align, which defaults
+                              to alignment of both SEQUENCE_VDJ and GERMLINE_VDJ.
+
 
              output fields:
                <sequence field>_ALIGN
@@ -273,9 +276,9 @@ def getArgParser():
                               help='''Specifies whether to use the V(D)J allele or gene when
                                    an allele call field (--cf) is specified.''')
     parser_align.add_argument('--act', action='store', dest='action', default='first',
-                              choices=('first'),
+                              choices=('first', ),
                               help='''Specifies how to handle multiple values within default
-                                   allele call fields. Currently, only "first" is supported.''')
+                                   allele call fields. Currently, only \'first\' is supported.''')
     parser_align.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')

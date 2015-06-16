@@ -70,6 +70,7 @@ def readDbFile(db_file, ig=True):
     try:
         db_handle = open(db_file, 'rb')
         db_reader = csv.DictReader(db_handle, dialect='excel-tab')
+        db_reader.fieldnames = [n.strip().upper() for n in db_reader.fieldnames]
         if ig:
             db_iter = (IgRecord(r) for r in db_reader)
         else:
