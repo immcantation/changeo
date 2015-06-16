@@ -16,24 +16,19 @@ from scipy.spatial.distance import squareform
 # Presto and changeo imports
 from presto.Sequence import scoreDNA, scoreAA
 
-# Data streams
-#m1n_data = resource_stream(__name__, 'data/M1N_Distance.tab')
-#m3n_data = resource_stream(__name__, 'data/M3N_Distance.tab')
-#hs5f_data = resource_stream(__name__, 'data/HS5F_Distance.tab')
-
 # Load model data
 with resource_stream(__name__, 'data/M1N_Distance.tab') as f:
     #m1n_distance = pd.read_csv(f, sep='\t', index_col=0).to_dict()
-    m1n_distance = pd.read_csv(f, sep='\t', index_col=0)
+    m1n_model = pd.read_csv(f, sep='\t', index_col=0)
 
 with resource_stream(__name__, 'data/HS1F_Distance.tab') as f:
-    hs1f_distance = pd.read_csv(f, sep='\t', index_col=0)
+    hs1f_model = pd.read_csv(f, sep='\t', index_col=0)
 
 with resource_stream(__name__, 'data/M3N_Distance.tab') as f:
-    m3n_distance = pd.read_csv(f, sep='\t', index_col=0)
+    m3n_model = pd.read_csv(f, sep='\t', index_col=0)
 
 with resource_stream(__name__, 'data/HS5F_Distance.tab') as f:
-    hs5f_distance = pd.read_csv(f, sep='\t', index_col=0)
+    hs5f_model = pd.read_csv(f, sep='\t', index_col=0)
 
 
 def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):

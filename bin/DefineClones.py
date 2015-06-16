@@ -20,15 +20,16 @@ from itertools import chain
 from textwrap import dedent
 from time import time
 from Bio import pairwise2
-from Bio.Seq import Seq
+from Bio.Seq import translate, Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
+from presto.Multiprocessing import manageProcesses
 from presto.Sequence import getDNAScoreDict
 from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                             hs1f_distance, m1n_distance, m3n_distance, hs5f_distance, \
+                             hs1f_model, m1n_model, m3n_model, hs5f_model, \
                              calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
@@ -39,10 +40,41 @@ default_distance = 0.0
 default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
 default_norm = 'length'
-default_link = 'single'
+default_linkage = 'single'
 
-# TODO:  Merge duplicate feed, process and collect functions.
-# TODO:  Update feed, process and collect functions to current pRESTO implementation.
+# TODO:  should be in Distance, but need to be after function definitions
+# Amino acid Hamming distance
+aa_model = getAADistMatrix(mask_dist=1, gap_dist=0)
+
+# DNA Hamming distance
+ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
+
+
+# TODO:  this function is an abstraction to facilitate later cleanup
+def getModelMatrix(model):
+    """
+    Simple wrapper to get distance matrix from model name
+
+    Arguments:
+    model = model name
+
+    Return:
+    a pandas.DataFrame containing the character distance matrix
+    """
+    if model == 'aa':
+        return(aa_model)
+    elif model == 'ham':
+        return(ham_model)
+    elif model == 'm1n':
+        return(m1n_model)
+    elif model == 'hs1f':
+        return(hs1f_model)
+    elif model == 'm3n':
+        return(m3n_model)
+    elif model == 'hs5f':
+        return(hs5f_model)
+    else:
+        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
 
 
 def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
@@ -128,7 +160,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,
-                   dist_mat=None, norm=default_norm, link=default_link):
+                   dist_mat=None, norm=default_norm, linkage=default_linkage):
     """
     Separates a set of IgRecords into clones
 
@@ -138,64 +170,51 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     distance = the distance threshold to assign clonal groups
     dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
     norm = normalization method
-    link = type of linkage
+    linkage = type of linkage
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
     """
+    # Get distance matrix if not provided
+    if dist_mat is None:  dist_mat = getModelMatrix(model)
+
+    # Determine length of n-mers
+    if model in ['hs1f', 'm1n', 'aa', 'ham']:
+        nmer_len = 1
+    elif model in ['m3n', 'hs5f']:
+        nmer_len = 5
+    else:
+        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
+
     # Define unique junction mapping
     junc_map = {}
-    for r in records:
+    for ig in records:
         # Check if junction length is 0
-        if r.junction_length == 0:
+        if ig.junction_length == 0:
             return None
 
-        # TODO: needs a better solution to the gap character problem at some point.
-        # TODO: this could also probably be cleaner and faster.
-        if model == 'aa':
-            #from Bio.Data import CodonTable
-            #from Bio.Alphabet import IUPAC
-            #print r.junction.translate("ATG..C")
-            #print r.junction.translate(table=IUPAC.ExtendedIUPACProtein())
-            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction))).translate()), []).append(r)
-        else:
-            junc_map.setdefault(str(Seq(re.sub('\.|-','N', str(r.junction)))), []).append(r)
+        junc = re.sub('[\.-]','N', str(ig.junction))
+        if model == 'aa':  junc = translate(junc)
+
+        junc_map.setdefault(junc, []).append(ig)
 
     # Process records
     if len(junc_map) == 1:
         return {1:records}
 
     # Define junction sequences
-    junctions = junc_map.keys()
-
-    # TODO:  yucky catch for dist_mat=None.
-    if dist_mat is None:
-        if model == 'm1n': dist_mat = m1n_distance
-        elif model == 'hs1f': dist_mat = hs1f_distance
-        # TODO:  should AA have mask_dist=1 or mask_dist=0?
-        elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
-        elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
-        elif model == 'm3n': dist_mat = m3n_distance
-        elif model == 'hs5f': dist_mat = hs5f_distance
-
-    # Determine length of n-mers
-    if model in ['hs1f','m1n','aa','ham']:
-        nmer_len = 1
-    elif model in ['m3n','hs5f']:
-        nmer_len = 5
-    else:
-        sys.stderr.write('Unrecognized distance model.\n')
+    junctions = list(junc_map.keys())
 
     # Calculate pairwise distance matrix
     dists = calcDistances(junctions, nmer_len, dist_mat, norm)
 
     # Perform hierarchical clustering
-    clusters = formClusters(dists, link, distance)
-                        
+    clusters = formClusters(dists, linkage, distance)
+
     # Turn clusters into clone dictionary
     clone_dict = {}
-    for i,c in enumerate(clusters):
-        clone_dict.setdefault(c, []).extend(junc_map[str(junctions[i]).upper()])
+    for i, c in enumerate(clusters):
+        clone_dict.setdefault(c, []).extend(junc_map[junctions[i]])
 
     return clone_dict
 
@@ -290,7 +309,7 @@ def hierClust(dist_mat, method='chen2010'):
         
     return clusters
 
-
+# TODO:  Merge duplicate feed, process and collect functions.
 def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     """
     Feeds the data queue with Ig records
@@ -518,7 +537,7 @@ def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
     return None
 
 
-def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_func=None, cluster_args={}):
+def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_func=None, cluster_args={}):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -526,8 +545,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
     alive = a multiprocessing.Value boolean controlling whether processing continues
             if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    collect_queue = a multiprocessing.Queue to store collector return values
     db_file = the input database file name
     out_args = common output argument dictionary from parseCommonArgs
     cluster_func = the function to call for carrying out clustering on distance matrix
@@ -632,8 +650,8 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
     except:
         #sys.stderr.write('Exception in collector result processing step\n')
         alive.value = False
@@ -642,7 +660,7 @@ def collectQueue(alive, result_queue, collect_dict, db_file, out_args, cluster_f
     return None
 
 
-def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, cluster_func, cluster_args):
+def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, cluster_func, cluster_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -650,8 +668,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
     alive = a multiprocessing.Value boolean controlling whether processing continues
             if False exit process
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    collect_queue = a multiprocessing.Queue to store collector return values
     db_file = the input database file name
     out_args = common output argument dictionary from parseCommonArgs
     cluster_func = the function to call for carrying out clustering on distance matrix
@@ -778,12 +795,8 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
-            
-        # Write log
-        # printLog(result.log, handle=log_handle)
-    
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
     except:
         alive.value = False
         raise
@@ -791,128 +804,7 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
     return None
 
 
-# TODO: Replace with IgCore.manageProcesses
-def manageProcesses(feed_func, work_func, collect_func, 
-                    feed_args={}, work_args={}, collect_args={}, 
-                    nproc=None, queue_size=None):
-    """
-    Manages feeder, worker and collector processes
-    
-    Arguments:
-    feed_func = the data Queue feeder function
-    work_func = the worker function
-    collect_func = the result Queue collector function
-    feed_args = a dictionary of arguments to pass to feed_func
-    work_args = a dictionary of arguments to pass to work_func
-    collect_args = a dictionary of arguments to pass to collect_func
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc    
-    
-    Returns:
-    a dictionary of collector results
-    """
-    # Raise KeyboardInterrupt
-    def _signalHandler(s, f):
-        raise SystemExit
-
-    # Terminate processes
-    def _terminate():
-        sys.stderr.write('Terminating child processes...')
-        # Terminate feeders
-        feeder.terminate()
-        feeder.join()
-        # Terminate workers
-        for w in workers:
-            w.terminate()
-            w.join()
-        # Terminate collector
-        collector.terminate()
-        collector.join()
-        # Shutdown manager
-        manager.shutdown()
-        sys.stderr.write('  Done.\n')
-    
-    # Raise SystemExit upon termination signal
-    signal.signal(signal.SIGTERM, _signalHandler)
-        
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
-    # Define shared child process keep alive flag
-    alive = mp.Value(c_bool, True)
-    
-    # Initiate manager and define shared data objects
-    manager = mp.Manager()
-    data_queue = manager.Queue(queue_size)
-    result_queue = manager.Queue(queue_size)
-    collect_dict = manager.dict()
-
-    try:  
-        # Initiate feeder process
-        feeder = mp.Process(target=feed_func, 
-                            args=(alive, data_queue), 
-                            kwargs=feed_args)
-        #feeder.daemon = True
-        feeder.start()
-    
-        # Initiate processQueue processes
-        workers = []
-        for __ in range(nproc):
-            w = mp.Process(target=work_func, 
-                           args=(alive, data_queue, result_queue), 
-                           kwargs=work_args) 
-            #w.daemon = True
-            w.start()
-            workers.append(w)
-    
-        # Initiate collector process
-        collector = mp.Process(target=collect_func, 
-                               args=(alive, result_queue, collect_dict), 
-                               kwargs=collect_args)
-        #collector.daemon = True
-        collector.start()
-    
-        # Wait for feeder to finish
-        feeder.join()
-        # Add sentinel object to data queue for each worker process
-        for __ in range(nproc):  data_queue.put(None)
-        
-        # Wait for worker processes to finish
-        for w in workers:  w.join()
-        # Add sentinel to result queue
-        result_queue.put(None)
-        
-        # Wait for collector process to finish
-        collector.join()
-
-        # Copy collector results and shutdown manager
-        result = dict(collect_dict)
-        manager.shutdown()
-    except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write('Exit signal received\n')
-        _terminate()
-        sys.exit()
-    except Exception as e:
-        sys.stderr.write('Error:  %s\n' % e)
-        _terminate()
-        sys.exit()
-    except:
-        sys.stderr.write('Error:  Exiting with unknown exception\n')
-        _terminate()
-        sys.exit()
-    else:
-        if not alive.value:
-            sys.stderr.write('Error:  Exiting due to child process error\n')
-            _terminate()
-            sys.exit()
-    
-    return result
-
-
-def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None, 
+def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None,
                  group_func=None, group_args={}, clone_args={}, cluster_args={}, 
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
@@ -1054,8 +946,8 @@ def getArgParser():
                              help='''Specifies how to normalize distances. One of none
                                   (do not normalize), len (normalize by junction length,
                                   or mut (normalize by number of mutations between sequences.''')
-    parser_bygroup.add_argument('--link', action='store', dest='link',
-                             choices=('single', 'average', 'complete'), default=default_link,
+    parser_bygroup.add_argument('--link', action='store', dest='linkage',
+                             choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
@@ -1097,28 +989,16 @@ if __name__ == '__main__':
     
     # Define clone_args
     if args.command == 'bygroup':
-        model_path = os.path.dirname(os.path.realpath(__file__))
         args_dict['group_args'] = {'fields': args_dict['fields'],
                                    'action': args_dict['action'], 
                                    'mode':args_dict['mode']}
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance'],
                                    'norm': args_dict['norm'],
-                                   'link': args_dict['link']}
+                                   'linkage': args_dict['linkage']}
 
         # TODO:  can be cleaned up with abstract model class
-        if args_dict['model'] == 'aa':
-            args_dict['clone_args']['dist_mat'] = getAADistMatrix(mask_dist=1, gap_dist=0)
-        elif args_dict['model'] == 'hs1f':
-            args_dict['clone_args']['dist_mat'] = hs1f_distance
-        elif args_dict['model'] == 'm1n':
-            args_dict['clone_args']['dist_mat'] = m1n_distance
-        elif args_dict['model'] == 'ham':
-            args_dict['clone_args']['dist_mat'] = getDNADistMatrix(mask_dist=0, gap_dist=0)
-        elif args_dict['model'] == 'hs5f':
-            args_dict['clone_args']['dist_mat'] = hs5f_distance
-        elif args_dict['model'] == 'm3n':
-            args_dict['clone_args']['dist_mat'] = m3n_distance
+        args_dict['clone_args']['dist_mat'] = getModelMatrix(args_dict['model'])
 
         del args_dict['fields']
         del args_dict['action']
@@ -1126,7 +1006,7 @@ if __name__ == '__main__':
         del args_dict['model']
         del args_dict['distance']
         del args_dict['norm']
-        del args_dict['link']
+        del args_dict['linkage']
 
     # Define clone_args
     if args.command == 'hclust':
