@@ -486,6 +486,10 @@ def getArgParser():
     # Define input and output field help message
     fields = textwrap.dedent(
              '''
+             output files:
+                 germ-pass           database with assigned germline sequences.
+                 germ-fail           database with records failing germline assignment.
+
              required fields:
                  SEQUENCE_ID 
                  SEQUENCE_INPUT

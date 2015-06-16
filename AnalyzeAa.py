@@ -204,10 +204,15 @@ def getArgParser():
     # Define input and output field help message
     fields = textwrap.dedent(
              '''
+             output files:
+                aa-pass              database with amino acid properties.
+                aa-fail              database with records failing analysis.
+
+
              required fields:
-                 <user defined> sequence field specified by the --sf parameter
+                 <user defined>      sequence field specified by the --sf parameter
                 
-              output fields:
+             output fields:
                  <user defined>_AA_LENGTH
                  <user defined>_AA_POSITIVE
                  <user defined>_AA_NEGATIVE

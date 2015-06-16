@@ -586,6 +586,10 @@ def getArgParser():
     """
     fields = textwrap.dedent(
              '''
+              output files:
+                 db-pass       database of parsed alignment records.
+                 db-fail       database with records failing alignment.
+
               output fields:
                  SEQUENCE_ID
                  SEQUENCE_INPUT
