@@ -134,13 +134,19 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     regions = 'V' * len(germ_vseq)
     # Nucleotide additions before D (before J for light chains)
     # TODO: HACK, the 1 is suppposed to be 'V_SEQ_START' but that isn't working!
-    germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
-    regions += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
+    germ_seq += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+                       int(align['V_SEQ_LENGTH'] or 0) - 1)
+    regions += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+                      int(align['V_SEQ_LENGTH'] or 0) - 1)
     germ_seq += germ_dseq
     regions += 'D' * len(germ_dseq)
     # Nucleotide additions after D (heavy chains only)
-    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
-    regions += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
+    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - \
+                       int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+                       int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
+    regions += 'N' * (int(align['J_SEQ_START'] or 0) - \
+                      int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+                      int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
     germs['full'] = germ_seq.upper()
@@ -151,7 +157,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     if 'vonly' in germ_types: germs['vonly'] = germ_vseq
 
     if len(align[seq_field]) == 0:
-        result_log['ERROR'] = 'Gapped sequence is missing from SEQUENCE_GAP column'
+        result_log['ERROR'] = 'Gapped sequence is missing from %s column' % seq_field
     elif len(germs['full']) != len(align[seq_field]):
         result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align[seq_field]))
         
