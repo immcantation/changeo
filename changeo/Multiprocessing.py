@@ -168,7 +168,7 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence with ID: %s.\n' % data.id)
+        sys.stderr.write('Error processing sequence with ID: %s.\n' % str(data.id))
         raise
 
     return None

@@ -160,15 +160,39 @@ class IgRecord:
         # Add remaining elements as annotations dictionary
         self.annotations = row
     
-    # Get a field value by column name
+    # Get a field value by column name and return it as a string
     #
     # Arguments:  field = column name
-    # Returns:    value in the field
+    # Returns:    value in the field as a string
     def getField(self, field):
         if field in IgRecord._field_map:
-            return getattr(self, IgRecord._field_map[field])
+            v = getattr(self, IgRecord._field_map[field])
         elif field in self.annotations:
-            return self.annotations[field]
+            v = self.annotations[field]
+        else:
+            return None
+
+        if isinstance(v, str):
+            return v
+        else:
+            return str(v)
+
+    # Get a field value converted to a Seq object by column name
+    #
+    # Arguments:  field = column name
+    # Returns:    value in the field as a Seq object
+    def getSeqField(self, field):
+        if field in IgRecord._field_map:
+            v = getattr(self, IgRecord._field_map[field])
+        elif field in self.annotations:
+            v = self.annotations[field]
+        else:
+            return None
+
+        if isinstance(v, Seq):
+            return v
+        elif isinstance(v, str):
+            return Seq(v, IUPAC.ambiguous_dna)
         else:
             return None
 
