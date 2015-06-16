@@ -107,7 +107,7 @@ def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
     result.valid = True
 
     for f in seq_fields:
-        seq_list = [SeqRecord(r.getField(f), id=r.id) for r in data.data]
+        seq_list = [SeqRecord(r.getSeqField(f), id=r.id) for r in data.data]
         seq_aln = alignSeqSet(seq_list, muscle_exec=muscle_exec)
         if seq_aln is not None:
             for i, r in enumerate(result.results):
