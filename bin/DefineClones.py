@@ -13,7 +13,6 @@ import signal
 import sys
 import multiprocessing as mp
 import numpy as np
-import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
@@ -29,7 +28,7 @@ from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCom
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Sequence import getDNAScoreDict
 from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                             m1n_distance, m3n_distance, hs5f_distance, \
+                             hs1f_distance, m1n_distance, m3n_distance, hs5f_distance, \
                              calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
@@ -37,7 +36,7 @@ from changeo.Multiprocessing import DbData, DbResult
 # Defaults
 default_translate = False
 default_distance = 0.0
-default_bygroup_model = 'm1n'
+default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
 default_norm = 'length'
 default_link = 'single'
@@ -137,8 +136,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'ham', 'm1n') or
-               dictionary of {5mer:{'A':val, 'C':val, ...}...} ('hs5f', 'm3n')
+    dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
     norm = normalization method
     link = type of linkage
 
@@ -173,6 +171,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # TODO:  yucky catch for dist_mat=None.
     if dist_mat is None:
         if model == 'm1n': dist_mat = m1n_distance
+        elif model == 'hs1f': dist_mat = hs1f_distance
         # TODO:  should AA have mask_dist=1 or mask_dist=0?
         elif model == 'aa': dist_mat = getAADistMatrix(mask_dist=1, gap_dist=0)
         elif model == 'ham': dist_mat = getDNADistMatrix(mask_dist=0, gap_dist=0)
@@ -180,7 +179,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         elif model == 'hs5f': dist_mat = hs5f_distance
 
     # Determine length of n-mers
-    if model in ['m1n','aa','ham']:
+    if model in ['hs1f','m1n','aa','ham']:
         nmer_len = 1
     elif model in ['m3n','hs5f']:
         nmer_len = 5
@@ -284,11 +283,9 @@ def hierClust(dist_mat, method='chen2010'):
     list of cluster ids
     """
     if method == 'chen2010':
-        links = linkage(dist_mat, 'average')
-        clusters = fcluster(links, 0.32, criterion='distance')
+        formClusters(dist_mat, 'average', 0.32)
     elif method == 'ademokun2011':
-        links = linkage(dist_mat, 'complete')
-        clusters = fcluster(links, 0.25, criterion='distance')
+        formClusters(dist_mat, 'complete', 0.25)
     else: clusters = np.ones(dist_mat.shape[0])
         
     return clusters
@@ -1038,12 +1035,14 @@ def getArgParser():
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs5f'),
+                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs1f', 'hs5f'),
                              default=default_bygroup_model,
                              help='''Specifies which substitution model to use for
                                   calculating distance between junctions. Where m1n is the
-                                  single nucleotide transition/trasversion model; m3n is
-                                  the mouse trinucleotide model of Smith et al, 1996; hs5f
+                                  mouse single nucleotide transition/trasversion model
+                                  of Smith et al, 1996; m3n is the mouse trinucleotide
+                                  model of Smith et al, 1996; hs1f is the human single
+                                  nucleotide model derived from Yaari et al, 2013; hs5f
                                   is the human S5F model of Yaari et al, 2013; ham is
                                   nucleotide Hamming distance; and aa is amino acid
                                   Hamming distance. The m3n and hs5f data should be
@@ -1111,6 +1110,8 @@ if __name__ == '__main__':
         # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
             args_dict['clone_args']['dist_mat'] = getAADistMatrix(mask_dist=1, gap_dist=0)
+        elif args_dict['model'] == 'hs1f':
+            args_dict['clone_args']['dist_mat'] = hs1f_distance
         elif args_dict['model'] == 'm1n':
             args_dict['clone_args']['dist_mat'] = m1n_distance
         elif args_dict['model'] == 'ham':

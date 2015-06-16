@@ -26,6 +26,9 @@ with resource_stream(__name__, 'data/M1N_Distance.tab') as f:
     #m1n_distance = pd.read_csv(f, sep='\t', index_col=0).to_dict()
     m1n_distance = pd.read_csv(f, sep='\t', index_col=0)
 
+with resource_stream(__name__, 'data/HS1F_Distance.tab') as f:
+    hs1f_distance = pd.read_csv(f, sep='\t', index_col=0)
+
 with resource_stream(__name__, 'data/M3N_Distance.tab') as f:
     m3n_distance = pd.read_csv(f, sep='\t', index_col=0)
 

@@ -13,8 +13,7 @@ import unittest
 
 # Presto and changeo imports
 from changeo.Receptor import IgRecord
-from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                      m1n_distance, m3n_distance, hs5f_distance
+from changeo.Distance import m1n_distance, m3n_distance, hs5f_distance
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
