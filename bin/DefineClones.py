@@ -739,11 +739,10 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
             return None    
         
         # Calculate linkage and carry out clustering
-        dist_mat = squareform(dist_mat)
-        print dist_mat
+        # print dist_mat
         clusters = cluster_func(dist_mat, **cluster_args) if dist_mat is not None else None
         clones = {}
-        print clusters
+        # print clusters
         for i, c in enumerate(clusters):
             clones.setdefault(c, []).append(records[records.keys()[i]])
         
