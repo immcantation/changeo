@@ -38,7 +38,7 @@ from DbCore import calcDistances, formClusters
 # Defaults
 default_translate = False
 default_distance = 0.0
-default_bygroup_model = 'm1n'
+default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
 default_norm = 'length'
 default_link = 'single'
@@ -174,7 +174,14 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # TODO:  yucky catch for dist_mat=None.
     # TODO:  yucky path business can be handled in DbCore instead.
     if dist_mat is None:
-        if model == 'm1n': dist_mat = getDistMat(smith96)
+        if model == 'm1n':
+            smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],
+                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
+            dist_mat = getDistMat(smith96)
+        elif model == 'hs1f':
+            hs1f = DataFrame([[0,2.08,1,1.75],[2.08,0,1.75,1],[1,1.75,0,2.08],[1.75,1,2.08,0]],
+                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
+            dist_mat = getDistMat(hs1f)
         elif model == 'aa': dist_mat = getDistMat(n_score=1, gap_score=0, alphabet='aa')
         elif model == 'ham': dist_mat = getDistMat(n_score=0, gap_score=0, alphabet='dna')
         elif model == 'm3n':
@@ -187,7 +194,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
             dist_mat = read_csv(model_file, sep='\t', index_col=0)
 
     # Determine length of n-mers
-    if model in ['m1n','aa','ham']:
+    if model in ['hs1f','m1n','aa','ham']:
         nmer_len = 1
     elif model in ['m3n','hs5f']:
         nmer_len = 5
@@ -1045,12 +1052,14 @@ def getArgParser():
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs5f'),
+                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs1f', 'hs5f'),
                              default=default_bygroup_model,
                              help='''Specifies which substitution model to use for
                                   calculating distance between junctions. Where m1n is the
-                                  single nucleotide transition/trasversion model; m3n is
-                                  the mouse trinucleotide model of Smith et al, 1996; hs5f
+                                  mouse single nucleotide transition/trasversion model
+                                  of Smith et al, 1996; m3n is the mouse trinucleotide
+                                  model of Smith et al, 1996; hs1f is the human single
+                                  nucleotide model derived from Yaari et al, 2013; hs5f
                                   is the human S5F model of Yaari et al, 2013; ham is
                                   nucleotide Hamming distance; and aa is amino acid
                                   Hamming distance. The m3n and hs5f data should be
@@ -1118,6 +1127,11 @@ if __name__ == '__main__':
         # TODO:  can be cleaned up with abstract model class
         if args_dict['model'] == 'aa':
             args_dict['clone_args']['dist_mat'] = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+        elif args_dict['model'] == 'hs1f':
+            # TODO:  this should not be defined here. this is no-man's land.
+            hs1f = DataFrame([[0,2.08,1,1.75],[2.08,0,1.75,1],[1,1.75,0,2.08],[1.75,1,2.08,0]],
+                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
+            args_dict['clone_args']['dist_mat'] = getDistMat(hs1f)
         elif args_dict['model'] == 'm1n':
             # TODO:  this should not be defined here. this is no-man's land.
             smith96 = DataFrame([[0,2.86,1,2.14],[2.86,0,2.14,1],[1,2.14,0,2.86],[2.14,1,2.86,0]],

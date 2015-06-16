@@ -111,6 +111,17 @@ class Test_DefineClones(unittest.TestCase):
                 print '  CLONE-%i> %s' % (k, s.id)
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
+        hs1f = pd.DataFrame([[0,2.08,1,1.75],[2.08,0,1.75,1],[1,1.75,0,2.08],[1.75,1,2.08,0]],
+                                index=['A','C','G','T'], columns=['A','C','G','T'], dtype=float)
+        dist_dict = getDistMat(hs1f)
+        results = mod.distanceClones(self.records, model='hs1f', distance=10, dist_mat=dist_dict)
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
+        print 'MODEL> hs1f'
+        for k, v in results.iteritems():
+            for s in v:
+                print '  CLONE-%i> %s' % (k, s.id)
+        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+
         results = mod.distanceClones(self.records, model='aa', distance=3.0)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> aa'
