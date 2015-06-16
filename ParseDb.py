@@ -886,7 +886,6 @@ def getArgParser():
                               is one of the subcommands add, index, drop, delete, rename,
                               select, sort or update.
 
-
              required fields:
                SEQUENCE_ID
                  
