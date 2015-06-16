@@ -285,7 +285,7 @@ def getArgParser():
     parser_align.add_argument('--act', action='store', dest='action', default='first',
                               choices=('first', ),
                               help='''Specifies how to handle multiple values within default
-                                   allele call fields. Currently, only "first" is supported.''')
+                                   allele call fields. Currently, only \'first\' is supported.''')
     parser_align.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
