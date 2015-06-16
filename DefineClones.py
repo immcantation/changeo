@@ -337,9 +337,9 @@ def hierClust(dist_mat, method='chen2010'):
     list of cluster ids
     """
     if method == 'chen2010':
-        formClusters(dist_mat, 'average', 0.32)
+        clusters = formClusters(dist_mat, 'average', 0.32)
     elif method == 'ademokun2011':
-        formClusters(dist_mat, 'complete', 0.25)
+        clusters = formClusters(dist_mat, 'complete', 0.25)
     else: clusters = np.ones(dist_mat.shape[0])
         
     return clusters
@@ -429,7 +429,7 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
     
     # Add groups to data queue
     try:
-        #print 'START FEED', alive.value
+        # print 'START FEED', alive.value
         # Iterate over groups and feed data queue
         dist_iter = dist_dict.iteritems()
         while alive.value:
@@ -538,7 +538,7 @@ def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
     """
     
     try:
-        #print 'START WORK', alive.value
+        # print 'START WORK', alive.value
         # Iterator over data queue until sentinel object reached
         while alive.value:
             # Get data from queue
@@ -546,7 +546,7 @@ def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            #print "WORK", alive.value, data['id']
+            # print "WORK", alive.value, data['id']
 
             # Define result object for iteration and get data records
             records = data.data
@@ -719,6 +719,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
         # Iterate over Ig records to count and order by junction length
         result_count = 0
         records = {}
+        # print 'Reading file...'
         db_iter = readDbFile(db_file)
         for rec in db_iter:
             records[rec.id] = rec

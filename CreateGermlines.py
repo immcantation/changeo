@@ -134,13 +134,19 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     regions = 'V' * len(germ_vseq)
     # Nucleotide additions before D (before J for light chains)
     # TODO: HACK, the 1 is suppposed to be 'V_SEQ_START' but that isn't working!
-    germ_seq += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
-    regions += 'N' * (int(align['D_SEQ_START'] or 0) - int(align['V_SEQ_LENGTH'] or 0) - 1)
+    germ_seq += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+                       int(align['V_SEQ_LENGTH'] or 0) - 1)
+    regions += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+                      int(align['V_SEQ_LENGTH'] or 0) - 1)
     germ_seq += germ_dseq
     regions += 'D' * len(germ_dseq)
     # Nucleotide additions after D (heavy chains only)
-    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
-    regions += 'N' * (int(align['J_SEQ_START'] or 0) - int(align['D_SEQ_LENGTH'] or 0) - int(align['D_SEQ_START'] or 0))
+    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - \
+                       int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+                       int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
+    regions += 'N' * (int(align['J_SEQ_START'] or 0) - \
+                      int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+                      int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
     germs['full'] = germ_seq.upper()
