@@ -16,14 +16,12 @@ import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
-from itertools import chain, izip, combinations
+from itertools import chain
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
 from time import time
 from Bio import pairwise2
 from Bio.Seq import Seq
-from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.spatial.distance import squareform
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -138,8 +136,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     records = an iterator of IgRecords
     model = substitution model used to calculate distance
     distance = the distance threshold to assign clonal groups
-    dist_mat = matrix of pairwise nucleotide or amino acid distances ('aa', 'ham', 'm1n') or
-               dictionary of {5mer:{'A':val, 'C':val, ...}...} ('hs5f', 'm3n')
+    dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
     norm = normalization method
     link = type of linkage
 
@@ -754,11 +751,10 @@ def collectQueueClust(alive, result_queue, collect_dict, db_file, out_args, clus
             return None    
         
         # Calculate linkage and carry out clustering
-        dist_mat = squareform(dist_mat)
-        print dist_mat
+        # print dist_mat
         clusters = cluster_func(dist_mat, **cluster_args) if dist_mat is not None else None
         clones = {}
-        print clusters
+        # print clusters
         for i, c in enumerate(clusters):
             clones.setdefault(c, []).append(records[records.keys()[i]])
         
