@@ -586,34 +586,38 @@ def getArgParser():
     """
     fields = dedent(
              '''
+              output files:
+                db-pass        database of parsed alignment records.
+                db-fail        database with records failing alignment.
+
               output fields:
-                 SEQUENCE_ID
-                 SEQUENCE_INPUT
-                 FUNCTIONAL
-                 IN_FRAME
-                 STOP
-                 MUTATED_INVARIANT
-                 INDELS
-                 V_CALL
-                 D_CALL
-                 J_CALL
-                 SEQUENCE_VDJ and/or SEQUENCE_IMGT
-                 V_SEQ_START
-                 V_SEQ_LENGTH
-                 V_GERM_START
-                 V_GERM_LENGTH
-                 N1_LENGTH
-                 D_SEQ_START
-                 D_SEQ_LENGTH
-                 D_GERM_START
-                 D_GERM_LENGTH
-                 N2_LENGTH
-                 J_SEQ_START
-                 J_SEQ_LENGTH
-                 J_GERM_START
-                 J_GERM_LENGTH
-                 JUNCTION_LENGTH
-                 JUNCTION
+                SEQUENCE_ID
+                SEQUENCE_INPUT
+                FUNCTIONAL
+                IN_FRAME
+                STOP
+                MUTATED_INVARIANT
+                INDELS
+                V_CALL
+                D_CALL
+                J_CALL
+                SEQUENCE_VDJ and/or SEQUENCE_IMGT
+                V_SEQ_START
+                V_SEQ_LENGTH
+                V_GERM_START
+                V_GERM_LENGTH
+                N1_LENGTH
+                D_SEQ_START
+                D_SEQ_LENGTH
+                D_GERM_START
+                D_GERM_LENGTH
+                N2_LENGTH
+                J_SEQ_START
+                J_SEQ_LENGTH
+                J_GERM_START
+                J_GERM_LENGTH
+                JUNCTION_LENGTH
+                JUNCTION
               ''')
                 
     # Define ArgumentParser

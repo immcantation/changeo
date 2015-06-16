@@ -886,16 +886,20 @@ def getArgParser():
     # Define input and output fields
     fields = dedent(
              '''
+             output files:
+               clone-pass     database with assigned clonal group numbers.
+               clone-fail     database with records failing clonal grouping.
+
              required fields:
-                 SEQUENCE_ID
-                 V_CALL or V_CALL_GENOTYPED 
-                 D_CALL
-                 J_CALL
-                 JUNCTION_LENGTH
-                 JUNCTION
+               SEQUENCE_ID
+               V_CALL or V_CALL_GENOTYPED
+               D_CALL
+               J_CALL
+               JUNCTION_LENGTH
+               JUNCTION
                 
-              output fields:
-                 CLONE
+             output fields:
+               CLONE
               ''')
 
     # Define ArgumentParser
