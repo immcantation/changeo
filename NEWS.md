@@ -2,7 +2,9 @@ Version 0.2.0:  June 16, 2015
 -------------------------------------------------------------------------------
 
 Initial public prerelease.  
+
 Output files were added to the usage documentation of all scripts.  
+
 General code cleanup.  
 
 AnalyzeAa:
@@ -17,6 +19,10 @@ DefineClones:
   
 + Added `--link` argument which allows for specification of single, complete,
   or average linkage during clonal clustering.
+
+GapRecords:
+
++ Fixed a bug wherein non-standard sequence fields could not be aligned. 
 
 MakeDb:
 
