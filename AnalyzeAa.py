@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Daniel Gadala-Maria'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.2.0'
-__date__      = '2015.05.30'
+__date__      = '2015.06.17'
 
 # Imports
 import re, textwrap
