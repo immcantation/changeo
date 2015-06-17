@@ -3,22 +3,33 @@ Version 0.2.0:  June 16, 2015
 
 Initial public prerelease.  
 
-Output files were added to the usage documentation of all scripts.  
+Output files were added to the usage documentation of all scripts. 
 
 General code cleanup.  
+
+DbCore:
+
++ Updated loading of database files to convert column names to uppercase.
 
 AnalyzeAa:
 
 + Fixed a bug where junctions less than one codon long would lead to a 
   division by zero error.
++ Added `--failed` flag to create database with records that fail analysis.
++ Added `--sf` flag to specify sequence field to be analyzed.
+
+CreateGermlines:
+
++ Fixed a bug where germline sequences could not be created for light chains.
 
 DefineClones:
 
-+ Added a human 1-mer model, `hs1f`, which uses the substitution rates from 
-  from Yaari et al, 2013
-  
++ Added a human 1-mer model, 'hs1f', which uses the substitution rates from 
+  from Yaari et al, 2013.
++ Changed default model to 'hs1f' and default normalization to length for 
+  bygroup subcommand.
 + Added `--link` argument which allows for specification of single, complete,
-  or average linkage during clonal clustering.
+  or average linkage during clonal clustering (default single).
 
 GapRecords:
 
