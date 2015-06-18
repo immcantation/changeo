@@ -1,3 +1,11 @@
+Version 0.2.1:  June 18, 2015
+-------------------------------------------------------------------------------
+
+DefineClones:
+
++ Removed mouse 3-mer model, 'm3n'. 
+
+
 Version 0.2.0:  June 17, 2015
 -------------------------------------------------------------------------------
 
@@ -30,7 +38,6 @@ DefineClones:
   bygroup subcommand.
 + Added `--link` argument which allows for specification of single, complete,
   or average linkage during clonal clustering (default single).
-+ Removed mouse 3-mer model, 'm3n'. 
 
 GapRecords:
 
