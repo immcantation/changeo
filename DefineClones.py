@@ -77,10 +77,6 @@ m1n_model = getDistMat(smith96)
 hs5f_file = os.path.join(model_path, 'HS5F_Distance.tab')
 hs5f_model = read_csv(hs5f_file, sep='\t', index_col=0)
 
-# Mouse 3-mer DNA model with 5-mer windows
-m3n_file = os.path.join(model_path, 'M3N_Distance.tab')
-m3n_model = read_csv(m3n_file, sep='\t', index_col=0)
-
 # TODO:  Merge duplicate feed, process and collect functions.
 # TODO:  Update feed, process and collect functions to current pRESTO implementation.
 
@@ -104,8 +100,6 @@ def getModelMatrix(model):
         return(m1n_model)
     elif model == 'hs1f':
         return(hs1f_model)
-    elif model == 'm3n':
-        return(m3n_model)
     elif model == 'hs5f':
         return(hs5f_model)
     else:
@@ -216,7 +210,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Determine length of n-mers
     if model in ['hs1f', 'm1n', 'aa', 'ham']:
         nmer_len = 1
-    elif model in ['m3n', 'hs5f']:
+    elif model in ['hs5f']:
         nmer_len = 5
     else:
         sys.stderr.write('Unrecognized distance model: %s.\n' % model)
@@ -966,17 +960,16 @@ def getArgParser():
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'ham', 'm1n', 'm3n', 'hs1f', 'hs5f'),
+                             choices=('aa', 'ham', 'm1n', 'hs1f', 'hs5f'),
                              default=default_bygroup_model,
                              help='''Specifies which substitution model to use for
                                   calculating distance between junctions. Where m1n is the
                                   mouse single nucleotide transition/trasversion model
-                                  of Smith et al, 1996; m3n is the mouse trinucleotide
-                                  model of Smith et al, 1996; hs1f is the human single
+                                  of Smith et al, 1996; hs1f is the human single
                                   nucleotide model derived from Yaari et al, 2013; hs5f
                                   is the human S5F model of Yaari et al, 2013; ham is
                                   nucleotide Hamming distance; and aa is amino acid
-                                  Hamming distance. The m3n and hs5f data should be
+                                  Hamming distance. The hs5f data should be
                                   considered experimental.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,

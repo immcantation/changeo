@@ -10,12 +10,8 @@ __date__      = '2015.04.29'
 
 # Imports
 import time, unittest, os
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from IgCore import getScoreDict
-from DbCore import IgRecord, readDbFile, getDistMat
+from DbCore import IgRecord
 import DefineClones as mod
-import pandas as pd
 
 # Globals
 data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
@@ -78,16 +74,6 @@ class Test_DefineClones(unittest.TestCase):
         results = mod.distanceClones(self.records, model='hs5f', distance=1.0)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs5f'
-        for k, v in results.iteritems():
-            for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
-
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
-
-        # m3n
-        results = mod.distanceClones(self.records, model='m3n', distance=1.0)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> m3n'
         for k, v in results.iteritems():
             for s in v:
                 print '  CLONE-%i> %s' % (k, s.id)
