@@ -30,6 +30,7 @@ DefineClones:
   bygroup subcommand.
 + Added `--link` argument which allows for specification of single, complete,
   or average linkage during clonal clustering (default single).
++ Removed mouse 3-mer model, 'm3n'. 
 
 GapRecords:
 
