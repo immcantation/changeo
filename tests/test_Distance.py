@@ -7,13 +7,11 @@ from changeo import __version__, __date__
 
 # Imports
 import os
-import sys
 import time
 import unittest
 
 # Presto and changeo imports
-from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                             m1n_distance, m3n_distance, hs5f_distance
+from changeo.Distance import m1n_model, hs5f_model
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(test_path, 'data')
@@ -31,9 +29,8 @@ class Test_Distance(unittest.TestCase):
 
     #@unittest.skip("-> loadModels() skipped\n")
     def test_loadModels(self):
-        print ' M1N> ', m1n_distance
-        print ' M3N> ', m3n_distance
-        print 'HS5F> ', hs5f_distance
+        print ' M1N> ', m1n_model
+        print 'HS5F> ', hs5f_model
 
         self.fail('TODO')
 

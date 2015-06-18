@@ -24,9 +24,6 @@ with resource_stream(__name__, 'data/M1N_Distance.tab') as f:
 with resource_stream(__name__, 'data/HS1F_Distance.tab') as f:
     hs1f_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/M3N_Distance.tab') as f:
-    m3n_model = pd.read_csv(f, sep='\t', index_col=0)
-
 with resource_stream(__name__, 'data/HS5F_Distance.tab') as f:
     hs5f_model = pd.read_csv(f, sep='\t', index_col=0)
 

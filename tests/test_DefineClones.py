@@ -85,16 +85,6 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        # m3n model
-        results = DefineClones.distanceClones(self.records, model='m3n', distance=1.0)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> m3n'
-        for k, v in results.iteritems():
-            for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
-
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
-
         # m1n model
         results = DefineClones.distanceClones(self.records, model='m1n', distance=10.0)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
