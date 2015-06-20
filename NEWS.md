@@ -1,3 +1,12 @@
+Version 0.2.2.beta:  June 20, 2015
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Combined the `-z` and `-f` flags of the imgt subcommand into a single flag, 
+  `-i`, which autodetects the input type.
+
+
 Version 0.2.1:  June 18, 2015
 -------------------------------------------------------------------------------
 

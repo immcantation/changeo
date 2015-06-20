@@ -83,28 +83,34 @@ def extractIMGT(imgt_output):
     Returns:
     sorted list of filenames from which information will be read
     """
+    file_ext = os.path.splitext(imgt_output)[1].lower()
     imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
     temp_dir = mkdtemp()
     if is_zipfile(imgt_output):
-        # Extract selected files from the IMGT zip file to temp directory
+        # Open zip file
+        # TODO: upon switch to Python 3 we should be able to use compression=zipfile.ZIP_LZMA for .txz files
         imgt_zip = ZipFile(imgt_output, 'r')
+        # Extract required files
         imgt_files = sorted([n for n in imgt_zip.namelist() \
                              if os.path.basename(n).startswith(imgt_flags)])
         imgt_zip.extractall(temp_dir, imgt_files)
+        # Define file list
         imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
     elif os.path.isdir(imgt_output):
+        # Find required files in folder
         folder_files = []
         for root, dirs, files in os.walk(imgt_output):
             folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
+        # Define file list
         imgt_files = sorted([n for n in folder_files \
                              if os.path.basename(n).startswith(imgt_flags)])
     else:
-        sys.exit('ERROR: Unsupported IGMT output file-type - must be zipped file (-z) or folder (-f)')
+        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip) or a folder.')
     
     if len(imgt_files) > len(imgt_flags): # e.g. multiple 1_Summary files
-        sys.exit('ERROR: Wrong files in folder %s' % imgt_output)
+        sys.exit('ERROR: Wrong files in IMGT output %s.' % imgt_output)
     elif len(imgt_files) < len(imgt_flags):
-        sys.exit('ERROR: Missing necessary file in folder %s' % imgt_output)
+        sys.exit('ERROR: Missing necessary file IMGT output %s.' % imgt_output)
         
     return temp_dir, imgt_files
 
@@ -635,27 +641,33 @@ def getArgParser():
                                            parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter)
     parser_igblast.set_defaults(func=parseIgBlast)
-    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
-                                help='IgBLAST output files in format 7 (IgBLAST argument "-outfmt 7").')
-    parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
+    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+                                required=True,
+                                help='''IgBLAST output files in format 7 (IgBLAST
+                                     argument \'-outfmt 7\').''')
+    parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
+                                required=True,
                                 help='List of input FASTA files containing sequences')
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
-                                help='Specify if input IDs should not be parsed to add new columns to database')
+                                help='''Specify if input IDs should not be parsed to add
+                                     new columns to database.''')
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
                                         parents=[parser_parent], 
                                         formatter_class=CommonHelpFormatter)
     imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
-    imgt_arg_group.add_argument('-z', nargs='+', action='store', dest='aligner_files',
-                                help='Zipped IMGT output files')
-    imgt_arg_group.add_argument('-f', nargs='+', action='store', dest='aligner_files',
-                                help='Folder with unzipped IMGT output files \
-                                     (must have 1_Summary, 2_IMGT-gapped, 3_Nt-sequences, and 6_Junction)')
+    imgt_arg_group.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+                                help='''Either zipped IMGT output files (.zip) or a folder
+                                     containing unzipped IMGT output files (which must
+                                     include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
+                                     and 6_Junction).''')
     parser_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
+                             required=False,
                              help='List of input FASTA files containing sequences')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
-                             help='Specify if input IDs should not be parsed to add new columns to database')
+                             help='''Specify if input IDs should not be parsed to add new
+                                  columns to database.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     return parser
@@ -681,23 +693,13 @@ if __name__ == "__main__":
     
     # IMGT parser
     if args.command == 'imgt':
-        if args.__dict__['aligner_files']:
-            for i in range(len(args.__dict__['aligner_files'])):
-                args_dict['imgt_output'] = args.__dict__['aligner_files'][i]
-                args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else None
-                args.func(**args_dict)
-                # TODO: figure out how to delete extracted zip files safely
-                # if is_zipfile(args_dict['imgt_output']):
-                #     rmtree(os.path.splitext(args_dict['imgt_output'])[0])
-        else:
-            parser.error('Must include either (-z) zipped IMGT files or \
-                         (-f) folder with individual files 1_*, 2_*, 3_*, and 6_*')
+        for i in range(len(args.__dict__['aligner_files'])):
+            args_dict['imgt_output'] = args.__dict__['aligner_files'][i]
+            args_dict['seq_file'] = args.__dict__['seq_files'][i] \
+                                    if args.__dict__['seq_files'] else None
+            args.func(**args_dict)
     elif args.command == 'igblast':
-        if args.__dict__['aligner_files']:
-            for i in range(len(args.__dict__['aligner_files'])):
-                args_dict['igblast_output'] =  args.__dict__['aligner_files'][i]
-                args_dict['seq_file'] = args.__dict__['seq_files'][i] if args.__dict__['seq_files'] else \
-                        parser.error('Must include fasta file input to IgBLAST')
-                args.func(**args_dict)
-        else:
-            parser.error('Must include IgBLAST output file (-o)')
+        for i in range(len(args.__dict__['aligner_files'])):
+            args_dict['igblast_output'] =  args.__dict__['aligner_files'][i]
+            args_dict['seq_file'] = args.__dict__['seq_files'][i]
+            args.func(**args_dict)
