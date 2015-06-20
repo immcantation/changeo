@@ -83,7 +83,7 @@ def extractIMGT(imgt_output):
     Returns:
     sorted list of filenames from which information will be read
     """
-    file_ext = os.path.splitext(imgt_output)[1].lower()
+    #file_ext = os.path.splitext(imgt_output)[1].lower()
     imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
     temp_dir = mkdtemp()
     if is_zipfile(imgt_output):
