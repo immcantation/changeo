@@ -295,6 +295,8 @@ def readIMGT(imgt_files):
                       'V_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['V-GENE and allele']) ),
                       'D_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
                       'J_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
+                      'V_SCORE':           sm['V-REGION score'],
+                      'J_SCORE':           sm['J-REGION score'],
                       'SEQUENCE_VDJ':      nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION'],
                       'SEQUENCE_IMGT':     gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
                       'V_SEQ_START':       nt['V-REGION start'],
@@ -388,6 +390,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'V_CALL',
                       'D_CALL',
                       'J_CALL',
+                      'V_SCORE',
+                      'J_SCORE',
                       'SEQUENCE_VDJ',
                       'SEQUENCE_IMGT',
                       'V_SEQ_START',
@@ -598,6 +602,8 @@ def getArgParser():
                  V_CALL
                  D_CALL
                  J_CALL
+                 V_SCORE
+                 J_SCORE
                  SEQUENCE_VDJ and/or SEQUENCE_IMGT
                  V_SEQ_START
                  V_SEQ_LENGTH
