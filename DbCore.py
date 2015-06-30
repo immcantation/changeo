@@ -90,8 +90,8 @@ class IgRecord:
                   'v_call_geno': '_identity',
                   'd_call': '_identity',
                   'j_call': '_identity',
-                  'v_score': '_integer',
-                  'j_score': '_integer',
+                  'v_score': '_float',
+                  'j_score': '_float',
                   'seq_input': '_sequence',
                   'seq_vdj': '_sequence',
                   'seq_imgt': '_sequence',
@@ -142,7 +142,16 @@ class IgRecord:
         else:
             try:  return str(v)
             except:  return ''
-            
+
+    @staticmethod
+    def _float(v, deparse=False):
+        if not deparse:
+            try:  return float(v)
+            except:  return None
+        else:
+            try:  return str(v)
+            except:  return ''
+
     @staticmethod
     def _sequence(v, deparse=False):
         if not deparse:

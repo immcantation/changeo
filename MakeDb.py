@@ -234,7 +234,7 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - int(v_align[8]) + 1
                         db_gen['V_GERM_START'] = v_align[10]
                         db_gen['V_GERM_LENGTH'] = int(v_align[11]) - int(v_align[10]) + 1
-                        db_gen['V_SCORE'] = int(v_align[13])
+                        db_gen['V_SCORE'] = v_align[13]
                         db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
 
                         # Update input sequence positions
@@ -271,7 +271,7 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['J_SEQ_LENGTH'] = int(j_align[9]) - int(j_align[8]) + 1
                         db_gen['J_GERM_START'] = j_align[10]
                         db_gen['J_GERM_LENGTH'] = int(j_align[11]) - int(j_align[10]) + 1
-                        db_gen['J_SCORE'] = int(j_align[13])
+                        db_gen['J_SCORE'] = j_align[13]
 
                         # Update input sequence positions
                         if vdj_start is None:  vdj_start = int(j_align[8]) - 1
