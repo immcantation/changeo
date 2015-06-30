@@ -37,6 +37,8 @@ class IgRecord:
                 'v_call_geno': 'V_CALL_GENOTYPED',
                 'd_call': 'D_CALL',
                 'j_call': 'J_CALL',
+                'v_score': 'V_SCORE',
+                'j_score': 'J_SCORE',
                 'seq_input': 'SEQUENCE_INPUT',
                 'seq_vdj': 'SEQUENCE_VDJ',
                 'seq_imgt': 'SEQUENCE_IMGT',
@@ -71,6 +73,8 @@ class IgRecord:
                   'v_call_geno': '_identity',
                   'd_call': '_identity',
                   'j_call': '_identity',
+                  'v_score': '_float',
+                  'j_score': '_float',
                   'seq_input': '_sequence',
                   'seq_vdj': '_sequence',
                   'seq_imgt': '_sequence',
@@ -121,7 +125,16 @@ class IgRecord:
         else:
             try:  return str(v)
             except:  return ''
-            
+
+    @staticmethod
+    def _float(v, deparse=False):
+        if not deparse:
+            try:  return float(v)
+            except:  return None
+        else:
+            try:  return str(v)
+            except:  return ''
+
     @staticmethod
     def _sequence(v, deparse=False):
         if not deparse:
@@ -207,7 +220,6 @@ class IgRecord:
                 f = getattr(IgRecord, IgRecord._parse_map[k])
                 d[IgRecord._key_map[k]] = f(v, deparse=True)
         return d
-    
 
     # Methods to get multiple allele, gene and family calls
     #
