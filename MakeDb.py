@@ -210,6 +210,22 @@ def readIgBlast(igblast_output, seq_dict):
                     # Parse segment start and stop positions
                     hit_df = block_list[-1]
 
+                    # Alignment info block
+                    #  0:  segment
+                    #  1:  query id
+                    #  2:  subject id
+                    #  3:  % identity
+                    #  4:  alignment length
+                    #  5:  mismatches
+                    #  6:  gap opens
+                    #  7:  gaps
+                    #  8:  q. start
+                    #  9:  q. end
+                    # 10:  s. start
+                    # 11:  s. end
+                    # 12:  evalue
+                    # 13:  bit score
+
                     # If V call exists, parse V alignment information
                     vdj_start, vdj_end = None, None
                     if v_call is not None:
@@ -218,6 +234,7 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - int(v_align[8]) + 1
                         db_gen['V_GERM_START'] = v_align[10]
                         db_gen['V_GERM_LENGTH'] = int(v_align[11]) - int(v_align[10]) + 1
+                        db_gen['V_SCORE'] = int(v_align[13])
                         db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
 
                         # Update input sequence positions
@@ -254,6 +271,7 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['J_SEQ_LENGTH'] = int(j_align[9]) - int(j_align[8]) + 1
                         db_gen['J_GERM_START'] = j_align[10]
                         db_gen['J_GERM_LENGTH'] = int(j_align[11]) - int(j_align[10]) + 1
+                        db_gen['J_SCORE'] = int(j_align[13])
 
                         # Update input sequence positions
                         if vdj_start is None:  vdj_start = int(j_align[8]) - 1
