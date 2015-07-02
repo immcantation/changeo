@@ -37,8 +37,6 @@ class IgRecord:
                 'v_call_geno': 'V_CALL_GENOTYPED',
                 'd_call': 'D_CALL',
                 'j_call': 'J_CALL',
-                'v_score': 'V_SCORE',
-                'j_score': 'J_SCORE',
                 'seq_input': 'SEQUENCE_INPUT',
                 'seq_vdj': 'SEQUENCE_VDJ',
                 'seq_imgt': 'SEQUENCE_IMGT',
@@ -62,7 +60,13 @@ class IgRecord:
                 'j_seq_length': 'J_SEQ_LENGTH',
                 'j_germ_start': 'J_GERM_START',
                 'j_germ_length': 'J_GERM_LENGTH',
-                'junction_length': 'JUNCTION_LENGTH'}
+                'junction_length': 'JUNCTION_LENGTH',
+                'v_score': 'V_SCORE',
+                'v_identity': 'V_IDENTITY',
+                'v_evalue': 'V_EVALUE',
+                'j_score': 'J_SCORE',
+                'j_identity': 'J_IDENTITY',
+                'j_evalue': 'J_EVALUE'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.iteritems()}
@@ -73,8 +77,6 @@ class IgRecord:
                   'v_call_geno': '_identity',
                   'd_call': '_identity',
                   'j_call': '_identity',
-                  'v_score': '_float',
-                  'j_score': '_float',
                   'seq_input': '_sequence',
                   'seq_vdj': '_sequence',
                   'seq_imgt': '_sequence',
@@ -98,7 +100,13 @@ class IgRecord:
                   'j_seq_length': '_integer',
                   'j_germ_start': '_integer',
                   'j_germ_length': '_integer',
-                  'junction_length': '_integer'}
+                  'junction_length': '_integer',
+                  'v_score': '_float',
+                  'v_identity': '_float',
+                  'v_evalue': '_float',
+                  'j_score': '_float',
+                  'j_identity': '_float',
+                  'j_evalue': '_float'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}
