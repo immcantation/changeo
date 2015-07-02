@@ -5,8 +5,8 @@ MakeDb:
 
 + Combined the `-z` and `-f` flags of the imgt subcommand into a single flag, 
   `-i`, which autodetects the input type.
-+ Added V_SCORE and J_SCORE columns containing alignment score results from
-  IMGT and IgBLAST output.
++ Added the `--scores` flag which adds extra columns containing alignment score 
+  results from IMGT and IgBLAST output.
 
 
 Version 0.2.1:  June 18, 2015
