@@ -83,7 +83,7 @@ def extractIMGT(imgt_output):
     Returns:
     sorted list of filenames from which information will be read
     """
-    # file_ext = os.path.splitext(imgt_output)[1].lower()
+    #file_ext = os.path.splitext(imgt_output)[1].lower()
     imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
     temp_dir = mkdtemp()
     if is_zipfile(imgt_output):
@@ -300,65 +300,72 @@ def readIMGT(imgt_files):
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a dictionary for each sequence alignment and yield its generator
     for sm, gp, nt, jn in izip(*imgt_iters):
+        db_gen = {'SEQUENCE_ID': sm['Sequence ID'], 'SEQUENCE_INPUT': sm['Sequence']}
+
         if "No results" not in sm['Functionality']:
-            db_gen = {'SEQUENCE_ID':       sm['Sequence ID'],
-                      'SEQUENCE_INPUT':    sm['Sequence'],
-                      'FUNCTIONAL':        ['?','T','F'][('productive' in sm['Functionality']) +
-                                                         ('unprod' in sm['Functionality'])],
-                      'IN_FRAME':          ['?','T','F'][('in-frame' in sm['JUNCTION frame']) +
-                                                         ('out-of-frame' in sm['JUNCTION frame'])],
-                      'STOP':              ['F','?','T'][('stop codon' in sm['Functionality comment']) +
-                                                         ('unprod' in sm['Functionality'])],
-                      'MUTATED_INVARIANT': ['F','?','T'][(any(('missing' in sm['Functionality comment'],
-                                                               'missing' in sm['V-REGION potential ins/del']))) +
-                                                         ('unprod' in sm['Functionality'])],
-                      'INDELS':            ['F','T'][any((sm['V-REGION potential ins/del'],
-                                                          sm['V-REGION insertions'],
-                                                          sm['V-REGION deletions']))],
-                      'V_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['V-GENE and allele']) ),
-                      'D_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['D-GENE and allele']) ),
-                      'J_CALL':            re.sub( '\sor\s', ',', re.sub(',','',gp['J-GENE and allele']) ),
-                      'V_SCORE':           sm['V-REGION score'],
-                      'J_SCORE':           sm['J-REGION score'],
-                      'SEQUENCE_VDJ':      nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION'],
-                      'SEQUENCE_IMGT':     gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION'],
-                      'V_SEQ_START':       nt['V-REGION start'],
-                      'V_SEQ_LENGTH':      len(nt['V-REGION']) if nt['V-REGION'] else 0,
-                      'V_GERM_START':      1,
-                      'V_GERM_LENGTH':     len(gp['V-REGION']) if gp['V-REGION'] else 0,
-                      'N1_LENGTH':         sum(int(i) for i in [jn["P3'V-nt nb"],
-                                                                jn['N-REGION-nt nb'],
-                                                                jn['N1-REGION-nt nb'],
-                                                                jn["P5'D-nt nb"]] if i),
-                      'D_SEQ_START':       sum(int(i) for i in [1, len(nt['V-REGION']),
-                                                                jn["P3'V-nt nb"],
-                                                                jn['N-REGION-nt nb'],
-                                                                jn['N1-REGION-nt nb'],
-                                                                jn["P5'D-nt nb"]] if i),
-                      'D_SEQ_LENGTH':      int(jn["D-REGION-nt nb"] or 0),
-                      'D_GERM_START':      int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1,
-                      'D_GERM_LENGTH':     int(jn["D-REGION-nt nb"] or 0),
-                      'N2_LENGTH':         sum(int(i) for i in [jn["P3'D-nt nb"],
-                                                                jn['N2-REGION-nt nb'],
-                                                                jn["P5'J-nt nb"]] if i),
-                      'J_SEQ_START':       sum(int(i) for i in [1, len(nt['V-REGION']),
-                                                                jn["P3'V-nt nb"],
-                                                                jn['N-REGION-nt nb'],
-                                                                jn['N1-REGION-nt nb'],
-                                                                jn["P5'D-nt nb"],
-                                                                jn["D-REGION-nt nb"],
-                                                                jn["P3'D-nt nb"],
-                                                                jn['N2-REGION-nt nb'],
-                                                                jn["P5'J-nt nb"]] if i),
-                      'J_SEQ_LENGTH':      len(nt['J-REGION']) if nt['J-REGION'] else 0,
-                      'J_GERM_START':      int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1,
-                      'J_GERM_LENGTH':     len(gp['J-REGION']) if gp['J-REGION'] else 0,
-                      'JUNCTION_LENGTH':   len(jn['JUNCTION']) if jn['JUNCTION'] else 0,
-                      'JUNCTION':          jn['JUNCTION']}
+            db_gen['FUNCTIONAL'] = ['?','T','F'][('productive' in sm['Functionality']) +
+                                                 ('unprod' in sm['Functionality'])]
+            db_gen['IN_FRAME'] = ['?','T','F'][('in-frame' in sm['JUNCTION frame']) +
+                                               ('out-of-frame' in sm['JUNCTION frame'])],
+            db_gen['STOP'] = ['F','?','T'][('stop codon' in sm['Functionality comment']) +
+                                           ('unprod' in sm['Functionality'])]
+            db_gen['MUTATED_INVARIANT'] = ['F','?','T'][(any(('missing' in sm['Functionality comment'],
+                                                         'missing' in sm['V-REGION potential ins/del']))) +
+                                                         ('unprod' in sm['Functionality'])]
+            db_gen['INDELS'] = ['F','T'][any((sm['V-REGION potential ins/del'],
+                                              sm['V-REGION insertions'],
+                                              sm['V-REGION deletions']))]
+
+            db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
+            db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
+
+            db_gen['V_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['V-GENE and allele']))
+            db_gen['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
+            db_gen['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
+            db_gen['V_SCORE'] = sm['V-REGION score']
+            db_gen['J_SCORE'] = sm['J-REGION score']
+
+            db_gen['V_SEQ_START'] = nt['V-REGION start']
+            db_gen['V_SEQ_LENGTH'] = len(nt['V-REGION']) if nt['V-REGION'] else 0
+            db_gen['V_GERM_START'] = 1
+            db_gen['V_GERM_LENGTH'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
+
+            db_gen['N1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
+                                                       jn['N-REGION-nt nb'],
+                                                       jn['N1-REGION-nt nb'],
+                                                       jn["P5'D-nt nb"]] if i)
+            db_gen['D_SEQ_START'] = sum(int(i) for i in [1, len(nt['V-REGION']),
+                                                         jn["P3'V-nt nb"],
+                                                         jn['N-REGION-nt nb'],
+                                                         jn['N1-REGION-nt nb'],
+                                                         jn["P5'D-nt nb"]] if i)
+            db_gen['D_SEQ_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
+            db_gen['D_GERM_START'] = int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1
+            db_gen['D_GERM_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
+            db_gen['N2_LENGTH'] = sum(int(i) for i in [jn["P3'D-nt nb"],
+                                                       jn['N2-REGION-nt nb'],
+                                                       jn["P5'J-nt nb"]] if i)
+
+            db_gen['J_SEQ_START'] = sum(int(i) for i in [1, len(nt['V-REGION']),
+                                                         jn["P3'V-nt nb"],
+                                                         jn['N-REGION-nt nb'],
+                                                         jn['N1-REGION-nt nb'],
+                                                         jn["P5'D-nt nb"],
+                                                         jn["D-REGION-nt nb"],
+                                                         jn["P3'D-nt nb"],
+                                                         jn['N2-REGION-nt nb'],
+                                                         jn["P5'J-nt nb"]] if i)
+            db_gen['J_SEQ_LENGTH'] = len(nt['J-REGION']) if nt['J-REGION'] else 0
+            db_gen['J_GERM_START'] = int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1
+            db_gen['J_GERM_LENGTH'] = len(gp['J-REGION']) if gp['J-REGION'] else 0
+
+            db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
+            db_gen['JUNCTION'] = jn['JUNCTION']
         else:
-            db_gen = {'SEQUENCE_ID':sm['Sequence ID'],
-                      'SEQUENCE_INPUT':sm['Sequence'],
-                      'V_CALL':'None', 'D_CALL':'None', 'J_CALL':'None'}
+            db_gen['V_CALL'] = 'None'
+            db_gen['D_CALL'] = 'None'
+            db_gen['J_CALL'] = 'None'
+
         yield IgRecord(db_gen)
 
     
