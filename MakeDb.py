@@ -153,13 +153,14 @@ def readOneIgBlastResult(block):
 
 
 # TODO:  needs more speeds. pandas is probably to blame.
-def readIgBlast(igblast_output, seq_dict):
+def readIgBlast(igblast_output, seq_dict, score_fields=False):
     """
     Reads IgBlast output
 
     Arguments:
     igblast_output = IgBlast output file (format 7)
     seq_dict = a dictionary of {ID:Seq} from input fasta file
+    score_fields = if True parse alignment scores
 
     Returns:
     a generator of dictionaries containing alignment data
@@ -234,8 +235,18 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - int(v_align[8]) + 1
                         db_gen['V_GERM_START'] = v_align[10]
                         db_gen['V_GERM_LENGTH'] = int(v_align[11]) - int(v_align[10]) + 1
-                        db_gen['V_SCORE'] = v_align[13]
                         db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
+
+                        # V alignment scores
+                        if score_fields:
+                            try: db_gen['V_SCORE'] = float(v_align[13])
+                            except: db_gen['V_SCORE'] = 'None'
+
+                            try: db_gen['V_IDENTITY'] = float(v_align[3]) / 100.0
+                            except: db_gen['V_IDENTITY'] = 'None'
+
+                            try: db_gen['V_EVALUE'] = float(v_align[12])
+                            except: db_gen['V_EVALUE'] = 'None'
 
                         # Update input sequence positions
                         vdj_start = int(v_align[8]) - 1
@@ -271,7 +282,18 @@ def readIgBlast(igblast_output, seq_dict):
                         db_gen['J_SEQ_LENGTH'] = int(j_align[9]) - int(j_align[8]) + 1
                         db_gen['J_GERM_START'] = j_align[10]
                         db_gen['J_GERM_LENGTH'] = int(j_align[11]) - int(j_align[10]) + 1
-                        db_gen['J_SCORE'] = j_align[13]
+
+
+                        # J alignment scores
+                        if score_fields:
+                            try: db_gen['J_SCORE'] = float(j_align[13])
+                            except: db_gen['J_SCORE'] = 'None'
+
+                            try: db_gen['J_IDENTITY'] = float(j_align[3]) / 100.0
+                            except: db_gen['J_IDENTITY'] = 'None'
+
+                            try: db_gen['J_EVALUE'] = float(j_align[12])
+                            except: db_gen['J_EVALUE'] = 'None'
 
                         # Update input sequence positions
                         if vdj_start is None:  vdj_start = int(j_align[8]) - 1
@@ -287,12 +309,13 @@ def readIgBlast(igblast_output, seq_dict):
 
 
 # TODO:  should be more readable
-def readIMGT(imgt_files):
+def readIMGT(imgt_files, score_fields=False):
     """
     Reads IMGT/HighV-Quest output
 
     Arguments: 
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
+    score_fields = if True parse alignment scores
         
     Returns: 
     a generator of dictionaries containing alignment data
@@ -300,9 +323,10 @@ def readIMGT(imgt_files):
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a dictionary for each sequence alignment and yield its generator
     for sm, gp, nt, jn in izip(*imgt_iters):
-        db_gen = {'SEQUENCE_ID': sm['Sequence ID'], 'SEQUENCE_INPUT': sm['Sequence']}
+        db_gen = {'SEQUENCE_ID': sm['Sequence ID'],
+                  'SEQUENCE_INPUT': sm['Sequence']}
 
-        if "No results" not in sm['Functionality']:
+        if 'No results' not in sm['Functionality']:
             db_gen['FUNCTIONAL'] = ['?','T','F'][('productive' in sm['Functionality']) +
                                                  ('unprod' in sm['Functionality'])]
             db_gen['IN_FRAME'] = ['?','T','F'][('in-frame' in sm['JUNCTION frame']) +
@@ -322,8 +346,6 @@ def readIMGT(imgt_files):
             db_gen['V_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['V-GENE and allele']))
             db_gen['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
             db_gen['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
-            db_gen['V_SCORE'] = sm['V-REGION score']
-            db_gen['J_SCORE'] = sm['J-REGION score']
 
             db_gen['V_SEQ_START'] = nt['V-REGION start']
             db_gen['V_SEQ_LENGTH'] = len(nt['V-REGION']) if nt['V-REGION'] else 0
@@ -361,6 +383,24 @@ def readIMGT(imgt_files):
 
             db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
             db_gen['JUNCTION'] = jn['JUNCTION']
+
+            # Alignment scores
+            if score_fields:
+                try:  db_gen['V_SCORE'] = float(sm['V-REGION score'])
+                except:  db_gen['V_SCORE'] = 'None'
+
+                try:  db_gen['V_IDENTITY'] = float(sm['V-REGION identity %']) / 100.0
+                except:  db_gen['V_IDENTITY'] = 'None'
+
+                db_gen['V_EVALUE'] = 'None'
+
+                try:  db_gen['J_SCORE'] = float(sm['J-REGION score'])
+                except:  db_gen['J_SCORE'] = 'None'
+
+                try:  db_gen['J_IDENTITY'] = float(sm['J-REGION identity %']) / 100.0
+                except:  db_gen['J_IDENTITY'] = 'None'
+
+                db_gen['J_EVALUE'] = 'None'
         else:
             db_gen['V_CALL'] = 'None'
             db_gen['D_CALL'] = 'None'
@@ -393,7 +433,7 @@ def getIDforIMGT(seq_file):
 
 
 def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
-            out_args=default_out_args):
+            score_fields=False, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
@@ -403,6 +443,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     total_count = number of records (for progress bar)
     id_dict = a dictionary of {IMGT ID: full seq description}
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    score_fields = if True add alignment score fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -420,8 +461,6 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'V_CALL',
                       'D_CALL',
                       'J_CALL',
-                      'V_SCORE',
-                      'J_SCORE',
                       'SEQUENCE_VDJ',
                       'SEQUENCE_IMGT',
                       'V_SEQ_START',
@@ -441,6 +480,15 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'JUNCTION_LENGTH',
                       'JUNCTION']
 
+    if score_fields:
+        ordered_fields.extend(['V_SCORE',
+                               'V_IDENTITY',
+                               'V_EVALUE',
+                               'J_SCORE',
+                               'J_IDENTITY',
+                               'J_EVALUE'])
+
+
     # TODO:  This is not the best approach. should pass in output fields.
     # Open passed file
     #pass_handle = open(pass_file, 'wb')
@@ -449,7 +497,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     # Open failed file
     if out_args['failed']:
         fail_handle = open(fail_file, 'wb')
-        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID','SEQUENCE_INPUT'])
+        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID', 'SEQUENCE_INPUT'])
     else:
         fail_handle = None
         fail_writer = None
@@ -465,7 +513,9 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
 
         # Count pass or fail
         if (record.v_call == 'None' and record.j_call == 'None') or \
-                        record.functional is None or not record.seq_vdj or not record.junction:
+                record.functional is None or \
+                not record.seq_vdj or \
+                not record.junction:
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
@@ -512,7 +562,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
 
 
 # TODO:  may be able to merge with parseIMGT
-def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_args):
+def parseIgBlast(igblast_output, seq_file, no_parse=True, score_fields=False,
+                 out_args=default_out_args):
     """
     Main for IgBlast aligned sample sequences
 
@@ -520,6 +571,7 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_a
     igblast_output = IgBlast output file to process
     seq_file = fasta file input to IgBlast (from which to get sequence)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    score_fields = if True add alignment score fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -532,6 +584,7 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_a
     log['ALIGN_RESULTS'] = os.path.basename(igblast_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
+    log['SCORE_FIELDS'] = score_fields
     printLog(log)
 
     # Get input sequence dictionary
@@ -552,13 +605,14 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, out_args=default_out_a
     total_count = countSeqFile(seq_file)
 
     # Create
-    igblast_dict = readIgBlast(igblast_output, seq_dict)
+    igblast_dict = readIgBlast(igblast_output, seq_dict, score_fields=score_fields)
     writeDb(igblast_dict, file_prefix, total_count,
-            no_parse=no_parse, out_args=out_args)
+            no_parse=no_parse, score_fields=score_fields, out_args=out_args)
 
 
 # TODO:  may be able to merge with parseIgBlast
-def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_args):
+def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
+              out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
@@ -566,6 +620,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_ar
     imgt_output = zipped file or unzipped folder output by IMGT
     seq_file = FASTA file input to IMGT (from which to get seqID)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    score_fields = if True add alignment score fields to output file
     out_args = common output argument dictionary from parseCommonArgs
         
     Returns: 
@@ -578,6 +633,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_ar
     log['ALIGN_RESULTS'] = imgt_output
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
+    log['SCORE_FIELDS'] = score_fields
     printLog(log)
     
     # Get individual IMGT result files
@@ -601,9 +657,9 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, out_args=default_out_ar
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     
     # Create
-    imgt_dict = readIMGT(imgt_files)
+    imgt_dict = readIMGT(imgt_files, score_fields=score_fields)
     writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict,
-            no_parse=no_parse, out_args=out_args)
+            no_parse=no_parse, score_fields=score_fields, out_args=out_args)
 
     # Delete temp directory
     rmtree(temp_dir)
@@ -636,8 +692,6 @@ def getArgParser():
                 V_CALL
                 D_CALL
                 J_CALL
-                V_SCORE
-                J_SCORE
                 SEQUENCE_VDJ and/or SEQUENCE_IMGT
                 V_SEQ_START
                 V_SEQ_LENGTH
@@ -655,6 +709,12 @@ def getArgParser():
                 J_GERM_LENGTH
                 JUNCTION_LENGTH
                 JUNCTION
+                V_SCORE
+                V_IDENTITY
+                V_EVALUE
+                J_SCORE
+                J_IDENTITY
+                J_EVALUE
               ''')
                 
     # Define ArgumentParser
@@ -682,6 +742,10 @@ def getArgParser():
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
                                 help='''Specify if input IDs should not be parsed to add
                                      new columns to database.''')
+    parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
+                                help='''Specify if alignment score metrics should be
+                                     included in the output. Adds the V_SCORE, V_IDENTITY,
+                                     V_EVALUE, J_SCORE, J_IDENTITY and J_EVALUE columns.''')
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
@@ -699,6 +763,11 @@ def getArgParser():
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='''Specify if input IDs should not be parsed to add new
                                   columns to database.''')
+    parser_imgt.add_argument('--scores', action='store_true', dest='score_fields',
+                             help='''Specify if alignment score metrics should be
+                                  included in the output. Adds the V_SCORE, V_IDENTITY,
+                                  J_SCORE and J_IDENTITY. This also adds V_EVALUE and
+                                  J_EVALUE columns, but they will be empty for IMGT results.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     return parser

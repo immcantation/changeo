@@ -15,8 +15,6 @@ INDELS	logical	T: sample V(D)J nucleotide sequence may contain insertions and/or
 V_CALL	string	V allele assignment(s)
 D_CALL	string	D allele assignment(s)
 J_CALL	string	J allele assignment(s)
-V_SCORE	integer	Alignment score for the V
-J_SCORE	integer	Alignment score for the J
 V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
 V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_ INPUT
 V_GERM_START	integer	Position of V_SEQ_START in germline V(D)J nucleotide sequence
@@ -38,3 +36,9 @@ CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID g
 DUPCOUNT	integer	pRESTO output: number of duplicate molecules
 CLONE	integer	Numerical clone identifier of sample sequence
 V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
+V_SCORE	float	Alignment score for the V
+V_IDENTITY	float	Alignment identity for the V
+V_EVALUE	float	E-value for the alignment of the V
+J_SCORE	float	Alignment score for the J
+J_IDENTITY	float	Alignment identity for the J
+J_EVALUE	float	E-value for the alignment of the J
