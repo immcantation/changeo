@@ -180,6 +180,7 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                 # Parse further sub-blocks
                 block_list = readOneIgBlastResult(block)
 
+                # TODO: this is indented pretty far.  should be a separate function. or several functions.
                 # If results exist, parse further to obtain full db_gen
                 if block_list is not None:
                     # Parse quality information
@@ -231,10 +232,13 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                     vdj_start, vdj_end = None, None
                     if v_call is not None:
                         v_align = hit_df[hit_df[0] == 'V'].iloc[0]
-                        db_gen['V_SEQ_START'] = v_align[8]
-                        db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - int(v_align[8]) + 1
-                        db_gen['V_GERM_START'] = v_align[10]
-                        db_gen['V_GERM_LENGTH'] = int(v_align[11]) - int(v_align[10]) + 1
+                        # Germline positions
+                        db_gen['V_GERM_START'] = int(v_align[10])
+                        db_gen['V_GERM_LENGTH'] = int(v_align[11]) - db_gen['V_GERM_START'] + 1
+                        # Query sequence positions
+                        db_gen['V_SEQ_START'] = int(v_align[8])
+                        db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - db_gen['V_SEQ_START'] + 1
+
                         db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
 
                         # V alignment scores
@@ -249,39 +253,69 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                             except: db_gen['V_EVALUE'] = 'None'
 
                         # Update input sequence positions
-                        vdj_start = int(v_align[8]) - 1
+                        vdj_start = db_gen['V_SEQ_START'] - 1
                         vdj_end = int(v_align[9])
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If D call exists, parse D alignment information
                     if d_call is not None:
                         d_align = hit_df[hit_df[0] == 'D'].iloc[0]
-                        db_gen['D_SEQ_START'] = d_align[8]
-                        db_gen['N1_LENGTH'] = int(d_align[8]) - int(db_gen['V_SEQ_LENGTH']) - int(db_gen['V_SEQ_START'])
-                        db_gen['D_SEQ_LENGTH'] = int(d_align[9]) - int(d_align[8]) + 1
-                        db_gen['D_GERM_START'] = d_align[10]
-                        db_gen['D_GERM_LENGTH'] = int(d_align[11]) - int(d_align[10]) + 1
+
+                        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+                        # Determine N-region length and amount of J overlap with V or D alignment
+                        overlap = 0
+                        if v_call is not None:
+                            n1_len = int(d_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            if n1_len < 0:
+                                db_gen['N1_LENGTH'] = 0
+                                overlap = abs(n1_len)
+                            else:
+                                db_gen['N1_LENGTH'] = n1_len
+
+                        # Query sequence positions
+                        db_gen['D_SEQ_START'] = int(d_align[8]) + overlap
+                        db_gen['D_SEQ_LENGTH'] = max(int(d_align[9]) - db_gen['D_SEQ_START'] + 1, 0)
+
+                        # Germline positions
+                        db_gen['D_GERM_START'] = int(d_align[10]) + overlap
+                        db_gen['D_GERM_LENGTH'] = max(int(d_align[11]) - db_gen['D_GERM_START'] + 1, 0)
 
                         # Update input sequence positions
-                        if vdj_start is None:  vdj_start = int(d_align[8]) - 1
+                        if vdj_start is None:  vdj_start = db_gen['D_SEQ_START'] - 1
                         vdj_end = int(d_align[9])
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If J call exists, parse J alignment information
                     if j_call is not None:
                         j_align = hit_df[hit_df[0] == 'J'].iloc[0]
-                        db_gen['J_SEQ_START'] = j_align[8]
+
+                        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+                        # Determine N-region length and amount of J overlap with V or D alignment
+                        overlap = 0
                         if d_call is not None:
-                            db_gen['N2_LENGTH'] = int(j_align[8]) - \
-                                                  int(db_gen['D_SEQ_LENGTH']) - \
-                                                  int(db_gen['D_SEQ_START'])
+                            n2_len = int(j_align[8]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
+                            if n2_len < 0:
+                                db_gen['N2_LENGTH'] = 0
+                                overlap = abs(n2_len)
+                            else:
+                                db_gen['N2_LENGTH'] = n2_len
+                        elif v_call is not None:
+                            n1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            if n1_len < 0:
+                                db_gen['N1_LENGTH'] = 0
+                                overlap = abs(n1_len)
+                            else:
+                                db_gen['N1_LENGTH'] = n1_len
                         else:
-                            db_gen['N1_LENGTH'] = int(j_align[8]) - \
-                                                  int(db_gen['V_SEQ_LENGTH']) - \
-                                                  int(db_gen['V_SEQ_START'])
-                        db_gen['J_SEQ_LENGTH'] = int(j_align[9]) - int(j_align[8]) + 1
-                        db_gen['J_GERM_START'] = j_align[10]
-                        db_gen['J_GERM_LENGTH'] = int(j_align[11]) - int(j_align[10]) + 1
+                            db_gen['N1_LENGTH'] = 0
+
+                        # Query positions
+                        db_gen['J_SEQ_START'] = int(j_align[8]) + overlap
+                        db_gen['J_SEQ_LENGTH'] = max(int(j_align[9]) - db_gen['J_SEQ_START'] + 1, 0)
+
+                        # Germline positions
+                        db_gen['J_GERM_START'] = int(j_align[10]) + overlap
+                        db_gen['J_GERM_LENGTH'] = max(int(j_align[11]) - db_gen['J_GERM_START'] + 1, 0)
 
                         # J alignment scores
                         if score_fields:
@@ -295,7 +329,7 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                             except: db_gen['J_EVALUE'] = 'None'
 
                         # Update input sequence positions
-                        if vdj_start is None:  vdj_start = int(j_align[8]) - 1
+                        if vdj_start is None:  vdj_start = db_gen['J_SEQ_START'] - 1
                         vdj_end = int(j_align[9])
 
                     # Set VDJ sequence

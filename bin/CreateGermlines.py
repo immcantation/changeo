@@ -72,98 +72,161 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     dictionary of germline_type: germline_sequence
     """
     j_field = 'J_CALL'
-    germs = {'full': '', 'dmask':'', 'vonly':''}
+    germlines = {'full': '', 'dmask': '', 'vonly': ''}
     result_log = OrderedDict()
     result_log['ID'] = align['SEQUENCE_ID']
 
-    # Find germline V-Region
+    # Find germline V-region gene
     if v_field == 'V_CALL_GENOTYPED':
         vgene = parseAllele(align[v_field], allele_regex, 'list')
         vkey = vgene
     else:
         vgene = parseAllele(align[v_field], allele_regex, 'first')
         vkey = (vgene, )
+
+    # Build V-region germline
     if vgene is not None:
         result_log['V_CALL'] = ','.join(vkey)
         if vkey in repo_dict:
-            x = int(align['V_GERM_START'] or 1) - 1
-            y = x + int(align['V_GERM_LENGTH'] or 0)
-            # TODO:  not sure what this line is doing
-            z = int(align['V_GERM_LENGTH'] or 0) - len(repo_dict[vkey][int(align['V_GERM_START'] or 1) - 1:])
-            germ_vseq = repo_dict[vkey][x:y] + ('N' * z)
+            vseq = repo_dict[vkey]
+            # Germline start
+            try: vstart = int(align['V_GERM_START']) - 1
+            except (TypeError, ValueError): vstart = 0
+            # Germline length
+            try: vlen = int(align['V_GERM_LENGTH'])
+            except (TypeError, ValueError): vlen = 0
+            # TODO:  not sure what this line is doing here. it no make no sense.
+            vpad = vlen - len(vseq[vstart:])
+            if vpad < 0: vpad = 0
+            germ_vseq = vseq[vstart:(vstart + vlen)] + ('N' * vpad)
         else:
-            result_log['ERROR'] = 'Germline %s not in repertoire' % result_log['V_CALL']
-            return result_log, germs
+            result_log['ERROR'] = 'Germline %s not in repertoire' % ','.join(vkey)
+            return result_log, germlines
     else:
         result_log['V_CALL'] = None
-        germ_vseq = 'N' * int(align['V_GERM_LENGTH'] or 0)
+        try: vlen = int(align['V_GERM_LENGTH'])
+        except (TypeError, ValueError): vlen = 0
+        germ_vseq = 'N' * vlen
 
-    # Find germline D-Region
+    # Find germline D-region gene
     dgene = parseAllele(align['D_CALL'], allele_regex, 'first')
-    result_log['D_CALL'] = dgene
+
+    # Build D-region germline
     if dgene is not None:
+        result_log['D_CALL'] = dgene
         dkey = (dgene, )
         if dkey in repo_dict:
-            x = int(align['D_GERM_START'] or 1) - 1
-            y = x + int(align['D_GERM_LENGTH'] or 0)
-            germ_dseq = repo_dict[dkey][x:y]
+            dseq = repo_dict[dkey]
+            # Germline start
+            try: dstart = int(align['D_GERM_START']) - 1
+            except (TypeError, ValueError): dstart = 0
+            # Germline length
+            try: dlen = int(align['D_GERM_LENGTH'])
+            except (TypeError, ValueError): dlen = 0
+            germ_dseq = repo_dict[dkey][dstart:(dstart + dlen)]
         else:
             result_log['ERROR'] = 'Germline %s not in repertoire' % dgene
-            return result_log, germs
+            return result_log, germlines
     else:
+        result_log['D_CALL'] = None
         germ_dseq = ''
 
-    # Find germline J-Region
-    jgene = parseAllele(align[j_field], allele_regex,'first')
-    result_log['J_CALL'] = jgene
+    # Find germline J-region gene
+    jgene = parseAllele(align[j_field], allele_regex, 'first')
+
+    # Build D-region germline
     if jgene is not None:
+        result_log['J_CALL'] = jgene
         jkey = (jgene, )
         if jkey in repo_dict:
-            x = int(align['J_GERM_START'] or 1) - 1
-            y = x + int(align['J_GERM_LENGTH'] or 0)
+            jseq = repo_dict[jkey]
+            # Germline start
+            try: jstart = int(align['J_GERM_START']) - 1
+            except (TypeError, ValueError): jstart = 0
+            # Germline length
+            try: jlen = int(align['J_GERM_LENGTH'])
+            except (TypeError, ValueError): jlen = 0
             # TODO:  not sure what this line is doing either
-            z = int(align['V_GERM_LENGTH'] or 0) - len(germ_vseq[int(align['V_GERM_START'] or 1) - 1:])
-            germ_jseq = repo_dict[jkey][x:y] + ('N' * z)
+            jpad = jlen - len(jseq[jstart:])
+            if jpad < 0: jpad = 0
+            germ_jseq = jseq[jstart:(jstart + jlen)] + ('N' * jpad)
         else:
             result_log['ERROR'] = 'Germline %s not in repertoire' % jgene
-            return result_log, germs
-    else: 
-        germ_jseq = 'N' * int(align['J_GERM_LENGTH'] or 0)
-    
+            return result_log, germlines
+    else:
+        result_log['J_CALL'] = None
+        try: jlen = int(align['J_GERM_LENGTH'])
+        except (TypeError, ValueError): jlen = 0
+        germ_jseq = 'N' * jlen
+
+    # Assemble pieces starting with V-region
     germ_seq = germ_vseq
     regions = 'V' * len(germ_vseq)
+    #print 'V>', germ_seq, '\nV>', regions
+
     # Nucleotide additions before D (before J for light chains)
     # TODO: HACK, the 1 is suppposed to be 'V_SEQ_START' but that isn't working!
-    germ_seq += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
-                       int(align['V_SEQ_LENGTH'] or 0) - 1)
-    regions += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
-                      int(align['V_SEQ_LENGTH'] or 0) - 1)
+    # TODO:  why not use N1_LENGTH?
+    # germ_seq += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+    #                    int(align['V_SEQ_LENGTH'] or 0) - 1)
+    # regions += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
+    #                   int(align['V_SEQ_LENGTH'] or 0) - 1)
+    try: n1_len = int(align['N1_LENGTH'])
+    except (TypeError, ValueError): n1_len = 0
+    if n1_len < 0:
+        result_log['ERROR'] = 'N1_LENGTH is negative'
+        return result_log, germlines
+
+    germ_seq += 'N' * n1_len
+    regions += 'N' * n1_len
+
+    # Add D-region
     germ_seq += germ_dseq
     regions += 'D' * len(germ_dseq)
+    #print 'VD>', germ_seq, '\nVD>', regions
+
     # Nucleotide additions after D (heavy chains only)
-    germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - \
-                       int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
-                       int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
-    regions += 'N' * (int(align['J_SEQ_START'] or 0) - \
-                      int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
-                      int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
+    # TODO:  why not use N2_LENGTH?
+    # germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - \
+    #                    int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+    #                    int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
+    # regions += 'N' * (int(align['J_SEQ_START'] or 0) - \
+    #                   int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
+    #                   int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
+    try: n2_len = int(align['N2_LENGTH'])
+    except (TypeError, ValueError): n2_len = 0
+    if n2_len < 0:
+        result_log['ERROR'] = 'N2_LENGTH is negative'
+        return result_log, germlines
+
+    germ_seq += 'N' * n2_len
+    regions += 'N' * n2_len
+
+    # Add J-region
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
-    germs['full'] = germ_seq.upper()
-    germs['regions'] = regions
-    if 'dmask' in germ_types: germs['dmask'] = germ_seq[:len(germ_vseq)] + \
-                                  "N" * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
-                                  germ_seq[-len(germ_jseq):]
-    if 'vonly' in germ_types: germs['vonly'] = germ_vseq
 
+    # Define return germlines
+    germlines['full'] = germ_seq
+    germlines['regions'] = regions
+    if 'dmask' in germ_types:
+        germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
+                             'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
+                             germ_seq[-len(germ_jseq):]
+    if 'vonly' in germ_types:
+        germlines['vonly'] = germ_vseq
+
+    # Check that input and germline sequence match
     if len(align[seq_field]) == 0:
-        result_log['ERROR'] = 'Gapped sequence is missing from %s column' % seq_field
-    elif len(germs['full']) != len(align[seq_field]):
-        result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % (len(germs['full'])-len(align[seq_field]))
-        
-    for v in germs.itervalues(): v = v.upper()
+        result_log['ERROR'] = 'Sequence is missing from %s column' % seq_field
+    elif len(germlines['full']) != len(align[seq_field]):
+        result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
+                              (len(germlines['full']) - len(align[seq_field]))
+
+    # Convert to uppercase
+    for k, v in germlines.iteritems():  germlines[k] = v.upper()
     
-    return result_log, germs
+    return result_log, germlines
 
 
 def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
@@ -238,12 +301,12 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
         
-        result_log, germs = joinGermline(row, repo_dict, germ_types, v_field, seq_field)
+        result_log, germlines = joinGermline(row, repo_dict, germ_types, v_field, seq_field)
         
         # Add germline field(s) to dictionary
-        if 'full' in germ_types: row['GERMLINE_' + seq_type] = germs['full']
-        if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germs['dmask']
-        if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germs['vonly']
+        if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
+        if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
+        if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
@@ -251,8 +314,8 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
             if fail_writer is not None: fail_writer.writerow(row)
         else:
             result_log['SEQUENCE'] = row[seq_field]
-            result_log['GERMLINE'] = germs['full']
-            result_log['REGIONS'] = germs['regions']
+            result_log['GERMLINE'] = germlines['full']
+            result_log['REGIONS'] = germlines['regions']
             
             pass_count += 1
             pass_writer.writerow(row)
@@ -333,12 +396,12 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             cons = cons[0]
             cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
             cons[seq_field] += '.'*(max_length - len(cons[seq_field]))
-            result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
+            result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
             result_log['ID'] = clone
             result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
-        result_log, germs = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
+        result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
         result_log['ID'] = clone
         result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
@@ -350,13 +413,13 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             val[seq_field] += '.'*(max_length - len(val[seq_field]))
             
             # Add column(s) to tab-delimited database file
-            if 'full' in germ_types: val['GERMLINE_' + seq_type] = germs['full']
-            if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germs['dmask']
-            if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germs['vonly']
+            if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
+            if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
+            if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
             
             result_log['SEQUENCE'] = cons
-            result_log['GERMLINE'] = germs['full']
-            result_log['REGIONS'] = germs['regions']
+            result_log['GERMLINE'] = germlines['full']
+            result_log['REGIONS'] = germlines['regions']
             
             # Write to pass file
             counts['pass'] += 1
@@ -540,7 +603,7 @@ def getArgParser():
     parser.add_argument('-r', action='store', dest='repo', default=default_repo,
                         help='Folder where repertoire fasta files are located')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
-                        nargs='+', choices=('full','dmask','vonly'),
+                        nargs='+', choices=('full', 'dmask', 'vonly'),
                         help='Specify type(s) of germlines to include full germline, \
                               germline with D-region masked, or germline for V region only.')
     parser.add_argument('--cloned', action='store_true', dest='cloned',
