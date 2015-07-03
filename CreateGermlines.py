@@ -206,20 +206,25 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
 
-    germlines['full'] = germ_seq.upper()
+    # Define return germlines
+    germlines['full'] = germ_seq
     germlines['regions'] = regions
-    if 'dmask' in germ_types: germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
-                                  'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
-                                  germ_seq[-len(germ_jseq):]
-    if 'vonly' in germ_types: germlines['vonly'] = germ_vseq
+    if 'dmask' in germ_types:
+        germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
+                             'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
+                             germ_seq[-len(germ_jseq):]
+    if 'vonly' in germ_types:
+        germlines['vonly'] = germ_vseq
 
+    # Check that input and germline sequence match
     if len(align[seq_field]) == 0:
         result_log['ERROR'] = 'Sequence is missing from %s column' % seq_field
     elif len(germlines['full']) != len(align[seq_field]):
         result_log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
                               (len(germlines['full']) - len(align[seq_field]))
-        
-    for v in germlines.itervalues(): v = v.upper()
+
+    # Convert to uppercase
+    for k, v in germlines.iteritems():  germlines[k] = v.upper()
     
     return result_log, germlines
 
