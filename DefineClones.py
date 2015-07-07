@@ -54,22 +54,22 @@ aa_model = getDistMat(n_score=1, gap_score=0, alphabet='aa')
 ham_model = getDistMat(n_score=0, gap_score=0, alphabet='dna')
 
 # Human 1-mer model
-hs1f = DataFrame([[0,2.08,1,1.75],
-                  [2.08,0,1.75,1],
-                  [1,1.75,0,2.08],
-                  [1.75,1,2.08,0]],
-                 index=['A','C','G','T'],
-                 columns=['A','C','G','T'],
+hs1f = DataFrame([[0.00, 2.08, 1.00, 1.75],
+                  [2.08, 0.00, 1.75, 1.00],
+                  [1.00, 1.75, 0.00, 2.08],
+                  [1.75, 1.00, 2.08, 0.00]],
+                 index=['A', 'C', 'G', 'T'],
+                 columns=['A', 'C', 'G', 'T'],
                  dtype=float)
 hs1f_model = getDistMat(hs1f)
 
 # Mouse 1-mer model
-smith96 = DataFrame([[0,2.86,1,2.14],
-                     [2.86,0,2.14,1],
-                     [1,2.14,0,2.86],
-                     [2.14,1,2.86,0]],
-                    index=['A','C','G','T'],
-                    columns=['A','C','G','T'],
+smith96 = DataFrame([[0.00, 2.86, 1.00, 2.14],
+                     [2.86, 0.00, 2.14, 1.00],
+                     [1.00, 2.14, 0.00, 2.86],
+                     [2.14, 1.00, 2.86, 0.00]],
+                    index=['A', 'C', 'G', 'T'],
+                    columns=['A', 'C', 'G', 'T'],
                     dtype=float)
 m1n_model = getDistMat(smith96)
 
