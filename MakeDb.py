@@ -244,13 +244,13 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                         # V alignment scores
                         if score_fields:
                             try: db_gen['V_SCORE'] = float(v_align[13])
-                            except: db_gen['V_SCORE'] = 'None'
+                            except (TypeError, ValueError): db_gen['V_SCORE'] = 'None'
 
                             try: db_gen['V_IDENTITY'] = float(v_align[3]) / 100.0
-                            except: db_gen['V_IDENTITY'] = 'None'
+                            except (TypeError, ValueError): db_gen['V_IDENTITY'] = 'None'
 
                             try: db_gen['V_EVALUE'] = float(v_align[12])
-                            except: db_gen['V_EVALUE'] = 'None'
+                            except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
 
                         # Update input sequence positions
                         vdj_start = db_gen['V_SEQ_START'] - 1
@@ -320,13 +320,13 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                         # J alignment scores
                         if score_fields:
                             try: db_gen['J_SCORE'] = float(j_align[13])
-                            except: db_gen['J_SCORE'] = 'None'
+                            except (TypeError, ValueError): db_gen['J_SCORE'] = 'None'
 
                             try: db_gen['J_IDENTITY'] = float(j_align[3]) / 100.0
-                            except: db_gen['J_IDENTITY'] = 'None'
+                            except (TypeError, ValueError): db_gen['J_IDENTITY'] = 'None'
 
                             try: db_gen['J_EVALUE'] = float(j_align[12])
-                            except: db_gen['J_EVALUE'] = 'None'
+                            except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
 
                         # Update input sequence positions
                         if vdj_start is None:  vdj_start = db_gen['J_SEQ_START'] - 1
@@ -420,18 +420,18 @@ def readIMGT(imgt_files, score_fields=False):
             # Alignment scores
             if score_fields:
                 try:  db_gen['V_SCORE'] = float(sm['V-REGION score'])
-                except:  db_gen['V_SCORE'] = 'None'
+                except (TypeError, ValueError):  db_gen['V_SCORE'] = 'None'
 
                 try:  db_gen['V_IDENTITY'] = float(sm['V-REGION identity %']) / 100.0
-                except:  db_gen['V_IDENTITY'] = 'None'
+                except (TypeError, ValueError):  db_gen['V_IDENTITY'] = 'None'
 
                 db_gen['V_EVALUE'] = 'None'
 
                 try:  db_gen['J_SCORE'] = float(sm['J-REGION score'])
-                except:  db_gen['J_SCORE'] = 'None'
+                except (TypeError, ValueError):  db_gen['J_SCORE'] = 'None'
 
                 try:  db_gen['J_IDENTITY'] = float(sm['J-REGION identity %']) / 100.0
-                except:  db_gen['J_IDENTITY'] = 'None'
+                except (TypeError, ValueError):  db_gen['J_IDENTITY'] = 'None'
 
                 db_gen['J_EVALUE'] = 'None'
         else:
