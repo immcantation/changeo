@@ -227,9 +227,10 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                     # 11:  s. end
                     # 12:  evalue
                     # 13:  bit score
+                    # 14:  query seq
 
                     # If V call exists, parse V alignment information
-                    vdj_start, vdj_end = None, None
+                    seq_vdj = ''
                     if v_call is not None:
                         v_align = hit_df[hit_df[0] == 'V'].iloc[0]
                         # Germline positions
@@ -252,9 +253,8 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                             try: db_gen['V_EVALUE'] = float(v_align[12])
                             except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
 
-                        # Update input sequence positions
-                        vdj_start = db_gen['V_SEQ_START'] - 1
-                        vdj_end = int(v_align[9])
+                        # Update VDJ sequence
+                        seq_vdj += v_align[14]
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If D call exists, parse D alignment information
@@ -271,6 +271,9 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n1_len)
                             else:
                                 db_gen['N1_LENGTH'] = n1_len
+                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH'])
+                                n1_end = int(d_align[8])
+                                seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
 
                         # Query sequence positions
                         db_gen['D_SEQ_START'] = int(d_align[8]) + overlap
@@ -280,9 +283,8 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                         db_gen['D_GERM_START'] = int(d_align[10]) + overlap
                         db_gen['D_GERM_LENGTH'] = max(int(d_align[11]) - db_gen['D_GERM_START'] + 1, 0)
 
-                        # Update input sequence positions
-                        if vdj_start is None:  vdj_start = db_gen['D_SEQ_START'] - 1
-                        vdj_end = int(d_align[9])
+                        # Update VDJ sequence
+                        seq_vdj += d_align[14][overlap:]
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If J call exists, parse J alignment information
@@ -299,6 +301,9 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n2_len)
                             else:
                                 db_gen['N2_LENGTH'] = n2_len
+                                n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH'])
+                                n2_end = int(j_align[8])
+                                seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
                         elif v_call is not None:
                             n1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
                             if n1_len < 0:
@@ -306,6 +311,9 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n1_len)
                             else:
                                 db_gen['N1_LENGTH'] = n1_len
+                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH'])
+                                n1_end = int(j_align[8])
+                                seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
                         else:
                             db_gen['N1_LENGTH'] = 0
 
@@ -328,15 +336,10 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                             try: db_gen['J_EVALUE'] = float(j_align[12])
                             except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
 
-                        # Update input sequence positions
-                        if vdj_start is None:  vdj_start = db_gen['J_SEQ_START'] - 1
-                        vdj_end = int(j_align[9])
+                        # Update VDJ sequence
+                        seq_vdj += j_align[14][overlap:]
 
-                    # Set VDJ sequence
-                    if vdj_start is not None and vdj_end is not None:
-                        db_gen['SEQUENCE_VDJ'] = db_gen['SEQUENCE_INPUT'][vdj_start:vdj_end]
-                    else:
-                        db_gen['SEQUENCE_VDJ'] = 'None'
+                    db_gen['SEQUENCE_VDJ'] = seq_vdj
 
                 yield IgRecord(db_gen)
 
@@ -767,8 +770,8 @@ def getArgParser():
     parser_igblast.set_defaults(func=parseIgBlast)
     parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
                                 required=True,
-                                help='''IgBLAST output files in format 7 (IgBLAST
-                                     argument \'-outfmt 7\').''')
+                                help='''IgBLAST output files in format 7 with query sequence
+                                     (IgBLAST argument \'-outfmt "7 std qseq"\').''')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
                                 help='List of input FASTA files containing sequences')
