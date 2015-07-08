@@ -1,21 +1,27 @@
-Version 0.2.2.beta:  June 30, 2015
+Version 0.2.2:  July 8, 2015
 -------------------------------------------------------------------------------
 
 CreateGermlines:
 
++ Germline creation now works for IgBLAST output parsed with MakeDb. The 
+  argument `--sf SEQUENCE_VDJ` must be provided to generate germlines from 
+  IgBLAST output. The same reference database used for the IgBLAST alignment
+  must be specified with the `-r` flag.
 + Fixed a bug with determination of N1 and N2 region positions.
-+ Fixed germline creation using the SEQUENCE_VDJ column from IgBLAST output
-  parsed with MakeDb.
 
 MakeDb:
 
 + Combined the `-z` and `-f` flags of the imgt subcommand into a single flag, 
   `-i`, which autodetects the input type.
-+ Added the `--scores` flag which adds extra columns containing alignment score 
-  results from IMGT and IgBLAST output.
++ Added requirement that IgBLAST input be generated using the 
+  `-outfmt "7 std qseq"` argument to igblastn.
++ Modified SEQUENCE_VDJ output from IgBLAST parser to include gaps inserted 
+  during alignment.
 + Added correction for IgBLAST alignments where V/D, D/J or V/J segments are
   assigned overlapping positions.
 + Corrected N1_LENGTH and N2_LENGTH calculation from IgBLAST output.
++ Added the `--scores` flag which adds extra columns containing alignment score 
+  results from IMGT and IgBLAST output.
 
 
 Version 0.2.1:  June 18, 2015
