@@ -20,8 +20,8 @@ MakeDb:
 + Added correction for IgBLAST alignments where V/D, D/J or V/J segments are
   assigned overlapping positions.
 + Corrected N1_LENGTH and N2_LENGTH calculation from IgBLAST output.
-+ Added the `--scores` flag which adds extra columns containing alignment score 
-  results from IMGT and IgBLAST output.
++ Added the `--scores` flag which adds extra columns containing alignment 
+  scores from IMGT and IgBLAST output.
 
 
 Version 0.2.1:  June 18, 2015

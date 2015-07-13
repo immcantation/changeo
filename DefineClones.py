@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed U
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.2.2'
-__date__      = '2015.07.07'
+__date__      = '2015.07.08'
 
 # Imports
 import os, signal, sys, textwrap, re
