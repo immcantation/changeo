@@ -39,7 +39,7 @@ default_translate = False
 default_distance = 0.0
 default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
-default_norm = 'length'
+default_norm = 'len'
 default_linkage = 'single'
 
 

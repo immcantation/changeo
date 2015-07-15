@@ -1,3 +1,12 @@
+Version 0.2.3:  July 15, 2015
+-------------------------------------------------------------------------------
+
+DefineClones:
+
++ Changed default normalization to 'len' from 'length' (which was interpreted
+  as 'none').
+   
+
 Version 0.2.2:  July 8, 2015
 -------------------------------------------------------------------------------
 
