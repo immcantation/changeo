@@ -553,7 +553,7 @@ def getNmers(sequences, n):
     return nmers
 
 
-def calcDistances(sequences, n, dist_mat, norm):
+def calcDistances(sequences, n, dist_mat, norm, sym):
     """
     Calculate pairwise distances between input sequences
 
@@ -561,6 +561,7 @@ def calcDistances(sequences, n, dist_mat, norm):
     :param n: length of n-mers to be used in calculating distance
     :param dist_mat: pandas DataFrame of mutation distances
     :param norm: normalization method
+    :param sym: symmetry method
     :return: numpy matrix of pairwise distances between input sequences
     """
     # Initialize output distance matrix
@@ -584,11 +585,19 @@ def calcDistances(sequences, n, dist_mat, norm):
         else:
             norm_by = 1
 
+        # Determine symmetry function
+        if sym == 'avg':
+            sym_fun = np.mean
+        elif sym == 'min':
+            sym_fun = min
+        else:
+            sym_fun = sum
+
         # Calculate distances
         dists[j,k] = dists[k,j] = \
-                sum([dist_mat.at[c1,n2] + dist_mat.at[c2,n1] \
+                sum([sym_fun([dist_mat.at[c1,n2],dist_mat.at[c2,n1]]) \
                      for c1,c2,n1,n2 in izip(seq1,seq2,nmer1,nmer2)]) / \
-                (2*norm_by)
+                (norm_by)
 
     return dists
 

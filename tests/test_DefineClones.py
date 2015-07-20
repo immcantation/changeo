@@ -71,7 +71,7 @@ class Test_DefineClones(unittest.TestCase):
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
         # hs5f
-        results = mod.distanceClones(self.records, model='hs5f', distance=1.0)
+        results = mod.distanceClones(self.records, model='hs5f', distance=0.1)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs5f'
         for k, v in results.iteritems():
@@ -81,7 +81,7 @@ class Test_DefineClones(unittest.TestCase):
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # m1n
-        results = mod.distanceClones(self.records, model='m1n', distance=10)
+        results = mod.distanceClones(self.records, model='m1n', distance=10, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> m1n'
         for k, v in results.iteritems():
@@ -90,7 +90,7 @@ class Test_DefineClones(unittest.TestCase):
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # hs1f
-        results = mod.distanceClones(self.records, model='hs1f', distance=10)
+        results = mod.distanceClones(self.records, model='hs1f', distance=0.25)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs1f'
         for k, v in results.iteritems():
@@ -99,7 +99,7 @@ class Test_DefineClones(unittest.TestCase):
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # aa
-        results = mod.distanceClones(self.records, model='aa', distance=3.0)
+        results = mod.distanceClones(self.records, model='aa', distance=3.0, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> aa'
         for k, v in results.iteritems():
@@ -108,8 +108,8 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-         # aa
-        results = mod.distanceClones(self.records, model='ham', distance=9.0)
+         # ham
+        results = mod.distanceClones(self.records, model='ham', distance=9.0, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> ham'
         for k, v in results.iteritems():

@@ -1,4 +1,4 @@
-Version 0.2.3.beta:  July 15, 2015
+Version 0.2.3.beta:  July 20, 2015
 -------------------------------------------------------------------------------
 
 DefineClones:
@@ -7,6 +7,7 @@ DefineClones:
   as 'none').
 + Changed HS5F_Distance to be new distance that is centered, negative log10
   of the targeting probability.
++ Added `--sym` parameter to determine how asymmetric distances are handled.
    
 
 Version 0.2.2:  July 8, 2015
