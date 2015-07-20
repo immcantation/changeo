@@ -40,6 +40,7 @@ default_distance = 0.0
 default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
 default_norm = 'len'
+default_sym = 'avg'
 default_linkage = 'single'
 
 # TODO:  should be in Distance, but need to be after function definitions
@@ -158,7 +159,8 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,
-                   dist_mat=None, norm=default_norm, linkage=default_linkage):
+                   dist_mat=None, norm=default_norm, sym=default_sym,
+                   linkage=default_linkage):
     """
     Separates a set of IgRecords into clones
 
@@ -168,6 +170,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     distance = the distance threshold to assign clonal groups
     dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
     norm = normalization method
+    sym = symmetry method
     linkage = type of linkage
 
     Returns: 
@@ -204,7 +207,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     junctions = list(junc_map.keys())
 
     # Calculate pairwise distance matrix
-    dists = calcDistances(junctions, nmer_len, dist_mat, norm)
+    dists = calcDistances(junctions, nmer_len, dist_mat, norm, sym)
 
     # Perform hierarchical clustering
     clusters = formClusters(dists, linkage, distance)
@@ -946,8 +949,12 @@ def getArgParser():
     parser_bygroup.add_argument('--norm', action='store', dest='norm',
                              choices=('len', 'mut', 'none'), default=default_norm,
                              help='''Specifies how to normalize distances. One of none
-                                  (do not normalize), len (normalize by junction length,
-                                  or mut (normalize by number of mutations between sequences.''')
+                                  (do not normalize), len (normalize by junction length),
+                                  or mut (normalize by number of mutations between sequences).''')
+    parser_bygroup.add_argument('--sym', action='store', dest='sym',
+                             choices=('avg', 'min'), default=default_sym,
+                             help='''Specifies how to combine asymmetric distances. One of avg
+                                  (average of A->B and B->A) or min (minimum of A->B and B->A).''')
     parser_bygroup.add_argument('--link', action='store', dest='linkage',
                              choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
@@ -997,6 +1004,7 @@ if __name__ == '__main__':
         args_dict['clone_args'] = {'model':  args_dict['model'],
                                    'distance':  args_dict['distance'],
                                    'norm': args_dict['norm'],
+                                   'sym': args_dict['sym'],
                                    'linkage': args_dict['linkage']}
 
         # TODO:  can be cleaned up with abstract model class
@@ -1008,6 +1016,7 @@ if __name__ == '__main__':
         del args_dict['model']
         del args_dict['distance']
         del args_dict['norm']
+        del args_dict['sym']
         del args_dict['linkage']
 
     # Define clone_args
