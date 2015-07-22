@@ -1,13 +1,14 @@
-Version 0.2.3.beta:  July 20, 2015
+Version 0.2.3:  July 22, 2015
 -------------------------------------------------------------------------------
 
 DefineClones:
 
-+ Changed default normalization to 'len' from 'length' (which was interpreted
-  as 'none').
-+ Changed HS5F_Distance to be new distance that is centered, negative log10
-  of the targeting probability.
-+ Added `--sym` parameter to determine how asymmetric distances are handled.
++ Fixed a typo in the default normalization setting of the bygroup subcommand, 
+  which was being interpreted as 'none' rather than 'len'.
++ Changed the 'hs5f' model of the bygroup subcommand to be centered -log10 of 
+  the targeting probability.
++ Added the `--sym` argument to the bygroup subcommand which determines how 
+  asymmetric distances are handled.
    
 
 Version 0.2.2:  July 8, 2015

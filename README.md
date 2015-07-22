@@ -1,4 +1,4 @@
-Version 0.2.2:  July 8, 2015
+Version 0.2.3:  July 22, 2015
 ==============================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences. 
