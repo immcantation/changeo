@@ -1,3 +1,19 @@
+Version 0.3.0.beta:  July 22, 2015
+-------------------------------------------------------------------------------
+
+Conversion to a proper Python package which uses pip and setuptools for 
+installation.
+
+DbCore:
+
++ Divided DbCore functionality into the separate modules: Defaults, Distance, 
+  IO, Multiprocessing and Receptor.
+
+IgCore:
+
++ Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
+  
+  
 Version 0.2.3:  July 22, 2015
 -------------------------------------------------------------------------------
 

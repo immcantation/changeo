@@ -3,34 +3,35 @@
 Create tab-delimited database file to store sequence alignment information
 """
 
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
-import csv, os, re, sys, textwrap
+import csv
+import os
+import re
+import sys
 import pandas as pd
-from zipfile import ZipFile, is_zipfile
-from tempfile import mkdtemp
+from argparse import ArgumentParser
+from collections import OrderedDict
+from itertools import izip, groupby
 from shutil import rmtree
+from tempfile import mkdtemp
+from textwrap import dedent
+from time import time
+from zipfile import ZipFile, is_zipfile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from argparse import ArgumentParser
-from itertools import izip, groupby
-from collections import OrderedDict
-from time import time
 
-
-# IgCore and DbCore imports 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, countSeqFile, readSeqFile
-from IgCore import parseAnnotation, printLog, printProgress
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import getDbWriter, countDbFile
-from DbCore import IgRecord, parseAllele
-from DbCore import v_allele_regex, d_allele_regex, j_allele_regex
+# Presto and changeo imports
+from presto.Defaults import default_out_args
+from presto.Annotation import parseAnnotation
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import countSeqFile, printLog, printProgress
+from changeo.IO import getDbWriter, countDbFile
+from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
+                             j_allele_regex
 
 # Default parameters
 default_delimiter = ('\t', ',', '-')
@@ -352,7 +353,7 @@ def readIMGT(imgt_files, score_fields=False):
     Arguments: 
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
-        
+    
     Returns: 
     a generator of dictionaries containing alignment data
     """
@@ -711,7 +712,7 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
               output files:
                 db-pass        database of parsed alignment records.

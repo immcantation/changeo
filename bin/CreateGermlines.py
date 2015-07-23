@@ -2,32 +2,32 @@
 """
 Reconstructs germline sequences from alignment data
 """
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
-import os, sys, textwrap
-from Bio import SeqIO
+import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
+from textwrap import dedent
 from time import time
+from Bio import SeqIO
 
-# IgCore and DbCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args 
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import readDbFile, getDbWriter, countDbFile
-from DbCore import allele_regex, IgRecord, parseAllele
+# Presto and change imports
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getOutputHandle, printLog, printProgress
+from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.Receptor import allele_regex, parseAllele
 
 # Defaults
 default_repo = 'germlines'
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'
+
 
 def getRepo(repo):
     """
@@ -162,15 +162,8 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     # Assemble pieces starting with V-region
     germ_seq = germ_vseq
     regions = 'V' * len(germ_vseq)
-    #print 'V>', germ_seq, '\nV>', regions
 
     # Nucleotide additions before D (before J for light chains)
-    # TODO: HACK, the 1 is suppposed to be 'V_SEQ_START' but that isn't working!
-    # TODO:  why not use N1_LENGTH?
-    # germ_seq += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
-    #                    int(align['V_SEQ_LENGTH'] or 0) - 1)
-    # regions += 'N' * (int(align['D_SEQ_START'] if dgene is not None else align['J_SEQ_START']) - \
-    #                   int(align['V_SEQ_LENGTH'] or 0) - 1)
     try: n1_len = int(align['N1_LENGTH'])
     except (TypeError, ValueError): n1_len = 0
     if n1_len < 0:
@@ -186,13 +179,6 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     #print 'VD>', germ_seq, '\nVD>', regions
 
     # Nucleotide additions after D (heavy chains only)
-    # TODO:  why not use N2_LENGTH?
-    # germ_seq += 'N' * (int(align['J_SEQ_START'] or 0) - \
-    #                    int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
-    #                    int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
-    # regions += 'N' * (int(align['J_SEQ_START'] or 0) - \
-    #                   int(align['D_SEQ_LENGTH'] if dgene is not None else align['V_SEQ_LENGTH']) - \
-    #                   int(align['D_SEQ_START'] if dgene is not None else align['V_SEQ_START']))
     try: n2_len = int(align['N2_LENGTH'])
     except (TypeError, ValueError): n2_len = 0
     if n2_len < 0:
@@ -553,7 +539,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output field help message
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                germ-pass             database with assigned germline sequences.

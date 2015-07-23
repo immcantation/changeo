@@ -2,37 +2,37 @@
 """
 Assign Ig sequences into clones
 """
-
-__author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+# Info
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
+from changeo import __version__, __date__
 
 # Imports
-import os, signal, sys, textwrap, re
+import os
+import re
+import signal
+import sys
 import multiprocessing as mp
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from ctypes import c_bool
 from itertools import chain
-from pandas import DataFrame
-from pandas.io.parsers import read_csv
+from textwrap import dedent
 from time import time
 from Bio import pairwise2
 from Bio.Seq import translate, Seq
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict
-from IgCore import manageProcesses
-from DbCore import countDbFile, readDbFile, getDbWriter
-from DbCore import DbData, DbResult, getDistMat
-from DbCore import calcDistances, formClusters
+# Presto and changeo imports
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getFileType, getOutputHandle, printLog, printProgress
+from presto.Multiprocessing import manageProcesses
+from presto.Sequence import getDNAScoreDict
+from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
+                             hs1f_model, m1n_model, hs5f_model, \
+                             calcDistances, formClusters
+from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.Multiprocessing import DbData, DbResult
 
 # Defaults
 default_translate = False
@@ -43,43 +43,12 @@ default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
 
-
-# TODO:  moved models into core, can wait until package conversion
-# Path to model files
-model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models')
-
+# TODO:  should be in Distance, but need to be after function definitions
 # Amino acid Hamming distance
-aa_model = getDistMat(n_score=1, gap_score=0, alphabet='aa')
+aa_model = getAADistMatrix(mask_dist=1, gap_dist=0)
 
 # DNA Hamming distance
-ham_model = getDistMat(n_score=0, gap_score=0, alphabet='dna')
-
-# Human 1-mer model
-hs1f = DataFrame([[0.00, 2.08, 1.00, 1.75],
-                  [2.08, 0.00, 1.75, 1.00],
-                  [1.00, 1.75, 0.00, 2.08],
-                  [1.75, 1.00, 2.08, 0.00]],
-                 index=['A', 'C', 'G', 'T'],
-                 columns=['A', 'C', 'G', 'T'],
-                 dtype=float)
-hs1f_model = getDistMat(hs1f)
-
-# Mouse 1-mer model
-smith96 = DataFrame([[0.00, 2.86, 1.00, 2.14],
-                     [2.86, 0.00, 2.14, 1.00],
-                     [1.00, 2.14, 0.00, 2.86],
-                     [2.14, 1.00, 2.86, 0.00]],
-                    index=['A', 'C', 'G', 'T'],
-                    columns=['A', 'C', 'G', 'T'],
-                    dtype=float)
-m1n_model = getDistMat(smith96)
-
-# Human 5-mer DNA model
-hs5f_file = os.path.join(model_path, 'HS5F_Distance.tab')
-hs5f_model = read_csv(hs5f_file, sep='\t', index_col=0)
-
-# TODO:  Merge duplicate feed, process and collect functions.
-# TODO:  Update feed, process and collect functions to current pRESTO implementation.
+ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
 
 
 # TODO:  this function is an abstraction to facilitate later cleanup
@@ -270,7 +239,7 @@ def distChen2010(records):
     query_j_allele = query.getJAllele()
     query_j_gene = query.getJGene()
     # Create alignment scoring dictionary
-    score_dict = getScoreDict()
+    score_dict = getDNAScoreDict()
     
     scores = [0]*len(records)    
     for i in range(len(records)):
@@ -306,7 +275,7 @@ def distAdemokun2011(records):
     query_cdr3 = query.junction[3:-3]
     query_v_family = query.getVFamily()
     # Create alignment scoring dictionary
-    score_dict = getScoreDict()
+    score_dict = getDNAScoreDict()
     
     scores = [0]*len(records)    
     for i in range(len(records)):
@@ -341,7 +310,7 @@ def hierClust(dist_mat, method='chen2010'):
         
     return clusters
 
-
+# TODO:  Merge duplicate feed, process and collect functions.
 def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     """
     Feeds the data queue with Ig records
@@ -917,7 +886,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                clone-pass     database with assigned clonal group numbers.
@@ -930,7 +899,7 @@ def getArgParser():
                J_CALL
                JUNCTION_LENGTH
                JUNCTION
-
+                
              output fields:
                CLONE
               ''')

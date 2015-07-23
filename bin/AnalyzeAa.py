@@ -2,31 +2,28 @@
 """
 Performs amino acid analysis of Ig sequences
 """
-
-__author__    = 'Namita Gupta, Daniel Gadala-Maria'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+# Info
+__author__ = 'Namita Gupta, Daniel Gadala-Maria'
+from changeo import __version__, __date__
 
 # Imports
-import re, textwrap
-from os import path
+import re
 from argparse import ArgumentParser
-from Bio.Seq import Seq
 from collections import OrderedDict
+from os import path
+from textwrap import dedent
 from time import time
+from Bio.Seq import Seq
 
-# IgCore and DbCore imports 
-from sys import path as syspath
-syspath.append(path.dirname(path.realpath(__file__)))
-from IgCore import default_out_args
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from DbCore import getDbWriter, countDbFile, readDbFile
+# Presto and changeo imports
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getOutputHandle, printLog, printProgress
+from changeo.IO import getDbWriter, readDbFile, countDbFile
 
 # Defaults
 default_seq_field = 'JUNCTION'
+
 
 def gravy(aa_seq):
     """
@@ -56,7 +53,7 @@ def AaProperties(seq, out_args):
     out_args = arguments for output preferences
 
     Returns:
-    dictionary with CDR3 amino acid properties
+    dictionary with amino acid properties
     """    
     # Ensure sequence is uppercase for translation
     seq = seq.upper()
@@ -66,7 +63,7 @@ def AaProperties(seq, out_args):
 
     props = {}
     
-    # Calculate CDR3 Lengths
+    # Calculate length
     props['_AA_LENGTH'] = len(aa_seq)
     
     # Count the percent of aa that are positively charged
@@ -96,7 +93,7 @@ def AaProperties(seq, out_args):
     b = 3.9
     props['_ALIPHATIC'] = round(100*float(nAla + a*nVal + b*nLeuIle)/props['_AA_LENGTH'], 2)
     
-    # Percent CDR3 Aromatic AAs
+    # Percent aromatic AAs
     props['_AROMATIC'] = round(100*float(len(re.findall("[FWHY]", aa_seq)))/props['_AA_LENGTH'], 2)
     
     # GRAVY (Grand Average of Hydropathy) index
@@ -108,7 +105,7 @@ def AaProperties(seq, out_args):
 
 def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
     """
-    Calculate amino acid properties for specified regions and add to tab-delimited database
+    Calculate amino acid properties for specified regions and add to database file
 
     Arguments:
     db_file = input tab-delimited database file
@@ -123,23 +120,22 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
     log['FILE'] = path.basename(db_file)
     log['SEQ_FIELD'] = seq_field
     printLog(log)
-    
-    # Create reader instance for input file
+
+    # Define reader instance for input file
     reader = readDbFile(db_file, ig=False)
-    # Create passed output handle and writer
+    # Define passed output handle and writer
     pass_handle = getOutputHandle(db_file,
-                                 'aa-pass',
-                                 out_dir=out_args['out_dir'], 
-                                 out_name=out_args['out_name'], 
-                                 out_type=out_args['out_type'])
+                                  'aa-pass',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type=out_args['out_type'])
     prop_fields = [seq_field + p for p in ['_AA_LENGTH', '_AA_POSITIVE',
                                            '_AA_NEGATIVE','_ARGININE',
                                            '_HISTIDINE', '_LYSINE', '_TYROSINE',
                                            '_ALIPHATIC', '_AROMATIC', '_GRAVY']]
     pass_writer = getDbWriter(pass_handle, db_file,
                          add_fields=prop_fields)
-
-    # Defined failed output handle and writer
+    # Define failed output handle and writer
     if out_args['failed']:
         fail_handle = getOutputHandle(db_file,
                                       out_label='aa-fail',
@@ -154,14 +150,14 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
-    
+
     # Iterate over rows
     pass_count = 0
     fail_count = 0
     for i,row in enumerate(reader):
         # Print progress bar
         printProgress(i, rec_count, 0.05, start_time)
-        
+
         # Check that sequence field is not empty and has length a multiple of three
         if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
             # Calculate amino acid properties
@@ -188,7 +184,7 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
-    if fail_handle is not None:  fail_handle.close()
+    if fail_handle is not None: fail_handle.close()
     
     
 def getArgParser():
@@ -202,12 +198,11 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define input and output field help message
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
-               aa-pass               database with amino acid properties.
-               aa-fail               database with records failing analysis.
-
+               aa-pass             database with amino acid properties.
+               aa-fail             database with records failing analysis.
 
              required fields:
                <user defined>      sequence field specified by the --sf parameter

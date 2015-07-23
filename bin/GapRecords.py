@@ -3,41 +3,35 @@
 Multiple aligns sequence fields
 """
 
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
-import csv, os, sys, textwrap
+import os
+import sys
 from argparse import ArgumentParser
-from collections import deque, OrderedDict
+from collections import OrderedDict
 from cStringIO import StringIO
-from itertools import chain, izip
+from itertools import chain
 from subprocess import PIPE, Popen
+from textwrap import dedent
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Align.Applications import MuscleCommandline
-from Bio.Alphabet import IUPAC
-from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args, default_separator
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import printLog
-from IgCore import manageProcesses
-from DbCore import feedDbQueue, processDbQueue, collectDbQueue
-from DbCore import DbData, DbResult
+# Presto and changeo import
+from presto.Defaults import default_out_args, default_separator, default_muscle_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import printLog
+from presto.Multiprocessing import manageProcesses
+from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
 
 # Globals
 # TODO:  not convinced this is the best way to deal with fails in grouping. a class may be better.
 FAIL_GROUP_KEY = 'FAIL_GROUP_KEY'
 
-# Defaults
-default_muscle_exec = r'/usr/local/bin/muscle'
 
 # TODO:  maybe not bothering with 'set' is best. can just work off field identity
 def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='first',
@@ -235,7 +229,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                gap-pass       database with multiple aligned sequences.

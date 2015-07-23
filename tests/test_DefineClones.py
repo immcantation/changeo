@@ -1,21 +1,27 @@
 """
 Unit tests for DefineClones
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.1'
-__date__      = '2015.04.29'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from changeo import __version__, __date__
 
 # Imports
-import time, unittest, os
-from DbCore import IgRecord
-import DefineClones as mod
+import os
+import sys
+import time
+import unittest
 
-# Globals
-data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
-model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, 'models')
+# Presto and changeo imports
+from changeo.Receptor import IgRecord
+
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import DefineClones
+
 
 class Test_DefineClones(unittest.TestCase):
     def setUp(self):
@@ -60,18 +66,17 @@ class Test_DefineClones(unittest.TestCase):
 
     @unittest.skip("-> indexJunctions() skipped\n")
     def test_indexJunctions(self):
-        #mod.indexJunctions(db_iter, fields=None, mode='gene', action='first')
+        #DefineClones.indexJunctions(db_iter, fields=None, mode='gene', action='first')
         self.fail()
 
     def test_distanceClones(self):
-
         # import cProfile
         # prof = cProfile.Profile()
-        # results = prof.runcall(mod.distanceClones, self.records, model='hs5f', distance=1.0, dist_mat=self.dist_mat)
+        # results = prof.runcall(DefineClones.distanceClones, self.records, model='hs5f', distance=1.0, dist_mat=self.dist_mat)
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
-        # hs5f
-        results = mod.distanceClones(self.records, model='hs5f', distance=0.1)
+        # hs5f model
+        results = DefineClones.distanceClones(self.records, model='hs5f', distance=0.1)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs5f'
         for k, v in results.iteritems():
@@ -80,8 +85,8 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        # m1n
-        results = mod.distanceClones(self.records, model='m1n', distance=10, norm='none')
+        # m1n model
+        results = DefineClones.distanceClones(self.records, model='m1n', distance=10.0, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> m1n'
         for k, v in results.iteritems():
@@ -89,8 +94,8 @@ class Test_DefineClones(unittest.TestCase):
                 print '  CLONE-%i> %s' % (k, s.id)
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        # hs1f
-        results = mod.distanceClones(self.records, model='hs1f', distance=0.25)
+        # hs1f model
+        results = DefineClones.distanceClones(self.records, model='hs1f', distance=0.25)
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> hs1f'
         for k, v in results.iteritems():
@@ -98,8 +103,8 @@ class Test_DefineClones(unittest.TestCase):
                 print '  CLONE-%i> %s' % (k, s.id)
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-        # aa
-        results = mod.distanceClones(self.records, model='aa', distance=3.0, norm='none')
+        # aa model
+        results = DefineClones.distanceClones(self.records, model='aa', distance=3.0, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> aa'
         for k, v in results.iteritems():
@@ -108,8 +113,8 @@ class Test_DefineClones(unittest.TestCase):
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
-         # ham
-        results = mod.distanceClones(self.records, model='ham', distance=9.0, norm='none')
+         # ham model
+        results = DefineClones.distanceClones(self.records, model='ham', distance=9.0, norm='none')
         results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
         print 'MODEL> ham'
         for k, v in results.iteritems():
