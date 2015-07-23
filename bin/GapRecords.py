@@ -2,7 +2,6 @@
 """
 Multiple aligns sequence fields
 """
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__

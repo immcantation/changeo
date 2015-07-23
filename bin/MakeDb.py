@@ -2,7 +2,6 @@
 """
 Create tab-delimited database file to store sequence alignment information
 """
-
 # Info
 __author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
