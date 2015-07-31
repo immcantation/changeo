@@ -82,11 +82,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.items():
             for s in v:
                 print('  CLONE-%i> %s' % (k, s.id))
-
-        print(self.clones.values())
-        print(results.values())
-
-        self.assertSequenceEqual(self.clones.values(), results.values())
+        self.assertListEqual(sorted(self.clones.values(), key=lambda x: len(x)),
+                             sorted(results.values(), key=lambda x: len(x)))
 
         # m1n model
         results = DefineClones.distanceClones(self.records, model='m1n', distance=10.0, norm='none')
@@ -95,7 +92,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.items():
             for s in v:
                 print('  CLONE-%i> %s' % (k, s.id))
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+        self.assertListEqual(sorted(self.clones.values(), key=lambda x: len(x)),
+                             sorted(results.values(), key=lambda x: len(x)))
 
         # hs1f model
         results = DefineClones.distanceClones(self.records, model='hs1f', distance=0.25)
@@ -104,7 +102,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.items():
             for s in v:
                 print('  CLONE-%i> %s' % (k, s.id))
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+        self.assertListEqual(sorted(self.clones.values(), key=lambda x: len(x)),
+                             sorted(results.values(), key=lambda x: len(x)))
 
         # aa model
         results = DefineClones.distanceClones(self.records, model='aa', distance=3.0, norm='none')
@@ -113,8 +112,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.items():
             for s in v:
                 print('  CLONE-%i> %s' % (k, s.id))
-
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+        self.assertListEqual(sorted(self.clones.values(), key=lambda x: len(x)),
+                             sorted(results.values(), key=lambda x: len(x)))
 
          # ham model
         results = DefineClones.distanceClones(self.records, model='ham', distance=9.0, norm='none')
@@ -123,8 +122,8 @@ class Test_DefineClones(unittest.TestCase):
         for k, v in results.items():
             for s in v:
                 print('  CLONE-%i> %s' % (k, s.id))
-
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+        self.assertListEqual(sorted(self.clones.values(), key=lambda x: len(x)),
+                             sorted(results.values(), key=lambda x: len(x)))
 
 
 if __name__ == '__main__':
