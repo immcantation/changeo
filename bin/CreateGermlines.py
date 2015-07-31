@@ -210,7 +210,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
                               (len(germlines['full']) - len(align[seq_field]))
 
     # Convert to uppercase
-    for k, v in germlines.iteritems():  germlines[k] = v.upper()
+    for k, v in germlines.items():  germlines[k] = v.upper()
     
     return result_log, germlines
 
@@ -235,7 +235,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
     log['DB_FILE'] = os.path.basename(db_file)
-    log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
+    log['GERM_TYPES'] = germ_types if isinstance(germ_types, str) else ','.join(germ_types)
     log['CLONED'] = 'False'
     log['V_FIELD'] = v_field
     log['SEQ_FIELD'] = seq_field
@@ -351,7 +351,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
     
     # Find longest sequence in clone
     max_length = 0
-    for val in clone_dict.itervalues():
+    for val in clone_dict.values():
         v = val[v_field]
         v_dict[v] = v_dict.get(v,0) + 1
         j = val[j_field]
@@ -359,16 +359,16 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
         if len(val[seq_field]) > max_length: max_length = len(val[seq_field])
     
     # Consensus V and J having most observations
-    v_cons = [k for k in v_dict.keys() if v_dict[k] == max(v_dict.values())]
-    j_cons = [k for k in j_dict.keys() if j_dict[k] == max(j_dict.values())]
+    v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
+    j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
     # Consensus sequence(s) with consensus V/J calls and longest sequence
-    cons = [val for val in clone_dict.values() if val.get(v_field,'') in v_cons and \
+    cons = [val for val in list(clone_dict.values()) if val.get(v_field,'') in v_cons and \
                                                   val.get(j_field,'') in j_cons and \
                                                   len(val[seq_field])==max_length]
     # Sequence(s) with consensus V/J are not longest
     if not cons:
         # Sequence(s) with consensus V/J (not longest)
-        cons = [val for val in clone_dict.values() if val.get(v_field,'') in v_cons and val.get(j_field,'') in j_cons]
+        cons = [val for val in list(clone_dict.values()) if val.get(v_field,'') in v_cons and val.get(j_field,'') in j_cons]
         
         # No sequence has both consensus V and J call
         if not cons: 
@@ -392,7 +392,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
         result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
     # Write sequences of clone
-    for val in clone_dict.itervalues():
+    for val in clone_dict.values():
         if 'ERROR' not in result_log:
             # Update lengths padded to longest sequence in clone
             val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val[seq_field]))
@@ -438,7 +438,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
     log['DB_FILE'] = os.path.basename(db_file)
-    log['GERM_TYPES'] = germ_types if isinstance(germ_types, basestring) else ','.join(germ_types)
+    log['GERM_TYPES'] = germ_types if isinstance(germ_types, str) else ','.join(germ_types)
     log['CLONED'] = 'True'
     log['V_FIELD'] = v_field
     log['SEQ_FIELD'] = seq_field
@@ -582,9 +582,10 @@ def getArgParser():
                                        annotation=False)
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
                                      
     parser.add_argument('-r', action='store', dest='repo', default=default_repo,
                         help='Folder where repertoire fasta files are located')

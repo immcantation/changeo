@@ -2,16 +2,13 @@
 """
 Presto setup
 """
-# Future
-from __future__ import division, absolute_import, print_function
-
 # Imports
 import os
 import sys
 
 # Check setup requirements
-if sys.version_info < (2,7,5):
-    sys.exit('At least Python 2.7.5 is required.\n')
+if sys.version_info < (3,4,0):
+    sys.exit('At least Python 3.4.0 is required.\n')
 
 try:
     from setuptools import setup
@@ -41,7 +38,6 @@ if __author__ is None:
 if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
-# TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
 require_file = os.path.join(setup_path, 'requirements.txt')
 try:

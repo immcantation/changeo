@@ -11,7 +11,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-from cStringIO import StringIO
+from io import StringIO
 from itertools import chain
 from subprocess import PIPE, Popen
 from textwrap import dedent
@@ -101,7 +101,7 @@ def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
 
     for f in seq_fields:
         seq_list = [SeqRecord(r.getSeqField(f), id=r.id) for r in data.data]
-        seq_aln = alignSeqSet(seq_list, muscle_exec=muscle_exec)
+        seq_aln = runMuscle(seq_list, muscle_exec=muscle_exec)
         if seq_aln is not None:
             for i, r in enumerate(result.results):
                 r.annotations['%s_ALIGN' % f] = str(seq_aln[i].seq)
@@ -112,34 +112,35 @@ def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):
+# TODO:  can be moved into presto core functions
+def runMuscle(seq_list, muscle_exec=default_muscle_exec):
     """
-    Multiple aligns a set of sequences
+    Multiple aligns a set of sequences using MUSCLE
 
-    Arguments: 
+    Arguments:
     seq_list = a list of SeqRecord objects to align
     muscle_exec = the MUSCLE executable
-    
-    Returns: 
+
+    Returns:
     a MultipleSeqAlignment object containing the alignment
     """
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
         align = MultipleSeqAlignment(seq_list)
         return align
-    
+
     # Set MUSCLE command
-    cmd = MuscleCommandline(muscle_exec, maxiters=2, diags=True)
+    cmd = [muscle_exec, '-diags', '-maxiters', '2']
 
     # Convert sequences to FASTA and write to string
     stdin_handle = StringIO()
     SeqIO.write(seq_list, stdin_handle, 'fasta')
     stdin_str = stdin_handle.getvalue()
     stdin_handle.close()
-    
+
     # Open MUSCLE process
-    child = Popen(str(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  shell=(sys.platform != 'win32'))
+    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                  universal_newlines=True)
 
     # Send sequences to MUSCLE stdin and retrieve stdout, stderr
     stdout_str, __ = child.communicate(stdin_str)
@@ -249,8 +250,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Gapping method')
     

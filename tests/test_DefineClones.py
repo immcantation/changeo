@@ -25,7 +25,7 @@ import DefineClones
 
 class Test_DefineClones(unittest.TestCase):
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
 
         # Define common preclone properties
         clone_dict = {'V_CALL':'IGHV6-1*01',
@@ -62,7 +62,7 @@ class Test_DefineClones(unittest.TestCase):
 
     def tearDown(self):
         t = time.time() - self.start
-        print "<- %s() %.3f" % (self._testMethodName, t)
+        print("<- %s() %.3f" % (self._testMethodName, t))
 
     @unittest.skip("-> indexJunctions() skipped\n")
     def test_indexJunctions(self):
@@ -77,49 +77,52 @@ class Test_DefineClones(unittest.TestCase):
 
         # hs5f model
         results = DefineClones.distanceClones(self.records, model='hs5f', distance=0.1)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> hs5f'
-        for k, v in results.iteritems():
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        print('MODEL> hs5f')
+        for k, v in results.items():
             for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
+                print('  CLONE-%i> %s' % (k, s.id))
 
-        self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
+        print(self.clones.values())
+        print(results.values())
+
+        self.assertSequenceEqual(self.clones.values(), results.values())
 
         # m1n model
         results = DefineClones.distanceClones(self.records, model='m1n', distance=10.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> m1n'
-        for k, v in results.iteritems():
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        print('MODEL> m1n')
+        for k, v in results.items():
             for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
+                print('  CLONE-%i> %s' % (k, s.id))
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # hs1f model
         results = DefineClones.distanceClones(self.records, model='hs1f', distance=0.25)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> hs1f'
-        for k, v in results.iteritems():
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        print('MODEL> hs1f')
+        for k, v in results.items():
             for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
+                print('  CLONE-%i> %s' % (k, s.id))
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
         # aa model
         results = DefineClones.distanceClones(self.records, model='aa', distance=3.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> aa'
-        for k, v in results.iteritems():
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        print('MODEL> aa')
+        for k, v in results.items():
             for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
+                print('  CLONE-%i> %s' % (k, s.id))
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 
          # ham model
         results = DefineClones.distanceClones(self.records, model='ham', distance=9.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.iteritems()}
-        print 'MODEL> ham'
-        for k, v in results.iteritems():
+        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        print('MODEL> ham')
+        for k, v in results.items():
             for s in v:
-                print '  CLONE-%i> %s' % (k, s.id)
+                print('  CLONE-%i> %s' % (k, s.id))
 
         self.assertEqual(sorted(self.clones.values()), sorted(results.values()))
 

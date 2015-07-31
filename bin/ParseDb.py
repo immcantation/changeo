@@ -7,11 +7,12 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
+import csv
 import os
 import re
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -108,7 +109,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
         # Replace forbidden characters in tag_list
         tag_dict = {}
         for tag in tag_list:
-            for c,r in noGood.iteritems():
+            for c,r in noGood.items():
                 tag_dict[tag] = (tag_dict.get(tag, tag).replace(c,r) \
                                      if c in tag else tag_dict.get(tag, tag))
 
@@ -118,7 +119,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
                                             out_type = out_args['out_type'],
                                             out_name = out_args['out_name'],
                                             out_dir = out_args['out_dir'])
-                        for tag, label in tag_dict.iteritems()}
+                        for tag, label in tag_dict.items()}
 
         # Create Db writer instances
         writers_dict = {tag:getDbWriter(handles_dict[tag], db_file)
@@ -371,7 +372,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     result_count = countDbFile(db_file)
 
     # Define fields and values to append
-    add_dict = {k:v for k,v in izip(fields, values) if k not in db_iter.fieldnames}
+    add_dict = {k:v for k,v in zip(fields, values) if k not in db_iter.fieldnames}
 
     # Iterate over records
     start_time = time()
@@ -768,8 +769,8 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     result_count = len(db_dict)
 
     # Sort db_dict by field values
-    tag_dict = {k:v[field] for k, v in db_dict.iteritems()}
-    if numeric:  tag_dict = {k:float(v or 0) for k, v in tag_dict.iteritems()}
+    tag_dict = {k:v[field] for k, v in db_dict.items()}
+    if numeric:  tag_dict = {k:float(v or 0) for k, v in tag_dict.items()}
     sorted_keys = sorted(tag_dict, key=tag_dict.get, reverse=descend)
     printMessage("Indexing: Done", start_time=start_time, end=True)
 
@@ -838,7 +839,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
         rec_count += 1
 
         # Updated values if found
-        for x, y in izip(values, updates):
+        for x, y in zip(values, updates):
             if rec[field] == x:
                 rec[field] = y
                 pass_count += 1
@@ -904,8 +905,9 @@ def getArgParser():
     
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Database operation')
 
