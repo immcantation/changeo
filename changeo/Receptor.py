@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Sequence manipulation and annotation functions
 """
