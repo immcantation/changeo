@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Sequence manipulation and annotation functions
 """
@@ -69,7 +68,7 @@ class IgRecord:
                 'j_evalue': 'J_EVALUE'}
 
     # Mapping of column names to member variables
-    _field_map = {v: k for k, v in _key_map.iteritems()}
+    _field_map = {v: k for k, v in _key_map.items()}
 
     # Mapping of member variables to parsing functions
     _parse_map = {'id': '_identity',
@@ -221,9 +220,9 @@ class IgRecord:
     def toDict(self):
         d = {}
         n = self.__dict__
-        for k, v in n.iteritems():
+        for k, v in n.items():
             if k == 'annotations':
-                d.update({i.upper():j for i, j in n['annotations'].iteritems()})
+                d.update({i.upper():j for i, j in n['annotations'].items()})
             else:
                 f = getattr(IgRecord, IgRecord._parse_map[k])
                 d[IgRecord._key_map[k]] = f(v, deparse=True)

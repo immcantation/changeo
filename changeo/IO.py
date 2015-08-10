@@ -7,6 +7,7 @@ from changeo import __version__, __date__
 
 # Imports
 import csv
+import sys
 
 # Presto and changeo imports
 from changeo.Receptor import IgRecord
@@ -68,7 +69,7 @@ def readDbFile(db_file, ig=True):
     """
     # Read and check file
     try:
-        db_handle = open(db_file, 'rb')
+        db_handle = open(db_file, 'rt')
         db_reader = csv.DictReader(db_handle, dialect='excel-tab')
         db_reader.fieldnames = [n.strip().upper() for n in db_reader.fieldnames]
         if ig:
@@ -95,7 +96,7 @@ def countDbFile(db_file):
     """
     # Count records and check file
     try:
-        with open(db_file) as db_handle:
+        with open(db_file, 'rt') as db_handle:
             db_records = csv.reader(db_handle, dialect='excel-tab')
             for i, __ in enumerate(db_records):  pass
         db_count = i

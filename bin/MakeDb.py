@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Create tab-delimited database file to store sequence alignment information
 """
@@ -14,7 +14,7 @@ import sys
 import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip, groupby
+from itertools import groupby
 from shutil import rmtree
 from tempfile import mkdtemp
 from textwrap import dedent
@@ -51,7 +51,7 @@ def getSeqforIgBlast(seq_file):
 
     # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
     seqs = {}
-    for seq in seq_dict.itervalues():
+    for seq in seq_dict.values():
         seqs.update({seq.description:str(seq.seq)})
 
     return seqs
@@ -170,9 +170,11 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
     with open(igblast_output) as f:
         # Iterate over individual results (separated by # IGBLASTN)
         for k1, block in groupby(f, lambda x: re.match('# IGBLASTN', x)):
+            block = list(block)
             if not k1:
+                # TODO: move query name extraction into block parser readOneIgBlastResult().
                 # Extract sequence ID
-                query_name = ' '.join(block.next().strip().split(' ')[2:])
+                query_name = ' '.join(block[0].strip().split(' ')[2:])
                 # Initialize db_gen to have ID and input sequence
                 db_gen = {'SEQUENCE_ID':     query_name,
                           'SEQUENCE_INPUT':  seq_dict[query_name]}
@@ -358,7 +360,7 @@ def readIMGT(imgt_files, score_fields=False):
     """
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a dictionary for each sequence alignment and yield its generator
-    for sm, gp, nt, jn in izip(*imgt_iters):
+    for sm, gp, nt, jn in zip(*imgt_iters):
         db_gen = {'SEQUENCE_ID': sm['Sequence ID'],
                   'SEQUENCE_INPUT': sm['Sequence']}
 
@@ -532,7 +534,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
 
     # Open failed file
     if out_args['failed']:
-        fail_handle = open(fail_file, 'wb')
+        fail_handle = open(fail_file, 'wt')
         fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID', 'SEQUENCE_INPUT'])
     else:
         fail_handle = None
@@ -575,8 +577,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
         # TODO:  This is not the best approach. should pass in output fields.
         # If first sequence, use parsed description to create new columns and initialize writer
         if pass_writer is None:
-            if not no_parse:  ordered_fields.extend(record.annotations.keys())
-            pass_handle = open(pass_file, 'wb')
+            if not no_parse:  ordered_fields.extend(list(record.annotations.keys()))
+            pass_handle = open(pass_file, 'wt')
             pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
 
         # Write row to tab-delim CLIP file
@@ -754,10 +756,11 @@ def getArgParser():
               ''')
                 
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, epilog=fields, 
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),  
+    parser = ArgumentParser(description=__doc__, epilog=fields,
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', 
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    subparsers = parser.add_subparsers(title='subcommands', dest='command',
                                        help='Aligner used', metavar='')
     
     # Parent parser    

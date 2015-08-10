@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Assign Ig sequences into clones
 """
@@ -118,7 +118,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
         # Print progress
         if rec_count == 0:
-            print 'PROGRESS> Grouping sequences'
+            print('PROGRESS> Grouping sequences')
 
         printProgress(rec_count, step=1000, start_time=start_time)
         rec_count += 1
@@ -129,8 +129,8 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
             # TODO:  Has much slow. Should have less slow.
             if action == 'set':
                 
-                f_range = range(2, 3 + (len(fields) if fields else 0) )
-                vdj_range = range(2)
+                f_range = list(range(2, 3 + (len(fields) if fields else 0)))
+                vdj_range = list(range(2))
                 
                 # Check for any keys that have matching columns and junction length and overlapping genes/alleles
                 to_remove = []
@@ -340,7 +340,7 @@ def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     try:
         #print 'START FEED', alive.value
         # Iterate over groups and feed data queue
-        clone_iter = clone_dict.iteritems()
+        clone_iter = iter(clone_dict.items())
         while alive.value:
             # Get data from queue
             if data_queue.full():  continue
@@ -383,11 +383,11 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
         db_iter = readDbFile(db_file)
         for rec in db_iter:
             records[rec.id] = rec
-        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_length))
+        records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
         dist_dict = {}
         for __ in range(len(records)):
             k,v = records.popitem(last=False)
-            dist_dict[k] = [v].append(records.values())
+            dist_dict[k] = [v].append(list(records.values()))
     except:
         #sys.stderr.write('Exception in feeder grouping step\n')
         alive.value = False
@@ -397,7 +397,7 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
     try:
         # print 'START FEED', alive.value
         # Iterate over groups and feed data queue
-        dist_iter = dist_dict.iteritems()
+        dist_iter = iter(dist_dict.items())
         while alive.value:
             # Get data from queue
             if data_queue.full():  continue
@@ -609,13 +609,13 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
             
             # Print progress for previous iteration and update record count
             if rec_count == 0:
-                print 'PROGRESS> Assigning clones'
+                print('PROGRESS> Assigning clones')
             printProgress(rec_count, result_count, 0.05, start_time) 
             rec_count += len(result.data)
             
             # Write passed and failed records
             if result:
-                for clone in result.results.itervalues():
+                for clone in result.results.values():
                     clone_count += 1
                     for i, rec in enumerate(clone):
                         rec.annotations['CLONE'] = clone_count
@@ -690,7 +690,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
         for rec in db_iter:
             records[rec.id] = rec
             result_count += 1
-        records = OrderedDict(sorted(records.items(), key=lambda i: i[1].junction_length))
+        records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
                 
         # Define empty matrix to store assembled results
         dist_mat = np.zeros((result_count,result_count))
@@ -741,7 +741,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
 
             # Print progress for previous iteration
             if row_count == 0:
-                print 'PROGRESS> Assigning clones'
+                print('PROGRESS> Assigning clones')
             printProgress(row_count, result_count, 0.05, start_time)
             
             # Update counts for iteration
@@ -750,7 +750,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
             
             # Add result row to distance matrix
             if result:
-                dist_mat[range(result_count-len(result),result_count),result_count-len(result)] = result.results
+                dist_mat[list(range(result_count-len(result),result_count)),result_count-len(result)] = result.results
                 
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
@@ -763,12 +763,12 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
         clones = {}
         # print clusters
         for i, c in enumerate(clusters):
-            clones.setdefault(c, []).append(records[records.keys()[i]])
+            clones.setdefault(c, []).append(records[list(records.keys())[i]])
         
         # Write passed and failed records
         clone_count = pass_count = fail_count = 0
         if clones:
-            for clone in clones.itervalues():
+            for clone in clones.values():
                 clone_count += 1
                 for i, rec in enumerate(clone):
                     rec.annotations['CLONE'] = clone_count
@@ -905,9 +905,10 @@ def getArgParser():
               ''')
 
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, epilog=fields,  
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
+    parser = ArgumentParser(description=__doc__, epilog=fields,
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Cloning method')
     
@@ -994,7 +995,7 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
     # Convert case of fields
     if 'fields' in args_dict and args_dict['fields'] is not None:  
-        args_dict['fields'] = map(str.upper, args_dict['fields'])
+        args_dict['fields'] = list(map(str.upper, args_dict['fields']))
     
     # Define clone_args
     if args.command == 'bygroup':

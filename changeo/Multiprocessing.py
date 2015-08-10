@@ -28,7 +28,7 @@ class DbData:
         self.valid = (key is not None and records is not None)
 
     # Boolean evaluation
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Length evaluation
@@ -58,7 +58,7 @@ class DbResult:
         #    setattr(self, values, None)
 
     # Boolean evaluation
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Length evaluation
@@ -102,7 +102,7 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
         db_iter = readDbFile(db_file)
         if group_func is not None:
             group_dict = group_func(db_iter, **group_args)
-            group_iter = group_dict.iteritems()
+            group_iter = iter(group_dict.items())
         else:
             group_iter = ((r.id, r) for r in db_iter)
     except:

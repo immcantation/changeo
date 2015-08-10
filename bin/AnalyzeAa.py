@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Performs amino acid analysis of Ig sequences
 """
@@ -162,7 +162,7 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
         if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
             # Calculate amino acid properties
             aaprops = AaProperties(row[seq_field], out_args)
-            for k,v in aaprops.iteritems(): row[seq_field + k] = v
+            for k,v in aaprops.items(): row[seq_field + k] = v
 
             pass_count += 1
             # Write row to pass file
@@ -225,10 +225,10 @@ def getArgParser():
                                        failed=True, annotation=False, log=False)
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[parser_parent], 
                             formatter_class=CommonHelpFormatter)
-
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     parser.add_argument('--sf', action='store', dest='seq_field',
                         default=default_seq_field,
                         help='The name of the field to be analyzed')
