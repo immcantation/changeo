@@ -1,8 +1,13 @@
-Version 0.3.0.beta:  July 22, 2015
+Version 0.3.0.beta:  August 10, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
 installation.
+
+The package now requires Python 3.4. Python 2.7 is not longer supported.
+
+The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
+pandas 0.16, biopython 1.65.
 
 DbCore:
 
