@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  July 22, 2015
+Version 0.3.0.beta:  August 10, 2015
 ==============================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences. 
@@ -20,11 +20,12 @@ Requirements
 
 Software        | Link
 --------------- | -----------------------------
-Python 2.7.5    | http://python.org
-NumPy 1.7       | http://numpy.org
-SciPy 0.12      | http://scipy.org
-pandas 0.12     | http://pandas.pydata.org
-Biopython 1.59  | http://biopython.org
+Python 3.4.0    | http://python.org
+setuptools 2.0  | http://bitbucket.org/pypa/setuptools
+NumPy 1.9       | http://numpy.org
+SciPy 0.14      | http://scipy.org
+pandas 0.16     | http://pandas.pydata.org
+Biopython 1.65  | http://biopython.org
 MUSCLE v3.8     | http://www.drive5.com/muscle
 
 

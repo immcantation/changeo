@@ -7,7 +7,7 @@ installation.
 The package now requires Python 3.4. Python 2.7 is not longer supported.
 
 The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
-pandas 0.16, biopython 1.65.
+pandas 0.16 and biopython 1.65.
 
 DbCore:
 
