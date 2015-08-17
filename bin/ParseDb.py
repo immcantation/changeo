@@ -1002,9 +1002,9 @@ def getArgParser():
     parser_index = subparsers.add_parser('index', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
                                         help='Adds a numeric index field')
-    parser_index.add_argument('-f', nargs='+', action='store', dest='field',
-                             default=default_index_field,
-                             help='The name of the index field to add to the database.')
+    parser_index.add_argument('-f', action='store', dest='field',
+                              default=default_index_field,
+                              help='The name of the index field to add to the database.')
     parser_index.set_defaults(func=indexDbFile)
 
     # Subparser to rename fields
