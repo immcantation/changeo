@@ -6,8 +6,8 @@ Assign Ig sequences into clones
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+__version__   = '0.2.4'
+__date__      = '2015.08.18'
 
 # Imports
 import os, signal, sys, textwrap, re

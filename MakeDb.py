@@ -6,8 +6,8 @@ Create tab-delimited database file to store sequence alignment information
 __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.2.3'
-__date__      = '2015.07.22'
+__version__   = '0.2.4'
+__date__      = '2015.08.18'
 
 # Imports
 import csv, os, re, sys, textwrap
@@ -271,7 +271,7 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n1_len)
                             else:
                                 db_gen['N1_LENGTH'] = n1_len
-                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH'])
+                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(d_align[8])
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
 
@@ -301,7 +301,7 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n2_len)
                             else:
                                 db_gen['N2_LENGTH'] = n2_len
-                                n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH'])
+                                n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH']-1)
                                 n2_end = int(j_align[8])
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
                         elif v_call is not None:
@@ -311,7 +311,7 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                                 overlap = abs(n1_len)
                             else:
                                 db_gen['N1_LENGTH'] = n1_len
-                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH'])
+                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(j_align[8])
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
                         else:
