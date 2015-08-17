@@ -19,6 +19,15 @@ IgCore:
 + Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
   
   
+Version 0.2.4:  August 17, 2015
+-------------------------------------------------------------------------------
+
+ParseDb:
+
++ Fixed a bug wherein specifying the `-f` argument to the index subcommand 
+  would cause an error.
+  
+
 Version 0.2.3:  July 22, 2015
 -------------------------------------------------------------------------------
 
