@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  August 10, 2015
+Version 0.3.0.beta:  August 18, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -19,7 +19,7 @@ IgCore:
 + Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
   
   
-Version 0.2.4:  August 17, 2015
+Version 0.2.4:  August 18, 2015
 -------------------------------------------------------------------------------
 
 MakeDb:
