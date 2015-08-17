@@ -22,6 +22,11 @@ IgCore:
 Version 0.2.4:  August 17, 2015
 -------------------------------------------------------------------------------
 
+MakeDb:
+
++ Fixed a bug wherein N1 and N2 region indexing was off by one nucleotide
+  for the igblast subcommand (leading to incorrect SEQUENCE_VDJ values).
+
 ParseDb:
 
 + Fixed a bug wherein specifying the `-f` argument to the index subcommand 
