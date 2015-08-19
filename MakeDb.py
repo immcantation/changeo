@@ -7,7 +7,7 @@ __author__    = 'Namita Gupta, Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.2.4'
-__date__      = '2015.08.18'
+__date__      = '2015.08.19'
 
 # Imports
 import csv, os, re, sys, textwrap
