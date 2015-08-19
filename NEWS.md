@@ -19,16 +19,7 @@ IgCore:
 + Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
   
   
-Version 0.2.5:  August 19, 2015
--------------------------------------------------------------------------------
-
-MakeDb:
-
-+ Fixed a bug wherein N1 and N2 region indexing was off by one nucleotide
-  for the igblast subcommand (leading to incorrect SEQUENCE_VDJ values).
-
-
-Version 0.2.4:  August 18, 2015
+Version 0.2.4:  August 19, 2015
 -------------------------------------------------------------------------------
 
 MakeDb:
