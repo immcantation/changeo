@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  August 18, 2015
+Version 0.3.0.beta:  August 22, 2015
 ==============================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences. 
@@ -22,9 +22,10 @@ Software        | Link
 --------------- | -----------------------------
 Python 3.4.0    | http://python.org
 setuptools 2.0  | http://bitbucket.org/pypa/setuptools
-NumPy 1.9       | http://numpy.org
+NumPy 1.8       | http://numpy.org
 SciPy 0.14      | http://scipy.org
-pandas 0.16     | http://pandas.pydata.org
+pandas 0.15     | http://pandas.pydata.org
+presto 0.5      | http://clip.med.yale.edu/presto
 Biopython 1.65  | http://biopython.org
 MUSCLE v3.8     | http://www.drive5.com/muscle
 
@@ -36,15 +37,15 @@ Installation - Linux
    SciPy stack using the instructions at http://scipy.org/install.html, then
    install Biopython according to the
    [instructions](http://biopython.org/DIST/docs/install/Installation.html).
+   
+2. Install pRESTO 0.5.0+ from http://clip.med.yale.edu/presto.
 
-2. Unzip the Change-O bundle into a directory of your choice and add that
-   directory to your `$PATH`.
-
+3. Extract the pRESTO bundle and run `python3 setup.py install --user`.
 
 Installation - Windows
 -------------------------------------------------------------------------------
 
-1. Install Python 2.7.5+ from [Python](http://python.org/download).
+1. Install Python 3.4.0+ from [Python](http://python.org/download).
 
 2. Install NumPy, SciPy, pandas and Biopython using the packages available
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
@@ -59,7 +60,7 @@ Installation - Windows
 4. The Change-O scripts should then be directly executable from the Command Prompt.
    If not, correct the file association for `.py` files by right-clicking on a
    `.py` file, selecting 'Open with' -> 'Choose default program...', choosing the
-   `python.exe` from Python 2.7, and checking 'Always use the selected program'.
+   `python3.exe` from Python 3.4, and checking 'Always use the selected program'.
 
 
 Installation - Mac OS X
@@ -85,18 +86,16 @@ Installation - Mac OS X
    If the above fails run this instead:  
    `> brew install --env=std gfortran`  
 
-5. Install Python 2.7.5+ and set it as the default python executable:  
-   `> brew install python`  
+5. Install Python 3.4.0+ and set it the path to the python executable:  
+   `> brew install python3`  
    `> echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile`  
    Exit and reopen the terminal application so the PATH setting takes effect
 
 6. Install NumPy, SciPy, pandas and Biopyton using the Python package manager:  
-   `> pip install numpy`  
-   `> pip install scipy`  
-   `> pip install pandas`  
-   `> pip install biopython`  
+   `> pip3 install numpy`  
+   `> pip3 install scipy`  
+   `> pip3 install pandas`  
+   `> pip3 install biopython`  
 
-7. Add the Change-O installation to your `PATH` setting. For example,
-   if you copy the Change-O scripts into `/Users/Username/changeo`, then set:  
-   `> echo 'export PATH=$HOME/changeo:$PATH' >> ~/.profile`  
-   Exit and reopen the terminal application so the PATH setting takes effect
+7. Extract the Change-O bundle, open a terminal window, and run
+   `python3 setup.py install` from the Change-O folder.

@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  August 18, 2015
+Version 0.3.0.beta:  August 22, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
