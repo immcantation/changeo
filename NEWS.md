@@ -5,6 +5,7 @@ CreateGermlines:
 
 + Removed default '-r' repository and added informative error messages when 
   invalid germline repositories are provided.
++ Updated '-r' flag to take list of folders and/or fasta files with germlines.
    
    
 Version 0.2.4:  August 19, 2015
