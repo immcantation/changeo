@@ -24,7 +24,6 @@ from DbCore import readDbFile, getDbWriter, countDbFile
 from DbCore import allele_regex, IgRecord, parseAllele
 
 # Defaults
-default_repo = 'germlines'
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'
@@ -45,6 +44,8 @@ def getRepo(repo):
     if os.path.isfile(repo):
         with open(repo, 'rU') as file_handle:
             repo_files = [f.strip() for f in file_handle]
+    else:
+        sys.exit('ERROR: %s must be a directory or a file containing filenames', repo)
     
     repo_dict = {}
     for file_name in repo_files:
@@ -600,7 +601,7 @@ def getArgParser():
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
                                      
-    parser.add_argument('-r', action='store', dest='repo', default=default_repo,
+    parser.add_argument('-r', action='store', dest='repo', required=True,
                         help='Folder where repertoire fasta files are located')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly'),
