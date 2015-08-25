@@ -18,7 +18,7 @@ from Bio import SeqIO
 # Presto and change imports
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IO import getOutputHandle, printLog, printProgress
+from presto.IO import getOutputHandle, printLog, printProgress, getFileType
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Receptor import allele_regex, parseAllele
 
@@ -33,20 +33,27 @@ def getRepo(repo):
     Parses germline repositories
 
     Arguments: 
-    repo = a string specifying either a directory or file 
-           from which to read repository files
+    repo = a string list of directories and/or files
+           from which to read germline records
 
     Returns: 
     a dictionary of {allele: sequence} germlines
     """
-    if os.path.isdir(repo):
-        repo_files = [os.path.join(repo, f) for f in os.listdir(repo)]
-    if os.path.isfile(repo):
-        with open(repo, 'rU') as file_handle:
-            repo_files = [f.strip() for f in file_handle]
-    else:
-        sys.exit('ERROR: %s must be a directory or a file containing filenames', repo)
-    
+    repo_files = []
+    # Iterate over items passed to commandline
+    for r in repo:
+        # If directory, get fasta files from within
+        if os.path.isdir(r):
+            repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
+                          if getFileType(f) == 'fasta'])
+        # If file, make sure file is fasta
+        if os.path.isfile(r) and getFileType(f) == 'fasta':
+            repo_files.extend([r])
+
+    # Catch instances where no valid fasta files were passed in
+    if len(repo_files) < 1:
+        sys.exit('ERROR: No valid germline fasta files were found in %s', repo)
+
     repo_dict = {}
     for file_name in repo_files:
         with open(file_name, "rU") as file_handle:
@@ -588,8 +595,8 @@ def getArgParser():
     parser.add_argument('--version', action='version',
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
                                      
-    parser.add_argument('-r', action='store', dest='repo', required=True,
-                        help='Folder where repertoire fasta files are located')
+    parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+                        help='List of folders and/or fasta files with germline sequences.')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly'),
                         help='Specify type(s) of germlines to include full germline, \
