@@ -18,7 +18,7 @@ from time import time
 # IgCore and DbCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args 
-from IgCore import getOutputHandle, printLog, printProgress
+from IgCore import getOutputHandle, printLog, printProgress, getFileType
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from DbCore import readDbFile, getDbWriter, countDbFile
 from DbCore import allele_regex, IgRecord, parseAllele
@@ -33,20 +33,27 @@ def getRepo(repo):
     Parses germline repositories
 
     Arguments: 
-    repo = a string specifying either a directory or file 
-           from which to read repository files
+    repo = a string list of directories and/or files
+           from which to read germline records
 
-    Returns: 
+    Returns:
     a dictionary of {allele: sequence} germlines
     """
-    if os.path.isdir(repo):
-        repo_files = [os.path.join(repo, f) for f in os.listdir(repo)]
-    if os.path.isfile(repo):
-        with open(repo, 'rU') as file_handle:
-            repo_files = [f.strip() for f in file_handle]
-    else:
-        sys.exit('ERROR: %s must be a directory or a file containing filenames', repo)
-    
+    repo_files = []
+    # Iterate over items passed to commandline
+    for r in repo:
+        # If directory, get fasta files from within
+        if os.path.isdir(r):
+            repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
+                          if getFileType(f) in ['fasta','fa','fna']])
+        # If file, make sure file is fasta
+        if os.path.isfile(r) and getFileType(f) in ['fasta','fa','fna']:
+            repo_files.extend([r])
+
+    # Catch instances where no valid fasta files were passed in
+    if len(repo_files) < 1:
+        sys.exit('ERROR: No valid germline fasta files were found in %s', repo)
+
     repo_dict = {}
     for file_name in repo_files:
         with open(file_name, "rU") as file_handle:
@@ -601,7 +608,7 @@ def getArgParser():
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
                                      
-    parser.add_argument('-r', action='store', dest='repo', required=True,
+    parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                         help='Folder where repertoire fasta files are located')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly'),

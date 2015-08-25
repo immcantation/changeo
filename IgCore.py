@@ -2,11 +2,12 @@
 """
 Core functions shared by pRESTO modules
 """
+
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.8'
+__date__      = '2015.08.25'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -25,21 +26,28 @@ from Bio.Alphabet import IUPAC
 # Defaults
 default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]
-default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
-default_coord_type = 'presto'
-default_barcode_field = 'BARCODE'
-default_primer_field = 'PRIMER'
-default_missing_chars = set(['-', '.', 'N', 'n'])
-default_missing_residues = set(['.', '-', 'X', 'x'])
-default_min_freq = 0.6
-default_min_qual = 20
-default_out_args = {'log_file':None, 
+default_out_args = {'log_file':None,
                     'delimiter':default_delimiter,
                     'separator':default_separator,
                     'out_dir':None,
                     'out_name':None,
                     'out_type':None,
                     'failed':True}
+
+default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
+default_coord_type = 'presto'
+default_barcode_field = 'BARCODE'
+default_primer_field = 'PRIMER'
+default_min_freq = 0.6
+default_min_qual = 20
+
+default_mask_chars = set(['n', 'N'])
+default_gap_chars = set(['.', '-'])
+default_missing_chars = set(['-', '.', 'n', 'N'])
+default_mask_residues = set(['x', 'X'])
+default_gap_residues = set(['.', '-'])
+default_missing_residues = set(['.', '-', 'x', 'X'])
+
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -238,12 +246,13 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
     if new_field in ann_dict:
         rename_dict = ann_dict.copy()
         del rename_dict[old_field]
-        mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
+        rename_dict = mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
     else:
         rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
                                    for k, v in ann_dict.iteritems()])
 
     return rename_dict
+
 
 # TODO:  this converted min/max/sum collapse to strings instead of floats (for rounding purposes). which is odd.
 def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimiter):
@@ -406,7 +415,7 @@ def compilePrimers(primers):
     """
     
     primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateIUPAC, v)) 
-                     for k, v in primers.iteritems()}
+                     for k, v in primers.iteritems()}  
     
     return primers_regex
 
@@ -454,14 +463,14 @@ def getFileType(filename):
     # Read and check file
     try:
         file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+        if file_type in ('fasta', 'fna', 'fa'):  file_type = 'fasta'
+        elif file_type in ('fastq', 'fq'):  file_type = 'fastq'
+        elif file_type in ('tab', 'tsv'):  file_type = 'tab'
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % filename)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
-    else:
-        if file_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
-            sys.exit('ERROR:  File %s has an unrecognized type' % filename)
-    
+
     return file_type
 
 
@@ -469,31 +478,35 @@ def readSeqFile(seq_file, index=False, key_func=None):
     """
     Reads FASTA/FASTQ files
 
-    Arguments: 
+    Arguments:
     seq_file = a FASTA or FASTQ file containing sample sequences
     index = if True return a dictionary from SeqIO.index();
             if False return an iterator from SeqIO.parse()
     key_func = the key_function argument to pass to SeqIO.index if
                index=True
 
-    Returns: 
+    Returns:
     a tuple of (input file type, sequence record object)
     """
     # Read and check file
     try:
         seq_type = getFileType(seq_file)
+        if seq_type not in ('fasta', 'fastq'):  raise ValueError
+
         if index:
             seq_records = SeqIO.index(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna,
                                       key_function=key_func)
-        else:  
+        else:
             seq_records = SeqIO.parse(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
+    except ValueError:
+        sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
-    
+
     return seq_records
 
 
@@ -636,34 +649,37 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
-    Arguments: 
+    Arguments:
     a = first characters
     b = second character
-    n_score = score for all matches against an N character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
+    n_score = a tuple of length two defining scores for all matches against an N
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
 
     Returns:
     score for the character pair
     """
-    # Define ambiguous character translations    
+    # Define ambiguous character translations
     IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
-    if gap_score is not None and (a in '-.' or b in '-.'):
-        return gap_score
+    # Check gap and N-value conditions, prioritizing score for first character
+    if gap_score is not None and a in '-.':
+        return gap_score[0]
+    elif n_score is not None and a in 'nN':
+        return n_score[0]
+    elif gap_score is not None and b in '-.':
+        return gap_score[1]
+    elif n_score is not None and b in 'nN':
+        return n_score[1]
 
-    # Check N-value condition
-    if n_score is not None and (a == 'N' or b == 'N'):
-        return n_score
-
-    # Determine and return score for IUPAC match conditions
-    # Symmetric and reflexive
+    # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
         return 1
     elif (a, b) in IUPAC_matches:
@@ -674,37 +690,40 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def scoreAA(a, b, n_score=None, gap_score=None):
+def scoreAA(a, b, x_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Extended Protein characters
 
-    Arguments: 
+    Arguments:
     a = first character
     b = second character
-    n_score = score for all matches against an X character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
+    n_score = a tuple of length two defining scores for all matches against an X
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
 
     Returns:
     score for the character pair
     """
-    # Define ambiguous character translations    
+    # Define ambiguous character translations
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
-    if gap_score is not None and (a in '-.' or b in '-.'):
-        return gap_score
+    # Check gap and X-value conditions, prioritizing score for first character
+    if gap_score is not None and a in '-.':
+        return gap_score[0]
+    elif x_score is not None and a in 'xX':
+        return x_score[0]
+    elif gap_score is not None and b in '-.':
+        return gap_score[1]
+    elif x_score is not None and b in 'xX':
+        return x_score[1]
 
-    # Check X-value condition
-    if n_score is not None and (a == 'X' or b == 'X'):
-        return n_score
-
-    # Determine and return score for IUPAC match conditions
-    # Symmetric and reflexive
+    # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
         return 1
     elif (a, b) in IUPAC_matches:
@@ -715,33 +734,48 @@ def scoreAA(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
+def getDNAScoreDict(n_score=None, gap_score=None):
     """
     Generates a score dictionary
 
-    Arguments: 
-    n_score = score for all matches against an N character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
-    alphabet = the type of score dictionary to generate;
-               one of [dna, aa] for DNA and amino acid characters
-                
+    Arguments:
+    n_score = a tuple of length two defining scores for all matches against an N
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
+
     Returns:
     a score dictionary of the form {(char1, char2) : score}
     """
-    if alphabet=='dna':
-        IUPAC_chars = '-.ACGTRYSWKMBDHVN'
-        IUPAC_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score) 
-                      for k in product(IUPAC_chars, repeat=2)}
-    elif alphabet=='aa':
-        IUPAC_chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        IUPAC_dict = {k:scoreAA(*k, x_score=n_score, gap_score=gap_score) 
-                      for k in product(IUPAC_chars, repeat=2)}
-    else:
-        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type\n' % alphabet)
+    chars = '-.ACGTRYSWKMBDHVN'
+    score_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score)
+                  for k in product(chars, repeat=2)}
 
-    return IUPAC_dict
+    return score_dict
+
+
+def getAAScoreDict(x_score=None, gap_score=None):
+    """
+    Generates a score dictionary
+
+    Arguments:
+    x_score = a tuple of length two defining scores for all matches against an X
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
+
+    Returns:
+    a score dictionary of the form {(char1, char2) : score}
+    """
+    chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    score_dict = {k:scoreAA(*k, x_score=x_score, gap_score=gap_score)
+                  for k in product(chars, repeat=2)}
+
+    return score_dict
 
 
 def reverseComplement(seq):
@@ -793,9 +827,10 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     return equal
  
 
-def weightDNA(seq, ignore_chars=default_missing_chars):
+# TODO:  can be removed I think.
+def weightSeq(seq, ignore_chars=set()):
     """
-    Returns a score for a single sequence excluding missing positions
+    Returns the length of a sequencing excluding ignored characters
     
     Arguments: 
     seq = a SeqRecord or Seq object
@@ -804,45 +839,17 @@ def weightDNA(seq, ignore_chars=default_missing_chars):
     Returns:
     The sum of the character scores for the sequence
     """
-    score = sum(1 for x in seq if x not in ignore_chars)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-      
-    return max(score, 1)
+    return sum(1 for x in seq if x not in ignore_chars)
 
 
-def weightAA(seq, ignore_residues=default_missing_residues):
-    """
-    Returns a score for a single sequence excluding missing positions
-
-    Arguments:
-    seq = a SeqRecord or Seq object
-    ignore_residues = set of characters to ignore when counting sequence length
-
-    Returns:
-    The sum of the character scores for the sequence
-    """
-    score = sum(1 for x in seq if x not in ignore_residues)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-
-    return max(score, 1)
-
-
-def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None, 
-                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
     Determine the error rate for a pair of sequences
     
     Arguments: 
     seq1 = a SeqRecord object
     seq2 = a SeqRecord object
-    max_error = the maximum error rate; once reached return (0, 0, 1.0)
-                if None always return accurate score, weight and error
-    max_weight = the maximum weight to use when checking the max_error break condition;
-                 if None use the minimum length of seq1,seq2
+    ignore_chars = a set of characters to ignore when scoring and counting the weight
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
     
     Returns:
@@ -850,29 +857,17 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
-    if max_error is None:
-        # Return accurate values when max_error is undefined
-        chars = izip(seq1.upper(), seq2.upper())
-        score = sum([score_dict[(a, b)] for a, b in chars])
-        weight = min(weightDNA(seq1), weightDNA(seq2))
-        error = 1.0 - float(score) / weight
-    else:
-        # If max_error defined return when worst case reach
-        score = 0
-        if not max_weight:  max_weight = min(len(seq1), len(seq2))
-        for i, (a, b) in enumerate(izip(seq1, seq2)):
-            score += score_dict[(a, b)]
-            if (i - float(score)) / max_weight > max_error:
-                score, weight, error = 0, 0, 1.0
-                break
-        else:
-            weight = min(weightDNA(seq1), weightDNA(seq2))
-            error = 1.0 - float(score) / weight
+    chars = izip(seq1.upper(), seq2.upper())
+    score_list = [score_dict[(a, b)] for a, b in chars \
+                  if a not in ignore_chars and b not in ignore_chars]
+    score = sum(score_list)
+    weight = len(score_list)
+    error = 1.0 - float(score) / weight if weight > 0 else 1.0
 
     return (score, weight, error)
 
 
-def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)):
+def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):
     """
     Determine the average pairwise error rate for a list of sequences
 
@@ -893,6 +888,92 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
             scores.append(scoreSeqPair(seq1, seq2, score_dict=score_dict)[2])
     
     return sum(scores) / len(scores)
+
+
+def deleteSeqPositions(seq, positions):
+    """
+    Deletes a list of positions from a SeqRecord
+
+    Arguments:
+    seq = a SeqRecord objects
+    positions = a set of positions (indices) to delete
+
+    Returns:
+    a modified SeqRecord with the specified positions removed
+    """
+    seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
+    record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
+                       id=seq.id, name=seq.name, description=seq.description)
+
+    if 'phred_quality' in seq.letter_annotations:
+        qual_del = [x for i, x in enumerate(seq.letter_annotations['phred_quality']) \
+                    if i not in positions]
+        record.letter_annotations['phred_quality'] = qual_del
+
+    return record
+
+
+def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
+    """
+    Finds positions in a set of aligned sequences with a high number of gap characters.
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    max_gap = a float of the maximum gap frequency to consider a position as non-gapped
+    gap_chars = set of characters to consider as gaps
+
+    Returns:
+    a list of positions (indices) with gap frequency greater than max_gap
+    """
+    # Return an empty list in the singleton case
+    seq_count = float(len(seq_list))
+    if seq_count == 1:
+        return []
+
+    # Iterate through positions and count gaps
+    gap_positions = []
+    seq_str = [str(s.seq) for s in seq_list]
+    for i, chars in enumerate(izip_longest(*seq_str, fillvalue='-')):
+        gap_count = sum([chars.count(c) for c in gap_chars])
+        gap_freq = gap_count / seq_count
+
+        # Update gap position over threshold
+        if gap_freq > max_gap:
+            gap_positions.append(i)
+
+    return gap_positions
+
+
+def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
+                      score_dict=getDNAScoreDict()):
+    """
+    Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    ref_seq = a SeqRecord object containing the reference sequence to match against
+    ignore_chars = list of characters to exclude from mismatch counts
+    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+    a float of the error rate for the set
+    """
+    # Count informative characters in reference sequence
+    ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
+
+    # Return 0 mismatches for single record case
+    if len(seq_list) <= 1:
+        return 0.0
+
+    # Iterate over seq_list and count mismatches
+    total, score = 0, 0
+    for seq in seq_list:
+        seq_bases = sum(1 for a in seq if a not in ignore_chars)
+        total += min(seq_bases, ref_bases)
+        score += sum([score_dict[(a, b)] for a, b in izip(seq, ref_seq)
+                      if a not in ignore_chars and b not in ignore_chars])
+
+    return 1.0 - float(score) / total
 
 
 def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,
@@ -1070,14 +1151,17 @@ def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimit
         illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
                   @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
         sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
+                  @SRR001666.1.2 1 length=250
         454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
         pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
     """
     #header = seq.id
     if coord_type in ('illumina', 'solexa'):
         return header.split()[0].split('#')[0]
-    elif coord_type in ('sra', '454'):
+    elif coord_type == '454':
         return header.split()[0]
+    elif coord_type == 'sra':
+        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == 'presto':
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
@@ -1222,7 +1306,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             seq_dict = readSeqFile(seq_file, index=True)
             index_dict = index_func(seq_dict, **index_args)
             data_iter = ((k, [seq_dict[i] for i in v]) \
-                         for k, v in index_dict.iteritems())
+                         for k, v in index_dict.iteritems()) 
     except:
         alive.value = False
         raise
