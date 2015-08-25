@@ -17,6 +17,15 @@ DbCore:
 IgCore:
 
 + Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
+
+
+Version 0.2.5:  August 25, 2015
+-------------------------------------------------------------------------------
+
+CreateGermlines:
+
++ Removed default '-r' repository and added informative error messages when 
+  invalid germline repositories are provided.
   
   
 Version 0.2.4:  August 19, 2015
