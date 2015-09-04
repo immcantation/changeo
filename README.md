@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  August 22, 2015
+Version 0.3.0.beta:  September 4, 2015
 ==============================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences. 
@@ -45,22 +45,29 @@ Installation - Linux
 Installation - Windows
 -------------------------------------------------------------------------------
 
-1. Install Python 3.4.0+ from [Python](http://python.org/download).
+1. Install Python 3.4.0+ from [Python](http://python.org/downloads), selecting
+   both the options 'pip' and 'Add python.exe to Path'.
 
-2. Install NumPy, SciPy, pandas and Biopython using the packages available
+2. Install NumPy, SciPy, pandas and Biopython using the packages available 
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
-3. Unzip the Change-O bundle into a directory of your choice and add that
-   directory to your `%Path%`.  On Windows 7 the `%Path%` setting is located under
-   'Control Panel' -> 'System and Security' -> 'System' ->
-   'Advanced System Settings' -> 'Environment variables' -> 'System variables'
-   -> 'Path'
+4. Unzip the Change-O bundle, open a Command Prompt, and run
+   `python setup.py install` from the Change-O folder.
+   
+5. For a default installation of Python 3.4, the Change-O scripts will be 
+   installed into `C:\Python34\Scripts` and should be directly executable from 
+   the Command Prompt. If this is not the case, then follow steps 5-6 below.
+   
+6. Add both the 'C:\Python34' and 'C:\Python34\Scripts' directories to your 
+   `%Path%`. On Windows 7 the %Path% setting is located under 'Control Panel' 
+    -> 'System and Security' -> 'System' -> 'Advanced System Settings' -> 
+    'Environment variables' -> 'System variables' -> 'Path'.
 
-4. The Change-O scripts should then be directly executable from the Command Prompt.
-   If not, correct the file association for `.py` files by right-clicking on a
-   `.py` file, selecting 'Open with' -> 'Choose default program...', choosing the
-   `python3.exe` from Python 3.4, and checking 'Always use the selected program'.
+7. Set the file association for Python ('.py') files by right-clicking on a 
+   '.py' file, selecting 'Open with' -> 'Choose default program...', choosing the 
+   'python.exe' executable from the Python 3.4 folder, and checking 
+   'Always use the selected program'.
 
 
 Installation - Mac OS X
