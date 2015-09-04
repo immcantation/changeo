@@ -18,17 +18,14 @@ operations are also included.
 Requirements
 -------------------------------------------------------------------------------
 
-Software        | Link
---------------- | -----------------------------
-Python 3.4.0    | http://python.org
-setuptools 2.0  | http://bitbucket.org/pypa/setuptools
-NumPy 1.8       | http://numpy.org
-SciPy 0.14      | http://scipy.org
-pandas 0.15     | http://pandas.pydata.org
-presto 0.5      | http://clip.med.yale.edu/presto
-Biopython 1.65  | http://biopython.org
-MUSCLE v3.8     | http://www.drive5.com/muscle
-
+* [Python 3.4.0]      (http://python.org)
+* [setuptools 2.0]    (http://bitbucket.org/pypa/setuptools)
+* [NumPy 1.8]         (http://numpy.org)
+* [SciPy 0.14]        (http://scipy.org)
+* [pandas 0.15]       (http://pandas.pydata.org)
+* [Biopython 1.65]    (http://biopython.org)
+* [presto 0.5]        (http://clip.med.yale.edu/presto)
+* [MUSCLE v3.8]       (http://www.drive5.com/muscle)
 
 Installation - Linux
 -------------------------------------------------------------------------------
@@ -48,21 +45,21 @@ Installation - Windows
 1. Install Python 3.4.0+ from [Python](http://python.org/downloads), selecting
    both the options 'pip' and 'Add python.exe to Path'.
 
-2. Install NumPy, SciPy, pandas and Biopython using the packages available 
-   from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
-   binary collection.
+2. Install NumPy, SciPy, pandas and Biopython using the packages available from 
+   the [Unofficial Windows binary](http://www.lfd.uci.edu/~gohlke/pythonlibs)
+   collection.
 
-3. Unzip the Change-O bundle, open a Command Prompt, and run
-   `python setup.py install` from the Change-O folder.
+3. Unzip the pRESTO bundle, open a Command Prompt, change directories to the
+   pRESTO folder, and run `python setup.py install`.
    
-4. For a default installation of Python 3.4, the Change-O scripts will be 
+4. For a default installation of Python 3.4, the pRESTO scripts will be 
    installed into `C:\Python34\Scripts` and should be directly executable from 
    the Command Prompt. If this is not the case, then follow step 5 below.
    
-5. Add both the 'C:\Python34' and 'C:\Python34\Scripts' directories to your 
-   `%Path%`. On Windows 7 the %Path% setting is located under 'Control Panel' 
-    -> 'System and Security' -> 'System' -> 'Advanced System Settings' -> 
-    'Environment variables' -> 'System variables' -> 'Path'.
+5. Add both the `C:\Python34` and `C:\Python34\Scripts` directories to your 
+   `%Path%`. On Windows 7 the `%Path%` setting is located under Control Panel 
+    -> System and Security -> System -> Advanced System Settings -> 
+    Environment variables -> System variables -> Path.
 
 
 Installation - Mac OS X
