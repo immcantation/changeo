@@ -87,16 +87,14 @@ Installation - Mac OS X
    If the above fails run this instead:  
    `> brew install --env=std gfortran`  
 
-5. Install Python 3.4.0+ and set it the path to the python executable:  
+5. Install Python 3.4.0+ and set the path to the python3 executable:  
    `> brew install python3`  
    `> echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile`  
    Exit and reopen the terminal application so the PATH setting takes effect
 
 6. Install NumPy, SciPy, pandas and Biopyton using the Python package manager:  
-   `> pip3 install numpy`  
-   `> pip3 install scipy`  
-   `> pip3 install pandas`  
-   `> pip3 install biopython`  
+   `> pip3 install numpy scipy pandas biopython`
 
-7. Extract the Change-O bundle, open a terminal window, and run
-   `python3 setup.py install` from the Change-O folder.
+7. Extract the Change-O bundle, open a terminal window, change directories to 
+   the Change-O folder, and run:  
+   `> python3 setup.py install`
