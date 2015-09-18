@@ -19,16 +19,16 @@ def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     Opens a writer object for an output database file
 
     Arguments:
-    out_handle = the file handle to write to
-    in_file = the input filename to determine output fields from;
-              if None do not define output fields from input file
-    add_fields = a list of fields added to the writer not present in the in_file;
-                 if None do not add fields
-    exclude_fields = a list of fields in the in_file excluded from the writer;
+      out_handle : File handle to write to
+      in_file : the input filename to determine output fields from;
+                if None do not define output fields from input file
+      add_fields : a list of fields added to the writer not present in the in_file;
+                   if None do not add fields
+      exclude_fields : a list of fields in the in_file excluded from the writer;
                      if None do not exclude fields
 
     Returns:
-    a writer object
+      DictWriter : csv.Dictwriter
     """
     # Get output field names from input file
     if in_file is not None:
@@ -61,11 +61,11 @@ def readDbFile(db_file, ig=True):
     Reads database files
 
     Arguments:
-    db_file = a tab delimited database file
-    ig = if True convert fields to an IgRecord
+      db_file : Tab delimited database file
+      ig : If True convert fields to an IgRecord
 
     Returns:
-    a database record iterator
+      iterable : database record iterator
     """
     # Read and check file
     try:
@@ -89,10 +89,10 @@ def countDbFile(db_file):
     Counts the records in database files
 
     Arguments:
-    db_file = a tab delimited database file
+      db_file : Tab delimited database file
 
     Returns:
-    the count of records in the database file
+      int : Count of records in the database file
     """
     # Count records and check file
     try:

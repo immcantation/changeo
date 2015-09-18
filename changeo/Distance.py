@@ -33,14 +33,14 @@ def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     Generates a DNA distance matrix
 
     Arguments:
-    mat = input distance matrix to extend to full alphabet;
-          if unspecified, creates Hamming distance matrix that incorporates
-          IUPAC equivalencies
-    mask_dist = distance for all matches against an N character
-    gap_dist = distance for all matches against a gap (-, .) character
+      mat : Input distance matrix to extend to full alphabet;
+            if unspecified, creates Hamming distance matrix that incorporates
+            IUPAC equivalencies
+      mask_dist : Distance for all matches against an N character
+      gap_dist : Distance for all matches against a gap (-, .) character
 
     Returns:
-    a pandas.DataFrame of distances
+      DataFrame : pandas.DataFrame of distances
     """
     IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
     mask_char = 'N'
@@ -74,14 +74,14 @@ def getAADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     Generates an amino acid distance matrix
 
     Arguments:
-    mat = input distance matrix to extend to full alphabet;
-          if unspecified, creates Hamming distance matrix that incorporates
-          IUPAC equivalencies
-    mask_dict = score for all matches against an X character
-    gap_dist = score for all matches against a gap (-, .) character
+      mat : Input distance matrix to extend to full alphabet;
+            if unspecified, creates Hamming distance matrix that incorporates
+            IUPAC equivalencies
+      mask_dict : Score for all matches against an X character
+      gap_dist : Score for all matches against a gap (-, .) character
 
     Returns:
-    a pandas.DataFrame of distances
+      DataFrame : pandas.DataFrame of distances
     """
     IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     mask_char = 'X'
@@ -115,9 +115,12 @@ def getNmers(sequences, n):
     """
     Breaks input sequences down into n-mers
 
-    :param sequences: list of sequences to be broken into n-mers
-    :param n: length of n-mers to return
-    :return: dictionary of {sequence: [n-mers]}
+    Arguments:
+      sequences : List of sequences to be broken into n-mers
+      n : Length of n-mers to return
+
+    Returns:
+      dict : Dictionary mapping sequence to a list of n-mers
     """
     # Add Ns so first nucleotide is center of first n-mer
     sequences_n = ['N' * ((n - 1) // 2) + seq + 'N' * ((n - 1) // 2) for seq in sequences]
@@ -133,12 +136,15 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
     """
     Calculate pairwise distances between input sequences
 
-    :param sequences: list of sequences for which to calculate pairwise distances
-    :param n: length of n-mers to be used in calculating distance
-    :param dist_mat: pandas DataFrame of mutation distances
-    :param norm: normalization method
-    :param sym: symmetry method
-    :return: numpy matrix of pairwise distances between input sequences
+    Arguments:
+      sequences : List of sequences for which to calculate pairwise distances
+      n : Length of n-mers to be used in calculating distance
+      dist_mat : pandas.DataFrame of mutation distances
+      norm : Normalization method
+      sym : Symmetry method
+
+    Returns:
+      ndarray : numpy matrix of pairwise distances between input sequences
     """
     # Initialize output distance matrix
     dists = np.zeros((len(sequences),len(sequences)))
@@ -170,9 +176,9 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
             sym_fun = sum
 
         # Calculate distances
-        dists[j,k] = dists[k,j] = \
-                sum([sym_fun([dist_mat.at[c1,n2], dist_mat.at[c2,n1]]) \
-                     for c1,c2,n1,n2 in zip(seq1,seq2,nmer1,nmer2)]) / \
+        dists[j, k] = dists[k, j] = \
+                sum([sym_fun([dist_mat.at[c1, n2], dist_mat.at[c2, n1]]) \
+                     for c1, c2, n1, n2 in zip(seq1, seq2, nmer1, nmer2)]) / \
                 (norm_by)
 
     return dists
@@ -180,11 +186,16 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
 
 def formClusters(dists, link, distance):
     """
-    Form clusters based on hierarchical clustering of input distance matrix with linkage type and cutoff distance
-    :param dists: numpy matrix of distances
-    :param link: linkage type for hierarchical clustering
-    :param distance: distance at which to cut into clusters
-    :return: list of cluster assignments
+    Form clusters based on hierarchical clustering of input distance matrix with
+    linkage type and cutoff distance
+
+    Arguments:
+      dists : numpy matrix of distances
+      link : Linkage type for hierarchical clustering
+      distance : Distance at which to cut into clusters
+
+    Returns:
+      list : List of cluster assignments
     """
     # Make distance matrix square
     dists = squareform(dists)

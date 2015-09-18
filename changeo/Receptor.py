@@ -151,12 +151,17 @@ class IgRecord:
             try:  return str(v)
             except:  return ''
 
-    # Initializer
-    #
-    # Arguments:  row = dictionary of {field:value} data
-    #             genotyped = if True assign v_call from genotyped field
-    # Returns:    IgRecord
     def __init__(self, row, genotyped=True):
+        """
+        Initializer
+
+        Arguments:
+          row : Dictionary of field/value data
+          genotyped : If True assign v_call from genotyped field
+
+        Returns:
+          IgRecord
+        """
         required_keys = ('id',)
         optional_keys = (x for x in IgRecord._parse_map if x not in required_keys)
         
@@ -180,11 +185,16 @@ class IgRecord:
         # Add remaining elements as annotations dictionary
         self.annotations = row
     
-    # Get a field value by column name and return it as a string
-    #
-    # Arguments:  field = column name
-    # Returns:    value in the field as a string
     def getField(self, field):
+        """
+        Get a field value by column name and return it as a string
+
+        Arguments:
+          field : Column name
+
+        Returns:
+          str : Value in the field as a string
+        """
         if field in IgRecord._field_map:
             v = getattr(self, IgRecord._field_map[field])
         elif field in self.annotations:
@@ -197,11 +207,16 @@ class IgRecord:
         else:
             return str(v)
 
-    # Get a field value converted to a Seq object by column name
-    #
-    # Arguments:  field = column name
-    # Returns:    value in the field as a Seq object
     def getSeqField(self, field):
+        """
+        Get a field value converted to a Seq object by column name
+
+        Arguments:
+          field : Column name
+
+        Returns:
+          Seq : Value in the field as a Seq object
+        """
         if field in IgRecord._field_map:
             v = getattr(self, IgRecord._field_map[field])
         elif field in self.annotations:
@@ -228,60 +243,162 @@ class IgRecord:
                 d[IgRecord._key_map[k]] = f(v, deparse=True)
         return d
 
-    # Methods to get multiple allele, gene and family calls
-    #
-    # Arguments:  calls = iterable of calls to get; one or more of ('v','d','j')
-    #             actions = one of ('first','set')
-    # Returns:    list of requested calls in order
     def getAlleleCalls(self, calls, action='first'):
+        """
+        Get multiple allele calls
+
+        Arguments:
+          calls : iterable of calls to get; one or more of ('v','d','j')
+          actions : One of ('first','set')
+
+        Returns:
+          list : List of requested calls in order
+        """
         vdj = {'v': self.getVAllele(action),
                'd': self.getDAllele(action),
                'j': self.getJAllele(action)}
         return [vdj[k] for k in calls]
 
     def getGeneCalls(self, calls, action='first'):
+        """
+        Get multiple gene calls
+
+        Arguments:
+          calls : iterable of calls to get; one or more of ('v','d','j')
+          actions : One of ('first','set')
+
+        Returns:
+          list : List of requested calls in order
+        """
         vdj = {'v':self.getVGene(action),
                'd':self.getDGene(action),
                'j':self.getJGene(action)}
         return [vdj[k] for k in calls]
 
     def getFamilyCalls(self, calls, action='first'):
+        """
+        Get multiple family calls
+
+        Arguments:
+          calls : iterable of calls to get; one or more of ('v','d','j')
+          actions : One of ('first','set')
+
+        Returns:
+          list : List of requested calls in order
+        """
         vdj = {'v':self.getVFamily(action),
                'd':self.getDFamily(action),
                'j':self.getJFamily(action)}
         return [vdj[k] for k in calls]
 
-    # Individual allele, gene and family getter methods
-    #
-    # Arguments:  actions = one of ('first','set')
-    # Returns:    call as a string
+    # TODO: this can't distinguish empty value ("") from missing field (no column)
     def getVAllele(self, action='first'):
-        # TODO: this can't distinguish empty value ("") from missing field (no column)
+        """
+        V-region allele getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         x = self.v_call_geno if self.v_call_geno is not None else self.v_call
         return parseAllele(x, allele_regex, action)
 
     def getDAllele(self, action='first'):
+        """
+        D-region allele getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.d_call, allele_regex, action)
 
     def getJAllele(self, action='first'):
+        """
+        J-region allele getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.j_call, allele_regex, action)
     
     def getVGene(self, action='first'):
+        """
+        V-region gene getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.v_call, gene_regex, action)
 
     def getDGene(self, action='first'):
+        """
+        D-region gene getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.d_call, gene_regex, action)
 
     def getJGene(self, action='first'):
+        """
+        J-region gene getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.j_call, gene_regex, action)
     
     def getVFamily(self, action='first'):
+        """
+        V-region family getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.v_call, family_regex, action)
 
     def getDFamily(self, action='first'):
+        """
+        D-region family getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.d_call, family_regex, action)
 
     def getJFamily(self, action='first'):
+        """
+        J-region family getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : Call as a string
+        """
         return parseAllele(self.j_call, family_regex, action)
 
 
@@ -290,12 +407,14 @@ def parseAllele(alleles, regex, action='first'):
     """
     Extract alleles from strings
 
-    Arguments:  alleles = string with allele calls
-                regex = compiled regular expression for allele match
-                action = action to perform for multiple alleles;
-                         one of ('first', 'set', 'list').
-    Returns:    string of the allele for action='first';
-                tuple of allele calls for 'set' or 'list' actions.
+    Arguments:
+      alleles : string with allele calls
+      regex : compiled regular expression for allele match
+      action : action to perform for multiple alleles;
+               one of ('first', 'set', 'list').
+    Returns:
+      str : String of the allele when action is 'first';
+      tuple : Tuple of allele calls for 'set' or 'list' actions.
     """
     try:
         match = [x.group(0) for x in regex.finditer(alleles)]

@@ -16,17 +16,17 @@ V_CALL	string	V allele assignment(s)
 D_CALL	string	D allele assignment(s)
 J_CALL	string	J allele assignment(s)
 V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
-V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_ INPUT
+V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_INPUT
 V_GERM_START	integer	Position of V_SEQ_START in germline V(D)J nucleotide sequence
 V_GERM_LENGTH	integer	Length of the germline V alignment
 N1_LENGTH	integer	Number of of nucleotides between sample V and D sequences
-D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_ INPUT
-D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_ INPUT
+D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
+D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT
 D_GERM_START	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
 D_GERM_LENGTH	integer	Length of the germline D alignment
 N2_LENGTH	integer	Number of of nucleotides between sample D and J sequences
-J_SEQ_START	integer	Position of first J nucleotide in SEQUENCE_ INPUT
-J_SEQ_LENGTH	integer	Number of J nucleotides in SEQUENCE_ INPUT
+J_SEQ_START	integer	Position of first J nucleotide in SEQUENCE_INPUT
+J_SEQ_LENGTH	integer	Number of J nucleotides in SEQUENCE_INPUT
 J_GERM_START	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequence
 J_GERM_LENGTH	integer	Length of the germline J alignment
 JUNCTION_LENGTH	integer	Number of junction nucleotides in SEQUENCE_VDJ

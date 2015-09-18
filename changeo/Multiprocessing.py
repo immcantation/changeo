@@ -86,15 +86,15 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
     Feeds the data queue with Ig records
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    data_queue = a multiprocessing.Queue to hold data for processing
-    db_file = the Ig record database file
-    group_func = the function to use for grouping records
-    group_args = a dictionary of arguments to pass to group_func
+      alive : multiprocessing.Value boolean controlling whether processing continues
+              if False exit process
+      data_queue : multiprocessing.Queue to hold data for processing
+      db_file : Database file
+      group_func : Function to use for grouping records
+      group_args : Dictionary of arguments to pass to group_func
 
     Returns:
-    None
+      None
     """
     # Open input file and perform grouping
     try:
@@ -138,15 +138,15 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
+      alive : multiprocessing.Value boolean controlling whether processing
             continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    process_func = the function to use for filtering sequences
-    process_args = a dictionary of arguments to pass to process_func
+      data_queue : multiprocessing.Queue holding data to process
+      result_queue : multiprocessing.Queue to hold processed results
+      process_func : Function to use for filtering sequences
+      process_args : Dictionary of arguments to pass to process_func
 
     Returns:
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -180,19 +180,20 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
-            continues; when False function returns
-    result_queue = a multiprocessing.Queue holding worker results
-    collect_queue = a multiprocessing.Queue to store collector return values
-    db_file = the database file name
-    task_label = the task label used to tag the output files
-    out_args = common output argument dictionary from parseCommonArgs
-    add_fields = a list of fields added to the writer not present in the in_file;
+      alive : multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      result_queue : multiprocessing.Queue holding worker results
+      collect_queue : multiprocessing.Queue to store collector return values
+      db_file : Database file name
+      task_label : Task label used to tag the output files
+      out_args : Common output argument dictionary from parseCommonArgs
+      add_fields : List of fields added to the writer not present in the in_file;
                  if None do not add fields
 
     Returns:
-    None
-    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
+      None : Adds a dictionary with key value pairs to collect_queue containing
+            'log' defining a log object,
+            'out_files' defining the output file names
     """
     try:
         result_count = countDbFile(db_file)
