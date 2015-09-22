@@ -28,12 +28,116 @@ from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import countSeqFile, printLog, printProgress
-from changeo.IO import getDbWriter, countDbFile
+from changeo.IO import getDbWriter, countDbFile, getRepo
 from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
                              j_allele_regex
 
 # Default parameters
 default_delimiter = ('\t', ',', '-')
+
+
+def gapV(ig_dict, repo_dict):
+    """
+    Insert gaps into V region and update alignment information
+
+    Arguments:
+      ig_dict : Dictionary of parsed IgBlast output
+      repo_dict : Dictionary of IMGT gapped germline sequences
+
+    Returns:
+      dict : Updated with SEQUENCE_IMGT, V_GERM_START_IMGT, and V_GERM_LENGTH_IMGT fields
+    """
+
+    seq_imgt = '.' * (int(ig_dict['V_GERM_START_VDJ'])-1) + ig_dict['SEQUENCE_VDJ']
+
+    # Find gapped germline V segment
+    vgene = parseAllele(ig_dict['V_CALL'], v_allele_regex, 'first')
+    vkey = (vgene, )
+    #TODO: Figure out else case
+    if vkey in repo_dict:
+        vgap = repo_dict[vkey]
+        # Iterate over gaps in the germline segment
+        gaps = re.finditer(r'\.', vgap)
+        gapcount = 0
+        for gap in gaps:
+            i = gap.start()
+            # Break if gap begins after V region
+            if i >= ig_dict['V_GERM_LENGTH_VDJ'] + gapcount:
+                break
+            # Insert gap into IMGT sequence
+            seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
+            # Update gap counter
+            gapcount += 1
+        ig_dict['SEQUENCE_IMGT'] = seq_imgt
+        # Update IMGT positioning information for V
+        ig_dict['V_GERM_START_IMGT'] = 1
+        ig_dict['V_GERM_LENGTH_IMGT'] = ig_dict['V_GERM_LENGTH_VDJ'] + gapcount
+
+    return ig_dict
+
+
+def getIMGTJunc(ig_dict, repo_dict):
+    """
+    Identify junction region by IMGT definition
+
+    Arguments:
+      ig_dict : Dictionary of parsed IgBlast output
+      repo_dict : Dictionary of IMGT gapped germline sequences
+
+    Returns:
+      dict : Updated with JUNCTION_LENGTH_IMGT and JUNCTION_IMGT fields
+    """
+    # Find germline J segment
+    jgene = parseAllele(ig_dict['J_CALL'], j_allele_regex, 'first')
+    jkey = (jgene, )
+    #TODO: Figure out else case
+    if jkey in repo_dict:
+        # Get germline J sequence
+        jgerm = repo_dict[jkey]
+        jgerm = jgerm[:ig_dict['J_GERM_START']+ig_dict['J_GERM_LENGTH']]
+        # Look for (F|W)GXG aa motif in nt sequence
+        motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
+        aa_end = len(ig_dict['SEQUENCE_IMGT'])
+        #TODO: Figure out else case
+        if motif:
+            # print('\n', motif.group())
+            aa_end = motif.start() - len(jgerm) + 3
+        # Add fields to dict
+        ig_dict['JUNCTION'] = ig_dict['SEQUENCE_IMGT'][309:aa_end]
+        ig_dict['JUNCTION_LENGTH'] = len(ig_dict['JUNCTION'])
+
+    return ig_dict
+
+
+def getRegions(ig_dict):
+    """
+    Identify FWR and CDR regions by IMGT definition
+
+    Arguments:
+      ig_dict : Dictionary of parsed alignment output
+
+    Returns:
+      dict : Updated with FWR1, FWR2, FWR3, FWR4, CDR1, CDR2, and CDR3 fields
+    """
+    try:
+        seq_len = len(ig_dict['SEQUENCE_IMGT'])
+        ig_dict['FWR1'] = ig_dict['SEQUENCE_IMGT'][0:min(78,seq_len)]
+    except (KeyError, IndexError): return ig_dict
+    try: ig_dict['CDR1'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    except (IndexError): return ig_dict
+    try: ig_dict['FWR2'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    except (IndexError): return ig_dict
+    try: ig_dict['CDR2'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    except (IndexError): return ig_dict
+    try: ig_dict['FWR3'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    except (IndexError): return ig_dict
+    try:
+        cdr3_end = 306 + ig_dict['JUNCTION_LENGTH']
+        ig_dict['CDR3'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
+        ig_dict['FWR4'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
+    except (KeyError, IndexError): return ig_dict
+
+    return ig_dict
 
 
 def getSeqforIgBlast(seq_file):
@@ -153,14 +257,17 @@ def readOneIgBlastResult(block):
 
 
 # TODO:  needs more speeds. pandas is probably to blame.
-def readIgBlast(igblast_output, seq_dict, score_fields=False):
+def readIgBlast(igblast_output, seq_dict, repo_dict,
+                score_fields=False, region_fields=False):
     """
     Reads IgBlast output
 
     Arguments:
     igblast_output = IgBlast output file (format 7)
     seq_dict = a dictionary of {ID:Seq} from input fasta file
+    repo_dict = dictionary of IMGT gapped germline sequences
     score_fields = if True parse alignment scores
+    region_fields = if True add FWR and CDR region fields
 
     Returns:
     a generator of dictionaries containing alignment data
@@ -200,8 +307,8 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                     db_gen['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
 
                     # Parse junction sequence
-                    db_gen['JUNCTION'] = re.sub('(N/A)|\[|\(|\)|\]', '', ''.join(block_list[1]))
-                    db_gen['JUNCTION_LENGTH'] = len(db_gen['JUNCTION'])
+                    # db_gen['JUNCTION_VDJ'] = re.sub('(N/A)|\[|\(|\)|\]', '', ''.join(block_list[1]))
+                    # db_gen['JUNCTION_LENGTH_VDJ'] = len(db_gen['JUNCTION_VDJ'])
 
                     # TODO:  IgBLAST does a stupid and doesn't output block #3 sometimes. why?
                     # TODO:  maybe we should fail these. they look craptastic.
@@ -236,8 +343,8 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
                     if v_call is not None:
                         v_align = hit_df[hit_df[0] == 'V'].iloc[0]
                         # Germline positions
-                        db_gen['V_GERM_START'] = int(v_align[10])
-                        db_gen['V_GERM_LENGTH'] = int(v_align[11]) - db_gen['V_GERM_START'] + 1
+                        db_gen['V_GERM_START_VDJ'] = int(v_align[10])
+                        db_gen['V_GERM_LENGTH_VDJ'] = int(v_align[11]) - db_gen['V_GERM_START_VDJ'] + 1
                         # Query sequence positions
                         db_gen['V_SEQ_START'] = int(v_align[8])
                         db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - db_gen['V_SEQ_START'] + 1
@@ -343,17 +450,27 @@ def readIgBlast(igblast_output, seq_dict, score_fields=False):
 
                     db_gen['SEQUENCE_VDJ'] = seq_vdj
 
+                    # Create IMGT-gapped sequence and infer IMGT junction
+                    if v_call is not None:
+                        db_gen = gapV(db_gen, repo_dict)
+                        if j_call is not None:
+                            db_gen = getIMGTJunc(db_gen, repo_dict)
+
+                    # FWR and CDR regions
+                    if region_fields: getRegions(db_gen)
+
                 yield IgRecord(db_gen)
 
 
 # TODO:  should be more readable
-def readIMGT(imgt_files, score_fields=False):
+def readIMGT(imgt_files, score_fields=False, region_fields=False):
     """
     Reads IMGT/HighV-Quest output
 
     Arguments: 
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
+    region_fields = if True add FWR and CDR region fields
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -387,8 +504,8 @@ def readIMGT(imgt_files, score_fields=False):
 
             db_gen['V_SEQ_START'] = nt['V-REGION start']
             db_gen['V_SEQ_LENGTH'] = len(nt['V-REGION']) if nt['V-REGION'] else 0
-            db_gen['V_GERM_START'] = 1
-            db_gen['V_GERM_LENGTH'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
+            db_gen['V_GERM_START_IMGT'] = 1
+            db_gen['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
 
             db_gen['N1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
                                                        jn['N-REGION-nt nb'],
@@ -406,7 +523,7 @@ def readIMGT(imgt_files, score_fields=False):
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
-            db_gen['J_SEQ_START'] = sum(int(i) for i in [1, len(nt['V-REGION']),
+            db_gen['J_SEQ_START_IMGT'] = sum(int(i) for i in [1, len(nt['V-REGION']),
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
@@ -439,6 +556,9 @@ def readIMGT(imgt_files, score_fields=False):
                 except (TypeError, ValueError):  db_gen['J_IDENTITY'] = 'None'
 
                 db_gen['J_EVALUE'] = 'None'
+
+            # FWR and CDR regions
+            if region_fields: getRegions(db_gen)
         else:
             db_gen['V_CALL'] = 'None'
             db_gen['D_CALL'] = 'None'
@@ -471,7 +591,7 @@ def getIDforIMGT(seq_file):
 
 
 def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
-            score_fields=False, out_args=default_out_args):
+            score_fields=False, region_fields=False, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
@@ -482,6 +602,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     id_dict = a dictionary of {IMGT ID: full seq description}
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     score_fields = if True add alignment score fields to output file
+    region_fields = if True add FWR and CDR region fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -503,8 +624,10 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'SEQUENCE_IMGT',
                       'V_SEQ_START',
                       'V_SEQ_LENGTH',
-                      'V_GERM_START',
-                      'V_GERM_LENGTH',
+                      'V_GERM_START_VDJ',
+                      'V_GERM_LENGTH_VDJ',
+                      'V_GERM_START_IMGT',
+                      'V_GERM_LENGTH_IMGT',
                       'N1_LENGTH',
                       'D_SEQ_START',
                       'D_SEQ_LENGTH',
@@ -526,11 +649,14 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'J_IDENTITY',
                                'J_EVALUE'])
 
+    if region_fields:
+        ordered_fields.extend(['FWR1', 'FWR2', 'FWR3', 'FWR4',
+                               'CDR1', 'CDR2', 'CDR3'])
+
 
     # TODO:  This is not the best approach. should pass in output fields.
-    # Open passed file
-    #pass_handle = open(pass_file, 'wb')
-    #pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+    # Initiate passed handle
+    pass_handle = None
 
     # Open failed file
     if out_args['failed']:
@@ -554,15 +680,12 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                 record.functional is None or \
                 not record.seq_vdj or \
                 not record.junction:
+            # print(record.v_call, record.j_call, record.functional, record.junction)
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
         else: 
             pass_count += 1
-            record.seq_input = (record.seq_input.upper() if record.seq_input else '')
-            record.seq_imgt = (record.seq_imgt.upper() if record.seq_imgt else '')
-            record.seq_vdj = (record.seq_vdj.upper() if record.seq_vdj else '')
-            record.junction = (record.junction.upper() if record.junction else '')
             
         # Build sample sequence description
         if record.id in id_dict:
@@ -595,21 +718,23 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     log['END'] = 'MakeDb'
     printLog(log)
     
-    pass_handle.close()
+    if pass_handle is not None: pass_handle.close()
     if fail_handle is not None: fail_handle.close()
 
 
 # TODO:  may be able to merge with parseIMGT
-def parseIgBlast(igblast_output, seq_file, no_parse=True, score_fields=False,
-                 out_args=default_out_args):
+def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=False,
+                 region_fields=False, out_args=default_out_args):
     """
     Main for IgBlast aligned sample sequences
 
     Arguments:
     igblast_output = IgBlast output file to process
     seq_file = fasta file input to IgBlast (from which to get sequence)
+    repo = folder with germline repertoire files
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     score_fields = if True add alignment score fields to output file
+    region_fields = if True add FWR and CDR region fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -623,6 +748,7 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, score_fields=False,
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     log['SCORE_FIELDS'] = score_fields
+    log['REGION_FIELDS'] = region_fields
     printLog(log)
 
     # Get input sequence dictionary
@@ -643,14 +769,16 @@ def parseIgBlast(igblast_output, seq_file, no_parse=True, score_fields=False,
     total_count = countSeqFile(seq_file)
 
     # Create
-    igblast_dict = readIgBlast(igblast_output, seq_dict, score_fields=score_fields)
-    writeDb(igblast_dict, file_prefix, total_count,
-            no_parse=no_parse, score_fields=score_fields, out_args=out_args)
+    repo_dict = getRepo(repo)
+    igblast_dict = readIgBlast(igblast_output, seq_dict, repo_dict,
+                               score_fields=score_fields, region_fields=region_fields)
+    writeDb(igblast_dict, file_prefix, total_count, no_parse=no_parse,
+            score_fields=score_fields, region_fields=region_fields, out_args=out_args)
 
 
 # TODO:  may be able to merge with parseIgBlast
 def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
-              out_args=default_out_args):
+              region_fields=False, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
@@ -659,6 +787,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     seq_file = FASTA file input to IMGT (from which to get seqID)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     score_fields = if True add alignment score fields to output file
+    region_fields = if True add FWR and CDR region fields to output file
     out_args = common output argument dictionary from parseCommonArgs
         
     Returns: 
@@ -672,6 +801,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
     log['SCORE_FIELDS'] = score_fields
+    log['REGION_FIELDS'] = region_fields
     printLog(log)
     
     # Get individual IMGT result files
@@ -695,9 +825,10 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     
     # Create
-    imgt_dict = readIMGT(imgt_files, score_fields=score_fields)
-    writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict,
-            no_parse=no_parse, score_fields=score_fields, out_args=out_args)
+    imgt_dict = readIMGT(imgt_files, score_fields=score_fields,
+                         region_fields=region_fields)
+    writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict, no_parse=no_parse,
+            score_fields=score_fields, region_fields=region_fields, out_args=out_args)
 
     # Delete temp directory
     rmtree(temp_dir)
@@ -733,8 +864,8 @@ def getArgParser():
                 SEQUENCE_VDJ and/or SEQUENCE_IMGT
                 V_SEQ_START
                 V_SEQ_LENGTH
-                V_GERM_START
-                V_GERM_LENGTH
+                V_GERM_START_VDJ and/or V_GERM_START_IMGT
+                V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT
                 N1_LENGTH
                 D_SEQ_START
                 D_SEQ_LENGTH
@@ -753,6 +884,13 @@ def getArgParser():
                 J_SCORE
                 J_IDENTITY
                 J_EVALUE
+                FWR1
+                FWR2
+                FWR3
+                FWR4
+                CDR1
+                CDR2
+                CDR3
               ''')
                 
     # Define ArgumentParser
@@ -777,6 +915,9 @@ def getArgParser():
                                 required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
                                      (IgBLAST argument \'-outfmt "7 std qseq"\').''')
+    parser_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+                                help='''List of folders and/or fasta files
+                                     with germline sequences.''')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
                                 help='List of input FASTA files containing sequences')
@@ -787,6 +928,10 @@ def getArgParser():
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
                                      V_EVALUE, J_SCORE, J_IDENTITY and J_EVALUE columns.''')
+    parser_igblast.add_argument('--regions', action='store_true', dest='region_fields',
+                                help='''Specify if IMGT framework and CDR regions should be
+                                     included in the output. Adds the FWR1, FWR2, FWR3,
+                                     FWR4, CDR1, CDR2, and CDR3 columns.''')
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
@@ -809,6 +954,10 @@ def getArgParser():
                                   included in the output. Adds the V_SCORE, V_IDENTITY,
                                   J_SCORE and J_IDENTITY. This also adds V_EVALUE and
                                   J_EVALUE columns, but they will be empty for IMGT results.''')
+    parser_imgt.add_argument('--regions', action='store_true', dest='region_fields',
+                             help='''Specify if IMGT framework and CDR regions should be
+                                  included in the output. Adds the FWR1, FWR2, FWR3,
+                                  FWR4, CDR1, CDR2, and CDR3 columns.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     return parser
@@ -832,7 +981,6 @@ if __name__ == "__main__":
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
-    # IMGT parser
     if args.command == 'imgt':
         for i in range(len(args.__dict__['aligner_files'])):
             args_dict['imgt_output'] = args.__dict__['aligner_files'][i]

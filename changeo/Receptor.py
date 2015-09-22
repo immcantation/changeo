@@ -47,8 +47,10 @@ class IgRecord:
                 'indels': 'INDELS',
                 'v_seq_start': 'V_SEQ_START',
                 'v_seq_length': 'V_SEQ_LENGTH',
-                'v_germ_start': 'V_GERM_START',
-                'v_germ_length': 'V_GERM_LENGTH',
+                'v_germ_start_vdj': 'V_GERM_START_VDJ',
+                'v_germ_length_vdj': 'V_GERM_LENGTH_VDJ',
+                'v_germ_start_imgt': 'V_GERM_START_IMGT',
+                'v_germ_length_imgt': 'V_GERM_LENGTH_IMGT',
                 'n1_length': 'N1_LENGTH',
                 'd_seq_start': 'D_SEQ_START',
                 'd_seq_length': 'D_SEQ_LENGTH',
@@ -65,7 +67,14 @@ class IgRecord:
                 'v_evalue': 'V_EVALUE',
                 'j_score': 'J_SCORE',
                 'j_identity': 'J_IDENTITY',
-                'j_evalue': 'J_EVALUE'}
+                'j_evalue': 'J_EVALUE',
+                'fwr1': 'FWR1',
+                'fwr2': 'FWR2',
+                'fwr3': 'FWR3',
+                'fwr4': 'FWR4',
+                'cdr1': 'CDR1',
+                'cdr2': 'CDR2',
+                'cdr3': 'CDR3'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}
@@ -87,8 +96,10 @@ class IgRecord:
                   'indels': '_logical',
                   'v_seq_start': '_integer',
                   'v_seq_length': '_integer',
-                  'v_germ_start': '_integer',
-                  'v_germ_length': '_integer',
+                  'v_germ_start_vdj': '_integer',
+                  'v_germ_length_vdj': '_integer',
+                  'v_germ_start_imgt': '_integer',
+                  'v_germ_length_imgt': '_integer',
                   'n1_length': '_integer',
                   'd_seq_start': '_integer',
                   'd_seq_length': '_integer',
@@ -105,7 +116,14 @@ class IgRecord:
                   'v_evalue': '_float',
                   'j_score': '_float',
                   'j_identity': '_float',
-                  'j_evalue': '_float'}
+                  'j_evalue': '_float',
+                  'fwr1': '_sequence',
+                  'fwr2': '_sequence',
+                  'fwr3': '_sequence',
+                  'fwr4': '_sequence',
+                  'cdr1': '_sequence',
+                  'cdr2': '_sequence',
+                  'cdr3': '_sequence'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}
@@ -145,7 +163,7 @@ class IgRecord:
     @staticmethod
     def _sequence(v, deparse=False):
         if not deparse:
-            try:  return Seq(v, IUPAC.ambiguous_dna)
+            try:  return Seq(v, IUPAC.ambiguous_dna).upper()
             except:  return None
         else:
             try:  return str(v)

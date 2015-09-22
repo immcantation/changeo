@@ -13,55 +13,18 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
 from time import time
-from Bio import SeqIO
 
 # Presto and change imports
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IO import getOutputHandle, printLog, printProgress, getFileType
-from changeo.IO import getDbWriter, readDbFile, countDbFile
+from presto.IO import getOutputHandle, printLog, printProgress
+from changeo.IO import getDbWriter, readDbFile, countDbFile, getRepo
 from changeo.Receptor import allele_regex, parseAllele
 
 # Defaults
 default_germ_types = 'dmask'
 default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'
-
-
-def getRepo(repo):
-    """
-    Parses germline repositories
-
-    Arguments: 
-    repo = a string list of directories and/or files
-           from which to read germline records
-
-    Returns: 
-    a dictionary of {allele: sequence} germlines
-    """
-    repo_files = []
-    # Iterate over items passed to commandline
-    for r in repo:
-        # If directory, get fasta files from within
-        if os.path.isdir(r):
-            repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
-                          if getFileType(f) == 'fasta'])
-        # If file, make sure file is fasta
-        if os.path.isfile(r) and getFileType(f) == 'fasta':
-            repo_files.extend([r])
-
-    # Catch instances where no valid fasta files were passed in
-    if len(repo_files) < 1:
-        sys.exit('ERROR: No valid germline fasta files were found in %s', repo)
-
-    repo_dict = {}
-    for file_name in repo_files:
-        with open(file_name, "rU") as file_handle:
-            germlines = SeqIO.parse(file_handle, "fasta")
-            for g in germlines:
-                germ_key = parseAllele(g.description, allele_regex, 'list')
-                repo_dict[germ_key] = str(g.seq).upper() # @UndefinedVariable
-    return repo_dict
 
     
 def joinGermline(align, repo_dict, germ_types, v_field, seq_field):

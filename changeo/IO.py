@@ -7,10 +7,49 @@ from changeo import __version__, __date__
 
 # Imports
 import csv
+import os
 import sys
+from Bio import SeqIO
 
 # Presto and changeo imports
-from changeo.Receptor import IgRecord
+from changeo.Receptor import IgRecord, parseAllele, allele_regex
+from presto.IO import getFileType
+
+
+def getRepo(repo):
+    """
+    Parses germline repositories
+
+    Arguments:
+      repo : String list of directories and/or files
+             from which to read germline records
+
+    Returns:
+      dictionary : Dictionary of {allele: sequence} germlines
+    """
+    repo_files = []
+    # Iterate over items passed to commandline
+    for r in repo:
+        # If directory, get fasta files from within
+        if os.path.isdir(r):
+            repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
+                          if getFileType(f) == 'fasta'])
+        # If file, make sure file is fasta
+        if os.path.isfile(r) and getFileType(f) == 'fasta':
+            repo_files.extend([r])
+
+    # Catch instances where no valid fasta files were passed in
+    if len(repo_files) < 1:
+        sys.exit('ERROR: No valid germline fasta files were found in %s', repo)
+
+    repo_dict = {}
+    for file_name in repo_files:
+        with open(file_name, "rU") as file_handle:
+            germlines = SeqIO.parse(file_handle, "fasta")
+            for g in germlines:
+                germ_key = parseAllele(g.description, allele_regex, 'list')
+                repo_dict[germ_key] = str(g.seq).upper() # @UndefinedVariable
+    return repo_dict
 
 
 # TODO:  change to require output fields rather than in_file? probably better that way.

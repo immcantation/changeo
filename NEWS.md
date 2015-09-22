@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  September 4, 2015
+Version 0.3.0.beta:  September 22, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -17,6 +17,13 @@ DbCore:
 IgCore:
 
 + Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
+
+MakeDb:
+
++ Updated IgBLAST parser to create an IMGT gapped sequence and infer the
+  junction region as defined by IMGT.
++ Added the `--regions` flag which adds extra columns containing FWR and CDR
+  regions as defined by IMGT.
 
 
 Version 0.2.5:  August 25, 2015
