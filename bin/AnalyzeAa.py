@@ -44,13 +44,12 @@ def gravy(aa_seq):
     return g/len(aa_seq)
     
 
-def AaProperties(seq, out_args):
+def AaProperties(seq):
     """
     Calculate amino acid properties of a sequence
 
     Arguments:
     seq = input nucleotide sequence
-    out_args = arguments for output preferences
 
     Returns:
     dictionary with amino acid properties
@@ -161,7 +160,7 @@ def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
         # Check that sequence field is not empty and has length a multiple of three
         if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
             # Calculate amino acid properties
-            aaprops = AaProperties(row[seq_field], out_args)
+            aaprops = AaProperties(row[seq_field])
             for k,v in aaprops.items(): row[seq_field + k] = v
 
             pass_count += 1

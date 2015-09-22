@@ -9,18 +9,15 @@ from changeo import __version__, __date__
 # Imports
 import os
 import re
-import signal
 import sys
-import multiprocessing as mp
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
-from ctypes import c_bool
 from itertools import chain
 from textwrap import dedent
 from time import time
 from Bio import pairwise2
-from Bio.Seq import translate, Seq
+from Bio.Seq import translate
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
@@ -39,6 +36,7 @@ default_translate = False
 default_distance = 0.0
 default_bygroup_model = 'hs1f'
 default_hclust_model = 'chen2010'
+default_seq_field = 'JUNCTION'
 default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
@@ -160,7 +158,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,
                    dist_mat=None, norm=default_norm, sym=default_sym,
-                   linkage=default_linkage):
+                   linkage=default_linkage, seq_field=default_seq_field):
     """
     Separates a set of IgRecords into clones
 
@@ -172,6 +170,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     norm = normalization method
     sym = symmetry method
     linkage = type of linkage
+    seq_field = sequence field used to calculate distance between records
 
     Returns: 
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
@@ -188,26 +187,27 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         sys.stderr.write('Unrecognized distance model: %s.\n' % model)
 
     # Define unique junction mapping
-    junc_map = {}
+    seq_map = {}
     for ig in records:
-        # Check if junction length is 0
-        if ig.junction_length == 0:
+        seq = ig.getSeqField(seq_field)
+        # Check if sequence length is 0
+        if len(seq) == 0:
             return None
 
-        junc = re.sub('[\.-]','N', str(ig.junction))
-        if model == 'aa':  junc = translate(junc)
+        seq = re.sub('[\.-]','N', str(seq))
+        if model == 'aa':  seq = translate(seq)
 
-        junc_map.setdefault(junc, []).append(ig)
+        seq_map.setdefault(seq, []).append(ig)
 
     # Process records
-    if len(junc_map) == 1:
+    if len(seq_map) == 1:
         return {1:records}
 
-    # Define junction sequences
-    junctions = list(junc_map.keys())
+    # Define sequences
+    seqs = list(seq_map.keys())
 
     # Calculate pairwise distance matrix
-    dists = calcDistances(junctions, nmer_len, dist_mat, norm, sym)
+    dists = calcDistances(seqs, nmer_len, dist_mat, norm, sym)
 
     # Perform hierarchical clustering
     clusters = formClusters(dists, linkage, distance)
@@ -215,7 +215,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Turn clusters into clone dictionary
     clone_dict = {}
     for i, c in enumerate(clusters):
-        clone_dict.setdefault(c, []).extend(junc_map[junctions[i]])
+        clone_dict.setdefault(c, []).extend(seq_map[seqs[i]])
 
     return clone_dict
 
@@ -898,7 +898,7 @@ def getArgParser():
                D_CALL
                J_CALL
                JUNCTION_LENGTH
-               JUNCTION
+               <user defined>      sequence field specified by the --sf parameter
                 
              output fields:
                CLONE
@@ -938,7 +938,7 @@ def getArgParser():
                              choices=('aa', 'ham', 'm1n', 'hs1f', 'hs5f'),
                              default=default_bygroup_model,
                              help='''Specifies which substitution model to use for
-                                  calculating distance between junctions. Where m1n is the
+                                  calculating distance between sequences. Where m1n is the
                                   mouse single nucleotide transition/trasversion model
                                   of Smith et al, 1996; hs1f is the human single
                                   nucleotide model derived from Yaari et al, 2013; hs5f
@@ -948,11 +948,11 @@ def getArgParser():
                                   considered experimental.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
-                             help='The junction distance threshold for clonal grouping')
+                             help='The distance threshold for clonal grouping')
     parser_bygroup.add_argument('--norm', action='store', dest='norm',
                              choices=('len', 'mut', 'none'), default=default_norm,
                              help='''Specifies how to normalize distances. One of none
-                                  (do not normalize), len (normalize by junction length),
+                                  (do not normalize), len (normalize by length),
                                   or mut (normalize by number of mutations between sequences).''')
     parser_bygroup.add_argument('--sym', action='store', dest='sym',
                              choices=('avg', 'min'), default=default_sym,
@@ -961,6 +961,10 @@ def getArgParser():
     parser_bygroup.add_argument('--link', action='store', dest='linkage',
                              choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
+    parser_bygroup.add_argument('--sf', action='store', dest='seq_field',
+                                default=default_seq_field,
+                                help='''The name of the field to be used to calculate
+                                     distance between records''')
     parser_bygroup.set_defaults(feed_func=feedQueue)
     parser_bygroup.set_defaults(work_func=processQueue)
     parser_bygroup.set_defaults(collect_func=collectQueue)  
@@ -1008,7 +1012,8 @@ if __name__ == '__main__':
                                    'distance':  args_dict['distance'],
                                    'norm': args_dict['norm'],
                                    'sym': args_dict['sym'],
-                                   'linkage': args_dict['linkage']}
+                                   'linkage': args_dict['linkage'],
+                                   'seq_field': args_dict['seq_field']}
 
         # TODO:  can be cleaned up with abstract model class
         args_dict['clone_args']['dist_mat'] = getModelMatrix(args_dict['model'])
@@ -1021,6 +1026,7 @@ if __name__ == '__main__':
         del args_dict['norm']
         del args_dict['sym']
         del args_dict['linkage']
+        del args_dict['seq_field']
 
     # Define clone_args
     if args.command == 'hclust':
