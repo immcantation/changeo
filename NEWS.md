@@ -13,6 +13,10 @@ DbCore:
 
 + Divided DbCore functionality into the separate modules: Defaults, Distance, 
   IO, Multiprocessing and Receptor.
+  
+DefineClones:
++ Added `--sf` flag to specify sequence field to be used to calculate
+  distance between sequences.
 
 IgCore:
 
