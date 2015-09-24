@@ -916,8 +916,9 @@ def getArgParser():
                                 help='''IgBLAST output files in format 7 with query sequence
                                      (IgBLAST argument \'-outfmt "7 std qseq"\').''')
     parser_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
-                                help='''List of folders and/or fasta files
-                                     with germline sequences.''')
+                                help='''List of folders and/or fasta files containing
+                                     IMGT-gapped germline sequences corresponding to the
+                                     set of germlines used in the IgBLAST alignment.''')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
                                 help='List of input FASTA files containing sequences')
