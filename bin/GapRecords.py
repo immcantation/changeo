@@ -267,7 +267,7 @@ def getArgParser():
                                          help='Multiple aligns sequence groups using MUSCLE')
 
     parser_align.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
-                              default=['SEQUENCE_VDJ', 'GERMLINE_VDJ'],
+                              default=['SEQUENCE_VDJ'],
                               help='The sequence field to multiple align within each group.')
     parser_align.add_argument('--gf', nargs='+', action='store', dest='group_fields',
                               default=None,

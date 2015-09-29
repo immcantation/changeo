@@ -122,20 +122,27 @@ def getRegions(ig_dict):
     try:
         seq_len = len(ig_dict['SEQUENCE_IMGT'])
         ig_dict['FWR1'] = ig_dict['SEQUENCE_IMGT'][0:min(78,seq_len)]
-    except (KeyError, IndexError): return ig_dict
+    except (KeyError, IndexError):
+        return ig_dict
+
     try: ig_dict['CDR1'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
     except (IndexError): return ig_dict
+
     try: ig_dict['FWR2'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
     except (IndexError): return ig_dict
+
     try: ig_dict['CDR2'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
     except (IndexError): return ig_dict
+
     try: ig_dict['FWR3'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
     except (IndexError): return ig_dict
+
     try:
         cdr3_end = 306 + ig_dict['JUNCTION_LENGTH']
         ig_dict['CDR3'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
         ig_dict['FWR4'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
-    except (KeyError, IndexError): return ig_dict
+    except (KeyError, IndexError):
+        return ig_dict
 
     return ig_dict
 

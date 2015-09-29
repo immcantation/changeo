@@ -176,10 +176,13 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
             sym_fun = sum
 
         # Calculate distances
-        dists[j, k] = dists[k, j] = \
-                sum([sym_fun([dist_mat.at[c1, n2], dist_mat.at[c2, n1]]) \
-                     for c1, c2, n1, n2 in zip(seq1, seq2, nmer1, nmer2)]) / \
-                (norm_by)
+        try:
+            dists[j, k] = dists[k, j] = \
+                    sum([sym_fun([dist_mat.at[c1, n2], dist_mat.at[c2, n1]]) \
+                         for c1, c2, n1, n2 in zip(seq1, seq2, nmer1, nmer2)]) / \
+                    (norm_by)
+        except (KeyError):
+            raise KeyError('Unrecognized character in sequence.')
 
     return dists
 
