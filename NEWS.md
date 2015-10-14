@@ -32,6 +32,8 @@ MakeDb:
   junction region as defined by IMGT.
 + Added the `--regions` flag which adds extra columns containing FWR and CDR
   regions as defined by IMGT.
++ Added support to imgt subcommand for the new IMGT/HighV-QUEST compression 
+  scheme (.txz files).
 
 
 Version 0.2.5:  August 25, 2015

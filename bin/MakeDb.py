@@ -12,6 +12,8 @@ import os
 import re
 import sys
 import pandas as pd
+import tarfile
+import zipfile
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby
@@ -19,7 +21,6 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from textwrap import dedent
 from time import time
-from zipfile import ZipFile, is_zipfile
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 
@@ -197,14 +198,22 @@ def extractIMGT(imgt_output):
     #file_ext = os.path.splitext(imgt_output)[1].lower()
     imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
     temp_dir = mkdtemp()
-    if is_zipfile(imgt_output):
+    if zipfile.is_zipfile(imgt_output):
         # Open zip file
-        # TODO: upon switch to Python 3 we should be able to use compression=zipfile.ZIP_LZMA for .txz files
-        imgt_zip = ZipFile(imgt_output, 'r')
+        imgt_zip = zipfile.ZipFile(imgt_output, 'r')
         # Extract required files
         imgt_files = sorted([n for n in imgt_zip.namelist() \
                              if os.path.basename(n).startswith(imgt_flags)])
         imgt_zip.extractall(temp_dir, imgt_files)
+        # Define file list
+        imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
+    elif tarfile.is_tarfile(imgt_output):
+        # Open zip file
+        imgt_tar = tarfile.open(imgt_output, 'r')
+        # Extract required files
+        imgt_files = sorted([n for n in imgt_tar.getnames() \
+                             if os.path.basename(n).startswith(imgt_flags)])
+        imgt_tar.extractall(temp_dir, [imgt_tar.getmember(n) for n in imgt_files])
         # Define file list
         imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
     elif os.path.isdir(imgt_output):
@@ -216,7 +225,7 @@ def extractIMGT(imgt_output):
         imgt_files = sorted([n for n in folder_files \
                              if os.path.basename(n).startswith(imgt_flags)])
     else:
-        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip) or a folder.')
+        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
     
     if len(imgt_files) > len(imgt_flags): # e.g. multiple 1_Summary files
         sys.exit('ERROR: Wrong files in IMGT output %s.' % imgt_output)
@@ -485,6 +494,13 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a dictionary for each sequence alignment and yield its generator
     for sm, gp, nt, jn in zip(*imgt_iters):
+        if len(set([sm['Sequence ID'],
+                    gp['Sequence ID'],
+                    nt['Sequence ID'],
+                    jn['Sequence ID']])) != 1:
+            sys.exit('Error: IMGT files are corrupt starting with Summary file record %s' \
+                     % sm['Sequence ID'])
+
         db_gen = {'SEQUENCE_ID': sm['Sequence ID'],
                   'SEQUENCE_INPUT': sm['Sequence']}
 
@@ -509,8 +525,9 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
             db_gen['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
             db_gen['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
 
+            v_seq_length = len(nt['V-REGION']) if nt['V-REGION'] else 0
             db_gen['V_SEQ_START'] = nt['V-REGION start']
-            db_gen['V_SEQ_LENGTH'] = len(nt['V-REGION']) if nt['V-REGION'] else 0
+            db_gen['V_SEQ_LENGTH'] = v_seq_length
             db_gen['V_GERM_START_IMGT'] = 1
             db_gen['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
 
@@ -518,7 +535,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
                                                        jn["P5'D-nt nb"]] if i)
-            db_gen['D_SEQ_START'] = sum(int(i) for i in [1, len(nt['V-REGION']),
+            db_gen['D_SEQ_START'] = sum(int(i) for i in [1, v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
@@ -530,7 +547,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
-            db_gen['J_SEQ_START_IMGT'] = sum(int(i) for i in [1, len(nt['V-REGION']),
+            db_gen['J_SEQ_START_IMGT'] = sum(int(i) for i in [1, v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
