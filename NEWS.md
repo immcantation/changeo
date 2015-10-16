@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  September 29, 2015
+Version 0.3.0.beta:  October 16, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -17,6 +17,9 @@ DbCore:
 DefineClones:
 + Added `--sf` flag to specify sequence field to be used to calculate
   distance between sequences.
++ Fixed bug in wherein sequences with missing data in grouping columns
+  were being assigned into a single group and clustered. Sequences with 
+  missing grouping variables will now be failed.
   
 GapRecords:
 + Changed default sequence field for `--sf` to only SEQUENCE_VDJ (dropped 
