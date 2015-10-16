@@ -122,7 +122,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
         rec_count += 1
 
         # Assigned passed preclone records to key and failed to index None
-        if all([k is not None for k in key]):
+        if all([k is not None and k != '' for k in key]):
             #print key
             # TODO:  Has much slow. Should have less slow.
             if action == 'set':
@@ -148,8 +148,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
             elif action == 'first':
                 clone_index.setdefault(key, []).append(rec)
         else:
-            # TODO: weird return object for missing data case
-            clone_index.setdefault((0,0,0), []).append(rec)
+            clone_index.setdefault(None, []).append(rec)
 
     printProgress(rec_count, step=1000, start_time=start_time, end=True)
 
@@ -436,7 +435,6 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
     None
     """
     try:
-        #print 'START WORK', alive.value
         # Iterator over data queue until sentinel object reached
         while alive.value:
             # Get data from queue
@@ -444,11 +442,15 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            #print "WORK", alive.value, data['id']
 
             # Define result object for iteration and get data records
             records = data.data
             result = DbResult(data.id, records)
+
+            # Check for invalid data (due to failed indexing) and add failed result
+            if not data:
+                result_queue.put(result)
+                continue
 
             # Add V(D)J to log
             result.log['ID'] = ','.join([str(x) for x in data.id])
