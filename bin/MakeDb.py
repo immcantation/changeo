@@ -59,7 +59,7 @@ def gapV(ig_dict, repo_dict):
         vgap = repo_dict[vkey]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
-        gapcount = 0
+        gapcount = int(ig_dict['V_GERM_START_VDJ'])-1
         for gap in gaps:
             i = gap.start()
             # Break if gap begins after V region
@@ -95,7 +95,7 @@ def getIMGTJunc(ig_dict, repo_dict):
     if jkey in repo_dict:
         # Get germline J sequence
         jgerm = repo_dict[jkey]
-        jgerm = jgerm[:ig_dict['J_GERM_START']+ig_dict['J_GERM_LENGTH']]
+        jgerm = jgerm[:ig_dict['J_GERM_START']+ig_dict['J_GERM_LENGTH']-1]
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
         aa_end = len(ig_dict['SEQUENCE_IMGT'])
@@ -312,6 +312,9 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                     db_gen['STOP'] = 'T' if block_list[0][-4] == 'Yes' else 'F'
                     db_gen['IN_FRAME'] = 'T' if block_list[0][-3] == 'In-frame' else 'F'
                     db_gen['FUNCTIONAL'] = 'T' if block_list[0][-2] == 'Yes' else 'F'
+                    if block_list[0][-1] == '-':
+                        db_gen['SEQUENCE_INPUT'] = str(Seq(db_gen['SEQUENCE_INPUT'],
+                                                           IUPAC.ambiguous_dna).reverse_complement())
 
                     # Parse V, D, and J calls
                     call_str = ' '.join(block_list[0])
@@ -365,7 +368,12 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         db_gen['V_SEQ_START'] = int(v_align[8])
                         db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - db_gen['V_SEQ_START'] + 1
 
-                        db_gen['INDELS'] = 'F' if int(v_align[6]) == 0 else 'T'
+                        if int(v_align[6]) == 0:
+                            db_gen['INDELS'] = 'F'
+                        else:
+                            db_gen['INDELS'] = 'T'
+                            # Set functional to none so record gets tossed (junction will be wrong)
+                            db_gen['FUNCTIONAL'] = None
 
                         # V alignment scores
                         if score_fields:
