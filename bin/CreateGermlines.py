@@ -586,6 +586,8 @@ if __name__ == "__main__":
     args_dict = parseCommonArgs(args)
     del args_dict['db_files']
     del args_dict['cloned']
+    args_dict['v_field'] = args_dict['v_field'].upper()
+    args_dict['seq_field'] = args_dict['seq_field'].upper()
     
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f

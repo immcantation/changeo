@@ -301,7 +301,7 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # Convert case of fields
-    if 'seq_fields' in args_dict and args_dict['seq_fields'] is not None:
+    if 'seq_fields' in args_dict:
         args_dict['seq_fields'] = [f.upper() for f in args_dict['seq_fields']]
     if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
         args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]

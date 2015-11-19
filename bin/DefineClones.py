@@ -93,18 +93,22 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     # Define functions for grouping keys
     if mode == 'allele' and fields is None:
         def _get_key(rec, act):
-            return (rec.getVAllele(act), rec.getJAllele(act), len(rec.junction))
+            return (rec.getVAllele(act), rec.getJAllele(act),
+                    None if rec.junction is None else len(rec.junction))
     elif mode == 'gene' and fields is None:
         def _get_key(rec, act):  
-            return (rec.getVGene(act), rec.getJGene(act), len(rec.junction))
+            return (rec.getVGene(act), rec.getJGene(act),
+                    None if rec.junction is None else len(rec.junction))
     elif mode == 'allele' and fields is not None:
         def _get_key(rec, act):
-            vdj = [rec.getVAllele(act), rec.getJAllele(act), len(rec.junction)]
+            vdj = [rec.getVAllele(act), rec.getJAllele(act),
+                    None if rec.junction is None else len(rec.junction)]
             ann = [rec.toDict().get(k, None) for k in fields]
             return tuple(chain(vdj, ann))
     elif mode == 'gene' and fields is not None:
         def _get_key(rec, act):
-            vdj = [rec.getVGene(act), rec.getJGene(act), len(rec.junction)]
+            vdj = [rec.getVGene(act), rec.getJGene(act),
+                    None if rec.junction is None else len(rec.junction)]
             ann = [rec.toDict().get(k, None) for k in fields]
             return tuple(chain(vdj, ann))
 
@@ -132,10 +136,10 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
                 
                 # Check for any keys that have matching columns and junction length and overlapping genes/alleles
                 to_remove = []
-                if len(clone_index) > 0 and not key in clone_index:
+                if len(clone_index) > (1 if None in clone_index else 0) and key not in clone_index:
                     key = list(key)
                     for k in clone_index:
-                        if all([key[i] == k[i] for i in f_range]):
+                        if k is not None and all([key[i] == k[i] for i in f_range]):
                             if all([not set(key[i]).isdisjoint(set(k[i])) for i in vdj_range]):
                                 for i in vdj_range:  key[i] = tuple(set(key[i]).union(set(k[i])))
                                 to_remove.append(k)
@@ -1002,8 +1006,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields
+    if 'seq_field' in args_dict:
+        args_dict['seq_field'] = args_dict['seq_field'].upper()
     if 'fields' in args_dict and args_dict['fields'] is not None:  
-        args_dict['fields'] = list(map(str.upper, args_dict['fields']))
+        args_dict['fields'] = [f.upper() for f in args_dict['fields']]
     
     # Define clone_args
     if args.command == 'bygroup':

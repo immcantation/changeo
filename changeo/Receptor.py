@@ -163,10 +163,18 @@ class IgRecord:
     @staticmethod
     def _sequence(v, deparse=False):
         if not deparse:
-            try:  return Seq(v, IUPAC.ambiguous_dna).upper()
+            try:
+                if v in ['NA','None']:
+                    return None
+                else:
+                    return Seq(v, IUPAC.ambiguous_dna).upper()
             except:  return None
         else:
-            try:  return str(v)
+            try:
+                if v in ['NA','None']:
+                    return ''
+                else:
+                    return str(v)
             except:  return ''
 
     def __init__(self, row, genotyped=True):

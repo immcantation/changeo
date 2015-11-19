@@ -53,9 +53,7 @@ def AaProperties(seq):
 
     Returns:
     dictionary with amino acid properties
-    """    
-    # Ensure sequence is uppercase for translation
-    seq = seq.upper()
+    """
     # TODO: needs a better solution to the gap character problem at some point
     seq = re.sub('\.|-', 'N', seq)
     aa_seq = str(Seq(seq).translate())
@@ -243,6 +241,7 @@ if __name__ == "__main__":
     parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+    args_dict['seq_field'] = args_dict['seq_field'].upper()
     
     del args_dict['db_files']
     

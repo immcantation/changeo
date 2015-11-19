@@ -22,6 +22,7 @@ from tempfile import mkdtemp
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
+from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports

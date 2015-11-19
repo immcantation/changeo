@@ -31,7 +31,7 @@ from changeo.IO import getDbWriter, readDbFile, countDbFile
 default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
-default_index_field = "INDEX"
+default_index_field = 'INDEX'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -1075,9 +1075,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields
-    #args_dict['id_field'] = args_dict['id_field'].upper()
-    #args_dict['seq_field'] = args_dict['seq_field'].upper() 
-    #if args_dict['meta_fields']:  args_dict['meta_fields'] = map(str.upper, args_dict['meta_fields']) 
+    if 'id_field' in args_dict:
+        args_dict['id_field'] = args_dict['id_field'].upper()
+    if 'seq_field' in args_dict:
+        args_dict['seq_field'] = args_dict['seq_field'].upper()
+    if 'germ_field' in args_dict:
+        args_dict['germ_field'] = args_dict['germ_field'].upper()
+    if 'field' in args_dict:
+        args_dict['field'] = args_dict['field'].upper()
+    if 'cluster_field' in args_dict and args_dict['cluster_field'] is not None:
+        args_dict['cluster_field'] = args_dict['cluster_field'].upper()
+    if 'meta_fields' in args_dict and args_dict['meta_fields'] is not None:
+        args_dict['meta_fields'] = [f.upper() for f in args_dict['meta_fields']]
+    if 'fields' in args_dict:
+        args_dict['fields'] = [f.upper() for f in args_dict['fields']]
 
     # Check modify_args arguments
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
