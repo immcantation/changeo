@@ -47,10 +47,8 @@ except TypeError:
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
-scripts = ['AnalyzeAa.py',
-           'CreateGermlines.py',
+scripts = ['CreateGermlines.py',
            'DefineClones.py',
-           'GapRecords.py',
            'MakeDb.py',
            'ParseDb.py']
 install_scripts = [os.path.join(setup_path, 'bin', s) for s in scripts]

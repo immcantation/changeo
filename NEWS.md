@@ -1,4 +1,4 @@
-Version 0.3.0.beta:  October 16, 2015
+Version 0.3.0:  December 1, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -9,12 +9,18 @@ The package now requires Python 3.4. Python 2.7 is not longer supported.
 The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
 pandas 0.16 and biopython 1.65.
 
+AnalyzeAa:
+
++ This tool was removed. This functionality has been migrated to the alakazam 
+  R package.
+
 DbCore:
 
 + Divided DbCore functionality into the separate modules: Defaults, Distance, 
   IO, Multiprocessing and Receptor.
   
 DefineClones:
+
 + Added `--sf` flag to specify sequence field to be used to calculate
   distance between sequences.
 + Fixed bug in wherein sequences with missing data in grouping columns
@@ -22,8 +28,9 @@ DefineClones:
   missing grouping variables will now be failed.
   
 GapRecords:
-+ Changed default sequence field for `--sf` to only SEQUENCE_VDJ (dropped 
-  the GERMLINE_VDJ).
+
++ This tool was removed in favor of adding IMGT gapping support to igblast 
+  subcommand of MakeDb.
 
 IgCore:
 
