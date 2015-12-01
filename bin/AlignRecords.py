@@ -179,7 +179,7 @@ def gapSeq(db_file, seq_fields, group_func, align_func, group_args={}, align_arg
     
     # Print parameter info
     log = OrderedDict()
-    log['START'] = 'GapSeq'
+    log['START'] = 'AlignRecords'
     log['COMMAND'] = cmd_dict.get(align_func, align_func.__name__)
     log['FILE'] = os.path.basename(db_file)
     log['SEQ_FIELDS'] = ','.join(seq_fields)
@@ -212,7 +212,7 @@ def gapSeq(db_file, seq_fields, group_func, align_func, group_args={}, align_arg
                              nproc, queue_size)
         
     # Print log
-    result['log']['END'] = 'GapSeq'
+    result['log']['END'] = 'AlignRecords'
     printLog(result['log'])
         
     return result['out_files']
@@ -262,31 +262,31 @@ def getArgParser():
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
                                        multiproc=True)
     # MUSCLE mode argument parser
-    parser_align = subparsers.add_parser('align', parents=[parser_parent],
+    parser_muscle = subparsers.add_parser('muscle', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
                                          help='Multiple aligns sequence groups using MUSCLE')
 
-    parser_align.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
+    parser_muscle.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
                               default=['SEQUENCE_VDJ'],
                               help='The sequence field to multiple align within each group.')
-    parser_align.add_argument('--gf', nargs='+', action='store', dest='group_fields',
+    parser_muscle.add_argument('--gf', nargs='+', action='store', dest='group_fields',
                               default=None,
                               help='Additional (not allele call) fields to use for grouping.')
-    parser_align.add_argument('-a', nargs='+', action='store', dest='calls',
+    parser_muscle.add_argument('-a', nargs='+', action='store', dest='calls',
                               choices=('v', 'd', 'j'), default=['v', 'j'],
                               help='Segment calls (allele assignments) to use for grouping.')
-    parser_align.add_argument('--mode', action='store', dest='mode',
+    parser_muscle.add_argument('--mode', action='store', dest='mode',
                               choices=('allele', 'gene'), default='gene',
                               help='''Specifies whether to use the V(D)J allele or gene when
                                    an allele call field (--cf) is specified.''')
-    parser_align.add_argument('--act', action='store', dest='action', default='first',
+    parser_muscle.add_argument('--act', action='store', dest='action', default='first',
                               choices=('first', ),
                               help='''Specifies how to handle multiple values within default
                                    allele call fields. Currently, only \'first\' is supported.''')
-    parser_align.add_argument('--exec', action='store', dest='muscle_exec',
+    parser_muscle.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
-    parser_align.set_defaults(group_func=groupRecords, align_func=alignRecords)
+    parser_muscle.set_defaults(group_func=groupRecords, align_func=alignRecords)
     
     return parser
 
