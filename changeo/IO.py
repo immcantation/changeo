@@ -35,7 +35,7 @@ def getRepo(repo):
             repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
                           if getFileType(f) == 'fasta'])
         # If file, make sure file is fasta
-        if os.path.isfile(r) and getFileType(f) == 'fasta':
+        if os.path.isfile(r) and getFileType(r) == 'fasta':
             repo_files.extend([r])
 
     # Catch instances where no valid fasta files were passed in
