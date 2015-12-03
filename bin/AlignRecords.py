@@ -23,6 +23,7 @@ from Bio.SeqRecord import SeqRecord
 # Presto and changeo import
 from presto.Defaults import default_out_args, default_separator, default_muscle_exec
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
@@ -82,7 +83,7 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
-def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignFields(data, seq_fields, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields
 
@@ -112,49 +113,8 @@ def alignRecords(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-# TODO:  can be moved into presto core functions
-def runMuscle(seq_list, muscle_exec=default_muscle_exec):
-    """
-    Multiple aligns a set of sequences using MUSCLE
-
-    Arguments:
-    seq_list = a list of SeqRecord objects to align
-    muscle_exec = the MUSCLE executable
-
-    Returns:
-    a MultipleSeqAlignment object containing the alignment
-    """
-    # Return sequence if only one sequence in seq_list
-    if len(seq_list) < 2:
-        align = MultipleSeqAlignment(seq_list)
-        return align
-
-    # Set MUSCLE command
-    cmd = [muscle_exec, '-diags', '-maxiters', '2']
-
-    # Convert sequences to FASTA and write to string
-    stdin_handle = StringIO()
-    SeqIO.write(seq_list, stdin_handle, 'fasta')
-    stdin_str = stdin_handle.getvalue()
-    stdin_handle.close()
-
-    # Open MUSCLE process
-    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  universal_newlines=True)
-
-    # Send sequences to MUSCLE stdin and retrieve stdout, stderr
-    stdout_str, __ = child.communicate(stdin_str)
-
-    # Capture sequences from MUSCLE stdout
-    stdout_handle = StringIO(stdout_str)
-    align = AlignIO.read(stdout_handle, 'fasta')
-    stdout_handle.close()
-
-    return align
-
-
-def gapSeq(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
-           out_args=default_out_args, nproc=None, queue_size=None):
+def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
+                 out_args=default_out_args, nproc=None, queue_size=None):
     """
     Performs a multiple alignment on sets of sequences
 
@@ -175,7 +135,7 @@ def gapSeq(db_file, seq_fields, group_func, align_func, group_args={}, align_arg
     a tuple of (align-pass, align-fail) filenames
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignRecords:'align'}
+    cmd_dict = {alignFields: 'align'}
     
     # Print parameter info
     log = OrderedDict()
@@ -286,7 +246,7 @@ def getArgParser():
     parser_muscle.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
-    parser_muscle.set_defaults(group_func=groupRecords, align_func=alignRecords)
+    parser_muscle.set_defaults(group_func=groupRecords, align_func=alignFields)
     
     return parser
 
@@ -322,7 +282,7 @@ if __name__ == '__main__':
         del args_dict['action']
 
     # Define align_args
-    if args_dict['align_func'] is alignRecords:
+    if args_dict['align_func'] is alignFields:
         args_dict['align_args'] = {'muscle_exec':args_dict['muscle_exec']}
         del args_dict['muscle_exec']
 
@@ -332,5 +292,5 @@ if __name__ == '__main__':
     del args_dict['db_files']
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
-        gapSeq(**args_dict)
+        alignRecords(**args_dict)
 
