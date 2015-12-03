@@ -1,14 +1,6 @@
 Tools
 ==============
 
-AnalyzeAa
----------------
-
-.. argparse::
-   :module: AnalyzeAa
-   :func: getArgParser
-   :prog: AnalyzeAa
-
 CreateGermlines
 ---------------
 
@@ -25,13 +17,6 @@ DefineClones
    :func: getArgParser
    :prog: DefineClones
 
-GapRecords
----------------
-
-.. argparse::
-   :module: GapRecords
-   :func: getArgParser
-   :prog: GapRecords
 
 MakeDb
 ---------------
