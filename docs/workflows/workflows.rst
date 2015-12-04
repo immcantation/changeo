@@ -5,3 +5,4 @@ Example Workflows
    :maxdepth: 2
 
    imgt_workflow
+   igblast_workflow

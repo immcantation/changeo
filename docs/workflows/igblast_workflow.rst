@@ -1,4 +1,4 @@
-IMGT Output Processing
+IgBLAST Output Processing
 ===============================
 
 .. highlight:: bash
@@ -6,13 +6,13 @@ IMGT Output Processing
 .. code-block:: bash
 
 	#!/bin/bash
-	# Super script to run the Change-O clonal assignment pipeline on IMGT results
+	# Super script to run the Change-O clonal assignment pipeline on IgBLAST results
 	# 
 	# Author:  Jason Anthony Vander Heiden, Namita Gupta
 	# Date:    2015.12.04
 	# 
 	# Required Arguments:
-	#   $1 = IMGT output file 
+	#   $1 = IgBLAST output file 
 	#   $2 = FASTA file that was submitted to IMGT
 	#   $3 = the folder(s) or file(s) containing the IMGT reference database sequences
 	#   $4 = output directory
@@ -21,7 +21,7 @@ IMGT Output Processing
 
 
 	# Capture command line parameters
-	IMGT_FILE=$(readlink -f $1)
+	IGBLAST_FILE=$(readlink -f $1)
 	SEQ_FILE=$(readlink -f $2)
 	GERM_DIR=$(readlink -f $3)
 	OUTDIR=$(readlink -f $4)
@@ -64,10 +64,10 @@ IMGT Output Processing
 	echo -e "\nSTART"
 	STEP=0
 
-	# Parse IMGT output
+	# Parse IgBLAST output
 	printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MakeDb imgt"
-	MakeDb.py imgt -i $IMGT_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
-		--outdir . >> $PIPELINE_LOG 2> $ERROR_LOG
+	MakeDb.py imgt -i $IGBLAST_FILE -s $SEQ_FILE --outname "${OUTNAME}" \
+		-r $GERM_DIR --outdir . >> $PIPELINE_LOG 2> $ERROR_LOG
 
 	printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseDb select"
 	ParseDb.py select -d "${OUTNAME}_db-pass.tab" -f FUNCTIONAL -u T \
