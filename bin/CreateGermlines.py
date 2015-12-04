@@ -61,10 +61,10 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
         if vkey in repo_dict:
             vseq = repo_dict[vkey]
             # Germline start
-            try: vstart = int(align['V_GERM_START']) - 1
+            try: vstart = int(align['V_GERM_START_IMGT']) - 1
             except (TypeError, ValueError): vstart = 0
             # Germline length
-            try: vlen = int(align['V_GERM_LENGTH'])
+            try: vlen = int(align['V_GERM_LENGTH_IMGT'])
             except (TypeError, ValueError): vlen = 0
             # TODO:  not sure what this line is doing here. it no make no sense.
             vpad = vlen - len(vseq[vstart:])
@@ -75,7 +75,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
             return result_log, germlines
     else:
         result_log['V_CALL'] = None
-        try: vlen = int(align['V_GERM_LENGTH'])
+        try: vlen = int(align['V_GERM_LENGTH_IMGT'])
         except (TypeError, ValueError): vlen = 0
         germ_vseq = 'N' * vlen
 
@@ -525,8 +525,8 @@ def getArgParser():
                J_CALL
                V_SEQ_START
                V_SEQ_LENGTH
-               V_GERM_START
-               V_GERM_LENGTH
+               V_GERM_START_IMGT
+               V_GERM_LENGTH_IMGT
                D_SEQ_START
                D_SEQ_LENGTH
                D_GERM_START
