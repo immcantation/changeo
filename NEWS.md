@@ -1,4 +1,4 @@
-Version 0.3.0:  December 1, 2015
+Version 0.3.0:  December 4, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -26,6 +26,7 @@ DefineClones:
 + Fixed bug in wherein sequences with missing data in grouping columns
   were being assigned into a single group and clustered. Sequences with 
   missing grouping variables will now be failed.
++ Fixed bug where sequences with "None" junctions were grouped together.
   
 GapRecords:
 
