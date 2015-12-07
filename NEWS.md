@@ -1,3 +1,12 @@
+Version 0.3.0.999:  December 7, 2015
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Fixed bug wherein the imgt subcommand was not properly recognizing an 
+  extracted folder as input to the `-i` argument.
+
+
 Version 0.3.0:  December 4, 2015
 -------------------------------------------------------------------------------
 
