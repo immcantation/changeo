@@ -208,6 +208,14 @@ def extractIMGT(imgt_output):
         imgt_zip.extractall(temp_dir, imgt_files)
         # Define file list
         imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
+    elif os.path.isdir(imgt_output):
+        # Find required files in folder
+        folder_files = []
+        for root, dirs, files in os.walk(imgt_output):
+            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
+        # Define file list
+        imgt_files = sorted([n for n in folder_files \
+                             if os.path.basename(n).startswith(imgt_flags)])
     elif tarfile.is_tarfile(imgt_output):
         # Open zip file
         imgt_tar = tarfile.open(imgt_output, 'r')
@@ -217,14 +225,6 @@ def extractIMGT(imgt_output):
         imgt_tar.extractall(temp_dir, [imgt_tar.getmember(n) for n in imgt_files])
         # Define file list
         imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
-    elif os.path.isdir(imgt_output):
-        # Find required files in folder
-        folder_files = []
-        for root, dirs, files in os.walk(imgt_output):
-            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
-        # Define file list
-        imgt_files = sorted([n for n in folder_files \
-                             if os.path.basename(n).startswith(imgt_flags)])
     else:
         sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
     
