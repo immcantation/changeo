@@ -35,14 +35,6 @@ if __author__ is None:
 if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
-# Parse requirements
-require_file = 'requirements.txt'
-try:
-    requirements = parse_requirements(require_file, session=False)
-except TypeError:
-    requirements = parse_requirements(require_file)
-install_requires = [str(r.req) for r in requirements]
-
 # Define installation path for commandline tools
 scripts = ['CreateGermlines.py',
            'DefineClones.py',
@@ -58,6 +50,19 @@ try:
 except ImportError:
     print('Warning: pypandoc was not found. Long description will not be converted to reST.')
     long_description = open(readme_file, 'r').read()
+
+# TODO: check pip version to avoid problem with parse_requirements(session=False)
+# Parse requirements
+if os.environ.get('READTHEDOCS', None) == 'True':
+    # Set empty install_requires to get install to work on readthedocs
+    install_requires = []
+else:
+    require_file = 'requirements.txt'
+    try:
+        requirements = parse_requirements(require_file, session=False)
+    except TypeError:
+        requirements = parse_requirements(require_file)
+    install_requires = [str(r.req) for r in requirements]
 
 # Setup
 setup(name='changeo',

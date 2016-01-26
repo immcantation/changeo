@@ -16,7 +16,18 @@
 import sys
 import os
 import sphinx_rtd_theme
+from unittest.mock import MagicMock
 
+# Mock modules for readthedocs
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
+
+MOCK_MODULES = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
+                'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
+                'Bio.Seq', 'Bio.SeqRecord']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
