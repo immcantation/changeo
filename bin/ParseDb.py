@@ -23,8 +23,8 @@ from Bio.Alphabet import IUPAC
 # Presto and changeo imports
 from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import flattenAnnotation
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
+from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 
 # Defaults

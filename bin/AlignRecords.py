@@ -22,10 +22,10 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto and changeo import
 from presto.Defaults import default_out_args, default_separator, default_muscle_exec
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
+from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
 
 # Globals

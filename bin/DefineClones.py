@@ -21,10 +21,10 @@ from Bio.Seq import translate
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
 from presto.Sequence import getDNAScoreDict
+from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
                              hs1f_model, m1n_model, hs5f_model, \
                              calcDistances, formClusters
