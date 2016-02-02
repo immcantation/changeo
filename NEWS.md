@@ -1,6 +1,11 @@
 Version 0.3.1.999:  January 26, 2016
 -------------------------------------------------------------------------------
 
+MakeDb:
+
++ Updated igblast subcommand to correctly parse records with indels. Now 
+  igblast must be run with the argument `outfmt 'std qseq sseq btop'`.  
+
 
 Version 0.3.1:  December 18, 2015
 -------------------------------------------------------------------------------

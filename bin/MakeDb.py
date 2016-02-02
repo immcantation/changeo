@@ -357,6 +357,8 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                     # 12:  evalue
                     # 13:  bit score
                     # 14:  query seq
+                    # 15:  subject seq
+                    # 16:  btop
 
                     # If V call exists, parse V alignment information
                     seq_vdj = ''
@@ -374,7 +376,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         else:
                             db_gen['INDELS'] = 'T'
                             # Set functional to none so record gets tossed (junction will be wrong)
-                            db_gen['FUNCTIONAL'] = None
+                            # db_gen['FUNCTIONAL'] = None
 
                         # V alignment scores
                         if score_fields:
@@ -387,8 +389,16 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             try: db_gen['V_EVALUE'] = float(v_align[12])
                             except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
 
-                        # Update VDJ sequence
-                        seq_vdj += v_align[14]
+                            try: db_gen['V_BTOP'] = float(v_align[16])
+                            except (TypeError, ValueError): db_gen['V_BTOP'] = 'None'
+
+                        # Update VDJ sequence, removing insertions
+                        start = 0
+                        for m in re.finditer(r'-', v_align[15]):
+                            ins = m.start()
+                            seq_vdj += v_align[14][start:ins]
+                            start = ins + 1
+                        seq_vdj += v_align[14][start:]
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If D call exists, parse D alignment information
@@ -417,8 +427,18 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         db_gen['D_GERM_START'] = int(d_align[10]) + overlap
                         db_gen['D_GERM_LENGTH'] = max(int(d_align[11]) - db_gen['D_GERM_START'] + 1, 0)
 
-                        # Update VDJ sequence
-                        seq_vdj += d_align[14][overlap:]
+                        # D alignment scores
+                        if score_fields:
+                            try: db_gen['D_BTOP'] = float(d_align[16])
+                            except (TypeError, ValueError): db_gen['D_BTOP'] = 'None'
+
+                        # Update VDJ sequence, removing insertions
+                        start = overlap
+                        for m in re.finditer(r'-', d_align[15]):
+                            ins = m.start()
+                            seq_vdj += d_align[14][start:ins]
+                            start = ins + 1
+                        seq_vdj += d_align[14][start:]
 
                     # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
                     # If J call exists, parse J alignment information
@@ -470,8 +490,16 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             try: db_gen['J_EVALUE'] = float(j_align[12])
                             except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
 
-                        # Update VDJ sequence
-                        seq_vdj += j_align[14][overlap:]
+                            try: db_gen['J_BTOP'] = float(j_align[16])
+                            except (TypeError, ValueError): db_gen['J_BTOP'] = 'None'
+
+                        # Update VDJ sequence, removing insertions
+                        start = overlap
+                        for m in re.finditer(r'-', j_align[15]):
+                            ins = m.start()
+                            seq_vdj += j_align[14][start:ins]
+                            start = ins + 1
+                        seq_vdj += j_align[14][start:]
 
                     db_gen['SEQUENCE_VDJ'] = seq_vdj
 
@@ -678,9 +706,12 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
         ordered_fields.extend(['V_SCORE',
                                'V_IDENTITY',
                                'V_EVALUE',
+                               'V_BTOP',
+                               'D_BTOP'
                                'J_SCORE',
                                'J_IDENTITY',
-                               'J_EVALUE'])
+                               'J_EVALUE',
+                               'J_BTOP'])
 
     if region_fields:
         ordered_fields.extend(['FWR1', 'FWR2', 'FWR3', 'FWR4',
@@ -914,9 +945,12 @@ def getArgParser():
                 V_SCORE
                 V_IDENTITY
                 V_EVALUE
+                V_BTOP
+                D_BTOP
                 J_SCORE
                 J_IDENTITY
                 J_EVALUE
+                J_BTOP
                 FWR1
                 FWR2
                 FWR3
@@ -947,7 +981,7 @@ def getArgParser():
     parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
                                 required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
-                                     (IgBLAST argument \'-outfmt "7 std qseq"\').''')
+                                     (IgBLAST argument \'-outfmt "7 std qseq sseq btop"\').''')
     parser_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                                 help='''List of folders and/or fasta files containing
                                      IMGT-gapped germline sequences corresponding to the
@@ -961,7 +995,8 @@ def getArgParser():
     parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
-                                     V_EVALUE, J_SCORE, J_IDENTITY and J_EVALUE columns.''')
+                                     V_EVALUE, V_BTOP, D_BTOP, J_SCORE, J_IDENTITY,
+                                     J_BTOP, and J_EVALUE columns.''')
     parser_igblast.add_argument('--regions', action='store_true', dest='region_fields',
                                 help='''Specify if IMGT framework and CDR regions should be
                                      included in the output. Adds the FWR1, FWR2, FWR3,
