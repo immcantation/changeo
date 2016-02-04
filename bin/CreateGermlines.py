@@ -374,7 +374,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
             if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
             
-            result_log['SEQUENCE'] = cons
+            result_log['SEQUENCE'] = cons[seq_field]
             result_log['GERMLINE'] = germlines['full']
             result_log['REGIONS'] = germlines['regions']
             

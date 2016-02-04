@@ -389,7 +389,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             try: db_gen['V_EVALUE'] = float(v_align[12])
                             except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
 
-                            try: db_gen['V_BTOP'] = float(v_align[16])
+                            try: db_gen['V_BTOP'] = v_align[16]
                             except (TypeError, ValueError): db_gen['V_BTOP'] = 'None'
 
                         # Update VDJ sequence, removing insertions
@@ -415,7 +415,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                                 overlap = abs(n1_len)
                             else:
                                 db_gen['N1_LENGTH'] = n1_len
-                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
+                                n1_start = (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(d_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
 
@@ -426,11 +426,6 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         # Germline positions
                         db_gen['D_GERM_START'] = int(d_align[10]) + overlap
                         db_gen['D_GERM_LENGTH'] = max(int(d_align[11]) - db_gen['D_GERM_START'] + 1, 0)
-
-                        # D alignment scores
-                        if score_fields:
-                            try: db_gen['D_BTOP'] = float(d_align[16])
-                            except (TypeError, ValueError): db_gen['D_BTOP'] = 'None'
 
                         # Update VDJ sequence, removing insertions
                         start = overlap
@@ -490,7 +485,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             try: db_gen['J_EVALUE'] = float(j_align[12])
                             except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
 
-                            try: db_gen['J_BTOP'] = float(j_align[16])
+                            try: db_gen['J_BTOP'] = j_align[16]
                             except (TypeError, ValueError): db_gen['J_BTOP'] = 'None'
 
                         # Update VDJ sequence, removing insertions
@@ -707,7 +702,6 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'V_IDENTITY',
                                'V_EVALUE',
                                'V_BTOP',
-                               'D_BTOP'
                                'J_SCORE',
                                'J_IDENTITY',
                                'J_EVALUE',
@@ -946,7 +940,6 @@ def getArgParser():
                 V_IDENTITY
                 V_EVALUE
                 V_BTOP
-                D_BTOP
                 J_SCORE
                 J_IDENTITY
                 J_EVALUE
@@ -995,7 +988,7 @@ def getArgParser():
     parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
-                                     V_EVALUE, V_BTOP, D_BTOP, J_SCORE, J_IDENTITY,
+                                     V_EVALUE, V_BTOP, J_SCORE, J_IDENTITY,
                                      J_BTOP, and J_EVALUE columns.''')
     parser_igblast.add_argument('--regions', action='store_true', dest='region_fields',
                                 help='''Specify if IMGT framework and CDR regions should be

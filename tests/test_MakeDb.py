@@ -27,14 +27,14 @@ class Test_MakeDb(unittest.TestCase):
 
         # Define data files
         # Created by: ./igblastn -germline_db_V database/IMGT_Human_IGHV -germline_db_D database/IMGT_Human_IGHD
-        # -germline_db_J database/IMGT_Human_IGHJ -domain_system imgt -ig_seqtype Ig -outfmt '7 std qseq'
+        # -germline_db_J database/IMGT_Human_IGHJ -domain_system imgt -ig_seqtype Ig -outfmt '7 std qseq sseq btop'
         # -auxiliary_data optional_file/human_gl.aux -query ~/workspace/changeo/tests/data/igblast_test_ig.fasta
         # -out ~/workspace/changeo/tests/data/igblast_test_ig.fmt7
         self.igblast_ig_fmt7_file = os.path.join(data_path, 'igblast_test_ig.fmt7')
         self.igblast_ig_seq_dict = MakeDb.getSeqforIgBlast(os.path.join(data_path, 'igblast_test_ig.fasta'))
 
         # Created by: ./igblastn -germline_db_V database/imgt_human_tr_v -germline_db_D database/imgt_human_tr_d
-        # -germline_db_J database/imgt_human_tr_j -domain_system imgt -ig_seqtype TCR -outfmt '7 std qseq'
+        # -germline_db_J database/imgt_human_tr_j -domain_system imgt -ig_seqtype TCR -outfmt '7 std qseq sseq btop'
         # -auxiliary_data optional_file/human_gl.aux -query ~/workspace/changeo/tests/data/igblast_test_tr.fasta
         # -out ~/workspace/changeo/tests/data/igblast_test_tr.fmt
         self.igblast_tr_fmt7_file = os.path.join(data_path, 'igblast_test_tr.fmt7')
