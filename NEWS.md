@@ -4,7 +4,11 @@ Version 0.3.1.999:  January 26, 2016
 MakeDb:
 
 + Updated igblast subcommand to correctly parse records with indels. Now 
-  igblast must be run with the argument `outfmt 'std qseq sseq btop'`.  
+  igblast must be run with the argument `outfmt '7 std qseq sseq btop'`.
+  
+CreateGermlines:
+
++ Fixed a bug with incorrect values in the SEQUENCE field on the log file.
 
 
 Version 0.3.1:  December 18, 2015
