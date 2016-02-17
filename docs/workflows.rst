@@ -4,5 +4,5 @@ Example Workflows
 .. toctree::
    :maxdepth: 2
 
-   imgt_workflow
-   igblast_workflow
+   workflows/imgt_workflow
+   workflows/igblast_workflow

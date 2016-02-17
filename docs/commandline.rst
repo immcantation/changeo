@@ -1,35 +1,10 @@
 Tools
 ==============
 
-CreateGermlines
----------------
+.. toctree::
+   :maxdepth: 1
 
-.. argparse::
-   :module: CreateGermlines
-   :func: getArgParser
-   :prog: CreateGermlines
-
-DefineClones
----------------
-
-.. argparse::
-   :module: DefineClones
-   :func: getArgParser
-   :prog: DefineClones
-
-
-MakeDb
----------------
-
-.. argparse::
-   :module: MakeDb
-   :func: getArgParser
-   :prog: MakeDb
-
-ParseDb
----------------
-
-.. argparse::
-   :module: ParseDb
-   :func: getArgParser
-   :prog: ParseDb
+   tools/CreateGermlines
+   tools/DefineClones
+   tools/MakeDb
+   tools/ParseDb

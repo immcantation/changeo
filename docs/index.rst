@@ -9,7 +9,7 @@ Contents:
    :maxdepth: 2
 
    introduction
-   workflows/workflows
+   workflows
    commandline
    modules
    standard
