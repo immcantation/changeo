@@ -1,18 +1,34 @@
 .. changeo documentation master file
 
-Change-O Documentation
-==================================
-
-Contents:
+.. include:: ../README.rst
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
+    :caption: Getting Started
 
-   introduction
-   workflows
-   commandline
-   modules
-   standard
+    overview
+    install
+    standard
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Examples
+
+    workflows
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Usage Documentation
+
+    usage
+    api
+
+.. toctree::
+    :maxdepth: 2
+    :caption: About
+
+    news
+    info
 
 Indices and tables
 ==================

@@ -1,5 +1,7 @@
+.. _Standard:
+
 Data Standard
-===============
+================================================================================
 
 .. csv-table::
    :file: tables/column_descriptions.tab

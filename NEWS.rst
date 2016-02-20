@@ -1,10 +1,13 @@
-Version 0.3.1.999:  January 26, 2016
+Release Notes
+================================================================================
+
+Version 0.3.1.999:  February 20, 2016
 -------------------------------------------------------------------------------
 
 MakeDb:
 
 + Updated igblast subcommand to correctly parse records with indels. Now 
-  igblast must be run with the argument `outfmt '7 std qseq sseq btop'`.
+  igblast must be run with the argument ``outfmt "7 std qseq sseq btop"``.
   
 CreateGermlines:
 
@@ -17,7 +20,7 @@ Version 0.3.1:  December 18, 2015
 MakeDb:
 
 + Fixed bug wherein the imgt subcommand was not properly recognizing an 
-  extracted folder as input to the `-i` argument.
+  extracted folder as input to the ``-i`` argument.
 
 
 Version 0.3.0:  December 4, 2015
@@ -43,7 +46,7 @@ DbCore:
   
 DefineClones:
 
-+ Added `--sf` flag to specify sequence field to be used to calculate
++ Added ``--sf`` flag to specify sequence field to be used to calculate
   distance between sequences.
 + Fixed bug in wherein sequences with missing data in grouping columns
   were being assigned into a single group and clustered. Sequences with 
@@ -63,7 +66,7 @@ MakeDb:
 
 + Updated IgBLAST parser to create an IMGT gapped sequence and infer the
   junction region as defined by IMGT.
-+ Added the `--regions` flag which adds extra columns containing FWR and CDR
++ Added the ``--regions`` flag which adds extra columns containing FWR and CDR
   regions as defined by IMGT.
 + Added support to imgt subcommand for the new IMGT/HighV-QUEST compression 
   scheme (.txz files).
@@ -89,7 +92,7 @@ MakeDb:
 
 ParseDb:
 
-+ Fixed a bug wherein specifying the `-f` argument to the index subcommand 
++ Fixed a bug wherein specifying the ``-f`` argument to the index subcommand 
   would cause an error.
   
 
@@ -102,7 +105,7 @@ DefineClones:
   which was being interpreted as 'none' rather than 'len'.
 + Changed the 'hs5f' model of the bygroup subcommand to be centered -log10 of 
   the targeting probability.
-+ Added the `--sym` argument to the bygroup subcommand which determines how 
++ Added the ``--sym`` argument to the bygroup subcommand which determines how 
   asymmetric distances are handled.
    
 
@@ -112,23 +115,23 @@ Version 0.2.2:  July 8, 2015
 CreateGermlines:
 
 + Germline creation now works for IgBLAST output parsed with MakeDb. The 
-  argument `--sf SEQUENCE_VDJ` must be provided to generate germlines from 
+  argument ``--sf SEQUENCE_VDJ`` must be provided to generate germlines from 
   IgBLAST output. The same reference database used for the IgBLAST alignment
-  must be specified with the `-r` flag.
+  must be specified with the ``-r`` flag.
 + Fixed a bug with determination of N1 and N2 region positions.
 
 MakeDb:
 
-+ Combined the `-z` and `-f` flags of the imgt subcommand into a single flag, 
-  `-i`, which autodetects the input type.
++ Combined the ``-z`` and ``-f`` flags of the imgt subcommand into a single flag, 
+  ``-i``, which autodetects the input type.
 + Added requirement that IgBLAST input be generated using the 
-  `-outfmt "7 std qseq"` argument to igblastn.
+  ``-outfmt "7 std qseq"`` argument to igblastn.
 + Modified SEQUENCE_VDJ output from IgBLAST parser to include gaps inserted 
   during alignment.
 + Added correction for IgBLAST alignments where V/D, D/J or V/J segments are
   assigned overlapping positions.
 + Corrected N1_LENGTH and N2_LENGTH calculation from IgBLAST output.
-+ Added the `--scores` flag which adds extra columns containing alignment 
++ Added the ``--scores`` flag which adds extra columns containing alignment 
   scores from IMGT and IgBLAST output.
 
 
@@ -157,8 +160,8 @@ AnalyzeAa:
 
 + Fixed a bug where junctions less than one codon long would lead to a 
   division by zero error.
-+ Added `--failed` flag to create database with records that fail analysis.
-+ Added `--sf` flag to specify sequence field to be analyzed.
++ Added ``--failed`` flag to create database with records that fail analysis.
++ Added ``--sf`` flag to specify sequence field to be analyzed.
 
 CreateGermlines:
 
@@ -170,7 +173,7 @@ DefineClones:
   from Yaari et al, 2013.
 + Changed default model to 'hs1f' and default normalization to length for 
   bygroup subcommand.
-+ Added `--link` argument which allows for specification of single, complete,
++ Added ``--link`` argument which allows for specification of single, complete,
   or average linkage during clonal clustering (default single).
 
 GapRecords:

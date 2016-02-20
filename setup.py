@@ -43,13 +43,8 @@ scripts = ['CreateGermlines.py',
 install_scripts = [os.path.join('bin', s) for s in scripts]
 
 # Load long package description
-readme_file = 'README.md'
-try:
-   from pypandoc import convert
-   long_description = convert(readme_file, 'rst', format='md')
-except ImportError:
-    print('Warning: pypandoc was not found. Long description will not be converted to reST.')
-    long_description = open(readme_file, 'r').read()
+desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
 # TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements

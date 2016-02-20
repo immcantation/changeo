@@ -905,52 +905,21 @@ def getArgParser():
     fields = dedent(
              '''
               output files:
-                db-pass        database of parsed alignment records.
-                db-fail        database with records failing alignment.
+                  db-pass
+                      database of parsed alignment records.
+                  db-fail
+                      database with records failing alignment.
 
               output fields:
-                SEQUENCE_ID
-                SEQUENCE_INPUT
-                FUNCTIONAL
-                IN_FRAME
-                STOP
-                MUTATED_INVARIANT
-                INDELS
-                V_CALL
-                D_CALL
-                J_CALL
-                SEQUENCE_VDJ and/or SEQUENCE_IMGT
-                V_SEQ_START
-                V_SEQ_LENGTH
-                V_GERM_START_VDJ and/or V_GERM_START_IMGT
-                V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT
-                N1_LENGTH
-                D_SEQ_START
-                D_SEQ_LENGTH
-                D_GERM_START
-                D_GERM_LENGTH
-                N2_LENGTH
-                J_SEQ_START
-                J_SEQ_LENGTH
-                J_GERM_START
-                J_GERM_LENGTH
-                JUNCTION_LENGTH
-                JUNCTION
-                V_SCORE
-                V_IDENTITY
-                V_EVALUE
-                V_BTOP
-                J_SCORE
-                J_IDENTITY
-                J_EVALUE
-                J_BTOP
-                FWR1
-                FWR2
-                FWR3
-                FWR4
-                CDR1
-                CDR2
-                CDR3
+                  SEQUENCE_ID, SEQUENCE_INPUT, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT,
+                  INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ and/or SEQUENCE_IMGT,
+                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_VDJ and/or V_GERM_START_IMGT,
+                  V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, N1_LENGTH,
+                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH,
+                  J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
+                  JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
+                  J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1, FWR2, FWR3, FWR4,
+                  CDR1, CDR2, CDR3
               ''')
                 
     # Define ArgumentParser

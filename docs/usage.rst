@@ -1,10 +1,12 @@
-.. _Workflows:
+.. _Usage:
 
-Workflows
+Commandline Usage
 ================================================================================
 
 .. toctree::
    :maxdepth: 2
 
-   workflows/imgt_workflow
-   workflows/igblast_workflow
+   tools/CreateGermlines
+   tools/DefineClones
+   tools/MakeDb
+   tools/ParseDb

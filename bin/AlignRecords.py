@@ -192,20 +192,20 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               gap-pass       database with multiple aligned sequences.
-               gap-fail       database with records failing alignment.
+                 gap-pass
+                     database with multiple aligned sequences.
+                 gap-fail
+                     database with records failing alignment.
 
              required fields:
-               SEQUENCE_ID
-               V_CALL
-               J_CALL
-               <sequence field>
-                              user specified sequence fields to align, which defaults
-                              to alignment of both SEQUENCE_VDJ and GERMLINE_VDJ.
+                 SEQUENCE_ID, V_CALL, J_CALL
+                 <field>
+                     user specified sequence fields to align, which defaults
+                     to alignment of both SEQUENCE_VDJ and GERMLINE_VDJ.
 
 
              output fields:
-               <sequence field>_ALIGN
+                 <field>_ALIGN
              ''')
 
     # Define ArgumentParser

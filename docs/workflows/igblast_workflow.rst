@@ -1,9 +1,8 @@
 IgBLAST Output Processing
-===============================
-
-.. highlight:: bash
+================================================================================
 
 .. code-block:: bash
+    :linenos:
 
 	#!/bin/bash
 	# Super script to run the Change-O clonal assignment pipeline on IgBLAST results

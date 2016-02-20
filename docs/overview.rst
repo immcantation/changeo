@@ -1,5 +1,5 @@
-Introduction
-============
+Overview
+================================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences.
 

@@ -876,31 +876,24 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               sequences      FASTA formatted sequences output from the subcommands fasta
-                              and clip.
-               <field>-<value>
-                              database files partitioned by annotation <field> and <value>.
-               parse-<command>
-                              output of the database modification functions where <command>
-                              is one of the subcommands add, index, drop, delete, rename,
-                              select, sort or update.
+                 sequences
+                     FASTA formatted sequences output from the subcommands fasta and clip.
+                 <field>-<value>
+                     database files partitioned by annotation <field> and <value>.
+                 parse-<command>
+                     output of the database modification functions where <command> is one of
+                     the subcommands add, index, drop, delete, rename, select, sort or update.
 
              required fields:
-               SEQUENCE_ID
+                 SEQUENCE_ID
                  
              optional fields:
-               JUNCTION
-               SEQUENCE_IMGT
-               GERMLINE_IMGT
-               GERMLINE_IMGT_D_MASK
-               GERMLINE_IMGT_V_REGION
-               SEQUENCE_VDJ
-               GERMLINE_VDJ
-               GERMLINE_VDJ_D_MASK
-               GERMLINE_VDJ_V_REGION
+                 JUNCTION, SEQUENCE_IMGT, SEQUENCE_VDJ, GERMLINE_IMGT, GERMLINE_VDJ,
+                 GERMLINE_IMGT_D_MASK, GERMLINE_VDJ_D_MASK,
+                 GERMLINE_IMGT_V_REGION, GERMLINE_VDJ_V_REGION
                 
              output fields:
-               None
+                 None
              ''')
     
     # Define ArgumentParser
