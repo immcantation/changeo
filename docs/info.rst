@@ -23,11 +23,3 @@ License
 
 This work is licensed under the
 `Creative Commons Attribution-NonCommercial 3.0 United States License. <http://creativecommons.org/licenses/by-nc/3.0/us>`__
-
-Related Projects
---------------------------------------------------------------------------------
-
-* `pRESTO <http://bitbucket.org/kleinstein/presto>`__
-* `Alakazam <http://bitbucket.org/kleinstein/alakazam>`__
-* `Shazam <http://bitbucket.org/kleinstein/shazam>`__
-* `TIgGER <http://bitbucket.org/kleinstein/tigger>`__

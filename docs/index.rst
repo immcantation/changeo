@@ -24,16 +24,25 @@
     api
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: About
 
     news
     info
 
-Indices and tables
-==================
+.. toctree::
+    :maxdepth: 1
+    :caption: Related Projects
+
+    pRESTO <http://presto.readthedocs.org>
+    Alakazam <http://kleinstein.bitbucket.org/alakazam>
+    Shazam <http://kleinstein.bitbucket.org/shazam>
+    TIgGER <http://clip.med.yale.edu/tigger>
+
+Indices
+--------------------------------------------------------------------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+
 
