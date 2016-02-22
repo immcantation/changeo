@@ -15,6 +15,7 @@
     :caption: Examples
 
     workflows
+    annotations
 
 .. toctree::
     :maxdepth: 2

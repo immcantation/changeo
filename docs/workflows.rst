@@ -6,5 +6,7 @@ Workflows
 .. toctree::
    :maxdepth: 2
 
-   workflows/imgt_workflow
-   workflows/igblast_workflow
+   workflows/imgt
+   workflows/igblast
+   workflows/cloning
+   workflows/germlines
