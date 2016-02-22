@@ -1,4 +1,4 @@
-Change-O - Repertoire Analysis Toolkit
+Change-O - Repertoire alignment processing and clonal assignment toolkit
 ================================================================================
 
 Change-O is a collection of tools for analyzing immunoglobulin sequences.
