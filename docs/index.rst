@@ -38,7 +38,7 @@
     pRESTO <http://presto.readthedocs.org>
     Alakazam <http://kleinstein.bitbucket.org/alakazam>
     Shazam <http://kleinstein.bitbucket.org/shazam>
-    TIgGER <http://clip.med.yale.edu/tigger>
+    TIgGER <http://kleinstein.bitbucket.org/tigger>
 
 Indices
 --------------------------------------------------------------------------------
