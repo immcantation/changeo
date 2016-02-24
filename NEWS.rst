@@ -1,13 +1,17 @@
 Release Notes
 ================================================================================
 
-Version 0.3.1.999:  February 20, 2016
+Version 0.3.1.999:  February 24, 2016
 -------------------------------------------------------------------------------
 
 MakeDb:
 
 + Updated igblast subcommand to correctly parse records with indels. Now 
   igblast must be run with the argument ``outfmt "7 std qseq sseq btop"``.
++ Changed the names of the FWR and CDR output columns added with 
+  ``--regions`` to ``<region>_IMGT``.
++ Added ``V_BTOP`` and ``J_BTOP`` output when the ``--scores`` flag is
+  specified.
   
 CreateGermlines:
 
