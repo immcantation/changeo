@@ -11,11 +11,12 @@ MakeDb:
 + Changed the names of the FWR and CDR output columns added with 
   ``--regions`` to ``<region>_IMGT``.
 + Added ``V_BTOP`` and ``J_BTOP`` output when the ``--scores`` flag is
-  specified.
+  specified to the igblast subcommand.
   
 CreateGermlines:
 
-+ Fixed a bug with incorrect values in the SEQUENCE field on the log file.
++ Fixed a bug producing incorrect values in the ``SEQUENCE`` field on the 
+  log file.
 
 
 Version 0.3.1:  December 18, 2015

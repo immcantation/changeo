@@ -604,15 +604,11 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                 try:  db_gen['V_IDENTITY'] = float(sm['V-REGION identity %']) / 100.0
                 except (TypeError, ValueError):  db_gen['V_IDENTITY'] = 'None'
 
-                db_gen['V_EVALUE'] = 'None'
-
                 try:  db_gen['J_SCORE'] = float(sm['J-REGION score'])
                 except (TypeError, ValueError):  db_gen['J_SCORE'] = 'None'
 
                 try:  db_gen['J_IDENTITY'] = float(sm['J-REGION identity %']) / 100.0
                 except (TypeError, ValueError):  db_gen['J_IDENTITY'] = 'None'
-
-                db_gen['J_EVALUE'] = 'None'
 
             # FWR and CDR regions
             if region_fields: getRegions(db_gen)
@@ -985,8 +981,9 @@ def getArgParser():
     parser_imgt.add_argument('--scores', action='store_true', dest='score_fields',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the V_SCORE, V_IDENTITY,
-                                  J_SCORE and J_IDENTITY. This also adds V_EVALUE and
-                                  J_EVALUE columns, but they will be empty for IMGT results.''')
+                                  J_SCORE and J_IDENTITY. Note, this will also add
+                                  the columns V_EVALUE, V_BTOP, J_EVALUE and J_BTOP,
+                                  but they will be empty for IMGT output.''')
     parser_imgt.add_argument('--regions', action='store_true', dest='region_fields',
                              help='''Specify if IMGT framework and CDR regions should be
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
