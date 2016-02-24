@@ -70,13 +70,13 @@ class IgRecord:
                 'j_identity': 'J_IDENTITY',
                 'j_evalue': 'J_EVALUE',
                 'j_btop': 'J_BTOP',
-                'fwr1': 'FWR1',
-                'fwr2': 'FWR2',
-                'fwr3': 'FWR3',
-                'fwr4': 'FWR4',
-                'cdr1': 'CDR1',
-                'cdr2': 'CDR2',
-                'cdr3': 'CDR3'}
+                'fwr1': 'FWR1_IMGT',
+                'fwr2': 'FWR2_IMGT',
+                'fwr3': 'FWR3_IMGT',
+                'fwr4': 'FWR4_IMGT',
+                'cdr1': 'CDR1_IMGT',
+                'cdr2': 'CDR2_IMGT',
+                'cdr3': 'CDR3_IMGT'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}

@@ -3,10 +3,6 @@ SEQUENCE_ID	string	Unique sequence identifier
 SEQUENCE_INPUT	string	Input sample nucleotide sequence
 SEQUENCE_VDJ	string	Ungapped sample V(D)J nucleotide sequence
 SEQUENCE_IMGT	string	IMGT-gapped sample V(D)J nucleotide sequence
-GERMLINE_VDJ	string	Ungapped germline V(D)J nucleotide sequence
-GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the N1-D-N2 regions
-GERMLINE_IMGT	string	IMGT-gapped germline V(D)J nucleotide sequence
-GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the N1-D-N2 regions
 FUNCTIONAL	logical	T: sample V(D)J sequence is predicted to be functional
 IN_FRAME	logical	T: sample junction region nucleotide sequence is in-frame
 STOP	logical	T: stop codon is present in sample V(D)J nucleotide sequence
@@ -31,14 +27,31 @@ J_GERM_START	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequen
 J_GERM_LENGTH	integer	Length of the germline J alignment
 JUNCTION_LENGTH	integer	Number of junction nucleotides in SEQUENCE_VDJ
 JUNCTION	string	Ungapped sample junction region nucletide sequence
-PRCONS	string	pRESTO output: list of primers
-CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID group
-DUPCOUNT	integer	pRESTO output: number of duplicate molecules
-CLONE	integer	Numerical clone identifier of sample sequence
-V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
+FWR1_IMGT	string	IMGT-gapped sample FWR1 nucleotide sequence
+FWR2_IMGT	string	IMGT-gapped sample FWR2 nucleotide sequence
+FWR3_IMGT	string	IMGT-gapped sample FWR3 nucleotide sequence
+FWR4_IMGT	string	IMGT-gapped sample FWR4 nucleotide sequence
+CDR1_IMGT	string	IMGT-gapped sample CDR1 nucleotide sequence
+CDR2_IMGT	string	IMGT-gapped sample CDR2 nucleotide sequence
+CDR3_IMGT	string	IMGT-gapped sample CDR3 nucleotide sequence
 V_SCORE	float	Alignment score for the V
 V_IDENTITY	float	Alignment identity for the V
 V_EVALUE	float	E-value for the alignment of the V
+V_BTOP	string	BTOP for the alignment of the V
 J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 J_EVALUE	float	E-value for the alignment of the J
+J_BTOP	string	BTOP for the alignment of the J
+**CreateGermlines Annotations**
+GERMLINE_VDJ	string	Ungapped germline V(D)J nucleotide sequence
+GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the N1-D-N2 regions
+GERMLINE_IMGT	string	IMGT-gapped germline V(D)J nucleotide sequence
+GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the N1-D-N2 regions
+**DefineClones Annotations**
+CLONE	integer	Numerical clone identifier of sample sequence
+**TIgGER Annotations**
+V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
+**pRESTO Annotations**
+PRCONS	string	pRESTO output: list of primers
+CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID group
+DUPCOUNT	integer	pRESTO output: number of duplicate molecules

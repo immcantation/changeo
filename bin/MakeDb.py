@@ -119,30 +119,31 @@ def getRegions(ig_dict):
       ig_dict : Dictionary of parsed alignment output
 
     Returns:
-      dict : Updated with FWR1, FWR2, FWR3, FWR4, CDR1, CDR2, and CDR3 fields
+      dict : Updated with FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
+             CDR1_IMGT, CDR2_IMGT, and CDR3_IMGT fields
     """
     try:
         seq_len = len(ig_dict['SEQUENCE_IMGT'])
-        ig_dict['FWR1'] = ig_dict['SEQUENCE_IMGT'][0:min(78,seq_len)]
+        ig_dict['FWR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][0:min(78,seq_len)]
     except (KeyError, IndexError):
         return ig_dict
 
-    try: ig_dict['CDR1'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    try: ig_dict['CDR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
     except (IndexError): return ig_dict
 
-    try: ig_dict['FWR2'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    try: ig_dict['FWR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
     except (IndexError): return ig_dict
 
-    try: ig_dict['CDR2'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    try: ig_dict['CDR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
     except (IndexError): return ig_dict
 
-    try: ig_dict['FWR3'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    try: ig_dict['FWR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
     except (IndexError): return ig_dict
 
     try:
         cdr3_end = 306 + ig_dict['JUNCTION_LENGTH']
-        ig_dict['CDR3'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
-        ig_dict['FWR4'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
+        ig_dict['CDR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
+        ig_dict['FWR4_IMGT'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
     except (KeyError, IndexError):
         return ig_dict
 
@@ -708,8 +709,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'J_BTOP'])
 
     if region_fields:
-        ordered_fields.extend(['FWR1', 'FWR2', 'FWR3', 'FWR4',
-                               'CDR1', 'CDR2', 'CDR3'])
+        ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
+                               'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
 
     # TODO:  This is not the best approach. should pass in output fields.
@@ -918,8 +919,8 @@ def getArgParser():
                   D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
-                  J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1, FWR2, FWR3, FWR4,
-                  CDR1, CDR2, CDR3
+                  J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
+                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
               ''')
                 
     # Define ArgumentParser
@@ -961,8 +962,9 @@ def getArgParser():
                                      J_BTOP, and J_EVALUE columns.''')
     parser_igblast.add_argument('--regions', action='store_true', dest='region_fields',
                                 help='''Specify if IMGT framework and CDR regions should be
-                                     included in the output. Adds the FWR1, FWR2, FWR3,
-                                     FWR4, CDR1, CDR2, and CDR3 columns.''')
+                                     included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
+                                     FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
+                                     CDR3_IMGT columns.''')
     
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
@@ -987,8 +989,9 @@ def getArgParser():
                                   J_EVALUE columns, but they will be empty for IMGT results.''')
     parser_imgt.add_argument('--regions', action='store_true', dest='region_fields',
                              help='''Specify if IMGT framework and CDR regions should be
-                                  included in the output. Adds the FWR1, FWR2, FWR3,
-                                  FWR4, CDR1, CDR2, and CDR3 columns.''')
+                                  included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
+                                  FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
+                                  CDR3_IMGT columns.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     return parser
