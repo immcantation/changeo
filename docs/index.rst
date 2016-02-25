@@ -19,6 +19,12 @@
 
 .. toctree::
     :maxdepth: 2
+    :caption: Methods
+
+    methods
+
+.. toctree::
+    :maxdepth: 2
     :caption: Usage Documentation
 
     usage
