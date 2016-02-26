@@ -4,9 +4,9 @@ Parsing IMGT output
 Reducing file size for submission to IMGT/HighV-QUEST
 --------------------------------------------------------------------------------
 
-.. todo::
+`Via pRESTO http://presto.readthedocs.org/en/latest/tasks.html#reducing-file-size-for-submission-to-imgt-highv-quest`__
 
-    `Via pRESTO http://presto.readthedocs.org/en/latest/tasks.html#reducing-file-size-for-submission-to-imgt-highv-quest`__
+.. todo::
 
 .. code-block:: bash
     :linenos:
