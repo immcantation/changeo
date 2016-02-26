@@ -1,6 +1,22 @@
 Parsing IMGT output
 ================================================================================
 
+Reducing file size for submission to IMGT/HighV-QUEST
+--------------------------------------------------------------------------------
+
+.. todo::
+
+    `Via pRESTO http://presto.readthedocs.org/en/latest/tasks.html#reducing-file-size-for-submission-to-imgt-highv-quest`__
+
+.. code-block:: bash
+    :linenos:
+
+    CollapseSeq
+    SplitSeq count
+
+Processing the output of IMGT/HighV-QUEST
+--------------------------------------------------------------------------------
+
 .. todo::
 
 .. code-block:: bash
