@@ -21,7 +21,7 @@
     :maxdepth: 2
     :caption: Methods
 
-    methods
+    methods/clustering
 
 .. toctree::
     :maxdepth: 2
