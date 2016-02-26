@@ -18,7 +18,6 @@ Requirements
 -  `pandas 0.15 <http://pandas.pydata.org>`__
 -  `Biopython 1.65 <http://biopython.org>`__
 -  `presto 0.5 <http://clip.med.yale.edu/presto>`__
--  `MUSCLE v3.8 <http://www.drive5.com/muscle>`__
 
 Linux
 --------------------------------------------------------------------------------
