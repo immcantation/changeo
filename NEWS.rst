@@ -4,6 +4,9 @@ Release Notes
 Version 0.3.1.999:  February 24, 2016
 -------------------------------------------------------------------------------
 
+Fixed a bug with installation on Windows due to old file paths lingering in
+changeo.egg-info/SOURCES.txt.
+
 MakeDb:
 
 + Updated igblast subcommand to correctly parse records with indels. Now 
