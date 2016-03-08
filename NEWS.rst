@@ -1,11 +1,13 @@
 Release Notes
 ================================================================================
 
-Version 0.3.1.999:  February 24, 2016
+Version 0.3.2:  March 8, 2016
 -------------------------------------------------------------------------------
 
 Fixed a bug with installation on Windows due to old file paths lingering in
 changeo.egg-info/SOURCES.txt.
+
+Updated license from CC BY-NC-SA 3.0 to CC BY-NC-SA 4.0.
 
 MakeDb:
 
