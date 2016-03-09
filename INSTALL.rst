@@ -1,12 +1,9 @@
 Installation
 ================================================================================
 
-The latest stable release of Change-O may be downloaded from
-`PyPI <https://pypi.python.org/pypi/changeo>`__ or
-`Bitbucket <https://bitbucket.org/kleinstein/changeo/downloads>`__.
 The simplest way to install the latest stable release of Change-O is via pip::
 
-    > pip3 install changeo
+    > pip3 install changeo --user
 
 Requirements
 --------------------------------------------------------------------------------
