@@ -1,4 +1,5 @@
 Column Name	Type	Description
+**MakeDb Annotations**
 SEQUENCE_ID	string	Unique sequence identifier
 SEQUENCE_INPUT	string	Input sample nucleotide sequence
 SEQUENCE_VDJ	string	Ungapped sample V(D)J nucleotide sequence
@@ -13,8 +14,8 @@ D_CALL	string	D allele assignment(s)
 J_CALL	string	J allele assignment(s)
 V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
 V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_INPUT
-V_GERM_START	integer	Position of V_SEQ_START in germline V(D)J nucleotide sequence
-V_GERM_LENGTH	integer	Length of the germline V alignment
+V_GERM_START_IMGT	integer	Position of V_SEQ_START in IMGT numbered germline V(D)J nucleotide sequence
+V_GERM_LENGTH_IMGT	integer	Length of the IMGT numbered germline V alignment
 N1_LENGTH	integer	Number of of nucleotides between sample V and D sequences
 D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
 D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT

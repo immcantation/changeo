@@ -14,8 +14,11 @@
     :maxdepth: 2
     :caption: Examples
 
-    workflows
-    annotations
+    examples/imgt
+    examples/igblast
+    examples/annotations
+    examples/cloning
+    examples/germlines
 
 .. toctree::
     :maxdepth: 2

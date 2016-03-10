@@ -1,0 +1,20 @@
+Tool	Subcommand	Description
+:ref:`MakeDb`		Parses germline alignment results to generate the standard database file
+	imgt	Parses results from IMGT/HighV-QUEST
+	igblast	Parses results from IgBLAST and recreates sequences with IMGT numbering
+:ref:`ParseDb`		Parses tab delimited database files
+	fasta	Creates a fasta file from database records
+	clip	Creates a clip-fasta file from database records, wherein germline sequences precede each clone and are denoted by ">>" headers
+	split	Splits database files by field values
+	add	Adds field and value pairs
+	delete	Deletes specific records
+	drop	Deletes entire fields
+	index	Adds a numeric index field
+	rename	Renames fields
+	select	Selects specific records
+	sort	Sorts records by field values
+	update	Updates field and value pairs
+:ref:`DefineClones`		Groups Ig sequences into B cell clones
+	bygroup	Defines clones as having same V assignment, J assignment, and junction length with specified distance model
+	hclust	Defines clones by specified distance metric on CDR3s and cutting of hierarchical clustering tree
+:ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
