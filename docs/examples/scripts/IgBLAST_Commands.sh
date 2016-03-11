@@ -14,8 +14,7 @@ igblastn \
 -auxiliary_data optional_file/human_gl.aux \
 -domain_system imgt -ig_seqtype Ig -organism human \
 -outfmt '7 std qseq sseq btop' \
--query MS12_atleast-2.fasta \
--out MS12_atleast-2.fmt7
+-query S43_atleast-2.fasta \
+-out S43_atleast-2.fmt7
 
-MakeDb.py igblast -s MS12_atleast-2.fasta -i MS12_atleast-2.fmt7 \
--r Human_IGHV.fasta Human_IGHD.fasta Human_IGHJ.fasta
+MakeDb.py igblast -s S43_atleast-2.fasta -i S43_atleast-2.fmt7 -r Human_IGH[VDJ].fasta

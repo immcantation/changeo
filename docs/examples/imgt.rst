@@ -9,7 +9,7 @@ done in a `pRESTO example workflow <http://presto.readthedocs.org/en/latest/work
 In addition to the sample data fasta file, we include `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__
 results. The files can be downloded from here:
 
-`MakeDb example files <http://clip.med.yale.edu/changeo/rtd/MakeDb_Example.tar.gz>`__
+`Change-O example files <http://clip.med.yale.edu/changeo/rtd/Changeo_Example.tar.gz>`__
 
 Reducing file size for submission to IMGT/HighV-QUEST
 --------------------------------------------------------------------------------
@@ -48,10 +48,8 @@ used as input to HighV-QUEST and either the compressed output file or the
 uncompressed folder with the ``1_Summary``, ``2_IMGT-gapped``, ``3_Nt-sequences``, and
 ``6_Junction`` files (:option:`-i <MakeDb imgt -i>`). In this example, the standard
 information is parsed in addition to the IMGT-defined framework and
-complementarity-determining regions (:option:`--regions <MakeDb imgt --regions>`).
+complementarity-determining regions (:option:`--regions <MakeDb imgt --regions>`)::
 
-.. code-block:: none
-
-   MakeDb.py imgt -s MS12_atleast-2.fasta -i MS12_atleast-2.txz --regions
+   MakeDb.py imgt -s S43_atleast-2.fasta -i S43_atleast-2.txz --regions
 
 

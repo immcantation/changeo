@@ -9,7 +9,7 @@ done in a `pRESTO example workflow <http://presto.readthedocs.org/en/latest/work
 In addition to the sample data fasta file, we include IMGT reference germline
 files for running IgBLAST on the data. The files can be downloded from here:
 
-`MakeDb example files <http://clip.med.yale.edu/changeo/rtd/MakeDb_Example.tar.gz>`__
+`Change-O example files <http://clip.med.yale.edu/changeo/rtd/Changeo_Example.tar.gz>`__
 
 Building the IgBLAST database
 --------------------------------------------------------------------------------
@@ -66,4 +66,4 @@ following the IMGT definition for further analyses:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 20-21
+   :lines: 20
