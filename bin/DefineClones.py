@@ -926,10 +926,13 @@ def getArgParser():
     
     # Distance cloning method
     parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
-                                        help='''Defines clones as having same V assignment,
-                                              J assignment, and junction length with
-                                              specified substitution distance model.''')
+                                           formatter_class=CommonHelpFormatter,
+                                           help='''Defines clones as having same V assignment,
+                                                J assignment, and junction length with
+                                                specified substitution distance model.''',
+                                           description='''Defines clones as having same V assignment,
+                                                       J assignment, and junction length with
+                                                       specified substitution distance model.''')
     parser_bygroup.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_bygroup.add_argument('--mode', action='store', dest='mode', 
@@ -981,14 +984,16 @@ def getArgParser():
     # Hierarchical clustering cloning method
     parser_hclust = subparsers.add_parser('hclust', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Defines clones by specified distance metric on CDR3s and \
-                                              cutting of hierarchical clustering tree')
+                                        help='''Defines clones by specified distance metric on CDR3s and
+                                              cutting of hierarchical clustering tree.''',
+                                        description='''Defines clones by specified distance metric on CDR3s and
+                                              cutting of hierarchical clustering tree.''')
 #     parser_hclust.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
 #                              help='Fields to use for grouping clones (non VDJ)')
     parser_hclust.add_argument('--method', action='store', dest='method', 
                              choices=('chen2010', 'ademokun2011'), default=default_hclust_model, 
-                             help='Specifies which cloning method to use for calculating distance \
-                                   between CDR3s, computing linkage, and cutting clusters')
+                             help='''Specifies which cloning method to use for calculating distance
+                                   between CDR3s, computing linkage, and cutting clusters.''')
     parser_hclust.set_defaults(feed_func=feedQueueClust)
     parser_hclust.set_defaults(work_func=processQueueClust)
     parser_hclust.set_defaults(collect_func=collectQueueClust)

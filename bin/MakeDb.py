@@ -933,10 +933,10 @@ def getArgParser():
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=False)
 
     # IgBlast Aligner
-    parser_igblast = subparsers.add_parser('igblast', help='Process IgBlast output',
-                                           parents=[parser_parent],
-                                           formatter_class=CommonHelpFormatter)
-    parser_igblast.set_defaults(func=parseIgBlast)
+    parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],
+                                           formatter_class=CommonHelpFormatter,
+                                           help='Process IgBLAST output.',
+                                           description='Process IgBLAST output.')
     parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
                                 required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
@@ -961,17 +961,18 @@ def getArgParser():
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                      FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
-    
+    parser_igblast.set_defaults(func=parseIgBlast)
+
     # IMGT aligner
-    parser_imgt = subparsers.add_parser('imgt', help='Process IMGT/HighV-Quest output', 
-                                        parents=[parser_parent], 
-                                        formatter_class=CommonHelpFormatter)
-    imgt_arg_group =  parser_imgt.add_mutually_exclusive_group(required=True)
-    imgt_arg_group.add_argument('-i', nargs='+', action='store', dest='aligner_files',
-                                help='''Either zipped IMGT output files (.zip) or a folder
-                                     containing unzipped IMGT output files (which must
-                                     include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
-                                     and 6_Junction).''')
+    parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Process IMGT/HighV-Quest output.',
+                                        description='Process IMGT/HighV-Quest output.')
+    parser_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+                             help='''Either zipped IMGT output files (.zip or .txz) or a
+                                  folder containing unzipped IMGT output files (which must
+                                  include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
+                                  and 6_Junction).''')
     parser_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
                              required=False,
                              help='List of input FASTA files containing sequences')

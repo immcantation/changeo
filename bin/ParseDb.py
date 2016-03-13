@@ -913,7 +913,8 @@ def getArgParser():
     # Subparser to convert database entries to sequence file
     parser_seq = subparsers.add_parser('fasta', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='Creates a fasta file from database records')
+                                       help='Creates a fasta file from database records.',
+                                       description='Creates a fasta file from database records.')
     parser_seq.add_argument('--if', action='store', dest='id_field', 
                             default=default_id_field,
                             help='The name of the field containing identifiers')
@@ -928,6 +929,9 @@ def getArgParser():
     parser_clip = subparsers.add_parser('clip', parents=[parser_parent], 
                                         formatter_class=CommonHelpFormatter,
                                         help='''Creates a clip-fasta file from database
+                                             records, wherein germline sequences precede
+                                             each clone and are denoted by ">>" headers.''',
+                                        description='''Creates a clip-fasta file from database
                                              records, wherein germline sequences precede
                                              each clone and are denoted by ">>" headers.''')
     parser_clip.add_argument('--if', action='store', dest='id_field', 
@@ -948,7 +952,8 @@ def getArgParser():
     # Subparser to partition files by annotation values
     parser_split = subparsers.add_parser('split', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Splits database files by field values')
+                                         help='Splits database files by field values.',
+                                         description='Splits database files by field values')
     parser_split.add_argument('-f', action='store', dest='field', type=str, required=True,
                               help='Annotation field by which to split database files.')
     parser_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
@@ -960,7 +965,8 @@ def getArgParser():
     # Subparser to add records
     parser_add = subparsers.add_parser('add', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='Adds field and value pairs')
+                                       help='Adds field and value pairs.',
+                                       description='Adds field and value pairs.')
     parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to add.')
     parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
@@ -970,7 +976,8 @@ def getArgParser():
     # Subparser to delete records
     parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
                                           formatter_class=CommonHelpFormatter,
-                                          help='Deletes specific records')
+                                          help='Deletes specific records.',
+                                          description='Deletes specific records.')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for deletion criteria.')
     parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
@@ -988,15 +995,17 @@ def getArgParser():
     # Subparser to drop fields
     parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Deletes entire fields')
+                                        help='Deletes entire fields.',
+                                        description='Deletes specific records.')
     parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
     parser_drop.set_defaults(func=dropDbFile)
 
     # Subparser to index fields
     parser_index = subparsers.add_parser('index', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
-                                        help='Adds a numeric index field')
+                                         formatter_class=CommonHelpFormatter,
+                                         help='Adds a numeric index field.',
+                                         description='Adds a numeric index field.')
     parser_index.add_argument('-f', action='store', dest='field',
                               default=default_index_field,
                               help='The name of the index field to add to the database.')
@@ -1005,7 +1014,8 @@ def getArgParser():
     # Subparser to rename fields
     parser_rename = subparsers.add_parser('rename', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Renames fields')
+                                          help='Renames fields.',
+                                          description='Renames fields.')
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to rename.')
     parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
@@ -1015,7 +1025,8 @@ def getArgParser():
     # Subparser to select records
     parser_select = subparsers.add_parser('select', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Selects specific records')
+                                          help='Selects specific records.',
+                                          description='Selects specific records.')
     parser_select.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for selection criteria.')
     parser_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
@@ -1033,7 +1044,8 @@ def getArgParser():
     # Subparser to sort file by records
     parser_sort = subparsers.add_parser('sort', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Sorts records by field values')
+                                        help='Sorts records by field values.',
+                                        description='Sorts records by field values.')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
                              help='The annotation field by which to sort records.')
     parser_sort.add_argument('--num', action='store_true', dest='numeric', default=False,
@@ -1046,8 +1058,9 @@ def getArgParser():
 
     # Subparser to update records
     parser_update = subparsers.add_parser('update', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
-                                       help='Updates field and value pairs')
+                                          formatter_class=CommonHelpFormatter,
+                                          help='Updates field and value pairs.',
+                                          description='Updates field and value pairs.')
     parser_update.add_argument('-f', action='store', dest='field', required=True,
                                help='The name of the field to update.')
     parser_update.add_argument('-u', nargs='+', action='store', dest='values', required=True,
