@@ -52,7 +52,7 @@ is specified using the ``-outfmt`` parameter:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 11-18
+   :lines: 11-19
 
 
 Processing the output of IgBLAST
