@@ -52,7 +52,7 @@ is specified using the ``-outfmt`` parameter:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 10-18
+   :lines: 11-18
 
 
 Processing the output of IgBLAST
@@ -68,4 +68,4 @@ following the IMGT definition for further analyses:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 20
+   :lines: 21

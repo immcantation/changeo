@@ -1,7 +1,7 @@
 # Imports
 library(alakazam)
-library(ggplot2)
 library(shazam)
+library(ggplot2)
 
 # Read in database file
 db <- readChangeoDb('S43_db-pass_parse-select.tab')
