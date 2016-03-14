@@ -1,10 +1,11 @@
+# V-segment database
 edit_imgt_file.pl IMGT_Human_IGHV.fasta > database/human_igh_v
 makeblastdb -parse_seqids -dbtype nucl -in database/human_igh_v
-
+# D-segment database
 edit_imgt_file.pl IMGT_Human_IGHD.fasta > database/human_igh_d
 makeblastdb -parse_seqids -dbtype nucl -in database/human_igh_d
-
-edit_imgt_file.pl IMGT_Human_IGHJ.fasta > database/human_igh_v
+# J-segment database
+edit_imgt_file.pl IMGT_Human_IGHJ.fasta > database/human_igh_j
 makeblastdb -parse_seqids -dbtype nucl -in database/human_igh_j
 
 igblastn \

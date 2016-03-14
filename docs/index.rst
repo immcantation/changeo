@@ -16,7 +16,7 @@
 
     examples/imgt
     examples/igblast
-    examples/annotations
+    examples/filtering
     examples/cloning
     examples/germlines
 
