@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # V-segment database
 edit_imgt_file.pl IMGT_Human_IGHV.fasta > database/human_igh_v
 makeblastdb -parse_seqids -dbtype nucl -in database/human_igh_v
@@ -18,4 +19,5 @@ igblastn \
     -query S43_atleast-2.fasta \
     -out S43_atleast-2.fmt7
 # Parse IgBLAST output
-MakeDb.py igblast -s S43_atleast-2.fasta -i S43_atleast-2.fmt7 -r Human_IGH[VDJ].fasta
+MakeDb.py igblast -i S43_atleast-2.fmt7 -s S43_atleast-2.fasta -r Human_IGH[VDJ].fasta \
+    --regions --scores

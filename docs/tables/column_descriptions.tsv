@@ -53,6 +53,7 @@ CLONE	integer	Numerical clone identifier of sample sequence
 **TIgGER Annotations**
 V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
 **pRESTO Annotations**
-PRCONS	string	pRESTO output: list of primers
-CONSCOUNT	integer	pRESTO output: number of sequences in consensus molecular ID group
-DUPCOUNT	integer	pRESTO output: number of duplicate molecules
+PRCONS	string	UMI consensus primer
+PRIMER	string	list of primers
+CONSCOUNT	integer	number of reads contributing to the UMI consensus sequence
+DUPCOUNT	integer	copy number of the sequence

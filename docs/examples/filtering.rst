@@ -3,6 +3,12 @@
 Filtering records
 ================================================================================
 
+The :ref:`ParseDb` tool provides a basic set of operations for manipulating
+Change-O database files from the commandline, including removing or updating
+rows and columns.
+
+.. _Filtering-Functional:
+
 Removing non-functional sequences
 --------------------------------------------------------------------------------
 

@@ -45,7 +45,7 @@ or to one of the less likely mutations.
 .. _`HS1F substitution matrix`:
 
 .. csv-table::
-   :file: ../tables/hs1f_substitution.tab
+   :file: ../tables/hs1f_substitution.tsv
    :delim: tab
    :header-rows: 1
    :stub-columns: 1
@@ -91,7 +91,7 @@ or to one of the less likely mutations.
 .. _`M1N substitution matrix`:
 
 .. csv-table::
-   :file: ../tables/m1n_substitution.tab
+   :file: ../tables/m1n_substitution.tsv
    :delim: tab
    :header-rows: 1
    :stub-columns: 1

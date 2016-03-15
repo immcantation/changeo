@@ -1,0 +1,20 @@
+Tool	Subcommand	Description
+:ref:`MakeDb`		Creates standardized databases from germline alignment results
+	imgt	Parses IMGT/HighV-QUEST output
+	igblast	Parses IgBLAST output and adds IMGT-gapping to the V-segment
+:ref:`ParseDb`		Parses tab delimited database files
+	fasta	Creates a fasta file from database records
+	clip	Creates a special BASELINe formatted fasta file from a database
+	split	Splits database files by field values
+	add	Adds fields to the database
+	delete	Deletes specific records
+	drop	Deletes entire fields
+	index	Adds a numeric index field
+	rename	Renames fields
+	select	Selects specific records
+	sort	Sorts records by a field
+	update	Updates field and value pairs
+:ref:`DefineClones`		Groups Ig sequences into clonal clusters
+	bygroup	Assigns clones by V-gene, J-gene and junction distance
+	hclust	Assigns clones by full sequences with gene mismatch penalities
+:ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
