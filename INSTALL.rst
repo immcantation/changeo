@@ -101,8 +101,9 @@ Windows
    under Control Panel -> System and Security -> System -> Advanced
    System Settings -> Environment variables -> System variables -> Path.
 
-7. If you have trouble with the ``.py`` file associations, try opening a
-   command prompt as Administrator and running::
+6. If you have trouble with the ``.py`` file associations, try adding ``.PY``
+   to your ``PATHEXT`` environment variable. Also, opening a
+   command prompt as Administrator and run::
 
     > assoc .py=Python.File
     > ftype Python.File="C:\Python34\python.exe" "%1" %*
