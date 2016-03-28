@@ -11,7 +11,7 @@ We have hosted a small example data set resulting from the
 described in the `pRESTO <http://presto.readthedocs.org>`__ documentation. The files can be
 downloded from here:
 
-`Change-O Example Files <http://clip.med.yale.edu/changeo/rtd/Changeo_Example.tar.gz>`__
+`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__
 
 The following examples use the ``S43_db-pass_parse-select.tab`` database file provided in
 the example bundle, which has already undergone the :ref:`IMGT <IMGT>`/:ref:`IgBLAST <IgBLAST>`

@@ -12,7 +12,7 @@ described in the `pRESTO <http://presto.readthedocs.org>`__ documentation. In ad
 example FASTA files, we have included the standalone `IgBLAST <http://www.ncbi.nlm.nih.gov/projects/igblast/faq.html#standalone>`__
 results. The files can be downloded from here:
 
-`Change-O Example Files <http://clip.med.yale.edu/changeo/rtd/Changeo_Example.tar.gz>`__
+`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__
 
 Building the IgBLAST database
 --------------------------------------------------------------------------------
