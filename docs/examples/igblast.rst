@@ -62,7 +62,7 @@ output format shown below using the ``-outfmt '7 std qseq sseq btop'`` argument:
     `IgBLAST documentation <http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/scripts/projects/igblast/README>`__
     regarding use of the ``IGDATA`` environment variable to control where IgBLAST
     looks for its internal database files. This will allow you run IgBLAST from any location.
-    For a more complex example see `this script <https://bitbucket.org/kleinstein/igtools/src/tip/scripts/run_igblast.sh>`__.
+    For a more complex example see `this script <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/run_igblast.sh>`__.
 
 Processing the output of IgBLAST
 --------------------------------------------------------------------------------
