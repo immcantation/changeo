@@ -568,7 +568,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
                                                        jn["P5'D-nt nb"]] if i)
-            db_gen['D_SEQ_START'] = sum(int(i) for i in [1, v_seq_length,
+            db_gen['D_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'],
+                                                         v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
@@ -580,7 +581,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
-            db_gen['J_SEQ_START'] = sum(int(i) for i in [1, v_seq_length,
+            db_gen['J_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'], 
+                                                         v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
