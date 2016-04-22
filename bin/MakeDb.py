@@ -512,7 +512,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
 
 # TODO:  should be more readable
-def readIMGT(imgt_files, score_fields=False, region_fields=False):
+def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_fields=False):
     """
     Reads IMGT/HighV-Quest output
 
@@ -520,6 +520,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
+    junction_fields = if True add D FRAME junction field
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -614,6 +615,11 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
 
             # FWR and CDR regions
             if region_fields: getRegions(db_gen)
+            
+            # D Frame and junction fields
+            if junction_fields:
+                db_gen['D_FRAME'] = int(jn["D-REGION reading frame"] or 0)
+
         else:
             db_gen['V_CALL'] = 'None'
             db_gen['D_CALL'] = 'None'
@@ -646,7 +652,7 @@ def getIDforIMGT(seq_file):
 
 
 def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
-            score_fields=False, region_fields=False, out_args=default_out_args):
+            score_fields=False, region_fields=False, junction_fields=False, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
@@ -658,6 +664,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
+    junction_fields = if True add D FRAME junction field to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -710,6 +717,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
         ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
                                'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
+    if junction_fields:
+        ordered_fields.extend(['D_FRAME'])
 
     # TODO:  This is not the best approach. should pass in output fields.
     # Initiate passed handle
@@ -835,7 +844,7 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
 
 # TODO:  may be able to merge with parseIgBlast
 def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
-              region_fields=False, out_args=default_out_args):
+              region_fields=False, junction_fields=False, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
@@ -859,6 +868,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     log['NO_PARSE'] = no_parse
     log['SCORE_FIELDS'] = score_fields
     log['REGION_FIELDS'] = region_fields
+    log['JUNCTION_FIELDS'] = junction_fields
     printLog(log)
     
     # Get individual IMGT result files
@@ -883,9 +893,11 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     
     # Create
     imgt_dict = readIMGT(imgt_files, score_fields=score_fields,
-                         region_fields=region_fields)
+                         region_fields=region_fields, 
+                         junction_fields=junction_fields)
     writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict, no_parse=no_parse,
-            score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+            score_fields=score_fields, region_fields=region_fields, junction_fields=junction_fields, 
+            out_args=out_args)
 
     # Delete temp directory
     rmtree(temp_dir)
@@ -918,7 +930,7 @@ def getArgParser():
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
-                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
+                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, D_FRAME
               ''')
                 
     # Define ArgumentParser
@@ -992,6 +1004,9 @@ def getArgParser():
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
+    parser_imgt.add_argument('--junction', action='store_true', dest='junction_fields',
+                             help='''Specify if the  D-REGION reading frame should be
+                                  included in the output, Adds the D_FRAME column.''')    
     parser_imgt.set_defaults(func=parseIMGT)
 
     return parser
