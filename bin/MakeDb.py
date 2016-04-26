@@ -682,10 +682,11 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
                 continue
 
             # find V-REGION germline and sample sequence
-            vgene = v_allele_regex.search(row['V_CALL']).group(0)
-            if (vgene,) in repo_dict:
-                db['V_CALL'] = vgene
-                germ_vseq = repo_dict[(vgene,)]
+            v_call = parseAllele(row['V_CALL'], v_allele_regex, action='list')
+            vkey = (v_call[0],)
+            if vkey in repo_dict:
+                db['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
+                germ_vseq = repo_dict[vkey]
             else:
                 yield IgRecord(db)
                 continue
@@ -699,10 +700,11 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             if not row['D_CALL'] or row['D_CALL'] == 'NO_DGENE_ALIGNMENT':
                 dgene, germ_dseq, sample_dseq = 'NA', '', ''
             else:
-                dgene = d_allele_regex.search(row['D_CALL']).group(0)
-                if (dgene,) in repo_dict:
-                    db['D_CALL'] = dgene
-                    germ_dseq = repo_dict[(dgene,)]
+                d_call = parseAllele(row['D_CALL'], d_allele_regex, action='list')
+                dkey = (d_call[0],)
+                if dkey in repo_dict:
+                    db['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
+                    germ_dseq = repo_dict[dkey]
                 else:
                     yield IgRecord(db)
                     continue
@@ -718,10 +720,11 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
                 yield IgRecord(db)
                 continue
             else:
-                jgene = j_allele_regex.search(row['J_CALL']).group(0)
-                if (jgene,) in repo_dict:
-                    db['J_CALL'] = jgene
-                    germ_jseq = repo_dict[(jgene,)]
+                j_call = parseAllele(row['J_CALL'], j_allele_regex, action='list')
+                jkey = (j_call[0],)
+                if jkey in repo_dict:
+                    db['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
+                    germ_jseq = repo_dict[jkey]
                 else:
                     yield IgRecord(db)
                     continue
@@ -791,7 +794,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             dmask_seq = germ_vseq + 'N'*len(sample_n1seq + germ_dseq + sample_n2seq) + germ_jseq
 
             # extract junction regions
-            end_codon = 'TGGGG' if re.search('IGHJ',jgene) else 'TTC'
+            end_codon = 'TGGGG' if re.search('IGHJ',j_call[0]) else 'TTC'
             junc_end = germ_seq.find(end_codon, len(germ_seq) - len(germ_jseq)) + 3
             db['JUNCTION'] = sample_seq[309:junc_end]
             db['JUNCTION_LENGTH'] = len(sample_seq[309:junc_end])
@@ -931,7 +934,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                 record.functional is None or \
                 not record.seq_vdj or \
                 not record.junction:
-            print('\n', record.v_call, record.j_call, record.functional, record.junction)
+            # print('\n', record.v_call, record.j_call, record.functional, record.junction)
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
