@@ -1,6 +1,20 @@
 Release Notes
 ================================================================================
 
+Version 0.3.3:  April 22, 2016
+-------------------------------------------------------------------------------
+
+Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ, 
+not SEQUENCE_INPUT.
+
+MakeDb:
+
++ Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ 
+  when they should be relative to SEQUENCE_INPUT
++ Added the imgt subcommand ``--junction`` to specify if the D-REGION 
+  reading frame should be included in the output, in the ``D_FRAME`` field.
+
+
 Version 0.3.2:  March 8, 2016
 -------------------------------------------------------------------------------
 

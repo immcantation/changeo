@@ -150,12 +150,12 @@ def getRegions(ig_dict):
     return ig_dict
 
 
-def getSeqforIgBlast(seq_file):
+def getInputSeq(seq_file):
     """
-    Fetch input sequences for IgBlast queries
+    Fetch input sequences for IgBlast or iHMMune-align queries
 
     Arguments:
-    seq_file = a fasta file of sequences input to IgBlast
+    seq_file = a fasta file of sequences input to IgBlast or iHMMune-align
 
     Returns:
     a dictionary of {ID:Seq}
@@ -512,7 +512,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
 
 # TODO:  should be more readable
-def readIMGT(imgt_files, score_fields=False, region_fields=False):
+def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_fields=False):
     """
     Reads IMGT/HighV-Quest output
 
@@ -520,6 +520,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
+    junction_fields = if True add D FRAME junction field
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -568,7 +569,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
                                                        jn["P5'D-nt nb"]] if i)
-            db_gen['D_SEQ_START'] = sum(int(i) for i in [1, v_seq_length,
+            db_gen['D_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'],
+                                                         v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
@@ -580,7 +582,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
-            db_gen['J_SEQ_START'] = sum(int(i) for i in [1, v_seq_length,
+            db_gen['J_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'], 
+                                                         v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
@@ -612,6 +615,11 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
 
             # FWR and CDR regions
             if region_fields: getRegions(db_gen)
+            
+            # D Frame and junction fields
+            if junction_fields:
+                db_gen['D_FRAME'] = int(jn["D-REGION reading frame"] or 0)
+
         else:
             db_gen['V_CALL'] = 'None'
             db_gen['D_CALL'] = 'None'
@@ -620,6 +628,189 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False):
         yield IgRecord(db_gen)
 
     
+# TODO:  should be more readable
+def readIHMM(ihmm_output, seq_dict, repo_dict):
+    """
+    Reads iHMMuneAlign output
+
+    Arguments:
+    ihmm_output = iHMMuneAlign output file
+    seq_dict = a dictionary of {ID:Seq} from input fasta file
+    repo_dict = dictionary of IMGT gapped germline sequences
+
+    Returns:
+    a generator of dictionaries containing alignment data
+    """
+    record_handle = open(ihmm_output, 'rU')
+    csv.register_dialect('semicol', delimiter=';',quotechar='"')
+    record_headers = ['Sequence_name',
+                      'V_CALL',
+                      'D_CALL',
+                      'J_CALL',
+                      'V_Seq',
+                      'N1_Seq',
+                      'D_Seq',
+                      'N2_Seq',
+                      'J_Seq',
+                      'VMut',
+                      'DMut',
+                      'JMut',
+                      'nx_nt_count',
+                      'J_in-frame',
+                      'V_start_pos',
+                      'stp_codon_count',
+                      'IGHD_misid_prob']
+    records = csv.DictReader(record_handle, fieldnames=record_headers, dialect='semicol')
+
+    # loop through records
+    for row in records:
+        # Skip empty lines
+        if row:
+            db = {'SEQUENCE_ID': row['Sequence_name'],
+                  'SEQUENCE_INPUT': seq_dict[row['Sequence_name']]}
+
+            if not row['V_CALL'] or row['V_CALL'].startswith('NA - ') or row['V_CALL'].startswith('State path'):
+                db['FUNCTIONAL'] = 'F'
+                db['V_CALL'] = ''
+                yield IgRecord(db)
+                continue
+
+            if re.search('\[indels\]', row['V_CALL'] + row['D_CALL'] + row['J_CALL']):
+                db['FUNCTIONAL'] = 'False'
+                db['INDELS'] = 'True'
+                yield IgRecord(db)
+                continue
+
+            # find V-REGION germline and sample sequence
+            v_call = parseAllele(row['V_CALL'], v_allele_regex, action='list')
+            vkey = (v_call[0],)
+            if vkey in repo_dict:
+                db['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
+                germ_vseq = repo_dict[vkey]
+            else:
+                yield IgRecord(db)
+                continue
+            sample_vseq = row['V_Seq']
+            # Remove all gap characters to get V length in input seq
+            db['V_SEQ_LENGTH'] = len(row['V_Seq'].replace('.',''))
+            sample_vstart = int(row['V_start_pos'])
+            db['V_SEQ_START'] = sample_vstart
+
+            # find D-REGION germline and sample sequence
+            if not row['D_CALL'] or row['D_CALL'] == 'NO_DGENE_ALIGNMENT':
+                dgene, germ_dseq, sample_dseq = 'NA', '', ''
+            else:
+                d_call = parseAllele(row['D_CALL'], d_allele_regex, action='list')
+                dkey = (d_call[0],)
+                if dkey in repo_dict:
+                    db['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
+                    germ_dseq = repo_dict[dkey]
+                else:
+                    yield IgRecord(db)
+                    continue
+                sample_dseq = row['D_Seq']
+                # Remove trailing gaps to get germline alignment length of D
+                db['D_GERM_LENGTH'] = len(row['D_Seq'].strip('.'))
+
+            # find J-REGION germline and sample sequence
+            if not row['J_CALL'] or row['J_CALL'] == 'NO_JGENE_ALIGNMENT':
+                db['FUNCTIONAL'] = 'F'
+                db['J_CALL'] = ''
+                print('4')
+                yield IgRecord(db)
+                continue
+            else:
+                j_call = parseAllele(row['J_CALL'], j_allele_regex, action='list')
+                jkey = (j_call[0],)
+                if jkey in repo_dict:
+                    db['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
+                    germ_jseq = repo_dict[jkey]
+                else:
+                    yield IgRecord(db)
+                    continue
+                sample_jseq = row['J_Seq']
+                # Remove trailing gaps to get germline alignment length of J
+                db['J_GERM_LENGTH'] = len(row['J_Seq'].strip('.'))
+
+            # find sample N-REGION sequences
+            sample_n1seq = row['N1_Seq']
+            db['N1_LENGTH'] = len(sample_n1seq)
+            sample_n2seq = row['N2_Seq']
+            db['N2_LENGTH'] = len(sample_n2seq)
+
+            # strip trailing periods from sample sequence
+            # insert v-region gaps into sample sequence
+            # strip trailing sequence not present in sample or germline sequence
+            sample_vseq = sample_vseq.rstrip('.')
+            for gap in re.finditer('\.+',germ_vseq):
+                #print gap.span(), gap.group()
+                sample_vseq = sample_vseq[:gap.start()] + gap.group() + sample_vseq[gap.start():]
+            germ_vseq = germ_vseq[:len(sample_vseq)]
+            germ_seq = germ_vseq
+            sample_vseq = sample_vseq[:len(germ_seq)]
+            # Gapped V is length of germline V region
+            db['V_GERM_LENGTH_IMGT'] = len(sample_vseq)
+            sample_seq = sample_vseq
+
+            # insert N1 region into sample sequence and germline
+            sample_seq += sample_n1seq
+            germ_seq += 'N'*len(sample_n1seq)
+
+            # insert D region into sample sequence and germline
+            while True:
+                gap = re.search('\.+',sample_dseq)
+                if not gap: break
+                germ_dseq = germ_dseq[:gap.start()] + germ_dseq[gap.end():]
+                sample_dseq = sample_dseq[:gap.start()] + sample_dseq[gap.end():]
+            sample_seq += sample_dseq
+            # Gap characters (deletions) now removed - D length in input sequence
+            db['D_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
+                                                     db['V_SEQ_LENGTH'],
+                                                     db['N1_LENGTH']] if i)
+            db['D_SEQ_LENGTH'] = len(sample_dseq)
+            germ_seq += germ_dseq
+
+            # insert N2 region into sample sequence and germline
+            sample_seq += sample_n2seq
+            germ_seq += 'N'*len(sample_n2seq)
+
+            # insert J region into sample sequence and germline
+            while True:
+                gap = re.search('\.+',sample_jseq)
+                if not gap: break
+                germ_jseq = germ_jseq[:gap.start()] + germ_jseq[gap.end():]
+                sample_jseq = sample_jseq[:gap.start()] + sample_jseq[gap.end():]
+            sample_seq += sample_jseq
+            # Gap characters (deletions) now removed - J length in input sequence
+            db['J_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
+                                                     db['V_SEQ_LENGTH'],
+                                                     db['N1_LENGTH'],
+                                                     db['D_SEQ_LENGTH'],
+                                                     db['N2_LENGTH']] if i)
+            db['J_SEQ_LENGTH'] = len(sample_jseq)
+            germ_seq += germ_jseq
+
+            # created germline sequences with D-REGION masked
+            dmask_seq = germ_vseq + 'N'*len(sample_n1seq + germ_dseq + sample_n2seq) + germ_jseq
+
+            # extract junction regions
+            end_codon = 'TGGGG' if re.search('IGHJ',j_call[0]) else 'TTC'
+            junc_end = germ_seq.find(end_codon, len(germ_seq) - len(germ_jseq)) + 3
+            db['JUNCTION'] = sample_seq[309:junc_end]
+            db['JUNCTION_LENGTH'] = len(sample_seq[309:junc_end])
+
+            db['SEQUENCE_IMGT'] = sample_seq
+            db['SEQUENCE_VDJ'] = sample_seq.replace('.','')
+            if row['J_in-frame']=='true':
+                db['IN_FRAME'] = 'T'
+                db['FUNCTIONAL'] = 'T'
+            if len(sample_seq) == len(germ_seq):
+                db['GERMLINE_IHMM'] = germ_seq
+                db['GERMLINE_IHMM_D_MASK'] = dmask_seq
+
+            yield IgRecord(db)
+
+
 def getIDforIMGT(seq_file):
     """
     Create a sequence ID translation using IMGT truncation
@@ -644,7 +835,8 @@ def getIDforIMGT(seq_file):
 
 
 def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
-            score_fields=False, region_fields=False, out_args=default_out_args):
+            score_fields=False, region_fields=False, junction_fields=False,
+            ihmm_germ=False, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
@@ -656,6 +848,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
+    junction_fields = if True add D FRAME junction field to output file
+    ihmm_germ = if True add GERMLINE IHMM fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -708,6 +902,11 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
         ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
                                'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
+    if junction_fields:
+        ordered_fields.extend(['D_FRAME'])
+
+    if ihmm_germ:
+        ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
 
     # TODO:  This is not the best approach. should pass in output fields.
     # Initiate passed handle
@@ -735,7 +934,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                 record.functional is None or \
                 not record.seq_vdj or \
                 not record.junction:
-            # print(record.v_call, record.j_call, record.functional, record.junction)
+            # print('\n', record.v_call, record.j_call, record.functional, record.junction)
             fail_count += 1
             if fail_writer is not None: fail_writer.writerow(record.toDict())
             continue
@@ -777,7 +976,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     if fail_handle is not None: fail_handle.close()
 
 
-# TODO:  may be able to merge with parseIMGT
+# TODO:  may be able to merge with other mains
 def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=False,
                  region_fields=False, out_args=default_out_args):
     """
@@ -807,7 +1006,7 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
     printLog(log)
 
     # Get input sequence dictionary
-    seq_dict = getSeqforIgBlast(seq_file)
+    seq_dict = getInputSeq(seq_file)
 
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
@@ -831,9 +1030,9 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
             score_fields=score_fields, region_fields=region_fields, out_args=out_args)
 
 
-# TODO:  may be able to merge with parseIgBlast
+# TODO:  may be able to merge with other mains
 def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
-              region_fields=False, out_args=default_out_args):
+              region_fields=False, junction_fields=False, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
@@ -857,6 +1056,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     log['NO_PARSE'] = no_parse
     log['SCORE_FIELDS'] = score_fields
     log['REGION_FIELDS'] = region_fields
+    log['JUNCTION_FIELDS'] = junction_fields
     printLog(log)
     
     # Get individual IMGT result files
@@ -881,12 +1081,62 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     
     # Create
     imgt_dict = readIMGT(imgt_files, score_fields=score_fields,
-                         region_fields=region_fields)
+                         region_fields=region_fields, 
+                         junction_fields=junction_fields)
     writeDb(imgt_dict, file_prefix, total_count, id_dict=id_dict, no_parse=no_parse,
-            score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+            score_fields=score_fields, region_fields=region_fields, junction_fields=junction_fields, 
+            out_args=out_args)
 
     # Delete temp directory
     rmtree(temp_dir)
+
+
+# TODO:  may be able to merge with other mains
+def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, out_args=default_out_args):
+    """
+    Main for iHMMuneAlign aligned sample sequences
+
+    Arguments:
+    ihmm_output = iHMMuneAlign output file to process
+    seq_file = fasta file input to iHMMuneAlign (from which to get sequence)
+    repo = folder with germline repertoire files
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    None
+    """
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'MakeDB'
+    log['ALIGNER'] = 'iHMMuneAlign'
+    log['ALIGN_RESULTS'] = os.path.basename(ihmm_output)
+    log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['NO_PARSE'] = no_parse
+    printLog(log)
+
+    # Get input sequence dictionary
+    seq_dict = getInputSeq(seq_file)
+
+    # Formalize out_dir and file-prefix
+    if not out_args['out_dir']:
+        out_dir = os.path.split(ihmm_output)[0]
+    else:
+        out_dir = os.path.abspath(out_args['out_dir'])
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.basename(os.path.splitext(ihmm_output)[0])
+    file_prefix = os.path.join(out_dir, file_prefix)
+
+    total_count = countSeqFile(seq_file)
+
+    # Create
+    repo_dict = getRepo(repo)
+    ihmm_dict = readIHMM(ihmm_output, seq_dict, repo_dict)
+    writeDb(ihmm_dict, file_prefix, total_count,
+            no_parse=no_parse, out_args=out_args, ihmm_germ=True)
 
 
 def getArgParser():
@@ -909,14 +1159,15 @@ def getArgParser():
 
               output fields:
                   SEQUENCE_ID, SEQUENCE_INPUT, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT,
-                  INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ and/or SEQUENCE_IMGT,
+                  INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ, SEQUENCE_IMGT,
                   V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_VDJ and/or V_GERM_START_IMGT,
                   V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, N1_LENGTH,
                   D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
-                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
+                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, D_FRAME, GERMLINE_IHMM,
+                  GERMLINE_IHMM_D_MASK
               ''')
                 
     # Define ArgumentParser
@@ -990,7 +1241,30 @@ def getArgParser():
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
+    parser_imgt.add_argument('--junction', action='store_true', dest='junction_fields',
+                             help='''Specify if the  D-REGION reading frame should be
+                                  included in the output, Adds the D_FRAME column.''')    
     parser_imgt.set_defaults(func=parseIMGT)
+
+    # iHMMuneAlign Aligner
+    parser_ihmm = subparsers.add_parser('ihmm', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Process iHMMuneAlign output.',
+                                        description='Process iHMMuneAlign output.')
+    parser_ihmm.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+                             required=True,
+                             help='''iHMMuneAlign output file.''')
+    parser_ihmm.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+                             help='''List of folders and/or fasta files containing
+                                  IMGT-gapped germline sequences corresponding to the
+                                  set of germlines used in the IgBLAST alignment.''')
+    parser_ihmm.add_argument('-s', action='store', nargs='+', dest='seq_files',
+                             required=True,
+                             help='List of input FASTA files containing sequences')
+    parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
+                             help='''Specify if input IDs should not be parsed to add
+                                  new columns to database.''')
+    parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser
     
@@ -1022,5 +1296,10 @@ if __name__ == "__main__":
     elif args.command == 'igblast':
         for i in range(len(args.__dict__['aligner_files'])):
             args_dict['igblast_output'] =  args.__dict__['aligner_files'][i]
+            args_dict['seq_file'] = args.__dict__['seq_files'][i]
+            args.func(**args_dict)
+    elif args.command == 'ihmm':
+        for i in range(len(args.__dict__['aligner_files'])):
+            args_dict['ihmm_output'] =  args.__dict__['aligner_files'][i]
             args_dict['seq_file'] = args.__dict__['seq_files'][i]
             args.func(**args_dict)

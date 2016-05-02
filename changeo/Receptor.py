@@ -76,7 +76,10 @@ class IgRecord:
                 'fwr4': 'FWR4_IMGT',
                 'cdr1': 'CDR1_IMGT',
                 'cdr2': 'CDR2_IMGT',
-                'cdr3': 'CDR3_IMGT'}
+                'cdr3': 'CDR3_IMGT',
+                'd_frame': 'D_FRAME',
+                'germline': 'GERMLINE',
+                'germline_d_mask': 'GERMLINE_D_MASK'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}
@@ -127,7 +130,10 @@ class IgRecord:
                   'fwr4': '_sequence',
                   'cdr1': '_sequence',
                   'cdr2': '_sequence',
-                  'cdr3': '_sequence'}
+                  'cdr3': '_sequence',
+                  'd_frame': '_integer',
+                  'germline': '_sequence',
+                  'germline_d_mask': '_sequence'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}
