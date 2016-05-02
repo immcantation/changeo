@@ -61,7 +61,7 @@ output from these two commands are two files, one containing only heavy chains
 Exporting records to FASTA files
 --------------------------------------------------------------------------------
 
-You may want to use external tools, or tools from `pRESTO <presto.readthedocs.org>`__,
+You may want to use external tools, or tools from `pRESTO <presto.readthedocs.io>`__,
 on your Change-O result files. The :ref:`ParseDb` tool provides two options for
 exporting data from tab-delimited files to FASTA format.
 
@@ -70,7 +70,7 @@ Standard FASTA
 
 The :program:`fasta`
 subcommand allows you to export sequences and annotations to FASTA formatted files in the
-`pRESTO annototation scheme <http://presto.readthedocs.org/en/latest/overview.html#annotation-scheme>`__::
+`pRESTO annototation scheme <http://presto.readthedocs.io/en/latest/overview.html#annotation-scheme>`__::
 
     ParseDb.py fasta -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
 

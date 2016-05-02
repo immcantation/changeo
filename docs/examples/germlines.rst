@@ -7,8 +7,8 @@ Example Data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.org/en/latest/workflows/Jiang2013_Workflow.html>`__
-described in the `pRESTO <http://presto.readthedocs.org>`__ documentation. The files can be
+`Roche 454 example workflow <http://presto.readthedocs.io/en/latest/workflows/Jiang2013_Workflow.html>`__
+described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. The files can be
 downloded from here:
 
 `Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__

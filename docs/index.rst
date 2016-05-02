@@ -44,7 +44,7 @@
     :maxdepth: 1
     :caption: Related Projects
 
-    pRESTO <http://presto.readthedocs.org>
+    pRESTO <http://presto.readthedocs.io>
     Alakazam <http://kleinstein.bitbucket.org/alakazam>
     Shazam <http://kleinstein.bitbucket.org/shazam>
     TIgGER <http://kleinstein.bitbucket.org/tigger>

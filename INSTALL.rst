@@ -14,7 +14,7 @@ Requirements
 -  `SciPy 0.14 <http://scipy.org>`__
 -  `pandas 0.15 <http://pandas.pydata.org>`__
 -  `Biopython 1.65 <http://biopython.org>`__
--  `presto 0.5 <http://presto.readthedocs.org>`__
+-  `presto 0.5 <http://presto.readthedocs.io>`__
 
 Linux
 --------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ Linux
    Biopython according to its
    `instructions <http://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Install `presto 0.5.0 <http://presto.readthedocs.org>`__ or greater.
+2. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
 3. Extract the Change-O bundle and run::
 
@@ -66,7 +66,7 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Install `presto 0.5.0 <http://presto.readthedocs.org>`__ or greater.
+8. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
 9. Extract the Change-O bundle, open a terminal window, change directories
    to the Change-O folder, and run::
@@ -84,7 +84,7 @@ Windows
    `Unofficial Windows binary <http://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Install `presto 0.5.0 <http://presto.readthedocs.org>`__ or greater.
+3. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
 4. Unzip the Change-O bundle, open a Command Prompt, change directories to
    the Change-O folder, and run::
