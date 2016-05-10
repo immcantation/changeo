@@ -401,7 +401,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             start = ins + 1
                         seq_vdj += v_align[14][start:]
 
-                    # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
+                    # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
                     # If D call exists, parse D alignment information
                     if d_call is not None:
                         d_align = hit_df[hit_df[0] == 'D'].iloc[0]
@@ -412,10 +412,10 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         if v_call is not None:
                             n1_len = int(d_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
                             if n1_len < 0:
-                                db_gen['N1_LENGTH'] = 0
+                                db_gen['NP1_LENGTH'] = 0
                                 overlap = abs(n1_len)
                             else:
-                                db_gen['N1_LENGTH'] = n1_len
+                                db_gen['NP1_LENGTH'] = n1_len
                                 n1_start = (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(d_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
@@ -436,7 +436,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                             start = ins + 1
                         seq_vdj += d_align[14][start:]
 
-                    # TODO:  needs to check that the V results are present before trying to determine N1_LENGTH from them.
+                    # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
                     # If J call exists, parse J alignment information
                     if j_call is not None:
                         j_align = hit_df[hit_df[0] == 'J'].iloc[0]
@@ -457,15 +457,15 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         elif v_call is not None:
                             n1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
                             if n1_len < 0:
-                                db_gen['N1_LENGTH'] = 0
+                                db_gen['NP1_LENGTH'] = 0
                                 overlap = abs(n1_len)
                             else:
-                                db_gen['N1_LENGTH'] = n1_len
+                                db_gen['NP1_LENGTH'] = n1_len
                                 n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(j_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
                         else:
-                            db_gen['N1_LENGTH'] = 0
+                            db_gen['NP1_LENGTH'] = 0
 
                         # Query positions
                         db_gen['J_SEQ_START'] = int(j_align[8]) + overlap
@@ -565,7 +565,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             db_gen['V_GERM_START_IMGT'] = 1
             db_gen['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
 
-            db_gen['N1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
+            db_gen['NP1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
                                                        jn["P5'D-nt nb"]] if i)
@@ -736,7 +736,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
 
             # find sample N-REGION sequences
             sample_n1seq = row['N1_Seq']
-            db['N1_LENGTH'] = len(sample_n1seq)
+            db['NP1_LENGTH'] = len(sample_n1seq)
             sample_n2seq = row['N2_Seq']
             db['N2_LENGTH'] = len(sample_n2seq)
 
@@ -768,7 +768,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             # Gap characters (deletions) now removed - D length in input sequence
             db['D_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
                                                      db['V_SEQ_LENGTH'],
-                                                     db['N1_LENGTH']] if i)
+                                                     db['NP1_LENGTH']] if i)
             db['D_SEQ_LENGTH'] = len(sample_dseq)
             germ_seq += germ_dseq
 
@@ -786,7 +786,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             # Gap characters (deletions) now removed - J length in input sequence
             db['J_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
                                                      db['V_SEQ_LENGTH'],
-                                                     db['N1_LENGTH'],
+                                                     db['NP1_LENGTH'],
                                                      db['D_SEQ_LENGTH'],
                                                      db['N2_LENGTH']] if i)
             db['J_SEQ_LENGTH'] = len(sample_jseq)
@@ -877,7 +877,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'V_GERM_LENGTH_VDJ',
                       'V_GERM_START_IMGT',
                       'V_GERM_LENGTH_IMGT',
-                      'N1_LENGTH',
+                      'NP1_LENGTH',
                       'D_SEQ_START',
                       'D_SEQ_LENGTH',
                       'D_GERM_START',
@@ -1163,7 +1163,7 @@ def getArgParser():
                   SEQUENCE_ID, SEQUENCE_INPUT, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT,
                   INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ, SEQUENCE_IMGT,
                   V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_VDJ and/or V_GERM_START_IMGT,
-                  V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, N1_LENGTH,
+                  V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, NP1_LENGTH,
                   D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,

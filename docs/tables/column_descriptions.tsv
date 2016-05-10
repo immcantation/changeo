@@ -1,5 +1,5 @@
 Column Name	Type	Description
-**MakeDb Annotations**
+**MakeDb Annotations**		
 SEQUENCE_ID	string	Unique sequence identifier
 SEQUENCE_INPUT	string	Input sample nucleotide sequence
 SEQUENCE_VDJ	string	Ungapped sample V(D)J nucleotide sequence
@@ -16,7 +16,7 @@ V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
 V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_INPUT
 V_GERM_START_IMGT	integer	Position of V_SEQ_START in IMGT numbered germline V(D)J nucleotide sequence
 V_GERM_LENGTH_IMGT	integer	Length of the IMGT numbered germline V alignment
-N1_LENGTH	integer	Number of of nucleotides between sample V and D sequences
+N1P_LENGTH	integer	Number of of nucleotides between sample V and D sequences
 D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
 D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT
 D_GERM_START	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
@@ -43,16 +43,16 @@ J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 J_EVALUE	float	E-value for the alignment of the J
 J_BTOP	string	BTOP for the alignment of the J
-**CreateGermlines Annotations**
+**CreateGermlines Annotations**		
 GERMLINE_VDJ	string	Ungapped germline V(D)J nucleotide sequence
 GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the N1-D-N2 regions
 GERMLINE_IMGT	string	IMGT-gapped germline V(D)J nucleotide sequence
 GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the N1-D-N2 regions
-**DefineClones Annotations**
+**DefineClones Annotations**		
 CLONE	integer	Numerical clone identifier of sample sequence
-**TIgGER Annotations**
+**TIgGER Annotations**		
 V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
-**pRESTO Annotations**
+**pRESTO Annotations**		
 PRCONS	string	UMI consensus primer
 PRIMER	string	list of primers
 CONSCOUNT	integer	number of reads contributing to the UMI consensus sequence

@@ -135,10 +135,10 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     regions = 'V' * len(germ_vseq)
 
     # Nucleotide additions before D (before J for light chains)
-    try: n1_len = int(align['N1_LENGTH'])
+    try: n1_len = int(align['NP1_LENGTH'])
     except (TypeError, ValueError): n1_len = 0
     if n1_len < 0:
-        result_log['ERROR'] = 'N1_LENGTH is negative'
+        result_log['ERROR'] = 'NP1_LENGTH is negative'
         return result_log, germlines
 
     germ_seq += 'N' * n1_len
