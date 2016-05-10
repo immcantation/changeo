@@ -410,12 +410,12 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         # Determine N-region length and amount of J overlap with V or D alignment
                         overlap = 0
                         if v_call is not None:
-                            n1_len = int(d_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
-                            if n1_len < 0:
+                            np1_len = int(d_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            if np1_len < 0:
                                 db_gen['NP1_LENGTH'] = 0
-                                overlap = abs(n1_len)
+                                overlap = abs(np1_len)
                             else:
-                                db_gen['NP1_LENGTH'] = n1_len
+                                db_gen['NP1_LENGTH'] = np1_len
                                 n1_start = (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(d_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
@@ -455,12 +455,12 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                                 n2_end = int(j_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
                         elif v_call is not None:
-                            n1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
-                            if n1_len < 0:
+                            np1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            if np1_len < 0:
                                 db_gen['NP1_LENGTH'] = 0
-                                overlap = abs(n1_len)
+                                overlap = abs(np1_len)
                             else:
-                                db_gen['NP1_LENGTH'] = n1_len
+                                db_gen['NP1_LENGTH'] = np1_len
                                 n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
                                 n1_end = int(j_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
