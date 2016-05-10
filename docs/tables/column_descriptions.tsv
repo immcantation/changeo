@@ -21,7 +21,7 @@ D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
 D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT
 D_GERM_START	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
 D_GERM_LENGTH	integer	Length of the germline D alignment
-N2_LENGTH	integer	Number of of nucleotides between sample D and J sequences
+N2P_LENGTH	integer	Number of of nucleotides between sample D and J sequences
 J_SEQ_START	integer	Position of first J nucleotide in SEQUENCE_INPUT
 J_SEQ_LENGTH	integer	Number of J nucleotides in SEQUENCE_INPUT
 J_GERM_START	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequence
