@@ -1,37 +1,25 @@
 Release Notes
 ================================================================================
 
-Version 0.3.4:  May 10, 2016
+Version 0.3.2.999:  May 10, 2016
 -------------------------------------------------------------------------------
 
-Renamed the field ``N1_LENGTH`` to ``NP1_LENGTH`` and ``N2_LENGTH``
-to ``NP2_LENGTH``
-
-Parse additional fields from IMGT output with the flag ``--junction`` 
+Renamed the fields ``N1_LENGTH`` to ``NP1_LENGTH`` and ``N2_LENGTH``
+to ``NP2_LENGTH``.
 
 MakeDb:
 
++ Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ
+  when they should be relative to SEQUENCE_INPUT
++ Added the imgt subcommand ``--junction`` to parse additional junction fields,
+  include N/P region lengths the D-REGION reading frame (``D_FRAME``).
 + The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
   adding additional output from IMGT under the ``--junction`` flag. The new
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``
-  
 + The ``--junction`` flag will include the following additional fields in
   the output: ``N1_LENGTH``, ``N2_LENGTH``, ``P3V_LENGTH``, ``P5D_LENGTH``,
   ``P3D_LENGTH``, ``P5J_LENGTH``.
   
-Version 0.3.3:  April 22, 2016
--------------------------------------------------------------------------------
-
-Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ, 
-not SEQUENCE_INPUT.
-
-MakeDb:
-
-+ Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ 
-  when they should be relative to SEQUENCE_INPUT
-+ Added the imgt subcommand ``--junction`` to specify if the D-REGION 
-  reading frame should be included in the output, in the ``D_FRAME`` field.
-
 
 Version 0.3.2:  March 8, 2016
 -------------------------------------------------------------------------------
