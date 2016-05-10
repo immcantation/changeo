@@ -43,6 +43,14 @@ J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 J_EVALUE	float	E-value for the alignment of the J
 J_BTOP	string	BTOP for the alignment of the J
+		
+N1_LENGTH	integer	Number of of nucleotides in N1
+N2_LENGTH	integer	Number of of nucleotides in N2
+P3V_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 3') of the V-REGION
+P5D_LENGTH	integer	Number of palindromic (P) nucleotides added upstream (in 5') of the D-REGION
+P3D_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 3') of the D-REGION
+P5J_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 5') of the J-REGION
+D_FRAME	integer	D-REGION reading frame
 **CreateGermlines Annotations**		
 GERMLINE_VDJ	string	Ungapped germline V(D)J nucleotide sequence
 GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the N1-D-N2 regions
