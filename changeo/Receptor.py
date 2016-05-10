@@ -77,12 +77,13 @@ class IgRecord:
                 'cdr1': 'CDR1_IMGT',
                 'cdr2': 'CDR2_IMGT',
                 'cdr3': 'CDR3_IMGT',
-                'd_frame': 'D_FRAME',
                 'germline': 'GERMLINE',
                 'germline_d_mask': 'GERMLINE_D_MASK',
-                'p3v_length': 'P3V_LENGTH',
                 'n1_length': 'N1_LENGTH',
-                'n2_length': 'N2_LENGTH'}
+                'n2_length': 'N2_LENGTH',
+                'p3v_length': 'P3V_LENGTH',
+                'p5d_length': 'P5D_LENGTH',
+                'd_frame': 'D_FRAME'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}
@@ -134,12 +135,13 @@ class IgRecord:
                   'cdr1': '_sequence',
                   'cdr2': '_sequence',
                   'cdr3': '_sequence',
-                  'd_frame': '_integer',
                   'germline': '_sequence',
                   'germline_d_mask': '_sequence',
-                  'p3v_length': '_integer',
                   'n1_length': '_integer',
-                  'n2_length': '_integer'}
+                  'n2_length': '_integer',
+                  'p3v_length': '_integer',
+                  'p5d_length': '_integer',
+                  'd_frame': '_integer'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}

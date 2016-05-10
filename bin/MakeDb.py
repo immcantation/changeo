@@ -520,7 +520,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
-    junction_fields = if True add D_FRAME, P3V_LENGTH, N1_LENGTH, N2_LENGTH junction field
+    junction_fields = if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH and 
+                        D_FRAME junction fields
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -619,10 +620,11 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             # D Frame and junction fields
             if junction_fields:
                 db_gen['D_FRAME'] = int(jn['D-REGION reading frame'] or 0)
-                db_gen['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
                 db_gen['N1_LENGTH'] = sum(int(i) for i in [jn['N-REGION-nt nb'],
                                                            jn['N1-REGION-nt nb']] if i)
                 db_gen['N2_LENGTH'] = int(jn['N2-REGION-nt nb'] or 0)
+                db_gen['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
+                db_gen['P5D_LENGTH'] = int(jn['P5\'D-nt nb'] or 0)                
 
         else:
             db_gen['V_CALL'] = 'None'
@@ -907,7 +909,9 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
     if junction_fields:
-        ordered_fields.extend(['P3V_LENGTH', 'N1_LENGTH', 'N2_LENGTH','D_FRAME'])
+        ordered_fields.extend(['N1_LENGTH', 'N2_LENGTH', 
+                               'P3V_LENGTH', 'P5D_LENGTH', 
+                               'D_FRAME'])
 
     if ihmm_germ:
         ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
@@ -1170,8 +1174,8 @@ def getArgParser():
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
-                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, D_FRAME, GERMLINE_IHMM,
-                  GERMLINE_IHMM_D_MASK, P3V_LENGTH, N1_LENGTH, N2_LENGTH
+                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, GERMLINE_IHMM,
+                  GERMLINE_IHMM_D_MASK, N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, D_FRAME
               ''')
                 
     # Define ArgumentParser
@@ -1247,8 +1251,9 @@ def getArgParser():
                                   CDR3_IMGT columns.''')
     parser_imgt.add_argument('--junction', action='store_true', dest='junction_fields',
                              help='''Specify if junction fields should be
-                                  included in the output. Adds the columns D_FRAME,
-                                  P3V_LENGTH, N1_LENGTH, N2_LENGTH.''')
+                                  included in the output. Adds the columns 
+                                  N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, 
+                                  D_FRAME.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
