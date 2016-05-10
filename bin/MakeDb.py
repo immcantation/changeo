@@ -445,12 +445,12 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         # Determine N-region length and amount of J overlap with V or D alignment
                         overlap = 0
                         if d_call is not None:
-                            n2_len = int(j_align[8]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
-                            if n2_len < 0:
-                                db_gen['N2_LENGTH'] = 0
-                                overlap = abs(n2_len)
+                            np2_len = int(j_align[8]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
+                            if np2_len < 0:
+                                db_gen['NP2_LENGTH'] = 0
+                                overlap = abs(np2_len)
                             else:
-                                db_gen['N2_LENGTH'] = n2_len
+                                db_gen['NP2_LENGTH'] = np2_len
                                 n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH']-1)
                                 n2_end = int(j_align[8])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
@@ -578,7 +578,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             db_gen['D_SEQ_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
             db_gen['D_GERM_START'] = int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1
             db_gen['D_GERM_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
-            db_gen['N2_LENGTH'] = sum(int(i) for i in [jn["P3'D-nt nb"],
+            db_gen['NP2_LENGTH'] = sum(int(i) for i in [jn["P3'D-nt nb"],
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
@@ -738,7 +738,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             sample_n1seq = row['N1_Seq']
             db['NP1_LENGTH'] = len(sample_n1seq)
             sample_n2seq = row['N2_Seq']
-            db['N2_LENGTH'] = len(sample_n2seq)
+            db['NP2_LENGTH'] = len(sample_n2seq)
 
             # strip trailing periods from sample sequence
             # insert v-region gaps into sample sequence
@@ -788,7 +788,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
                                                      db['V_SEQ_LENGTH'],
                                                      db['NP1_LENGTH'],
                                                      db['D_SEQ_LENGTH'],
-                                                     db['N2_LENGTH']] if i)
+                                                     db['NP2_LENGTH']] if i)
             db['J_SEQ_LENGTH'] = len(sample_jseq)
             germ_seq += germ_jseq
 
@@ -882,7 +882,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'D_SEQ_LENGTH',
                       'D_GERM_START',
                       'D_GERM_LENGTH',
-                      'N2_LENGTH',
+                      'NP2_LENGTH',
                       'J_SEQ_START',
                       'J_SEQ_LENGTH',
                       'J_GERM_START',
@@ -1164,7 +1164,7 @@ def getArgParser():
                   INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ, SEQUENCE_IMGT,
                   V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_VDJ and/or V_GERM_START_IMGT,
                   V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, NP1_LENGTH,
-                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, N2_LENGTH,
+                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, NP2_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,

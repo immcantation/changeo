@@ -150,14 +150,14 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     #print 'VD>', germ_seq, '\nVD>', regions
 
     # Nucleotide additions after D (heavy chains only)
-    try: n2_len = int(align['N2_LENGTH'])
-    except (TypeError, ValueError): n2_len = 0
-    if n2_len < 0:
-        result_log['ERROR'] = 'N2_LENGTH is negative'
+    try: np2_len = int(align['NP2_LENGTH'])
+    except (TypeError, ValueError): np2_len = 0
+    if np2_len < 0:
+        result_log['ERROR'] = 'NP2_LENGTH is negative'
         return result_log, germlines
 
-    germ_seq += 'N' * n2_len
-    regions += 'N' * n2_len
+    germ_seq += 'N' * np2_len
+    regions += 'N' * np2_len
 
     # Add J-region
     germ_seq += germ_jseq
