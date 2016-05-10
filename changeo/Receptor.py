@@ -79,7 +79,8 @@ class IgRecord:
                 'cdr3': 'CDR3_IMGT',
                 'd_frame': 'D_FRAME',
                 'germline': 'GERMLINE',
-                'germline_d_mask': 'GERMLINE_D_MASK'}
+                'germline_d_mask': 'GERMLINE_D_MASK',
+                'p3v_length': 'P3V_LENGTH'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}
@@ -133,7 +134,8 @@ class IgRecord:
                   'cdr3': '_sequence',
                   'd_frame': '_integer',
                   'germline': '_sequence',
-                  'germline_d_mask': '_sequence'}
+                  'germline_d_mask': '_sequence',
+                  'p3v_length': '_integer'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
     _logical_deparse = {False:'F', True:'T', None:'None'}

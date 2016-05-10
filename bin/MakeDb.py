@@ -520,7 +520,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
     imgt_files = IMGT/HighV-Quest output files 1, 2, 3, and 6
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
-    junction_fields = if True add D FRAME junction field
+    junction_fields = if True add D_FRAME and P3V_LENGTH junction field
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -618,7 +618,9 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             
             # D Frame and junction fields
             if junction_fields:
-                db_gen['D_FRAME'] = int(jn["D-REGION reading frame"] or 0)
+                db_gen['D_FRAME'] = int(jn['D-REGION reading frame'] or 0)
+                db_gen['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
+
 
         else:
             db_gen['V_CALL'] = 'None'
@@ -903,7 +905,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
     if junction_fields:
-        ordered_fields.extend(['D_FRAME'])
+        ordered_fields.extend(['P3V_LENGTH', 'D_FRAME'])
 
     if ihmm_germ:
         ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
@@ -1167,7 +1169,7 @@ def getArgParser():
                   JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
                   FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, D_FRAME, GERMLINE_IHMM,
-                  GERMLINE_IHMM_D_MASK
+                  GERMLINE_IHMM_D_MASK, P3V_LENGTH
               ''')
                 
     # Define ArgumentParser
@@ -1242,8 +1244,9 @@ def getArgParser():
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
     parser_imgt.add_argument('--junction', action='store_true', dest='junction_fields',
-                             help='''Specify if the  D-REGION reading frame should be
-                                  included in the output, Adds the D_FRAME column.''')    
+                             help='''Specify if junction fields should be
+                                  included in the output. Adds the columns D_FRAME and
+                                  P3V_LENGTH.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
