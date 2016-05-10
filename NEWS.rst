@@ -9,8 +9,8 @@ to ``NP2_LENGTH``.
 
 MakeDb:
 
-+ Fixed a bug producing D_SEQ_START and J_SEQ_START relative to SEQUENCE_VDJ
-  when they should be relative to SEQUENCE_INPUT
++ Fixed a bug producing ``D_SEQ_START`` and ``J_SEQ_START`` relative to
+  ``SEQUENCE_VDJ`` when they should be relative to ``SEQUENCE_INPUT``.
 + Added the argument ``--junction`` to the imgt subcommand to parse additional
   junction information fields, including N/P region lengths and the D-segment
   reading frame. This provides the following additional output fields:
@@ -18,7 +18,7 @@ MakeDb:
   ``P3D_LENGTH``, ``P5J_LENGTH``.
 + The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
   adding additional output from IMGT under the ``--junction`` flag. The new
-  names are ``NP1_LENGTH`` and ``NP2_LENGTH``
+  names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
 
 
 Version 0.3.2:  March 8, 2016
