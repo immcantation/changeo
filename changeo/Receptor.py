@@ -84,6 +84,7 @@ class IgRecord:
                 'p3v_length': 'P3V_LENGTH',
                 'p5d_length': 'P5D_LENGTH',
                 'p3d_length': 'P3D_LENGTH',
+                'p5j_length': 'P5J_LENGTH',
                 'd_frame': 'D_FRAME'}
 
     # Mapping of column names to member variables
@@ -143,6 +144,7 @@ class IgRecord:
                   'p3v_length': '_integer',
                   'p5d_length': '_integer',
                   'p3d_length': '_integer',
+                  'p5j_length': '_integer',
                   'd_frame': '_integer'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}

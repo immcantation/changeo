@@ -521,7 +521,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
     junction_fields = if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
-                        P3D_LENGTH and D_FRAME junction fields
+                        P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields
     
     Returns: 
     a generator of dictionaries containing alignment data
@@ -626,6 +626,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
                 db_gen['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
                 db_gen['P5D_LENGTH'] = int(jn['P5\'D-nt nb'] or 0)    
                 db_gen['P3D_LENGTH'] = int(jn['P3\'D-nt nb'] or 0)  
+                db_gen['P5J_LENGTH'] = int(jn['P5\'J-nt nb'] or 0)  
 
         else:
             db_gen['V_CALL'] = 'None'
@@ -911,7 +912,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
 
     if junction_fields:
         ordered_fields.extend(['N1_LENGTH', 'N2_LENGTH', 
-                               'P3V_LENGTH', 'P5D_LENGTH', 'P3D_LENGTH',
+                               'P3V_LENGTH', 'P5D_LENGTH', 'P3D_LENGTH', 'P5J_LENGTH',
                                'D_FRAME'])
 
     if ihmm_germ:
@@ -1177,7 +1178,7 @@ def getArgParser():
                   J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
                   FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, GERMLINE_IHMM,
                   GERMLINE_IHMM_D_MASK, N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
-                  D_FRAME
+                  P5J_LENGTH, D_FRAME
               ''')
                 
     # Define ArgumentParser
@@ -1255,7 +1256,7 @@ def getArgParser():
                              help='''Specify if junction fields should be
                                   included in the output. Adds the columns 
                                   N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
-                                  D_FRAME.''')
+                                  P5J_LENGTH, D_FRAME.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
