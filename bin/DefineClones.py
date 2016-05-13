@@ -10,6 +10,7 @@ from changeo import __version__, __date__
 import os
 import re
 import sys
+import csv
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -30,6 +31,9 @@ from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
                              calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
+
+## Set maximum field size for csv.reader
+csv.field_size_limit(sys.maxsize)
 
 # Defaults
 default_translate = False

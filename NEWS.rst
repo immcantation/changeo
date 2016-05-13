@@ -4,8 +4,8 @@ Release Notes
 Version 0.3.2.999:  May 13, 2016
 -------------------------------------------------------------------------------
 
-Increased csv.field_size_limit in IO.py and ParseDb.py to be able to parse db
-files with larger number of UMIs in one field.
+Increased csv.field_size_limit in IO.py, ParseDb.py and DefineClones.py 
+to be able to parse db files with larger number of UMIs in one field.
 
 Version 0.3.2.999:  May 10, 2016
 -------------------------------------------------------------------------------
