@@ -7,6 +7,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
+import sys
 import csv
 import os
 import re
@@ -26,6 +27,9 @@ from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
 from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile
+
+# Set maximum field size for csv.reader
+csv.field_size_limit(sys.maxsize)
 
 # Defaults
 default_id_field = 'SEQUENCE_ID'

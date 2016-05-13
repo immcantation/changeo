@@ -15,6 +15,9 @@ from Bio import SeqIO
 from changeo.Receptor import IgRecord, parseAllele, allele_regex
 from presto.IO import getFileType
 
+## Set maximum field size for csv.reader
+csv.field_size_limit(sys.maxsize)
+
 
 def getRepo(repo):
     """
