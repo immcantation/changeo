@@ -133,8 +133,9 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     # Assemble pieces starting with V-region
     germ_seq = germ_vseq
     regions = 'V' * len(germ_vseq)
+    regions_pn = 'V' * len(germ_vseq)
 
-    # Nucleotide additions before D (before J for light chains)
+    # NP nucleotide additions before D (before J for light chains)
     try: np1_len = int(align['NP1_LENGTH'])
     except (TypeError, ValueError): np1_len = 0
     if np1_len < 0:
@@ -143,13 +144,42 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
 
     germ_seq += 'N' * np1_len
     regions += 'N' * np1_len
+    
+    # P nucleotide additions after V
+    try: p3v_len = int(align['P3V_LENGTH'])
+    except (TypeError, ValueError): p3v_len = 0
+    if p3v_len < 0:
+        result_log['ERROR'] = 'P3V_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'P' * p3v_len  
+    
+    # N1 nucleotide additions
+    try: n1_len = int(align['N1_LENGTH'])
+    except (TypeError, ValueError): n1_len = 0
+    if n1_len < 0:
+        result_log['ERROR'] = 'N1_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'N' * n1_len    
+
+    # P nucleotide additions before D
+    try: p5d_len = int(align['P5D_LENGTH'])
+    except (TypeError, ValueError): p5d_len = 0
+    if p5d_len < 0:
+        result_log['ERROR'] = 'P5D_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'P' * p5d_len
 
     # Add D-region
     germ_seq += germ_dseq
     regions += 'D' * len(germ_dseq)
+    
+    regions_pn += 'D' * len(germ_dseq)
     #print 'VD>', germ_seq, '\nVD>', regions
 
-    # Nucleotide additions after D (heavy chains only)
+    # NP nucleotide additions after D (heavy chains only)
     try: np2_len = int(align['NP2_LENGTH'])
     except (TypeError, ValueError): np2_len = 0
     if np2_len < 0:
@@ -159,13 +189,44 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     germ_seq += 'N' * np2_len
     regions += 'N' * np2_len
 
+    # P nucleotide additions after D
+    try: p3d_len = int(align['P3D_LENGTH'])
+    except (TypeError, ValueError): p3d_len = 0
+    if p3d_len < 0:
+        result_log['ERROR'] = 'P3D_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'P' * p3d_len  
+    
+    # N2 nucleotide additions
+    try: n2_len = int(align['N2_LENGTH'])
+    except (TypeError, ValueError): n2_len = 0
+    if n2_len < 0:
+        result_log['ERROR'] = 'N2_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'N' * n2_len    
+
+    # P nucleotide additions before J
+    try: p5j_len = int(align['P5J_LENGTH'])
+    except (TypeError, ValueError): p5j_len = 0
+    if p5j_len < 0:
+        result_log['ERROR'] = 'P5J_LENGTH is negative'
+        return result_log, germlines
+
+    regions_pn += 'P' * p5j_len
+    
     # Add J-region
     germ_seq += germ_jseq
     regions += 'J' * len(germ_jseq)
 
+    regions_pn += 'J' * len(germ_jseq)
+    
     # Define return germlines
     germlines['full'] = germ_seq
     germlines['regions'] = regions
+    germlines['regions_pn'] = regions_pn
+    
     if 'dmask' in germ_types:
         germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
                              'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
@@ -231,6 +292,8 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
     if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
+    
+    add_fields += ['GERMLINE_REGIONS_PN']
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file, 'germ-pass',
@@ -264,6 +327,8 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
         if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
         if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
+        
+        row['GERMLINE_REGIONS_PN'] = germlines['regions_pn']
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
@@ -273,6 +338,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
             result_log['SEQUENCE'] = row[seq_field]
             result_log['GERMLINE'] = germlines['full']
             result_log['REGIONS'] = germlines['regions']
+            result_log['REGIONS_PN'] = germlines['regions_pn']
             
             pass_count += 1
             pass_writer.writerow(row)
