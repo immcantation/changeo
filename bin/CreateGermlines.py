@@ -43,7 +43,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     dictionary of germline_type: germline_sequence
     """
     j_field = 'J_CALL'
-    germlines = {'full': '', 'dmask': '', 'vonly': ''}
+    germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
     result_log = OrderedDict()
     result_log['ID'] = align['SEQUENCE_ID']
 
@@ -285,7 +285,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     return result_log, germlines
 
 
-def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, regions, out_args=default_out_args):
+def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
     """
     Write germline sequences to tab-delimited database file
 
@@ -296,7 +296,6 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, regions,
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
     seq_field = field in which to look for sequence
-    regions = include the column REGIONS in the output db file (true or false)
     out_args = arguments for output preferences
 
     Returns:
@@ -310,7 +309,6 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, regions,
     log['CLONED'] = 'False'
     log['V_FIELD'] = v_field
     log['SEQ_FIELD'] = seq_field
-    log['REGIONS'] = regions
     printLog(log)
 
     # Get repertoire and open Db reader
@@ -332,8 +330,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, regions,
     if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
     if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
-
-    if regions: add_fields += ['REGIONS']
+    if 'regions' in germ_types: add_fields += ['REGIONS']
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file, 'germ-pass',
@@ -367,6 +364,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, regions,
         if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
         if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
         if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
+        if 'regions' in germ_types: row['REGIONS'] = germlines['regions']
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
@@ -476,6 +474,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
             if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
             if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
+            if 'regions' in germ_types: val['REGIONS'] = germlines['regions']
 
             result_log['SEQUENCE'] = cons[seq_field]
             result_log['GERMLINE'] = germlines['full']
@@ -492,7 +491,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
     return result_log
 
 
-def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, regions, out_args=default_out_args):
+def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
     """
     Assemble one germline sequence for each clone in a tab-delimited database file
 
@@ -503,7 +502,6 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, regions
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
     seq_field = field in which to look for sequence
-    regions = include the column REGIONS in the output db file (true or false)
     out_args = arguments for output preferences
 
     Returns:
@@ -517,7 +515,6 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, regions
     log['CLONED'] = 'True'
     log['V_FIELD'] = v_field
     log['SEQ_FIELD'] = seq_field
-    log['REGIONS'] = regions
     printLog(log)
 
     # Get repertoire and open Db reader
@@ -539,8 +536,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, regions
     if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
     if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
-
-    if regions: add_fields += ['REGIONS']
+    if 'regions' in germ_types: add_fields += ['REGIONS']
 
     # Create output file handle and Db writer
     writers = {}
@@ -654,7 +650,7 @@ def getArgParser():
     parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                         help='List of folders and/or fasta files with germline sequences.')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
-                        nargs='+', choices=('full', 'dmask', 'vonly'),
+                        nargs='+', choices=('full', 'dmask', 'vonly', 'regions'),
                         help='Specify type(s) of germlines to include full germline, \
                               germline with D-region masked, or germline for V region only.')
     parser.add_argument('--cloned', action='store_true', dest='cloned',
@@ -664,8 +660,6 @@ def getArgParser():
                         help='Specify field to use for germline V call')
     parser.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
                         help='Specify field to use for sequence')
-    parser.add_argument('--regions', action='store_true', dest='regions',
-                        help='Specify to include the field REGIONS in the output file')
 
     return parser
 
