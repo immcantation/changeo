@@ -1,5 +1,5 @@
 Column Name	Type	Description
-**MakeDb Annotations**		
+**MakeDb - Standard Annotations**
 SEQUENCE_ID	string	Unique sequence identifier
 SEQUENCE_INPUT	string	Input sample nucleotide sequence
 SEQUENCE_VDJ	string	Ungapped sample V(D)J nucleotide sequence
@@ -14,20 +14,21 @@ D_CALL	string	D allele assignment(s)
 J_CALL	string	J allele assignment(s)
 V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
 V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_INPUT
-V_GERM_START_IMGT	integer	Position of V_SEQ_START in IMGT numbered germline V(D)J nucleotide sequence
+V_GERM_START_IMGT	integer	Position of V_SEQ_START in IMGT numbered germline V(D)J sequence
 V_GERM_LENGTH_IMGT	integer	Length of the IMGT numbered germline V alignment
-N1P_LENGTH	integer	Number of of nucleotides between sample V and D sequences
+NP1_LENGTH	integer	Number of of nucleotides between sample V and D sequences
 D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
 D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT
 D_GERM_START	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
 D_GERM_LENGTH	integer	Length of the germline D alignment
-N2P_LENGTH	integer	Number of of nucleotides between sample D and J sequences
+NP2_LENGTH	integer	Number of of nucleotides between sample D and J sequences
 J_SEQ_START	integer	Position of first J nucleotide in SEQUENCE_INPUT
 J_SEQ_LENGTH	integer	Number of J nucleotides in SEQUENCE_INPUT
 J_GERM_START	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequence
 J_GERM_LENGTH	integer	Length of the germline J alignment
 JUNCTION_LENGTH	integer	Number of junction nucleotides in SEQUENCE_VDJ
 JUNCTION	string	Ungapped sample junction region nucletide sequence
+**MakeDb - Optional Region Annotations**
 FWR1_IMGT	string	IMGT-gapped sample FWR1 nucleotide sequence
 FWR2_IMGT	string	IMGT-gapped sample FWR2 nucleotide sequence
 FWR3_IMGT	string	IMGT-gapped sample FWR3 nucleotide sequence
@@ -35,6 +36,7 @@ FWR4_IMGT	string	IMGT-gapped sample FWR4 nucleotide sequence
 CDR1_IMGT	string	IMGT-gapped sample CDR1 nucleotide sequence
 CDR2_IMGT	string	IMGT-gapped sample CDR2 nucleotide sequence
 CDR3_IMGT	string	IMGT-gapped sample CDR3 nucleotide sequence
+**MakeDb - Optional Score Annotations**
 V_SCORE	float	Alignment score for the V
 V_IDENTITY	float	Alignment identity for the V
 V_EVALUE	float	E-value for the alignment of the V
@@ -43,19 +45,19 @@ J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 J_EVALUE	float	E-value for the alignment of the J
 J_BTOP	string	BTOP for the alignment of the J
-		
-N1_LENGTH	integer	Number of of nucleotides in N1
-N2_LENGTH	integer	Number of of nucleotides in N2
-P3V_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 3') of the V-REGION
-P5D_LENGTH	integer	Number of palindromic (P) nucleotides added upstream (in 5') of the D-REGION
-P3D_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 3') of the D-REGION
-P5J_LENGTH	integer	Number of palindromic (P) nucleotides added downstream (in 5') of the J-REGION
+**MakeDb - IMGT Specific Annotations**
+N1_LENGTH	integer	N nucleotides 5' of the D-segment
+N2_LENGTH	integer	Nucleotides 3' of the D-segment
+P3V_LENGTH	integer	Palindromic nucleotides 3' of the V-segment
+P5D_LENGTH	integer	Palindromic nucleotides 5' of the D-segment
+P3D_LENGTH	integer	Palindromic nucleotides 3' of the D-segment
+P5J_LENGTH	integer	Palindromic nucleotides 5' of the J-segment
 D_FRAME	integer	D-REGION reading frame
 **CreateGermlines Annotations**		
 GERMLINE_VDJ	string	Ungapped germline V(D)J nucleotide sequence
-GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the N1-D-N2 regions
+GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions
 GERMLINE_IMGT	string	IMGT-gapped germline V(D)J nucleotide sequence
-GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the N1-D-N2 regions
+GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the NP1-D-NP2 regions
 **DefineClones Annotations**		
 CLONE	integer	Numerical clone identifier of sample sequence
 **TIgGER Annotations**		
