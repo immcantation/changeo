@@ -1,11 +1,11 @@
 Release Notes
 ================================================================================
 
-Version 0.3.2.999:  May 13, 2016
+Version 0.3.2.999:  May 21, 2016
 -------------------------------------------------------------------------------
 
-Increased csv.field_size_limit in IO.py, ParseDb.py and DefineClones.py 
-to be able to parse db files with larger number of UMIs in one field.
+Increased `csv.field_size_limit` in presto.IO, ParseDb and DefineClones
+to be able to handle files with larger number of UMIs in one field.
 
 Renamed the fields ``N1_LENGTH`` to ``NP1_LENGTH`` and ``N2_LENGTH``
 to ``NP2_LENGTH``.
@@ -22,6 +22,18 @@ MakeDb:
 + The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
   adding additional output from IMGT under the ``--junction`` flag. The new
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
+
+CreateGermlines:
+
++ Added differentiation of the N and P regions the the ``REGION`` log field
+  if the N/P region info is present in the input file (eg, from the
+  ``--junction`` argument to MakeDb-imgt). If the additional N/P region
+  columns are not present, then both N and P regions will be denoted by N,
+  as in previous versions.
++ Added the option 'regions' to the ``-g`` argument to create add the
+  ``GERMLINE_REGIONS`` field to the output which represents the germline
+  positions as V, D, J, N and P characters. This is equivalent to the
+  ``REGION`` log entry.
 
 
 Version 0.3.2:  March 8, 2016
