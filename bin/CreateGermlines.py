@@ -330,7 +330,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
     if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
-    if 'regions' in germ_types: add_fields += ['REGIONS']
+    if 'regions' in germ_types: add_fields += ['GERMLINE_REGIONS']
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file, 'germ-pass',
@@ -364,7 +364,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
         if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
         if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
-        if 'regions' in germ_types: row['REGIONS'] = germlines['regions']
+        if 'regions' in germ_types: row['GERMLINE_REGIONS'] = germlines['regions']
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
@@ -474,7 +474,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
             if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
             if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
-            if 'regions' in germ_types: val['REGIONS'] = germlines['regions']
+            if 'regions' in germ_types: val['GERMLINE_REGIONS'] = germlines['regions']
 
             result_log['SEQUENCE'] = cons[seq_field]
             result_log['GERMLINE'] = germlines['full']
@@ -536,7 +536,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
     if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
-    if 'regions' in germ_types: add_fields += ['REGIONS']
+    if 'regions' in germ_types: add_fields += ['GERMLINE_REGIONS']
 
     # Create output file handle and Db writer
     writers = {}
@@ -634,7 +634,7 @@ def getArgParser():
              output fields:
                  GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
                  GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
-                 REGIONS
+                 GERMLINE_REGIONS
               ''')
 
     # Parent parser
