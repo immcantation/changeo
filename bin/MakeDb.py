@@ -526,6 +526,18 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
     Returns: 
     a generator of dictionaries containing alignment data
     """
+    # Functionality parser
+    def _functional(x):
+        if x.startswith('productive'):  return 'T'
+        elif x.startswith('unproductive'):  return 'F'
+        else:  return None
+
+    # junction frame parser
+    def _inframe(x):
+        if x == 'in-frame':  return 'T'
+        elif x == 'out-of-frame':  return 'F'
+        else:  return None
+
     imgt_iters = [csv.DictReader(open(f, 'rU'), delimiter='\t') for f in imgt_files]
     # Create a dictionary for each sequence alignment and yield its generator
     for sm, gp, nt, jn in zip(*imgt_iters):
@@ -540,32 +552,35 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
                   'SEQUENCE_INPUT': sm['Sequence']}
 
         if 'No results' not in sm['Functionality']:
-            db_gen['FUNCTIONAL'] = ['?','T','F'][('productive' in sm['Functionality']) +
-                                                 ('unprod' in sm['Functionality'])]
-            db_gen['IN_FRAME'] = ['?','T','F'][('in-frame' in sm['JUNCTION frame']) +
-                                               ('out-of-frame' in sm['JUNCTION frame'])],
-            db_gen['STOP'] = ['F','?','T'][('stop codon' in sm['Functionality comment']) +
-                                           ('unprod' in sm['Functionality'])]
-            db_gen['MUTATED_INVARIANT'] = ['F','?','T'][(any(('missing' in sm['Functionality comment'],
-                                                         'missing' in sm['V-REGION potential ins/del']))) +
-                                                         ('unprod' in sm['Functionality'])]
-            db_gen['INDELS'] = ['F','T'][any((sm['V-REGION potential ins/del'],
-                                              sm['V-REGION insertions'],
-                                              sm['V-REGION deletions']))]
+            # Functionality
+            db_gen['FUNCTIONAL'] = _functional(sm['Functionality'])
+            db_gen['IN_FRAME'] = _inframe(sm['JUNCTION frame'])
+            db_gen['STOP'] = 'T' if 'stop codon' in sm['Functionality comment'] else 'F'
+            db_gen['MUTATED_INVARIANT'] = 'T' if any(('missing' in sm['Functionality comment'],
+                                                      'missing' in sm['V-REGION potential ins/del'])) else 'F'
+            db_gen['INDELS'] = 'T' if any((sm['V-REGION potential ins/del'],
+                                           sm['V-REGION insertions'],
+                                           sm['V-REGION deletions'])) else 'F'
 
+            # Sequences
             db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
             db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
+            db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
+            db_gen['JUNCTION'] = jn['JUNCTION']
 
+            # Gene calls
             db_gen['V_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['V-GENE and allele']))
             db_gen['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
             db_gen['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
 
+            # V-segment alignment positions
             v_seq_length = len(nt['V-REGION']) if nt['V-REGION'] else 0
             db_gen['V_SEQ_START'] = nt['V-REGION start']
             db_gen['V_SEQ_LENGTH'] = v_seq_length
             db_gen['V_GERM_START_IMGT'] = 1
             db_gen['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
 
+            # Junction alignment positions
             db_gen['NP1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
@@ -583,6 +598,7 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
+            # J-segment alignment positions
             db_gen['J_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'], 
                                                          v_seq_length,
                                                          jn["P3'V-nt nb"],
@@ -596,9 +612,6 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             db_gen['J_SEQ_LENGTH'] = len(nt['J-REGION']) if nt['J-REGION'] else 0
             db_gen['J_GERM_START'] = int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1
             db_gen['J_GERM_LENGTH'] = len(gp['J-REGION']) if gp['J-REGION'] else 0
-
-            db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
-            db_gen['JUNCTION'] = jn['JUNCTION']
 
             # Alignment scores
             if score_fields:

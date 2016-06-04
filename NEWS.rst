@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.2.999:  May 21, 2016
+Version 0.3.2.999:  June 4, 2016
 -------------------------------------------------------------------------------
 
 Increased `csv.field_size_limit` in presto.IO, ParseDb and DefineClones
@@ -22,6 +22,8 @@ MakeDb:
 + The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
   adding additional output from IMGT under the ``--junction`` flag. The new
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
++ Fixed a bug that caused the ``IN_FRAME`, ``MUTATED_INVARIANT`` and
+  ``STOP`` field to be be parsed incorrectly from IMGT data.
 
 CreateGermlines:
 
