@@ -46,7 +46,7 @@
 
     pRESTO <http://presto.readthedocs.io>
     Alakazam <http://alakazam.readthedocs.io>
-    Shazam <http://shazam.readthedocs.io>
+    SHazaM <http://shazam.readthedocs.io>
     TIgGER <http://tigger.readthedocs.io>
 
 Indices

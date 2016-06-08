@@ -10,7 +10,7 @@ To maximize flexibility, Change-O employs a simple tab-delimited database format
 with :ref:`standardized column names <Standard>`, allowing easy use of Change-O
 output with external environments and interoperability with the
 `Alakazam <http://alakazam.readthedocs.io>`_,
-`Shazam <http://shazam.readthedocs.io>`_, and
+`SHazaM <http://shazam.readthedocs.io>`_, and
 `TIgGER <http://tigger.readthedocs.io>`_ R packages.
 A brief description of each tool is shown in the table below.
 

@@ -22,8 +22,8 @@ Determining a clustering threshold
 
 Before running :ref:`DefineClones`, it is important to determine an
 appropriate threshold for trimming the hierarchical clustering into B cell
-clones. The `distToNearest <http://kleinstein.bitbucket.org/shazam/distToNearest.html>`__
-function in the `Shazam <http://kleinstein.bitbucket.org/shazam>`__ R package calculates
+clones. The `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
+function in the `SHazaM <http://shazam.readthedocs.io>`__ R package calculates
 the distance between each sequence in the data and its nearest neighbor. The
 resulting distribution is bimodal, with the first mode representing sequences
 with clonal relatives in the dataset and the second mode representing singletons.
@@ -43,7 +43,7 @@ the distance to nearest neighbor distribution.
 
 .. seealso::
 
-    For additional details see the `distToNearest <http://kleinstein.bitbucket.org/shazam/distToNearest.html>`__
+    For additional details see the `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
     documentation.
 
 Assigning clones
