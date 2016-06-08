@@ -44,6 +44,7 @@
     :maxdepth: 1
     :caption: Related Projects
 
+    Immcantation Portal <http://immcantation.readthedocs.io>
     pRESTO <http://presto.readthedocs.io>
     Alakazam <http://alakazam.readthedocs.io>
     SHazaM <http://shazam.readthedocs.io>
