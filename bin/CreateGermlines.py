@@ -153,7 +153,6 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
 
     # NP nucleotide additions after V
     if regions_style == 'IMGT':
-
         # P nucleotide additions
         try:
             p3v_len = int(align['P3V_LENGTH'])
@@ -184,7 +183,6 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
             return result_log, germlines
 
         regions += 'P' * p5d_len
-
     else:
         # IgBLAST style
         # PNP nucleotide additions after V
@@ -209,7 +207,6 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
 
     # NP nucleotide additions before J
     if regions_style == 'IMGT':
-
         # P nucleotide additions
         try:
             p3d_len = int(align['P3D_LENGTH'])
@@ -242,9 +239,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
             return result_log, germlines
 
         regions += 'P' * p5j_len
-
     else:
-
         # IgBLAST style
         # NP nucleotide additions
         if np2_len < 0:
