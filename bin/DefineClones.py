@@ -984,24 +984,25 @@ def getArgParser():
     parser_bygroup.set_defaults(group_func=indexJunctions)  
     parser_bygroup.set_defaults(clone_func=distanceClones)
     
-    
-    # Hierarchical clustering cloning method
-    parser_hclust = subparsers.add_parser('hclust', parents=[parser_parent],
+    # Chen2010
+    parser_chen = subparsers.add_parser('chen2010', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='''Defines clones by specified distance metric on CDR3s and
-                                              cutting of hierarchical clustering tree.''',
-                                        description='''Defines clones by specified distance metric on CDR3s and
-                                              cutting of hierarchical clustering tree.''')
-#     parser_hclust.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
-#                              help='Fields to use for grouping clones (non VDJ)')
-    parser_hclust.add_argument('--method', action='store', dest='method', 
-                             choices=('chen2010', 'ademokun2011'), default=default_hclust_model, 
-                             help='''Specifies which cloning method to use for calculating distance
-                                   between CDR3s, computing linkage, and cutting clusters.''')
-    parser_hclust.set_defaults(feed_func=feedQueueClust)
-    parser_hclust.set_defaults(work_func=processQueueClust)
-    parser_hclust.set_defaults(collect_func=collectQueueClust)
-    parser_hclust.set_defaults(cluster_func=hierClust)
+                                        help='''Defines clones by method specified in Chen, 2010.''',
+                                        description='''Defines clones by method specified in Chen, 2010.''')
+    parser_chen.set_defaults(feed_func=feedQueueClust)
+    parser_chen.set_defaults(work_func=processQueueClust)
+    parser_chen.set_defaults(collect_func=collectQueueClust)
+    parser_chen.set_defaults(cluster_func=hierClust)
+
+    # Ademokun2011
+    parser_ade = subparsers.add_parser('ademokun2011', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='''Defines clones by method specified in Ademokun, 2011.''',
+                                        description='''Defines clones by method specified in Ademokun, 2011.''')
+    parser_ade.set_defaults(feed_func=feedQueueClust)
+    parser_ade.set_defaults(work_func=processQueueClust)
+    parser_ade.set_defaults(collect_func=collectQueueClust)
+    parser_ade.set_defaults(cluster_func=hierClust)
         
     return parser
 
@@ -1046,12 +1047,13 @@ if __name__ == '__main__':
         del args_dict['seq_field']
 
     # Define clone_args
-    if args.command == 'hclust':
-        dist_funcs = {'chen2010':distChen2010, 'ademokun2011':distAdemokun2011}
-        args_dict['clone_func'] = dist_funcs[args_dict['method']]
-        args_dict['cluster_args'] = {'method':  args_dict['method']}
-        #del args_dict['fields']
-        del args_dict['method']
+    if args.command == 'chen2010':
+        args_dict['clone_func'] = distChen2010
+        args_dict['cluster_args'] = {'method': args.command }
+
+    if args.command == 'ademokun2011':
+        args_dict['clone_func'] = distAdemokun2011
+        args_dict['cluster_args'] = {'method': args.command }
     
     # Call defineClones
     del args_dict['command']

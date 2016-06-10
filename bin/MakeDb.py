@@ -737,7 +737,6 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             if not row['J_CALL'] or row['J_CALL'] == 'NO_JGENE_ALIGNMENT':
                 db['FUNCTIONAL'] = 'F'
                 db['J_CALL'] = ''
-                print('4')
                 yield IgRecord(db)
                 continue
             else:
@@ -825,9 +824,10 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
             if row['J_in-frame']=='true':
                 db['IN_FRAME'] = 'T'
                 db['FUNCTIONAL'] = 'T'
-            if len(sample_seq) == len(germ_seq):
-                db['GERMLINE_IHMM'] = germ_seq
-                db['GERMLINE_IHMM_D_MASK'] = dmask_seq
+            # The germline sequence is not parsed correctly as of now
+            # if len(sample_seq) == len(germ_seq):
+            #     db['GERMLINE_IHMM'] = germ_seq
+            #     db['GERMLINE_IHMM_D_MASK'] = dmask_seq
 
             yield IgRecord(db)
 
@@ -857,7 +857,7 @@ def getIDforIMGT(seq_file):
 
 def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
             score_fields=False, region_fields=False, junction_fields=False,
-            ihmm_germ=False, out_args=default_out_args):
+            out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
@@ -870,7 +870,6 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
     junction_fields = if True add D FRAME junction field to output file
-    ihmm_germ = if True add GERMLINE IHMM fields to output file
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -928,8 +927,9 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'P3V_LENGTH', 'P5D_LENGTH', 'P3D_LENGTH', 'P5J_LENGTH',
                                'D_FRAME'])
 
-    if ihmm_germ:
-        ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
+    # Not currently implemented
+    # if ihmm_germ:
+    #     ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
 
     # TODO:  This is not the best approach. should pass in output fields.
     # Initiate passed handle
@@ -1159,7 +1159,7 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, out_args=default_out_a
     repo_dict = getRepo(repo)
     ihmm_dict = readIHMM(ihmm_output, seq_dict, repo_dict)
     writeDb(ihmm_dict, file_prefix, total_count,
-            no_parse=no_parse, out_args=out_args, ihmm_germ=True)
+            no_parse=no_parse, out_args=out_args)
 
 
 def getArgParser():
