@@ -1176,9 +1176,11 @@ def getArgParser():
              '''
               output files:
                   db-pass
-                      database of parsed alignment records.
+                      database of alignment records with functionality information,
+                      V and J calls, and a junction region.
                   db-fail
-                      database with records failing alignment.
+                      database with records that fail due to no functionality information
+                      (did not pass IMGT), no V call, no J call, or no junction region.
 
               output fields:
                   SEQUENCE_ID, SEQUENCE_INPUT, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT,
