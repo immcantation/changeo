@@ -183,9 +183,9 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
 
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
-def convertDbClip(db_file, id_field=default_id_field, seq_field=default_seq_field, 
-                  germ_field=default_germ_field, cluster_field=None, 
-                  meta_fields=None, out_args=default_out_args):
+def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
+                      germ_field=default_germ_field, cluster_field=None,
+                      meta_fields=None, out_args=default_out_args):
     """
     Builds fasta files from database records
 
@@ -930,28 +930,29 @@ def getArgParser():
     parser_seq.set_defaults(func=convertDbFasta)
     
     # Subparser to convert database entries to clip-fasta file
-    parser_clip = subparsers.add_parser('clip', parents=[parser_parent], 
-                                        formatter_class=CommonHelpFormatter,
-                                        help='''Creates a clip-fasta file from database
-                                             records, wherein germline sequences precede
-                                             each clone and are denoted by ">>" headers.''',
-                                        description='''Creates a clip-fasta file from database
-                                             records, wherein germline sequences precede
-                                             each clone and are denoted by ">>" headers.''')
-    parser_clip.add_argument('--if', action='store', dest='id_field', 
-                             default=default_id_field,
-                             help='The name of the field containing identifiers')
-    parser_clip.add_argument('--sf', action='store', dest='seq_field',
-                             default=default_seq_field,
-                             help='The name of the field containing reads')
-    parser_clip.add_argument('--gf', action='store', dest='germ_field',
-                             default=default_germ_field,
-                             help='The name of the field containing germline sequences')
-    parser_clip.add_argument('--cf', action='store', dest='cluster_field', default=None,
-                             help='The name of the field containing containing sorted clone IDs')
-    parser_clip.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
-                             help='List of annotation fields to add to the sequence description')
-    parser_clip.set_defaults(func=convertDbClip)
+    parser_baseln = subparsers.add_parser('baseline', parents=[parser_parent],
+                                          formatter_class=CommonHelpFormatter,
+                                          help='''Creates a specially formatted fasta file
+                                               from database records for input into the BASELINe
+                                               website. The format groups clonally related sequences
+                                               sequentially, with the germline sequence preceding
+                                               each clone and denoted by headers starting with ">>".''',
+                                          description='''Creates a BASELINe fasta file from database
+                                                      records.''')
+    parser_baseln.add_argument('--if', action='store', dest='id_field',
+                               default=default_id_field,
+                               help='The name of the field containing identifiers')
+    parser_baseln.add_argument('--sf', action='store', dest='seq_field',
+                               default=default_seq_field,
+                               help='The name of the field containing reads')
+    parser_baseln.add_argument('--gf', action='store', dest='germ_field',
+                               default=default_germ_field,
+                               help='The name of the field containing germline sequences')
+    parser_baseln.add_argument('--cf', action='store', dest='cluster_field', default=None,
+                               help='The name of the field containing containing sorted clone IDs')
+    parser_baseln.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
+                               help='List of annotation fields to add to the sequence description')
+    parser_baseln.set_defaults(func=convertDbBaseline)
 
     # Subparser to partition files by annotation values
     parser_split = subparsers.add_parser('split', parents=[parser_parent],

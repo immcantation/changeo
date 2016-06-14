@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.2.999:  June 4, 2016
+Version 0.3.2.999:  June 14, 2016
 -------------------------------------------------------------------------------
 
 Increased `csv.field_size_limit` in presto.IO, ParseDb and DefineClones
@@ -9,6 +9,18 @@ to be able to handle files with larger number of UMIs in one field.
 
 Renamed the fields ``N1_LENGTH`` to ``NP1_LENGTH`` and ``N2_LENGTH``
 to ``NP2_LENGTH``.
+
+CreateGermlines:
+
++ Added differentiation of the N and P regions the the ``REGION`` log field
+  if the N/P region info is present in the input file (eg, from the
+  ``--junction`` argument to MakeDb-imgt). If the additional N/P region
+  columns are not present, then both N and P regions will be denoted by N,
+  as in previous versions.
++ Added the option 'regions' to the ``-g`` argument to create add the
+  ``GERMLINE_REGIONS`` field to the output which represents the germline
+  positions as V, D, J, N and P characters. This is equivalent to the
+  ``REGION`` log entry.
 
 MakeDb:
 
@@ -25,17 +37,9 @@ MakeDb:
 + Fixed a bug that caused the ``IN_FRAME`, ``MUTATED_INVARIANT`` and
   ``STOP`` field to be be parsed incorrectly from IMGT data.
 
-CreateGermlines:
+ParseDb:
 
-+ Added differentiation of the N and P regions the the ``REGION`` log field
-  if the N/P region info is present in the input file (eg, from the
-  ``--junction`` argument to MakeDb-imgt). If the additional N/P region
-  columns are not present, then both N and P regions will be denoted by N,
-  as in previous versions.
-+ Added the option 'regions' to the ``-g`` argument to create add the
-  ``GERMLINE_REGIONS`` field to the output which represents the germline
-  positions as V, D, J, N and P characters. This is equivalent to the
-  ``REGION`` log entry.
++ Renamed the clip subcommand to baseline.
 
 
 Version 0.3.2:  March 8, 2016
@@ -46,6 +50,11 @@ changeo.egg-info/SOURCES.txt.
 
 Updated license from CC BY-NC-SA 3.0 to CC BY-NC-SA 4.0.
 
+CreateGermlines:
+
++ Fixed a bug producing incorrect values in the ``SEQUENCE`` field on the
+  log file.
+
 MakeDb:
 
 + Updated igblast subcommand to correctly parse records with indels. Now 
@@ -54,11 +63,6 @@ MakeDb:
   ``--regions`` to ``<region>_IMGT``.
 + Added ``V_BTOP`` and ``J_BTOP`` output when the ``--scores`` flag is
   specified to the igblast subcommand.
-  
-CreateGermlines:
-
-+ Fixed a bug producing incorrect values in the ``SEQUENCE`` field on the 
-  log file.
 
 
 Version 0.3.1:  December 18, 2015
@@ -81,16 +85,20 @@ The package now requires Python 3.4. Python 2.7 is not longer supported.
 The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
 pandas 0.16 and biopython 1.65.
 
+DbCore:
+
++ Divided DbCore functionality into the separate modules: Defaults, Distance,
+  IO, Multiprocessing and Receptor.
+
+IgCore:
+
++ Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
+
 AnalyzeAa:
 
 + This tool was removed. This functionality has been migrated to the alakazam 
   R package.
 
-DbCore:
-
-+ Divided DbCore functionality into the separate modules: Defaults, Distance, 
-  IO, Multiprocessing and Receptor.
-  
 DefineClones:
 
 + Added ``--sf`` flag to specify sequence field to be used to calculate
@@ -104,10 +112,6 @@ GapRecords:
 
 + This tool was removed in favor of adding IMGT gapping support to igblast 
   subcommand of MakeDb.
-
-IgCore:
-
-+ Remove IgCore in favor of dependency on pRESTO >= 0.5.0.
 
 MakeDb:
 
