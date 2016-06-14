@@ -932,13 +932,12 @@ def getArgParser():
     # Subparser to convert database entries to clip-fasta file
     parser_baseln = subparsers.add_parser('baseline', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
+                                          description='Creates a BASELINe fasta file from database records.',
                                           help='''Creates a specially formatted fasta file
                                                from database records for input into the BASELINe
                                                website. The format groups clonally related sequences
                                                sequentially, with the germline sequence preceding
-                                               each clone and denoted by headers starting with ">>".''',
-                                          description='''Creates a BASELINe fasta file from database
-                                                      records.''')
+                                               each clone and denoted by headers starting with ">>".''')
     parser_baseln.add_argument('--if', action='store', dest='id_field',
                                default=default_id_field,
                                help='The name of the field containing identifiers')
