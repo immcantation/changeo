@@ -50,7 +50,7 @@ def gapV(ig_dict, repo_dict):
       dict : Updated with SEQUENCE_IMGT, V_GERM_START_IMGT, and V_GERM_LENGTH_IMGT fields
     """
 
-    seq_imgt = '.' * (int(ig_dict['V_GERM_START_VDJ'])-1) + ig_dict['SEQUENCE_VDJ']
+    seq_imgt = '.' * (int(ig_dict['V_GERM_START_VDJ']) - 1) + ig_dict['SEQUENCE_VDJ']
 
     # Find gapped germline V segment
     vgene = parseAllele(ig_dict['V_CALL'], v_allele_regex, 'first')
@@ -60,7 +60,7 @@ def gapV(ig_dict, repo_dict):
         vgap = repo_dict[vkey]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
-        gapcount = int(ig_dict['V_GERM_START_VDJ'])-1
+        gapcount = int(ig_dict['V_GERM_START_VDJ']) - 1
         for gap in gaps:
             i = gap.start()
             # Break if gap begins after V region
@@ -662,174 +662,201 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
     Returns:
     a generator of dictionaries containing alignment data
     """
-    record_handle = open(ihmm_output, 'rU')
-    csv.register_dialect('semicol', delimiter=';',quotechar='"')
-    record_headers = ['Sequence_name',
+    # iHMMuneAlign columns
+    # Courtesy of Katherine Jackson
+    #
+    #  1: Identifier - sequence identifer from FASTA input file
+    #  2: IGHV - IGHV gene match from the IGHV repertoire, if multiple genes had equally
+    #            good alignments both will be listed, if indels were found this will be
+    #            listed, in case of multiple IGHV all further data is reported with
+    #            respect to the first listed gene
+    #  3: IGHD - IGHD gene match, if no IGHD could be found or the IGHD that was found
+    #            failed to meet confidence criteria this will be 'NO_DGENE_ALIGNMENT'
+    #  4: IGHJ - IGHJ gene match, only a single best matching IGHJ is reported, if indels
+    #            are found then 'indel' will be listed
+    #  5: V-REGION - portion of input sequence that matches to the germline IGHV, were
+    #                nucleotide are missing at start or end the sequence is padded back
+    #                to full length with '.' (the exonuclease loss from the end of the
+    #                gene will therefore be equal to the number of '.' characters at the
+    #                5` end), mismatches between germline and rearranged are in uppercase,
+    #                matches are in lowercase
+    #  6: N1-REGION - sequence between V- and D-REGIONs
+    #  7: D-REGION - portion of input sequence that matches to the germline IGHD
+    #                (model doesn't currently permit indels in the IGHD), where IGHD is
+    #                reported as 'NO_DGENE_ALIGNMENT' this field contains all nucleotides
+    #                between the V- and J-REGIONs
+    #  8: N2-REGION - sequence between D- and J-REGIONs
+    #  9: J-REGION - portion of the input sequence that matches germline IGHJ, padded
+    #                5` and 3` to length of germline match
+    # 10: V mutation count - count of mismatches in the V-REGION
+    # 11: D mutation count - count of mismatches in the D-REGION
+    # 12: J mutation count - count of mismatches in the J-REGION
+    # 13: count of ambigious nts - count of 'n' or 'x' nucleotides in the input sequence
+    # 14: IGHJ in-frame - 'true' is IGHJ is in-frame and 'false' if IGHJ is out-of-frame,
+    #                     WARNING indels and germline IGHV database sequences that are
+    #                     not RF1 can cause this to report inaccurately
+    # 15: IGHV start offset - offset for start of alignment between input sequence and
+    #                         germline IGHV
+    # 16: stop codons - count of stop codons in the sequence, WARNING indels and germline
+    #                   IGHV database sequence that are not RF can cause this to be inaccurate
+    # 17: IGHD probability - probability that N-nucleotide addition could have created the
+    #                        D-REGION sequence
+    # 18: HMM path score - path score from HMM
+    # 19: reverse complement - 0 for no reverse complement, 1 if alignment was to reverse
+    #                          complement NOTE currently this version only functions with
+    #                          input in coding orientation
+    # 20: mutations in common region - count of mutations in common region, which is a
+    #                                  portion of the IGHV that is highly conserved,
+    #                                  mutations in this region are used to set various
+    #                                  probabilities in the HMM
+    # 21: ambigious nts in common region - count of 'n' or 'x' nucleotides in the
+    #                                      common region
+    # 22: IGHV start offset  - offset for start of alignment between input sequence and
+    #                          germline IGHV
+    # 23: IGHV gene length - length of IGHV gene
+    # 24: A score - A score probability is calculated from the common region mutations
+    #               and is used for HMM calculations relating to expected mutation
+    #               probability at different positions in the rearrangement
+    record_headers = ['SEQUENCE_ID',
                       'V_CALL',
                       'D_CALL',
                       'J_CALL',
-                      'V_Seq',
-                      'N1_Seq',
-                      'D_Seq',
-                      'N2_Seq',
-                      'J_Seq',
-                      'VMut',
-                      'DMut',
-                      'JMut',
-                      'nx_nt_count',
-                      'J_in-frame',
-                      'V_start_pos',
-                      'stp_codon_count',
-                      'IGHD_misid_prob']
+                      'V_SEQ',
+                      'NP1_SEQ',
+                      'D_SEQ',
+                      'NP2_SEQ',
+                      'J_SEQ',
+                      'V_MUT',
+                      'D_MUT',
+                      'J_MUT',
+                      'NX_COUNT',
+                      'J_INFRAME',
+                      'V_SEQ_START',
+                      'STOP_COUNT',
+                      'D_PROB',
+                      'HMM_SCORE',
+                      'RC',
+                      'COMMON_MUT',
+                      'COMMON_NX_COUNT',
+                      'V_GERM_START',
+                      'V_GERM_LENGTH',
+                      'A_SCORE']
+
+    record_handle = open(ihmm_output, 'rU')
+    csv.register_dialect('semicol', delimiter=';', quotechar='"')
     records = csv.DictReader(record_handle, fieldnames=record_headers, dialect='semicol')
 
     # loop through records
     for row in records:
         # Skip empty lines
-        if row:
-            db = {'SEQUENCE_ID': row['Sequence_name'],
-                  'SEQUENCE_INPUT': seq_dict[row['Sequence_name']]}
+        if not row:
+            continue
 
-            if not row['V_CALL'] or row['V_CALL'].startswith('NA - ') or row['V_CALL'].startswith('State path'):
-                db['FUNCTIONAL'] = 'F'
-                db['V_CALL'] = ''
-                yield IgRecord(db)
-                continue
+        # Process row if not empty
+        db = {'SEQUENCE_ID': row['SEQUENCE_ID'],
+              'SEQUENCE_INPUT': seq_dict[row['SEQUENCE_ID']]}
 
-            if re.search('\[indels\]', row['V_CALL'] + row['D_CALL'] + row['J_CALL']):
-                db['FUNCTIONAL'] = 'False'
-                db['INDELS'] = 'True'
-                yield IgRecord(db)
-                continue
-
-            # find V-REGION germline and sample sequence
-            v_call = parseAllele(row['V_CALL'], v_allele_regex, action='list')
-            vkey = (v_call[0],)
-            if vkey in repo_dict:
-                db['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
-                germ_vseq = repo_dict[vkey]
-            else:
-                yield IgRecord(db)
-                continue
-            sample_vseq = row['V_Seq']
-            # Remove all gap characters to get V length in input seq
-            db['V_SEQ_LENGTH'] = len(row['V_Seq'].replace('.',''))
-            sample_vstart = int(row['V_start_pos'])
-            db['V_SEQ_START'] = sample_vstart
-
-            # find D-REGION germline and sample sequence
-            if not row['D_CALL'] or row['D_CALL'] == 'NO_DGENE_ALIGNMENT':
-                dgene, germ_dseq, sample_dseq = 'NA', '', ''
-            else:
-                d_call = parseAllele(row['D_CALL'], d_allele_regex, action='list')
-                dkey = (d_call[0],)
-                if dkey in repo_dict:
-                    db['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
-                    germ_dseq = repo_dict[dkey]
-                else:
-                    yield IgRecord(db)
-                    continue
-                sample_dseq = row['D_Seq']
-                # Remove trailing gaps to get germline alignment length of D
-                db['D_GERM_LENGTH'] = len(row['D_Seq'].strip('.'))
-
-            # find J-REGION germline and sample sequence
-            if not row['J_CALL'] or row['J_CALL'] == 'NO_JGENE_ALIGNMENT':
-                db['FUNCTIONAL'] = 'F'
-                db['J_CALL'] = ''
-                yield IgRecord(db)
-                continue
-            else:
-                j_call = parseAllele(row['J_CALL'], j_allele_regex, action='list')
-                jkey = (j_call[0],)
-                if jkey in repo_dict:
-                    db['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
-                    germ_jseq = repo_dict[jkey]
-                else:
-                    yield IgRecord(db)
-                    continue
-                sample_jseq = row['J_Seq']
-                # Remove trailing gaps to get germline alignment length of J
-                db['J_GERM_LENGTH'] = len(row['J_Seq'].strip('.'))
-
-            # find sample N-REGION sequences
-            sample_n1seq = row['N1_Seq']
-            db['NP1_LENGTH'] = len(sample_n1seq)
-            sample_n2seq = row['N2_Seq']
-            db['NP2_LENGTH'] = len(sample_n2seq)
-
-            # strip trailing periods from sample sequence
-            # insert v-region gaps into sample sequence
-            # strip trailing sequence not present in sample or germline sequence
-            sample_vseq = sample_vseq.rstrip('.')
-            for gap in re.finditer('\.+',germ_vseq):
-                #print gap.span(), gap.group()
-                sample_vseq = sample_vseq[:gap.start()] + gap.group() + sample_vseq[gap.start():]
-            germ_vseq = germ_vseq[:len(sample_vseq)]
-            germ_seq = germ_vseq
-            sample_vseq = sample_vseq[:len(germ_seq)]
-            # Gapped V is length of germline V region
-            db['V_GERM_LENGTH_IMGT'] = len(sample_vseq)
-            sample_seq = sample_vseq
-
-            # insert N1 region into sample sequence and germline
-            sample_seq += sample_n1seq
-            germ_seq += 'N'*len(sample_n1seq)
-
-            # insert D region into sample sequence and germline
-            while True:
-                gap = re.search('\.+',sample_dseq)
-                if not gap: break
-                germ_dseq = germ_dseq[:gap.start()] + germ_dseq[gap.end():]
-                sample_dseq = sample_dseq[:gap.start()] + sample_dseq[gap.end():]
-            sample_seq += sample_dseq
-            # Gap characters (deletions) now removed - D length in input sequence
-            db['D_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
-                                                     db['V_SEQ_LENGTH'],
-                                                     db['NP1_LENGTH']] if i)
-            db['D_SEQ_LENGTH'] = len(sample_dseq)
-            germ_seq += germ_dseq
-
-            # insert N2 region into sample sequence and germline
-            sample_seq += sample_n2seq
-            germ_seq += 'N'*len(sample_n2seq)
-
-            # insert J region into sample sequence and germline
-            while True:
-                gap = re.search('\.+',sample_jseq)
-                if not gap: break
-                germ_jseq = germ_jseq[:gap.start()] + germ_jseq[gap.end():]
-                sample_jseq = sample_jseq[:gap.start()] + sample_jseq[gap.end():]
-            sample_seq += sample_jseq
-            # Gap characters (deletions) now removed - J length in input sequence
-            db['J_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
-                                                     db['V_SEQ_LENGTH'],
-                                                     db['NP1_LENGTH'],
-                                                     db['D_SEQ_LENGTH'],
-                                                     db['NP2_LENGTH']] if i)
-            db['J_SEQ_LENGTH'] = len(sample_jseq)
-            germ_seq += germ_jseq
-
-            # created germline sequences with D-REGION masked
-            dmask_seq = germ_vseq + 'N'*len(sample_n1seq + germ_dseq + sample_n2seq) + germ_jseq
-
-            # extract junction regions
-            end_codon = 'TGGGG' if re.search('IGHJ',j_call[0]) else 'TTC'
-            junc_end = germ_seq.find(end_codon, len(germ_seq) - len(germ_jseq)) + 3
-            db['JUNCTION'] = sample_seq[309:junc_end]
-            db['JUNCTION_LENGTH'] = len(sample_seq[309:junc_end])
-
-            db['SEQUENCE_IMGT'] = sample_seq
-            db['SEQUENCE_VDJ'] = sample_seq.replace('.','')
-            if row['J_in-frame']=='true':
-                db['IN_FRAME'] = 'T'
-                db['FUNCTIONAL'] = 'T'
-            # The germline sequence is not parsed correctly as of now
-            # if len(sample_seq) == len(germ_seq):
-            #     db['GERMLINE_IHMM'] = germ_seq
-            #     db['GERMLINE_IHMM_D_MASK'] = dmask_seq
-
+        if not row['V_CALL'] or row['V_CALL'].startswith('NA - ') or \
+                row['V_CALL'].startswith('State path'):
+            db['FUNCTIONAL'] = None
+            db['V_CALL'] = None
             yield IgRecord(db)
+            continue
+
+        # Check stop codons
+        db['FUNCTIONAL'] = 'F' if int(row['STOP_COUNT']) > 0 else 'T'
+
+        # Check whether J is in-frame
+        if row['J_INFRAME'] != 'true':
+            db['IN_FRAME'] = 'F'
+            db['FUNCTIONAL'] = 'F'
+
+        # Check for indels
+        if re.search('\[indels\]', row['V_CALL'] + row['D_CALL'] + row['J_CALL']):
+            db['INDELS'] = 'T'
+        else:
+            db['INDELS'] = 'F'
+
+        # Find V-REGION
+        v_call = parseAllele(row['V_CALL'], v_allele_regex, action='list')
+        vkey = (v_call[0],)
+        if vkey in repo_dict:
+            db['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
+            sample_vseq = (row['V_SEQ']).strip('.')
+            db['V_SEQ_START'] = int(row['V_SEQ_START'])
+            db['V_SEQ_LENGTH'] = len(sample_vseq)
+        else:
+            yield IgRecord(db)
+            continue
+
+        # Find D-REGION
+        if not row['D_CALL'] or row['D_CALL'] == 'NO_DGENE_ALIGNMENT':
+            dgene, sample_dseq = 'NA', ''
+        else:
+            d_call = parseAllele(row['D_CALL'], d_allele_regex, action='list')
+            dkey = (d_call[0],)
+            if dkey in repo_dict:
+                db['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
+                sample_dseq = (row['D_SEQ']).strip('.')
+                db['D_GERM_START'] = len(row['D_SEQ']) - len((row['D_SEQ']).lstrip('.'))
+                db['D_GERM_LENGTH'] = len(sample_dseq)
+            else:
+                yield IgRecord(db)
+                continue
+
+        # Find J-REGION
+        if not row['J_CALL'] or row['J_CALL'] == 'NO_JGENE_ALIGNMENT':
+            db['FUNCTIONAL'] = 'F'
+            db['J_CALL'] = ''
+            yield IgRecord(db)
+            continue
+        else:
+            j_call = parseAllele(row['J_CALL'], j_allele_regex, action='list')
+            jkey = (j_call[0],)
+            if jkey in repo_dict:
+                db['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
+                sample_jseq = (row['J_SEQ']).strip('.')
+                db['J_GERM_START'] = len(row['J_SEQ']) - len((row['J_SEQ']).lstrip('.'))
+                db['J_GERM_LENGTH'] = len(sample_jseq)
+            else:
+                yield IgRecord(db)
+                continue
+
+        # Assemble sample sequence
+        db['SEQUENCE_VDJ'] = ''.join([sample_vseq,
+                                      row['NP1_SEQ'],
+                                      sample_dseq,
+                                      row['NP2_SEQ'],
+                                      sample_jseq])
+
+        # Germline positions
+        db['V_GERM_START_VDJ'] = row['V_GERM_START']
+        db['V_GERM_LENGTH_VDJ'] = len(sample_vseq)
+
+        # N/P lengths
+        db['NP1_LENGTH'] = len(row['NP1_SEQ'])
+        db['NP2_LENGTH'] = len(row['NP2_SEQ'])
+
+        # D positions
+        db['D_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
+                                                 db['V_SEQ_LENGTH'],
+                                                 db['NP1_LENGTH']] if i)
+        db['D_SEQ_LENGTH'] = len(sample_dseq)
+
+        # J positions
+        db['J_SEQ_START'] = sum(int(i) for i in [db['V_SEQ_START'],
+                                                 db['V_SEQ_LENGTH'],
+                                                 db['NP1_LENGTH'],
+                                                 db['D_SEQ_LENGTH'],
+                                                 db['NP2_LENGTH']] if i)
+        db['J_SEQ_LENGTH'] = len(sample_jseq)
+
+        # Add IMGT gapped sequence
+        db = gapV(db, repo_dict)
+        # Extract junction regions
+        db = getIMGTJunc(db, repo_dict)
+
+        yield IgRecord(db)
 
 
 def getIDforIMGT(seq_file):
@@ -1182,18 +1209,30 @@ def getArgParser():
                       database with records that fail due to no functionality information
                       (did not pass IMGT), no V call, no J call, or no junction region.
 
-              output fields:
-                  SEQUENCE_ID, SEQUENCE_INPUT, FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT,
-                  INDELS, V_CALL, D_CALL, J_CALL, SEQUENCE_VDJ, SEQUENCE_IMGT,
-                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_VDJ and/or V_GERM_START_IMGT,
-                  V_GERM_LENGTH_VDJ and/or V_GERM_LENGTH_IMGT, NP1_LENGTH,
-                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH, NP2_LENGTH,
+              universal output fields:
+                  SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_VDJ, SEQUENCE_IMGT,
+                  FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT, INDELS,
+                  V_CALL, D_CALL, J_CALL,
+                  V_SEQ_START, V_SEQ_LENGTH,
+                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
-                  JUNCTION_LENGTH, JUNCTION, V_SCORE, V_IDENTITY, V_EVALUE, V_BTOP,
-                  J_SCORE, J_IDENTITY, J_EVALUE, J_BTOP, FWR1_IMGT, FWR2_IMGT, FWR3_IMGT,
-                  FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, CDR3_IMGT, GERMLINE_IHMM,
-                  GERMLINE_IHMM_D_MASK, N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
-                  P5J_LENGTH, D_FRAME
+                  JUNCTION_LENGTH, JUNCTION, NP1_LENGTH, NP2_LENGTH,
+                  FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
+                  CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
+
+              imgt specific output fields:
+                  V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
+                  N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
+                  D_FRAME, V_SCORE, V_IDENTITY, J_SCORE, J_IDENTITY,
+
+              igblast specific output fields:
+                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
+                  V_EVALUE, V_SCORE, V_IDENTITY, V_BTOP,
+                  J_EVALUE, J_SCORE, J_IDENTITY, J_BTOP
+
+              ihmm specific output fields:
+                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
+                  V_SCORE, J_SCORE
               ''')
                 
     # Define ArgumentParser
