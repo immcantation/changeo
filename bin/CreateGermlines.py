@@ -617,14 +617,17 @@ def getArgParser():
                     database with records failing germline assignment.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_VDJ or SEQUENCE_IMGT,
+                 SEQUENCE_ID, SEQUENCE_VDJ or SEQUENCE_IMGT,
                  V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL,
                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
-                 J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH
+                 J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
+                 NP1_LENGTH, NP2_LENGTH
 
              optional fields:
+                 N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
                  CLONE
+
 
              output fields:
                  GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
