@@ -34,7 +34,7 @@ MakeDb:
 + The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
   adding additional output from IMGT under the ``--junction`` flag. The new
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
-+ Fixed a bug that caused the ``IN_FRAME`, ``MUTATED_INVARIANT`` and
++ Fixed a bug that caused the ``IN_FRAME``, ``MUTATED_INVARIANT`` and
   ``STOP`` field to be be parsed incorrectly from IMGT data.
 
 ParseDb:
