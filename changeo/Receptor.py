@@ -70,6 +70,7 @@ class IgRecord:
                 'j_identity': 'J_IDENTITY',
                 'j_evalue': 'J_EVALUE',
                 'j_btop': 'J_BTOP',
+                'hmm_score': 'HMM_SCORE',
                 'fwr1': 'FWR1_IMGT',
                 'fwr2': 'FWR2_IMGT',
                 'fwr3': 'FWR3_IMGT',
@@ -130,6 +131,7 @@ class IgRecord:
                   'j_identity': '_float',
                   'j_evalue': '_float',
                   'j_btop': '_identity',
+                  'hmm_score': '_float',
                   'fwr1': '_sequence',
                   'fwr2': '_sequence',
                   'fwr3': '_sequence',
@@ -147,8 +149,9 @@ class IgRecord:
                   'p5j_length': '_integer',
                   'd_frame': '_integer'}
 
-    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
-    _logical_deparse = {False:'F', True:'T', None:'None'}
+    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False,
+                      'NA':None, 'None':None, '':None}
+    _logical_deparse = {False:'F', True:'T', None:''}
 
     # Private methods
     @staticmethod    
@@ -168,7 +171,7 @@ class IgRecord:
     def _integer(v, deparse=False):
         if not deparse:
             try:  return int(v)
-            except:  return None
+            except:  return ''
         else:
             try:  return str(v)
             except:  return ''
@@ -177,7 +180,7 @@ class IgRecord:
     def _float(v, deparse=False):
         if not deparse:
             try:  return float(v)
-            except:  return None
+            except:  return ''
         else:
             try:  return str(v)
             except:  return ''
@@ -187,10 +190,10 @@ class IgRecord:
         if not deparse:
             try:
                 if v in ['NA','None']:
-                    return None
+                    return ''
                 else:
                     return Seq(v, IUPAC.ambiguous_dna).upper()
-            except:  return None
+            except:  return ''
         else:
             try:
                 if v in ['NA','None']:

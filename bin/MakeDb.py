@@ -650,7 +650,8 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
 
     
 # TODO:  should be more readable
-def readIHMM(ihmm_output, seq_dict, repo_dict):
+def readIHMM(ihmm_output, seq_dict, repo_dict,
+             score_fields=False, region_fields=False):
     """
     Reads iHMMuneAlign output
 
@@ -658,6 +659,8 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
     ihmm_output = iHMMuneAlign output file
     seq_dict = a dictionary of {ID:Seq} from input fasta file
     repo_dict = dictionary of IMGT gapped germline sequences
+    score_fields = if True parse alignment scores
+    region_fields = if True add FWR and CDR region fields
 
     Returns:
     a generator of dictionaries containing alignment data
@@ -856,6 +859,14 @@ def readIHMM(ihmm_output, seq_dict, repo_dict):
         # Extract junction regions
         db = getIMGTJunc(db, repo_dict)
 
+         # Overall alignment score
+        if score_fields:
+            try: db['HMM_SCORE'] = float(row['HMM_SCORE'])
+            except (TypeError, ValueError): db['HMM_SCORE'] = ''
+
+        # FWR and CDR regions
+        if region_fields: getRegions(db)
+
         yield IgRecord(db)
 
 
@@ -943,7 +954,8 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'J_SCORE',
                                'J_IDENTITY',
                                'J_EVALUE',
-                               'J_BTOP'])
+                               'J_BTOP',
+                               'HMM_SCORE'])
 
     if region_fields:
         ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
@@ -1142,7 +1154,8 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
 
 
 # TODO:  may be able to merge with other mains
-def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, out_args=default_out_args):
+def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, score_fields=False,
+              region_fields=False, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences
 
@@ -1150,6 +1163,8 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, out_args=default_out_a
     ihmm_output = iHMMuneAlign output file to process
     seq_file = fasta file input to iHMMuneAlign (from which to get sequence)
     repo = folder with germline repertoire files
+    score_fields = if True parse alignment scores
+    region_fields = if True add FWR and CDR region fields
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
     out_args = common output argument dictionary from parseCommonArgs
 
@@ -1184,8 +1199,10 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, out_args=default_out_a
 
     # Create
     repo_dict = getRepo(repo)
-    ihmm_dict = readIHMM(ihmm_output, seq_dict, repo_dict)
+    ihmm_dict = readIHMM(ihmm_output, seq_dict, repo_dict,
+                         score_fields=score_fields, region_fields=region_fields)
     writeDb(ihmm_dict, file_prefix, total_count,
+            score_fields=score_fields, region_fields=region_fields,
             no_parse=no_parse, out_args=out_args)
 
 
@@ -1282,8 +1299,10 @@ def getArgParser():
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Process IMGT/HighV-Quest output.',
-                                        description='Process IMGT/HighV-Quest output.')
+                                        help='''Process IMGT/HighV-Quest output
+                                             (does not work with V-QUEST).''',
+                                        description='''Process IMGT/HighV-Quest output
+                                             (does not work with V-QUEST).''')
     parser_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_files',
                              help='''Either zipped IMGT output files (.zip or .txz) or a
                                   folder containing unzipped IMGT output files (which must
@@ -1331,6 +1350,15 @@ def getArgParser():
     parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
                              help='''Specify if input IDs should not be parsed to add
                                   new columns to database.''')
+    parser_ihmm.add_argument('--scores', action='store_true', dest='score_fields',
+                             help='''Specify if alignment score metrics should be
+                                  included in the output. Adds the path score of the
+                                  iHMMuneAlign hidden Markov model to HMM_SCORE.''')
+    parser_ihmm.add_argument('--regions', action='store_true', dest='region_fields',
+                             help='''Specify if IMGT framework and CDR regions should be
+                                  included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
+                                  FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
+                                  CDR3_IMGT columns.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser
