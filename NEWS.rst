@@ -36,6 +36,9 @@ MakeDb:
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
 + Fixed a bug that caused the ``IN_FRAME``, ``MUTATED_INVARIANT`` and
   ``STOP`` field to be be parsed incorrectly from IMGT data.
++ Can now parse ouput from iHMMuneAlign (insufficient information returned by
+  aligner to run CreateGermlines on results). Can be run via the ``ihmm``
+  subcommand.
 
 ParseDb:
 

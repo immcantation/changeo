@@ -1249,7 +1249,7 @@ def getArgParser():
 
               ihmm specific output fields:
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
-                  V_SCORE, J_SCORE
+                  HMM_SCORE
               ''')
                 
     # Define ArgumentParser
