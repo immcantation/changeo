@@ -27,9 +27,9 @@ Linux
 
 2. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
-3. Extract the Change-O bundle and run::
+3. Download the Change-O bundle and run::
 
-   > python3 setup.py install --user
+   > pip3 install changeo-x.y.z.tar.gz --user
 
 Mac OS X
 --------------------------------------------------------------------------------
@@ -68,10 +68,10 @@ Mac OS X
 
 8. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
-9. Extract the Change-O bundle, open a terminal window, change directories
-   to the Change-O folder, and run::
+9. Download the Change-O bundle, open a terminal window, change directories
+   to the download folder, and run::
 
-   > python3 setup.py install
+   > pip3 install changeo-x.y.z.tar.gz
 
 Windows
 --------------------------------------------------------------------------------
@@ -86,10 +86,10 @@ Windows
 
 3. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
 
-4. Unzip the Change-O bundle, open a Command Prompt, change directories to
-   the Change-O folder, and run::
+4. Download the Change-O bundle, open a Command Prompt, change directories to
+   the download folder, and run::
 
-   > python setup.py install
+   > pip install changeo-x.y.z.tar.gz
 
 5. For a default installation of Python 3.4, the Change-0 scripts will be
    installed into ``C:\Python34\Scripts`` and should be directly
