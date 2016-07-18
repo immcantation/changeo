@@ -351,7 +351,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.v_call_geno if self.v_call_geno is not None else self.v_call
         return parseAllele(x, allele_regex, action)
@@ -364,7 +365,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.d_call, allele_regex, action)
 
@@ -376,7 +378,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.j_call, allele_regex, action)
     
@@ -388,7 +391,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.v_call, gene_regex, action)
 
@@ -400,7 +404,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.d_call, gene_regex, action)
 
@@ -412,7 +417,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.j_call, gene_regex, action)
     
@@ -424,7 +430,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.v_call, family_regex, action)
 
@@ -436,7 +443,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.d_call, family_regex, action)
 
@@ -448,7 +456,8 @@ class IgRecord:
           actions : One of ('first','set')
 
         Returns:
-          str : Call as a string
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.j_call, family_regex, action)
 

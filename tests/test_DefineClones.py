@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import unittest
+import cProfile
 
 # Presto and changeo imports
 from changeo.Receptor import IgRecord
@@ -26,6 +27,8 @@ import DefineClones
 class Test_DefineClones(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
+
+        self.mg_ig_file = os.path.join(data_path, 'AB0RF_MG67U_functional-heavy_parse-select_filter-collapse.tab')
 
         # Define common preclone properties
         clone_dict = {'V_CALL':'IGHV6-1*01',
@@ -64,11 +67,40 @@ class Test_DefineClones(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    @unittest.skip("-> indexJunctions() skipped\n")
+    # @unittest.skip("-> indexJunctions() skipped\n")
     def test_indexJunctions(self):
-        #DefineClones.indexJunctions(db_iter, fields=None, mode='gene', action='first')
+        from collections import OrderedDict
+        db_iter = DefineClones.readDbFile(self.mg_ig_file)
+
+        # Original version of 'set'
+        prof_old = cProfile.Profile()
+        prof_old.enable()
+        results_old = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='setold')
+        prof_old.disable()
+        prof_old.print_stats()
+
+        db_iter = DefineClones.readDbFile(self.mg_ig_file)
+
+        # New nested dict version of 'set'
+        prof_new = cProfile.Profile()
+        prof_new.enable()
+        results_new = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='setnew')
+        prof_new.disable()
+        prof_new.print_stats()
+
+        # results = {}
+        # for k,v in results_new.items():
+        #     k_sorted = (k[3], k[2], k[0], k[1])
+        #     results[k_sorted] = v
+        #
+        # results_old = OrderedDict(sorted(results_old.items(), key=lambda x:x[0]))
+        # results = OrderedDict(sorted(results.items(), key=lambda x:x[0]))
+        # print(results)
+        # print(results_old)
+
         self.fail()
 
+    @unittest.skip("-> distanceClones() skipped\n")
     def test_distanceClones(self):
         # import cProfile
         # prof = cProfile.Profile()
