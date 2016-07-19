@@ -84,7 +84,7 @@ class Test_DefineClones(unittest.TestCase):
         # New nested dict version of 'set'
         prof_new = cProfile.Profile()
         prof_new.enable()
-        results_new = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='setnew')
+        results_new = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='set')
         prof_new.disable()
         prof_new.print_stats()
 

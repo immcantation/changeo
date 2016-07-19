@@ -146,11 +146,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None and k != '' for k in key]):
-            #print key
-            # TODO:  Has much slow. Should have less slow.
-            if action == 'setnew':
-                # print(key)
-                # print('in setnew')
+            if action == 'set':
                 # List of values for this/new key
                 val = [rec]
                 f_range = list(range(2, 3 + (len(fields) if fields else 0)))
@@ -198,10 +194,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
                 else:
                     outer_dict[key[1]] = {key[0]:val}
 
-                # print(clone_index)
-
             elif action == 'setold':
-                # print('in setold')
                 f_range = list(range(2, 3 + (len(fields) if fields else 0)))
                 vdj_range = list(range(2))
 
@@ -222,19 +215,14 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
                 clone_index[tuple(key)] = clone_index.get(tuple(key),[]) + val
 
             elif action == 'first':
-                # print('in first')
                 clone_index.setdefault(key, []).append(rec)
         else:
-            # print('in empty key')
             clone_index.setdefault(None, []).append(rec)
 
     printProgress(rec_count, step=1000, start_time=start_time, end=True)
 
     if action == 'setnew':
-        # print(clone_index)
         clone_index = _flatten_dict(clone_index)
-        # print(clone_index)
-    # print(list(clone_index.keys()))
     return clone_index
 
 
@@ -1020,7 +1008,7 @@ def getArgParser():
                              help='''Specifies whether to use the V(D)J allele or gene for
                                   initial grouping.''')
     parser_bygroup.add_argument('--act', action='store', dest='action', default='set',
-                             choices=('first', 'setold','setnew'),
+                             choices=('first','set', 'setold'),
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
