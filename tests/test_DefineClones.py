@@ -150,14 +150,10 @@ class Test_DefineClones(unittest.TestCase):
 
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
-        for k, w in results.items():
-            print('GROUP>\n', ' ->', k)
-            for j, v in w.items():
-                print('    ->', j)
-                for i, u in v.items():
-                    print('      ->', i, ':', len(u))
-                    nest_key = tuple(sorted(chain([str(k)], j, i)))
-                    results_dict[nest_key] = sorted([x.id for x in u])
+        for k, v in results.items():
+            print('GROUP>', k, ':', len(v))
+            nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
+            results_dict[nest_key] = sorted([x.id for x in v])
 
         self.assertDictEqual(self.ambig_groups, results_dict)
 

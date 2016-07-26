@@ -1,10 +1,10 @@
 Release Notes
 ================================================================================
 
-Version 0.3.2.999:  June 14, 2016
+Version 0.3.2.999:  July 26, 2016
 -------------------------------------------------------------------------------
 
-Increased `csv.field_size_limit` in presto.IO, ParseDb and DefineClones
+Increased ``csv.field_size_limit`` in changeo.IO, ParseDb and DefineClones
 to be able to handle files with larger number of UMIs in one field.
 
 Renamed the fields ``N1_LENGTH`` to ``NP1_LENGTH`` and ``N2_LENGTH``
@@ -21,6 +21,11 @@ CreateGermlines:
   ``GERMLINE_REGIONS`` field to the output which represents the germline
   positions as V, D, J, N and P characters. This is equivalent to the
   ``REGION`` log entry.
+
+DefineClones:
+
++ Improved peformance significantly of the ``--act set`` grouping method in
+  the bygroup subcommand.
 
 MakeDb:
 

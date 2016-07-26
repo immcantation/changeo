@@ -78,6 +78,63 @@ def getModelMatrix(model):
         sys.stderr.write('Unrecognized distance model: %s.\n' % model)
 
 
+def indexByIdentity(index, key, rec):
+    return index.setdefault(key, []).append(rec)
+
+
+def indexByUnion(index, key, rec, fields):
+    # List of values for this/new key
+    val = [rec]
+    f_range = list(range(2, 3 + (len(fields) if fields else 0)))
+
+    # See if field/junction length combination exists in clone_index
+    outer_dict = index
+    for field in f_range:
+        try:
+            outer_dict = outer_dict[key[field]]
+        except (KeyError):
+            outer_dict = None
+            break
+
+    # If field combination exists, look through Js
+    j_matches = []
+    if outer_dict is not None:
+        for j in outer_dict.keys():
+            if not set(key[1]).isdisjoint(set(j)):
+                key[1] = tuple(set(key[1]).union(set(j)))
+                j_matches += [j]
+
+    # If J overlap exists, look through Vs for each J
+    for j in j_matches:
+        v_matches = []
+        # Collect V matches for this J
+        for v in outer_dict[j].keys():
+            if not set(key[0]).isdisjoint(set(v)):
+                key[0] = tuple(set(key[0]).union(set(v)))
+                v_matches += [v]
+        # If there are V overlaps for this J, pop them out
+        if v_matches:
+            val += list(chain(*(outer_dict[j].pop(v) for v in v_matches)))
+            # If the J dict is now empty, remove it
+            if not outer_dict[j]:
+                outer_dict.pop(j, None)
+
+    # Add value(s) into clone_index nested dictionary
+    # OMG Python pointers are the best!
+    # Add field dictionaries into clone_index
+    outer_dict = index
+    for field in f_range:
+        outer_dict.setdefault(key[field], {})
+        outer_dict = outer_dict[key[field]]
+    # Add J, then V into clone_index
+    if key[1] in outer_dict:
+        outer_dict[key[1]].update({key[0]: val})
+    else:
+        outer_dict[key[1]] = {key[0]: val}
+
+    return outer_dict
+
+
 def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     """
     Identifies preclonal groups by V, J and junction length
@@ -133,9 +190,7 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     clone_index = {}
     rec_count = 0
     for rec in db_iter:
-        # key = _get_key(rec, action)
-        key = _get_key(rec, 'set')
-        # print(key)
+        key = _get_key(rec, action)
 
         # Print progress
         if rec_count == 0:
@@ -146,7 +201,9 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None and k != '' for k in key]):
-            if action == 'set':
+            if action == 'first':
+                clone_index.setdefault(tuple(key), []).append(rec)
+            elif action == 'set':
                 # List of values for this/new key
                 val = [rec]
                 f_range = list(range(2, 3 + (len(fields) if fields else 0)))
@@ -193,36 +250,14 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
                     outer_dict[key[1]].update({key[0]:val})
                 else:
                     outer_dict[key[1]] = {key[0]:val}
-
-            elif action == 'setold':
-                f_range = list(range(2, 3 + (len(fields) if fields else 0)))
-                vdj_range = list(range(2))
-
-                # Check for any keys that have matching columns and junction length and overlapping genes/alleles
-                to_remove = []
-                key = tuple(key)
-                if len(clone_index) > (1 if None in clone_index else 0) and key not in clone_index:
-                    key = list(key)
-                    for k in clone_index:
-                        if k is not None and all([key[i] == k[i] for i in f_range]):
-                            if all([not set(key[i]).isdisjoint(set(k[i])) for i in vdj_range]):
-                                for i in vdj_range:  key[i] = tuple(set(key[i]).union(set(k[i])))
-                                to_remove.append(k)
-
-                # Remove original keys, replace with union of all genes/alleles and append values to new key
-                val = [rec]
-                val += list(chain(*(clone_index.pop(k) for k in to_remove)))
-                clone_index[tuple(key)] = clone_index.get(tuple(key),[]) + val
-
-            elif action == 'first':
-                clone_index.setdefault(key, []).append(rec)
         else:
             clone_index.setdefault(None, []).append(rec)
 
     printProgress(rec_count, step=1000, start_time=start_time, end=True)
 
-    if action == 'setnew':
+    if action == 'set':
         clone_index = _flatten_dict(clone_index)
+
     return clone_index
 
 
@@ -1008,7 +1043,7 @@ def getArgParser():
                              help='''Specifies whether to use the V(D)J allele or gene for
                                   initial grouping.''')
     parser_bygroup.add_argument('--act', action='store', dest='action', default='set',
-                             choices=('first','set', 'setold'),
+                             choices=('first', 'set'),
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
