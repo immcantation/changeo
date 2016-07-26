@@ -97,8 +97,8 @@ class Test_DefineClones(unittest.TestCase):
         seq_copy = deepcopy(seq_list)
         for x in seq_copy:  x.update(deepcopy(group_list[1]))
         self.unambig_records = [IgRecord(x) for x in seq_copy]
-        self.unambig_clones = set([tuple(sorted([x.id for x in self.unambig_records[0:4]])),
-                                   tuple(sorted([x.id for x in self.unambig_records[4:]]))])
+        self.unambig_clones = {('A1', 'A2', 'A3', 'A4'),
+                               ('B1', 'B2', 'B3', 'B4')}
 
         # Build db iterator with ambiguous assignments
         group_copy = deepcopy(group_list)
