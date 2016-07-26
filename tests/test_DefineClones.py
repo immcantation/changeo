@@ -57,33 +57,48 @@ class Test_DefineClones(unittest.TestCase):
                       {'V_CALL': 'IGHV2-1*01, IGHV4-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
+                       'JUNCTION_LENGTH': 48},
+                      {'V_CALL': 'IGHV5-1*01',
+                       'D_CALL': 'IGHD6-6*01',
+                       'J_CALL': 'IGHJ6*01',
+                       'JUNCTION_LENGTH': 48},
+                      {'V_CALL': 'IGHV5-1*01, IGHV6-1*01',
+                       'D_CALL': 'IGHD6-6*01',
+                       'J_CALL': 'IGHJ6*01',
                        'JUNCTION_LENGTH': 48}]
 
         # Define unique sequences
-        seq_list = [{'SEQUENCE_ID':'A1',
-                     'SEQUENCE_INPUT':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
-                     'JUNCTION':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
-                    {'SEQUENCE_ID':'A2',
-                     'SEQUENCE_INPUT':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
-                     'JUNCTION':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
-                    {'SEQUENCE_ID':'A3',
-                     'SEQUENCE_INPUT':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
-                     'JUNCTION':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
-                    {'SEQUENCE_ID':'A4',
-                     'SEQUENCE_INPUT':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN',
-                     'JUNCTION':'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN'},
-                    {'SEQUENCE_ID':'B1',
-                     'SEQUENCE_INPUT':'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG',
-                     'JUNCTION':'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG'},
-                    {'SEQUENCE_ID':'B2',
-                     'SEQUENCE_INPUT':'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG',
-                     'JUNCTION':'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG'}]
+        seq_list = [{'SEQUENCE_ID': 'A1',
+                     'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
+                     'JUNCTION': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
+                    {'SEQUENCE_ID': 'A2',
+                     'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
+                     'JUNCTION': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
+                    {'SEQUENCE_ID': 'A3',
+                     'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG',
+                     'JUNCTION': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGTCTGG'},
+                    {'SEQUENCE_ID': 'A4',
+                     'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN',
+                     'JUNCTION': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN'},
+                    {'SEQUENCE_ID': 'B1',
+                     'SEQUENCE_INPUT': 'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG',
+                     'JUNCTION': 'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG'},
+                    {'SEQUENCE_ID': 'B2',
+                     'SEQUENCE_INPUT': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG',
+                     'JUNCTION': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG'},
+                    {'SEQUENCE_ID': 'B3',
+                     'SEQUENCE_INPUT': 'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG',
+                     'JUNCTION': 'TGTGCAAGATATAGCAGCAGCTACTACTACTACGGTATGGACGTCTGG'},
+                    {'SEQUENCE_ID': 'B4',
+                     'SEQUENCE_INPUT': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG',
+                     'JUNCTION': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG'}]
 
         # Build preclone IgRecord list with unambiguous gene calls
         seq_copy = deepcopy(seq_list)
         for x in seq_copy:  x.update(deepcopy(group_list[1]))
         self.unambig_records = [IgRecord(x) for x in seq_copy]
-        self.unambig_clones = {1:self.unambig_records[0:4], 2:self.unambig_records[4:]}
+        self.unambig_clones = set([tuple(sorted([x.id for x in self.unambig_records[0:4]])),
+                                   tuple(sorted([x.id for x in self.unambig_records[4:]]))])
 
         # Build db iterator with ambiguous assignments
         group_copy = deepcopy(group_list)
@@ -91,7 +106,9 @@ class Test_DefineClones(unittest.TestCase):
         for i, x in enumerate(group_copy):  x.update(seq_copy[i])
         self.ambig_records = [IgRecord(x) for x in group_copy]
         self.ambig_groups = {('48', 'IGHJ6', 'IGHV1-1', 'IGHV2-1', 'IGHV3-1', 'IGHV4-1'):
-                             ['A1', 'A2', 'A3', 'A4', 'B1', 'B2']}
+                             ['A1', 'A2', 'A3', 'A4', 'B1', 'B2'],
+                             ('48', 'IGHJ6', 'IGHV5-1', 'IGHV6-1'):
+                             ['B3', 'B4']}
         self.start = time.time()
 
     def tearDown(self):
@@ -134,72 +151,58 @@ class Test_DefineClones(unittest.TestCase):
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
         for k, w in results.items():
-            print(k, ' -> ', end='')
+            print('GROUP>\n', ' ->', k)
             for j, v in w.items():
-                print(j, ' -> ', end='')
+                print('    ->', j)
                 for i, u in v.items():
-                    print(i, ' : ', len(u))
+                    print('      ->', i, ':', len(u))
                     nest_key = tuple(sorted(chain([str(k)], j, i)))
                     results_dict[nest_key] = sorted([x.id for x in u])
 
         self.assertDictEqual(self.ambig_groups, results_dict)
 
-    @unittest.skip("-> distanceClones() skipped\n")
+    # @unittest.skip("-> distanceClones() skipped\n")
     def test_distanceClones(self):
         # import cProfile
         # prof = cProfile.Profile()
         # results = prof.runcall(DefineClones.distanceClones, self.unambig_records, model='hs5f', distance=1.0, dist_mat=self.dist_mat)
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
-        # hs5f model
-        results = DefineClones.distanceClones(self.unambig_records, model='hs5f', distance=0.1)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
-        print('MODEL> hs5f')
-        for k, v in results.items():
-            for s in v:
-                print('  CLONE-%i> %s' % (k, s.id))
-        self.assertListEqual(sorted(self.unambig_clones.values(), key=lambda x: len(x)),
-                             sorted(results.values(), key=lambda x: len(x)))
+        # ham model
+        results = DefineClones.distanceClones(self.unambig_records, model='ham', distance=9.0, norm='none')
+        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        print('MODEL> ham')
+        for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
+        self.assertSetEqual(results_set, self.unambig_clones)
 
         # m1n model
         results = DefineClones.distanceClones(self.unambig_records, model='m1n', distance=10.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
         print('MODEL> m1n')
-        for k, v in results.items():
-            for s in v:
-                print('  CLONE-%i> %s' % (k, s.id))
-        self.assertListEqual(sorted(self.unambig_clones.values(), key=lambda x: len(x)),
-                             sorted(results.values(), key=lambda x: len(x)))
+        for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
+        self.assertSetEqual(results_set, self.unambig_clones)
 
         # hs1f model
         results = DefineClones.distanceClones(self.unambig_records, model='hs1f', distance=0.25)
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
         print('MODEL> hs1f')
-        for k, v in results.items():
-            for s in v:
-                print('  CLONE-%i> %s' % (k, s.id))
-        self.assertListEqual(sorted(self.unambig_clones.values(), key=lambda x: len(x)),
-                             sorted(results.values(), key=lambda x: len(x)))
+        for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
+        self.assertSetEqual(results_set, self.unambig_clones)
+
+        # hs5f model
+        results = DefineClones.distanceClones(self.unambig_records, model='hs5f', distance=0.1)
+        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        print('MODEL> hs5f')
+        for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
+        self.assertSetEqual(results_set, self.unambig_clones)
 
         # aa model
         results = DefineClones.distanceClones(self.unambig_records, model='aa', distance=3.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
+        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
         print('MODEL> aa')
-        for k, v in results.items():
-            for s in v:
-                print('  CLONE-%i> %s' % (k, s.id))
-        self.assertListEqual(sorted(self.unambig_clones.values(), key=lambda x: len(x)),
-                             sorted(results.values(), key=lambda x: len(x)))
+        for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
+        self.assertSetEqual(results_set, self.unambig_clones)
 
-         # ham model
-        results = DefineClones.distanceClones(self.unambig_records, model='ham', distance=9.0, norm='none')
-        results = {k: sorted(v, key=lambda x: x.id) for k, v in results.items()}
-        print('MODEL> ham')
-        for k, v in results.items():
-            for s in v:
-                print('  CLONE-%i> %s' % (k, s.id))
-        self.assertListEqual(sorted(self.unambig_clones.values(), key=lambda x: len(x)),
-                             sorted(results.values(), key=lambda x: len(x)))
 
 
 if __name__ == '__main__':
