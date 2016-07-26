@@ -13,6 +13,7 @@ import unittest
 import cProfile
 from collections import OrderedDict
 from copy import deepcopy
+from itertools import chain
 
 # Presto and changeo imports
 from changeo.Receptor import IgRecord
@@ -48,6 +49,14 @@ class Test_DefineClones(unittest.TestCase):
                       {'V_CALL': 'IGHV1-1*01, IGHV2-1*01, IGHV3-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
+                       'JUNCTION_LENGTH': 48},
+                      {'V_CALL': 'IGHV4-1*01',
+                       'D_CALL': 'IGHD6-6*01',
+                       'J_CALL': 'IGHJ6*01',
+                       'JUNCTION_LENGTH': 48},
+                      {'V_CALL': 'IGHV2-1*01, IGHV4-1*01',
+                       'D_CALL': 'IGHD6-6*01',
+                       'J_CALL': 'IGHJ6*01',
                        'JUNCTION_LENGTH': 48}]
 
         # Define unique sequences
@@ -81,7 +90,8 @@ class Test_DefineClones(unittest.TestCase):
         seq_copy = deepcopy(seq_list)
         for i, x in enumerate(group_copy):  x.update(seq_copy[i])
         self.ambig_records = [IgRecord(x) for x in group_copy]
-
+        self.ambig_groups = {('48', 'IGHJ6', 'IGHV1-1', 'IGHV2-1', 'IGHV3-1', 'IGHV4-1'):
+                             ['A1', 'A2', 'A3', 'A4', 'B1', 'B2']}
         self.start = time.time()
 
     def tearDown(self):
@@ -119,18 +129,20 @@ class Test_DefineClones(unittest.TestCase):
         # print(results_old)
 
         # Test ambiguous grouping
-        #for x in self.ambig_records: print(x.id)
         results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='set')
-        #print(results)
-        #for k, v in results.items(): print('%s: %d' % (k, len(v)))
+
+        # Extract nested keys and group lengths for comparison
+        results_dict = dict()
         for k, w in results.items():
             print(k, ' -> ', end='')
             for j, v in w.items():
                 print(j, ' -> ', end='')
                 for i, u in v.items():
                     print(i, ' : ', len(u))
+                    nest_key = tuple(sorted(chain([str(k)], j, i)))
+                    results_dict[nest_key] = sorted([x.id for x in u])
 
-        self.fail()
+        self.assertDictEqual(self.ambig_groups, results_dict)
 
     @unittest.skip("-> distanceClones() skipped\n")
     def test_distanceClones(self):
