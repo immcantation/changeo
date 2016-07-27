@@ -161,26 +161,56 @@ class Test_DefineClones(unittest.TestCase):
         # print(results)
         # print(results_old)
 
-        # Test ambiguous grouping
+        # Test first grouping without fields
+        results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='first')
+        # Extract nested keys and group lengths for comparison
+        results_dict = dict()
+        print('FIRST>')
+        for k, v in results.items():
+            print('  GROUP>', k, ':', len(v))
+            #nest_key = tuple(sorted(chain([str(x or '') for x in k])))
+            #results_dic
+        print('')
+        #self.fail()
+
+        # Test ambiguous grouping without fields
         results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='set')
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
+        print('SET>')
         for k, v in results.items():
-            print('GROUP>', k, ':', len(v))
+            print('  GROUP>', k, ':', len(v))
             nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
             results_dict[nest_key] = sorted([x.id for x in v])
+        print('')
         self.assertDictEqual(self.ambig_groups, results_dict)
+
+        # Test first grouping with fields
+        results = DefineClones.indexJunctions(self.ambig_records, fields=['FIELD1', 'FIELD2'],
+                                              mode='gene', action='first')
+        # Extract nested keys and group lengths for comparison
+        results_dict = dict()
+        print('FIRST>')
+        for k, v in results.items():
+            print('  GROUP>', k, ':', len(v))
+            #nest_key = tuple(sorted(chain([str(x or '') for x in k])))
+            #results_dict[nest_key] = sorted([x.id for x in v])
+        print('')
+        #self.fail()
 
         # Test ambiguous grouping with fields
         results = DefineClones.indexJunctions(self.ambig_records, fields=['FIELD1', 'FIELD2'],
                                               mode='gene', action='set')
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
+        print('SET>')
         for k, v in results.items():
-            print('GROUP>', k, ':', len(v))
-            nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
-            results_dict[nest_key] = sorted([x.id for x in v])
-        self.fail()
+            print('  GROUP>', k, ':', len(v))
+            #nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
+            #results_dict[nest_key] = sorted([x.id for x in v])
+        print('')
+        #self.fail()
+
 
     # @unittest.skip("-> distanceClones() skipped\n")
     def test_distanceClones(self):

@@ -38,7 +38,7 @@ csv.field_size_limit(sys.maxsize)
 # Defaults
 default_translate = False
 default_distance = 0.0
-default_bygroup_model = 'hs1f'
+default_bygroup_model = 'ham'
 default_hclust_model = 'chen2010'
 default_seq_field = 'JUNCTION'
 default_norm = 'len'
@@ -78,16 +78,43 @@ def getModelMatrix(model):
         sys.stderr.write('Unrecognized distance model: %s.\n' % model)
 
 
-def indexByIdentity(index, key, rec):
-    return index.setdefault(key, []).append(rec)
+
+def indexByIdentity(index, key, rec, fields=None):
+    """
+    Updates a preclone index with a simple key
+
+    Arguments:
+    index = preclone index from indexJunctions
+    key = index key
+    rec = IgRecord to add to the index
+    fields = additional annotation fields to use to group preclones;
+             if None use only V, J and junction length
+
+    Returns:
+    None. Updates index with new key and records.
+    """
+    index.setdefault(tuple(key), []).append(rec)
 
 
-def indexByUnion(index, key, rec, fields):
+def indexByUnion(index, key, rec, fields=None):
+    """
+    Updates a preclone index with the union of nested keys
+
+    Arguments:
+    index = preclone index from indexJunctions
+    key = index key
+    rec = IgRecord to add to the index
+    fields = additional annotation fields to use to group preclones;
+             if None use only V, J and junction length
+
+    Returns:
+    None. Updates index with new key and records.
+    """
     # List of values for this/new key
     val = [rec]
     f_range = list(range(2, 3 + (len(fields) if fields else 0)))
 
-    # See if field/junction length combination exists in clone_index
+    # See if field/junction length combination exists in index
     outer_dict = index
     for field in f_range:
         try:
@@ -95,7 +122,6 @@ def indexByUnion(index, key, rec, fields):
         except (KeyError):
             outer_dict = None
             break
-
     # If field combination exists, look through Js
     j_matches = []
     if outer_dict is not None:
@@ -103,7 +129,6 @@ def indexByUnion(index, key, rec, fields):
             if not set(key[1]).isdisjoint(set(j)):
                 key[1] = tuple(set(key[1]).union(set(j)))
                 j_matches += [j]
-
     # If J overlap exists, look through Vs for each J
     for j in j_matches:
         v_matches = []
@@ -119,20 +144,18 @@ def indexByUnion(index, key, rec, fields):
             if not outer_dict[j]:
                 outer_dict.pop(j, None)
 
-    # Add value(s) into clone_index nested dictionary
+    # Add value(s) into index nested dictionary
     # OMG Python pointers are the best!
-    # Add field dictionaries into clone_index
+    # Add field dictionaries into index
     outer_dict = index
     for field in f_range:
         outer_dict.setdefault(key[field], {})
         outer_dict = outer_dict[key[field]]
-    # Add J, then V into clone_index
+    # Add J, then V into index
     if key[1] in outer_dict:
         outer_dict[key[1]].update({key[0]: val})
     else:
         outer_dict[key[1]] = {key[0]: val}
-
-    return outer_dict
 
 
 def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
@@ -177,14 +200,21 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     # Function to flatten nested dictionary
     def _flatten_dict(d, parent_key=''):
         items = []
-        for k,v in d.items():
+        for k, v in d.items():
             new_key = parent_key + [k] if parent_key else [k]
             if isinstance(v, dict):
                 items.extend(_flatten_dict(v, new_key).items())
             else:
                 items.append((new_key, v))
-        items = [(tuple(i[0]), i[1]) for i in items]
-        return dict(items)
+        flat_dict = {None if None in i[0] else tuple(i[0]): i[1] for i in items}
+        return flat_dict
+
+    if action == 'first':
+        index_func = indexByIdentity
+    elif action == 'set':
+        index_func = indexByUnion
+    else:
+        sys.stderr.write('Unrecognized action: %s.\n' % action)
 
     start_time = time()
     clone_index = {}
@@ -201,55 +231,8 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
 
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None and k != '' for k in key]):
-            if action == 'first':
-                clone_index.setdefault(tuple(key), []).append(rec)
-            elif action == 'set':
-                # List of values for this/new key
-                val = [rec]
-                f_range = list(range(2, 3 + (len(fields) if fields else 0)))
-
-                # See if field/junction length combination exists in clone_index
-                outer_dict = clone_index
-                for field in f_range:
-                    try:
-                        outer_dict = outer_dict[key[field]]
-                    except (KeyError):
-                        outer_dict = None
-                        break
-                # If field combination exists, look through Js
-                j_matches = []
-                if outer_dict is not None:
-                    for j in outer_dict.keys():
-                        if not set(key[1]).isdisjoint(set(j)):
-                            key[1] = tuple(set(key[1]).union(set(j)))
-                            j_matches += [j]
-                # If J overlap exists, look through Vs for each J
-                for j in j_matches:
-                    v_matches = []
-                    # Collect V matches for this J
-                    for v in outer_dict[j].keys():
-                        if not set(key[0]).isdisjoint(set(v)):
-                            key[0] = tuple(set(key[0]).union(set(v)))
-                            v_matches += [v]
-                    # If there are V overlaps for this J, pop them out
-                    if v_matches:
-                        val += list(chain(*(outer_dict[j].pop(v) for v in v_matches)))
-                        # If the J dict is now empty, remove it
-                        if not outer_dict[j]:
-                            outer_dict.pop(j, None)
-
-                # Add value(s) into clone_index nested dictionary
-                # OMG Python pointers are the best!
-                # Add field dictionaries into clone_index
-                outer_dict = clone_index
-                for field in f_range:
-                    outer_dict.setdefault(key[field], {})
-                    outer_dict = outer_dict[key[field]]
-                # Add J, then V into clone_index
-                if key[1] in outer_dict:
-                    outer_dict[key[1]].update({key[0]:val})
-                else:
-                    outer_dict[key[1]] = {key[0]:val}
+            # Update index dictionary
+            index_func(clone_index, key, rec, fields)
         else:
             clone_index.setdefault(None, []).append(rec)
 
@@ -299,7 +282,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         if len(seq) == 0:
             return None
 
-        seq = re.sub('[\.-]','N', str(seq))
+        seq = re.sub('[\.-]', 'N', str(seq))
         if model == 'aa':  seq = translate(seq)
 
         seq_map.setdefault(seq, []).append(ig)
