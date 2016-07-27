@@ -37,35 +37,51 @@ class Test_DefineClones(unittest.TestCase):
         group_list = [{'V_CALL': 'IGHV1-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GA',
+                       'FIELD2': '1'},
                       {'V_CALL': 'IGHV2-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GA',
+                       'FIELD2': '1'},
                       {'V_CALL': 'IGHV3-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GA',
+                       'FIELD2': '2'},
                       {'V_CALL': 'IGHV1-1*01, IGHV2-1*01, IGHV3-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GA',
+                       'FIELD2': '2'},
                       {'V_CALL': 'IGHV4-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GB',
+                       'FIELD2': '1'},
                       {'V_CALL': 'IGHV2-1*01, IGHV4-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GB',
+                       'FIELD2': '2'},
                       {'V_CALL': 'IGHV5-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48},
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': 'GB',
+                       'FIELD2': None},
                       {'V_CALL': 'IGHV5-1*01, IGHV6-1*01',
                        'D_CALL': 'IGHD6-6*01',
                        'J_CALL': 'IGHJ6*01',
-                       'JUNCTION_LENGTH': 48}]
+                       'JUNCTION_LENGTH': 48,
+                       'FIELD1': '',
+                       'FIELD2': '1'}]
 
         # Define unique sequences
         seq_list = [{'SEQUENCE_ID': 'A1',
@@ -147,15 +163,24 @@ class Test_DefineClones(unittest.TestCase):
 
         # Test ambiguous grouping
         results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='set')
-
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
         for k, v in results.items():
             print('GROUP>', k, ':', len(v))
             nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
             results_dict[nest_key] = sorted([x.id for x in v])
-
         self.assertDictEqual(self.ambig_groups, results_dict)
+
+        # Test ambiguous grouping with fields
+        results = DefineClones.indexJunctions(self.ambig_records, fields=['FIELD1', 'FIELD2'],
+                                              mode='gene', action='set')
+        # Extract nested keys and group lengths for comparison
+        results_dict = dict()
+        for k, v in results.items():
+            print('GROUP>', k, ':', len(v))
+            nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
+            results_dict[nest_key] = sorted([x.id for x in v])
+        self.fail()
 
     # @unittest.skip("-> distanceClones() skipped\n")
     def test_distanceClones(self):
