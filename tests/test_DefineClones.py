@@ -121,10 +121,28 @@ class Test_DefineClones(unittest.TestCase):
         seq_copy = deepcopy(seq_list)
         for i, x in enumerate(group_copy):  x.update(seq_copy[i])
         self.ambig_records = [IgRecord(x) for x in group_copy]
-        self.ambig_groups = {('48', 'IGHJ6', 'IGHV1-1', 'IGHV2-1', 'IGHV3-1', 'IGHV4-1'):
+        self.first_nofields = {('IGHV1-1', 'IGHJ6', '48'): ['A1','A4'],
+                               ('IGHV2-1', 'IGHJ6', '48'): ['A2','B2'],
+                               ('IGHV3-1', 'IGHJ6', '48'): ['A3'],
+                               ('IGHV4-1', 'IGHJ6', '48'): ['B1'],
+                               ('IGHV5-1', 'IGHJ6', '48'): ['B3','B4']}
+        self.set_nofields = {('48', ('IGHJ6',), ('IGHV1-1', 'IGHV2-1', 'IGHV3-1', 'IGHV4-1')):
                              ['A1', 'A2', 'A3', 'A4', 'B1', 'B2'],
-                             ('48', 'IGHJ6', 'IGHV5-1', 'IGHV6-1'):
+                             ('48', ('IGHJ6',), ('IGHV5-1', 'IGHV6-1')):
                              ['B3', 'B4']}
+        self.first_fields = {('IGHV1-1', 'IGHJ6', '48', 'GA', '1'): ['A1'],
+                             ('IGHV2-1', 'IGHJ6', '48', 'GA', '1'): ['A2'],
+                             ('IGHV3-1', 'IGHJ6', '48', 'GA', '2'): ['A3'],
+                             ('IGHV1-1', 'IGHJ6', '48', 'GA', '2'): ['A4'],
+                             ('IGHV4-1', 'IGHJ6', '48', 'GB', '1'): ['B1'],
+                             ('IGHV2-1', 'IGHJ6', '48', 'GB', '2'): ['B2'],
+                             None: ['B3','B4']}
+        self.set_fields = {('48', 'GA', '1', ('IGHJ6',), ('IGHV1-1',)): ['A1'],
+                           ('48', 'GA', '1', ('IGHJ6',), ('IGHV2-1',)): ['A2'],
+                           ('48', 'GA', '2', ('IGHJ6',), ('IGHV1-1', 'IGHV2-1', 'IGHV3-1')): ['A3', 'A4'],
+                           ('48', 'GB', '1', ('IGHJ6',), ('IGHV4-1',)): ['B1'],
+                           ('48', 'GB', '2', ('IGHJ6',), ('IGHV2-1', 'IGHV4-1')): ['B2'],
+                           None: ['B3','B4']}
         self.start = time.time()
 
     def tearDown(self):
@@ -167,11 +185,11 @@ class Test_DefineClones(unittest.TestCase):
         results_dict = dict()
         print('FIRST>')
         for k, v in results.items():
-            print('  GROUP>', k, ':', len(v))
-            #nest_key = tuple(sorted(chain([str(x or '') for x in k])))
-            #results_dic
+            nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k])
+            results_dict[nest_key] = sorted([x.id for x in v])
+            print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
-        #self.fail()
+        self.assertDictEqual(self.first_nofields, results_dict)
 
         # Test ambiguous grouping without fields
         results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='set')
@@ -179,11 +197,11 @@ class Test_DefineClones(unittest.TestCase):
         results_dict = dict()
         print('SET>')
         for k, v in results.items():
-            print('  GROUP>', k, ':', len(v))
-            nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
+            nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k])
             results_dict[nest_key] = sorted([x.id for x in v])
+            print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
-        self.assertDictEqual(self.ambig_groups, results_dict)
+        self.assertDictEqual(self.set_nofields, results_dict)
 
         # Test first grouping with fields
         results = DefineClones.indexJunctions(self.ambig_records, fields=['FIELD1', 'FIELD2'],
@@ -192,11 +210,11 @@ class Test_DefineClones(unittest.TestCase):
         results_dict = dict()
         print('FIRST>')
         for k, v in results.items():
-            print('  GROUP>', k, ':', len(v))
-            #nest_key = tuple(sorted(chain([str(x or '') for x in k])))
-            #results_dict[nest_key] = sorted([x.id for x in v])
+            nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k]) if k is not None else None
+            results_dict[nest_key] = sorted([x.id for x in v])
+            print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
-        #self.fail()
+        self.assertDictEqual(self.first_fields, results_dict)
 
         # Test ambiguous grouping with fields
         results = DefineClones.indexJunctions(self.ambig_records, fields=['FIELD1', 'FIELD2'],
@@ -205,11 +223,11 @@ class Test_DefineClones(unittest.TestCase):
         results_dict = dict()
         print('SET>')
         for k, v in results.items():
-            print('  GROUP>', k, ':', len(v))
-            #nest_key = tuple(sorted(chain([str(k[0])], *k[1:])))
-            #results_dict[nest_key] = sorted([x.id for x in v])
+            nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k]) if k is not None else None
+            results_dict[nest_key] = sorted([x.id for x in v])
+            print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
-        #self.fail()
+        self.assertDictEqual(self.set_fields, results_dict)
 
 
     # @unittest.skip("-> distanceClones() skipped\n")
