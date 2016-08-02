@@ -700,6 +700,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
     #                     not RF1 can cause this to report inaccurately
     # 15: IGHV start offset - offset for start of alignment between input sequence and
     #                         germline IGHV
+    #                         NOTE: appears to be base 1 indexing.
     # 16: stop codons - count of stop codons in the sequence, WARNING indels and germline
     #                   IGHV database sequence that are not RF can cause this to be inaccurate
     # 17: IGHD probability - probability that N-nucleotide addition could have created the
@@ -716,6 +717,8 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
     #                                      common region
     # 22: IGHV start offset  - offset for start of alignment between input sequence and
     #                          germline IGHV
+    #                          NOTE: appears to be base 0 indexing.
+    #                          NOTE: don't know if this differs from 15; it doesn't appear to.
     # 23: IGHV gene length - length of IGHV gene
     # 24: A score - A score probability is calculated from the common region mutations
     #               and is used for HMM calculations relating to expected mutation
@@ -741,8 +744,8 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
                       'RC',
                       'COMMON_MUT',
                       'COMMON_NX_COUNT',
-                      'V_GERM_START',
-                      'V_GERM_LENGTH',
+                      'V_SEQ_START2',
+                      'V_SEQ_LENGTH',
                       'A_SCORE']
 
     record_handle = open(ihmm_output, 'rU')
@@ -833,7 +836,7 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
                                       sample_jseq])
 
         # Germline positions
-        db['V_GERM_START_VDJ'] = row['V_GERM_START']
+        db['V_GERM_START_VDJ'] = 1
         db['V_GERM_LENGTH_VDJ'] = len(sample_vseq)
 
         # N/P lengths

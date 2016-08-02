@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.2.999:  July 26, 2016
+Version 0.3.3:  August 8, 2016
 -------------------------------------------------------------------------------
 
 Increased ``csv.field_size_limit`` in changeo.IO, ParseDb and DefineClones
@@ -41,9 +41,11 @@ MakeDb:
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
 + Fixed a bug that caused the ``IN_FRAME``, ``MUTATED_INVARIANT`` and
   ``STOP`` field to be be parsed incorrectly from IMGT data.
-+ Can now parse ouput from iHMMuneAlign (insufficient information returned by
-  aligner to run CreateGermlines on results). Can be run via the ``ihmm``
-  subcommand.
++ Ouput from iHMMuneAlign can now be parsed via the ``ihmm`` subcommand.
+  Note, there is insufficient information returned by iHMMuneAlign to
+  reliably reconstruct germline sequences from the output using
+  CreateGermlines.
+
 
 ParseDb:
 
