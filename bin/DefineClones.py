@@ -38,6 +38,8 @@ csv.field_size_limit(sys.maxsize)
 # Defaults
 default_translate = False
 default_distance = 0.0
+default_index_mode = 'gene'
+default_index_action = 'set'
 default_bygroup_model = 'ham'
 default_hclust_model = 'chen2010'
 default_seq_field = 'JUNCTION'
@@ -158,7 +160,8 @@ def indexByUnion(index, key, rec, fields=None):
         outer_dict[key[1]] = {key[0]: val}
 
 
-def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
+def indexJunctions(db_iter, fields=None, mode=default_index_mode,
+                   action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
 
@@ -1022,11 +1025,11 @@ def getArgParser():
     parser_bygroup.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
     parser_bygroup.add_argument('--mode', action='store', dest='mode', 
-                             choices=('allele', 'gene'), default='gene', 
+                             choices=('allele', 'gene'), default=default_index_mode,
                              help='''Specifies whether to use the V(D)J allele or gene for
                                   initial grouping.''')
-    parser_bygroup.add_argument('--act', action='store', dest='action', default='set',
-                             choices=('first', 'set'),
+    parser_bygroup.add_argument('--act', action='store', dest='action',
+                             choices=('first', 'set'), default=default_index_action,
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
