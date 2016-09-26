@@ -14,7 +14,7 @@ Removing non-functional sequences
 
 After building a Change-O database from either :ref:`IMGT/HighV-QUEST <IMGT>` or
 :ref:`IgBLAST <IgBLAST>` output, you may wish to subset your data to only functional
-sequences. This can be done is one of two roughly equivalent ways using the
+sequences. This can be done in one of two roughly equivalent ways using the
 :ref:`ParseDb` tool:
 
 .. code-block:: none
