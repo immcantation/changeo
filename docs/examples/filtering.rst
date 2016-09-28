@@ -39,7 +39,8 @@ Removing disagreements between the C-region primers and the reference alignment
 If you have data that includes both heavy and light chains in the same library,
 the V-segment and J-segment alignments from IMGT/HighV-QUEST or IgBLAST may not
 always agree with the isotype assignments from the C-region primers. In these cases,
-you can filter out such reads with the :program:`select` subcommand of :ref:`ParseDb`:
+you can filter out such reads with the :program:`select` subcommand of :ref:`ParseDb`.
+An example function call using an imaginary file ``db.tab`` is provided below:
 
 .. code-block:: none
     :linenos:
@@ -72,7 +73,7 @@ The :program:`fasta`
 subcommand allows you to export sequences and annotations to FASTA formatted files in the
 `pRESTO annototation scheme <http://presto.readthedocs.io/en/latest/overview.html#annotation-scheme>`__::
 
-    ParseDb.py fasta -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
+    ParseDb.py fasta -d S43_atleast-2_db-pass.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
 
 Where the column containing the sequence identifier is specified by
 :option:`--if SEQUENCE_ID <ParseDb fasta --if>`, the nucleotide sequence column is
@@ -85,7 +86,8 @@ BASELINe FASTA
 
 The :program:`clip` subcommand generates a FASTA derivative format required by the
 `BASELINe <http://selection.med.yale.edu/baseline>`__ web tool. Generating these
-files is similar to building standard FASTA files, but requires a few more options::
+files is similar to building standard FASTA files, but requires a few more options.
+An example function call using an imaginary file ``db.tab`` is provided below::
 
     ParseDb.py clip -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT \
         --cf CLONE --gf GERMLINE_IMGT_D_MASK
@@ -102,7 +104,8 @@ respectively.
     :ref:`DefineClones` generates a sorted ``CLONE`` column by default. However,
     you needed to alter the order of the ``CLONE`` column at some point,
     then you can re-sort the clonal assignments using the :program:`sort`
-    subcommand of :ref:`ParseDb`::
+    subcommand of :ref:`ParseDb`. An example function call using an imaginary 
+    file ``db.tab`` is provided below::
 
         ParseDb.py sort -d db.tab -f CLONE
 
