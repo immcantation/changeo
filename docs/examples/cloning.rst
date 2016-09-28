@@ -28,11 +28,13 @@ the distance between each sequence in the data and its nearest neighbor. The
 resulting distribution is bimodal, with the first mode representing sequences
 with clonal relatives in the dataset and the second mode representing singletons.
 The ideal threshold for separating clonal groups is the value that separates
-the two modes of this distribution. The function allows selection of all
-parameters that are available in :ref:`DefineClones`. Using the length
-normalization parameter ensures that mutations are weighted equally
+the two modes of this distribution and can be found using the 
+`findThreshold <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__ 
+function. The `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__ 
+function allows selection of all parameters that are available in :ref:`DefineClones`. 
+Using the length normalization parameter ensures that mutations are weighted equally
 regardless of junction sequence length. The distance to nearest neighbor distribution
-for the example data is shown below. The threshold we have selected is ``0.165`` - indicated
+for the example data is shown below. The threshold is ``0.16`` - indicated
 by the red dotted line.
 
 .. figure:: figures/DistToNearest.svg
@@ -52,14 +54,13 @@ Assigning clones
 There are several parameter choices when grouping Ig sequences into B cell
 clones. The argument :option:`--act set <DefineClones bygroup --act>`
 accounts for ambiguous V-gene and J-gene calls when grouping similar sequences. The
-distance metric :option:`--model hs5f <DefineClones bygroup --model>`
-incorporates somatic hypermutation biases using a human 5-mer model. Because
-the :option:`hs5f <DefineClones bygroup --model>` distance model is not symmetric,
-the :option:`--sym min <DefineClones bygroup --sym>` argument set the
-distance to the minimum of the mutational distance between two sequences.
+distance metric :option:`--model ham <DefineClones bygroup --model>`
+is nucleotide Hamming distance. Because
+the :option:`ham <DefineClones bygroup --model>` distance model is symmetric,
+the :option:`--sym min <DefineClones bygroup --sym>` argument can be left as default.
 Because the threshold was generated using length normalized distances, the
 :option:`--norm len <DefineClones bygroup --norm>` argument is selected with the
-resultant threshold :option:`--dist 0.165 <DefineClones bygroup --dist>`::
+resultant threshold :option:`--dist 0.16 <DefineClones bygroup --dist>`::
 
     DefineClones.py bygroup -d S43_db-pass_parse-select.tab --act set --model hs5f \
-    --sym min --norm len --dist 0.165
+    --sym min --norm len --dist 0.16
