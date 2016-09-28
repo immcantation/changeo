@@ -62,5 +62,5 @@ Because the threshold was generated using length normalized distances, the
 :option:`--norm len <DefineClones bygroup --norm>` argument is selected with the
 resultant threshold :option:`--dist 0.16 <DefineClones bygroup --dist>`::
 
-    DefineClones.py bygroup -d S43_db-pass_parse-select.tab --act set --model hs5f \
+    DefineClones.py bygroup -d S43_db-pass_parse-select.tab --act set --model ham \
     --sym min --norm len --dist 0.16
