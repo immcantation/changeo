@@ -33,7 +33,7 @@ the reference sequences must be IMGT-gapped.
     complete set of germlines used by the reference alignment software
     (IMGT/HighV-QUEST or IgBLAST). If alleles called by the aligner are missing from the
     reference set, they will not be successfully processed. Additionally, the V-segment
-    reference set **must** be IMGT-gapped sequence to properly reconstruct the germline,
+    reference set **must** contain IMGT-gapped sequences to properly reconstruct germlines,
     even if the reference alignment was performed on ungapped sequences.
 
 Because the D-segment call for B cell receptor alignments is often low confidence, the default
