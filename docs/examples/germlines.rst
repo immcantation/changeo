@@ -21,9 +21,21 @@ Adding germline sequences to the database
 --------------------------------------------------------------------------------
 
 The :ref:`CreateGermlines` tool is used to reconstruct the germline V(D)J sequence,
-from which the Ig lineage and mutations can be inferred. The alignment information is saved
-by :ref:`MakeDb`, but the germline gene segment sequences that were used for
-the alignment must be passed to the :option:`-r <CreateGermlines -r>` argument.
+from which the Ig lineage and mutations can be inferred. In addition to the alignment
+information parsed by :ref:`MakeDb` to generate the initial database, :ref:`CreateGermlines`
+also requires the set of germline sequences that were used for the alignment
+passed to the :option:`-r <CreateGermlines -r>` argument. In the case of V-segment germlines,
+the reference sequences must be IMGT-gapped.
+
+.. note::
+
+    The germline set passed to :option:`-r <CreateGermlines -r>` **must** contain the
+    complete set of germlines used by the reference alignment software
+    (IMGT/HighV-QUEST or IgBLAST). If alleles called by the aligner are missing from the
+    reference set, they will not be successfully processed. Additionally, the V-segment
+    reference set **must** be IMGT-gapped sequence to properly reconstruct the germline,
+    even if the reference alignment was performed on ungapped sequences.
+
 Because the D-segment call for B cell receptor alignments is often low confidence, the default
 germline format (:option:`-g dmask <CreateGermlines -g>`) places Ns in the N/P and D-segments
 of the junction region rather than using the D-segment assigned during reference alignment;
