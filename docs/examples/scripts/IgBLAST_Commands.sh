@@ -11,8 +11,8 @@ makeblastdb -parse_seqids -dbtype nucl -in database/human_igh_j
 # Run IgBLAST
 igblastn \
     -germline_db_V database/human_igh_v \
-    -germline_db_V database/human_igh_d \
-    -germline_db_V database/human_igh_j \
+    -germline_db_D database/human_igh_d \
+    -germline_db_J database/human_igh_j \
     -auxiliary_data optional_file/human_gl.aux \
     -domain_system imgt -ig_seqtype Ig -organism human \
     -outfmt '7 std qseq sseq btop' \
