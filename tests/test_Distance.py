@@ -27,7 +27,7 @@ class Test_Distance(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    #@unittest.skip("-> loadModels() skipped\n")
+    @unittest.skip("-> loadModels() skipped\n")
     def test_loadModels(self):
         print(' M1N> ', m1n_model)
         print('HS5F> ', hs5f_model)

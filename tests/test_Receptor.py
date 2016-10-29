@@ -46,7 +46,7 @@ class Test_DbCore(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    #@unittest.skip("-> IgRecord() skipped\n")
+    @unittest.skip("-> IgRecord() skipped\n")
     def test_IgRecord(self):
         print('IG>')
         print(self.ig_rec.getAlleleCalls(['v','d','j'], action='first'))

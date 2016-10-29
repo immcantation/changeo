@@ -48,7 +48,7 @@ class Test_MakeDb(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    #@unittest.skip("-> readIgBlast() skipped\n")
+    @unittest.skip("-> readIgBlast() skipped\n")
     def test_readIgBlast(self):
 
         print('Testing IG\n')
