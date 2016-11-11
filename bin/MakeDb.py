@@ -1287,7 +1287,8 @@ def getArgParser():
                                      set of germlines used in the IgBLAST alignment.''')
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
-                                help='List of input FASTA files containing sequences')
+                                help='List of input FASTA files (with .fasta extension), 
+                                containing sequences')
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
                                 help='''Specify if input IDs should not be parsed to add
                                      new columns to database.''')
@@ -1317,7 +1318,8 @@ def getArgParser():
                                   and 6_Junction).''')
     parser_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
                              required=False,
-                             help='List of input FASTA files containing sequences')
+                             help='List of input FASTA files (with .fasta extension) 
+                             containing sequences')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='''Specify if input IDs should not be parsed to add new
                                   columns to database.''')
@@ -1353,7 +1355,8 @@ def getArgParser():
                                   set of germlines used in the IgBLAST alignment.''')
     parser_ihmm.add_argument('-s', action='store', nargs='+', dest='seq_files',
                              required=True,
-                             help='List of input FASTA files containing sequences')
+                             help='List of input FASTA files (with .fasta extension)
+                             containing sequences')
     parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
                              help='''Specify if input IDs should not be parsed to add
                                   new columns to database.''')
