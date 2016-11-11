@@ -564,6 +564,13 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
 
             # Sequences
             db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
+            if gp['V-D-J-REGION']:
+                db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION']
+            elif gp['V-J-REGION']:
+                db_gen['SEQUENCE_IMGT'] = gp['V-J-REGION']
+            else:
+                db_gen['SEQUENCE_IMGT'] = gp['V-REGION']
+
             db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
             db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
             db_gen['JUNCTION'] = jn['JUNCTION']
@@ -976,23 +983,27 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     # TODO:  This is not the best approach. should pass in output fields.
     # Initiate passed handle
     pass_handle = None
-
-    # Open failed file
-    if out_args['failed']:
-        fail_handle = open(fail_file, 'wt')
-        fail_writer = getDbWriter(fail_handle, add_fields=['SEQUENCE_ID', 'SEQUENCE_INPUT'])
-    else:
-        fail_handle = None
-        fail_writer = None
+    fail_handle = None
 
     # Initialize counters and file
     pass_writer = None
+    fail_writer = None
     start_time = time()
     rec_count = pass_count = fail_count = 0
     for record in db_gen:
         #printProgress(i + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
         printProgress(rec_count, total_count, 0.05, start_time)
         rec_count += 1
+
+        # TODO:  This is not the best approach. should pass in output fields.
+        # If first sequence, use parsed description to create new columns and initialize writer
+        if pass_writer is None:
+            if not no_parse:  ordered_fields.extend(list(record.annotations.keys()))
+            pass_handle = open(pass_file, 'wt')
+            pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+            if out_args['failed']:
+                fail_handle = open(fail_file, 'wt')
+                fail_writer = getDbWriter(fail_handle, add_fields=ordered_fields)
 
         # Count pass or fail
         if (record.v_call == 'None' and record.j_call == 'None') or \
@@ -1015,13 +1026,6 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
             record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
             record.id = record.annotations['ID']
             del record.annotations['ID']
-
-        # TODO:  This is not the best approach. should pass in output fields.
-        # If first sequence, use parsed description to create new columns and initialize writer
-        if pass_writer is None:
-            if not no_parse:  ordered_fields.extend(list(record.annotations.keys()))
-            pass_handle = open(pass_file, 'wt')
-            pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
 
         # Write row to tab-delim CLIP file
         pass_writer.writerow(record.toDict())
