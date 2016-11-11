@@ -646,8 +646,8 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
-                        help='List of folders and/or fasta files (with .fasta extension) 
-                        with germline sequences.')
+                        help='''List of folders and/or fasta files (with .fasta extension)
+                        with germline sequences.''')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly', 'regions'),
                         help='Specify type(s) of germlines to include full germline, \
