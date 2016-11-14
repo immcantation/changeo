@@ -43,11 +43,11 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
 
 
 def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
-                       failed=True, log=True, annotation=True, multiproc=False):
+                       failed=True, log=True, annotation=True, multiproc=False, partial=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
-    Arguments: 
+    Arguments:
       seq_in : If True include sequence input arguments
       seq_out : If True include sequence output arguments
       paired : If True defined paired-end sequence input and output arguments
@@ -57,7 +57,8 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
       log : If True include log arguments
       annotation : If True include annotation arguments
       multiproc : If True include multiprocessing arguments
-    
+      partial : If True include partial alignments in the pass file, otherwise,
+                put them in the fail file
     Returns:
       ArgumentParser : An ArgumentParser object
     """
@@ -120,6 +121,12 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
                         help='Changes the prefix of the successfully processed output file \
                               to the string specified. May not be specified with multiple \
                               input files.')
+
+    # Partial alignments
+    if partial:
+        parser.add_argument('--partial', action='store_true', dest='partial',
+                            help='''If True include partial alignments in the pass file, otherwise,
+                                     put them in the fail file''')
 
     return parser
 
@@ -224,7 +231,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
 
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'separator', 
-                'out_dir', 'out_name', 'out_type', 'failed']
+                'out_dir', 'out_name', 'out_type', 'failed', 'partial']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     
