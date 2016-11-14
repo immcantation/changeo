@@ -43,7 +43,7 @@ def getRepo(repo):
 
     # Catch instances where no valid fasta files were passed in
     if len(repo_files) < 1:
-        sys.exit('ERROR: No valid germline fasta files were found in %s', repo)
+        sys.exit('ERROR: No valid germline fasta files (.fasta, .fna, .fa) were found in %s', repo)
 
     repo_dict = {}
     for file_name in repo_files:
