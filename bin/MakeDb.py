@@ -3,7 +3,7 @@
 Create tab-delimited database file to store sequence alignment information
 """
 # Info
-__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Scott Christley'
 from changeo import __version__, __date__
 
 # Imports
@@ -252,8 +252,8 @@ def readOneIgBlastResult(block):
     i = 0
     for match, subblock in groupby(block, lambda l: l=='\n'):
         if not match:
-            # Strip whitespace and comments
-            sub = [s.strip() for s in subblock if not s.startswith('#')]
+            # Strip whitespace and comments, leave field list
+            sub = [s.strip() for s in subblock if not s.startswith('#') or s.startswith('# Fields:')]
 
             # Continue on empty block
             if not sub:  continue
@@ -342,6 +342,13 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                     # Parse segment start and stop positions
                     hit_df = block_list[-1]
 
+                    # Alignment info block fields
+                    if hit_df[0][0].startswith('# Fields:'):
+                        headers = re.compile('^#\s*Fields:\s*').sub('', hit_df[0][0], 0)
+                        fields = [ 'segment' ]
+                        fields += headers.split(',')
+                        fields = [ f.strip() for f in fields ]
+
                     # Alignment info block
                     #  0:  segment
                     #  1:  query id
@@ -366,13 +373,13 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                     if v_call is not None:
                         v_align = hit_df[hit_df[0] == 'V'].iloc[0]
                         # Germline positions
-                        db_gen['V_GERM_START_VDJ'] = int(v_align[10])
-                        db_gen['V_GERM_LENGTH_VDJ'] = int(v_align[11]) - db_gen['V_GERM_START_VDJ'] + 1
+                        db_gen['V_GERM_START_VDJ'] = int(v_align[fields.index('s. start')])
+                        db_gen['V_GERM_LENGTH_VDJ'] = int(v_align[fields.index('s. end')]) - db_gen['V_GERM_START_VDJ'] + 1
                         # Query sequence positions
-                        db_gen['V_SEQ_START'] = int(v_align[8])
-                        db_gen['V_SEQ_LENGTH'] = int(v_align[9]) - db_gen['V_SEQ_START'] + 1
+                        db_gen['V_SEQ_START'] = int(v_align[fields.index('q. start')])
+                        db_gen['V_SEQ_LENGTH'] = int(v_align[fields.index('q. end')]) - db_gen['V_SEQ_START'] + 1
 
-                        if int(v_align[6]) == 0:
+                        if int(v_align[fields.index('gap opens')]) == 0:
                             db_gen['INDELS'] = 'F'
                         else:
                             db_gen['INDELS'] = 'T'
@@ -381,25 +388,25 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
                         # V alignment scores
                         if score_fields:
-                            try: db_gen['V_SCORE'] = float(v_align[13])
+                            try: db_gen['V_SCORE'] = float(v_align[fields.index('bit score')])
                             except (TypeError, ValueError): db_gen['V_SCORE'] = 'None'
 
-                            try: db_gen['V_IDENTITY'] = float(v_align[3]) / 100.0
+                            try: db_gen['V_IDENTITY'] = float(v_align[fields.index('% identity')]) / 100.0
                             except (TypeError, ValueError): db_gen['V_IDENTITY'] = 'None'
 
-                            try: db_gen['V_EVALUE'] = float(v_align[12])
+                            try: db_gen['V_EVALUE'] = float(v_align[fields.index('evalue')])
                             except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
 
-                            try: db_gen['V_BTOP'] = v_align[16]
+                            try: db_gen['V_BTOP'] = v_align[fields.index('BTOP')]
                             except (TypeError, ValueError): db_gen['V_BTOP'] = 'None'
 
                         # Update VDJ sequence, removing insertions
                         start = 0
-                        for m in re.finditer(r'-', v_align[15]):
+                        for m in re.finditer(r'-', v_align[fields.index('subject seq')]):
                             ins = m.start()
-                            seq_vdj += v_align[14][start:ins]
+                            seq_vdj += v_align[fields.index('query seq')][start:ins]
                             start = ins + 1
-                        seq_vdj += v_align[14][start:]
+                        seq_vdj += v_align[fields.index('query seq')][start:]
 
                     # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
                     # If D call exists, parse D alignment information
@@ -410,31 +417,31 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         # Determine N-region length and amount of J overlap with V or D alignment
                         overlap = 0
                         if v_call is not None:
-                            np1_len = int(d_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            np1_len = int(d_align[fields.index('q. start')]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
                             if np1_len < 0:
                                 db_gen['NP1_LENGTH'] = 0
                                 overlap = abs(np1_len)
                             else:
                                 db_gen['NP1_LENGTH'] = np1_len
                                 n1_start = (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH']-1)
-                                n1_end = int(d_align[8])-1
+                                n1_end = int(d_align[fields.index('q. start')])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
 
                         # Query sequence positions
-                        db_gen['D_SEQ_START'] = int(d_align[8]) + overlap
-                        db_gen['D_SEQ_LENGTH'] = max(int(d_align[9]) - db_gen['D_SEQ_START'] + 1, 0)
+                        db_gen['D_SEQ_START'] = int(d_align[fields.index('q. start')]) + overlap
+                        db_gen['D_SEQ_LENGTH'] = max(int(d_align[fields.index('q. end')]) - db_gen['D_SEQ_START'] + 1, 0)
 
                         # Germline positions
-                        db_gen['D_GERM_START'] = int(d_align[10]) + overlap
-                        db_gen['D_GERM_LENGTH'] = max(int(d_align[11]) - db_gen['D_GERM_START'] + 1, 0)
+                        db_gen['D_GERM_START'] = int(d_align[fields.index('s. start')]) + overlap
+                        db_gen['D_GERM_LENGTH'] = max(int(d_align[fields.index('s. end')]) - db_gen['D_GERM_START'] + 1, 0)
 
                         # Update VDJ sequence, removing insertions
                         start = overlap
-                        for m in re.finditer(r'-', d_align[15]):
+                        for m in re.finditer(r'-', d_align[fields.index('subject seq')]):
                             ins = m.start()
-                            seq_vdj += d_align[14][start:ins]
+                            seq_vdj += d_align[fields.index('query seq')][start:ins]
                             start = ins + 1
-                        seq_vdj += d_align[14][start:]
+                        seq_vdj += d_align[fields.index('query seq')][start:]
 
                     # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
                     # If J call exists, parse J alignment information
@@ -445,57 +452,57 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
                         # Determine N-region length and amount of J overlap with V or D alignment
                         overlap = 0
                         if d_call is not None:
-                            np2_len = int(j_align[8]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
+                            np2_len = int(j_align[fields.index('q. start')]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
                             if np2_len < 0:
                                 db_gen['NP2_LENGTH'] = 0
                                 overlap = abs(np2_len)
                             else:
                                 db_gen['NP2_LENGTH'] = np2_len
                                 n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH']-1)
-                                n2_end = int(j_align[8])-1
+                                n2_end = int(j_align[fields.index('q. start')])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
                         elif v_call is not None:
-                            np1_len = int(j_align[8]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
+                            np1_len = int(j_align[fields.index('q. start')]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
                             if np1_len < 0:
                                 db_gen['NP1_LENGTH'] = 0
                                 overlap = abs(np1_len)
                             else:
                                 db_gen['NP1_LENGTH'] = np1_len
                                 n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
-                                n1_end = int(j_align[8])-1
+                                n1_end = int(j_align[fields.index('q. start')])-1
                                 seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
                         else:
                             db_gen['NP1_LENGTH'] = 0
 
                         # Query positions
-                        db_gen['J_SEQ_START'] = int(j_align[8]) + overlap
-                        db_gen['J_SEQ_LENGTH'] = max(int(j_align[9]) - db_gen['J_SEQ_START'] + 1, 0)
+                        db_gen['J_SEQ_START'] = int(j_align[fields.index('q. start')]) + overlap
+                        db_gen['J_SEQ_LENGTH'] = max(int(j_align[fields.index('q. end')]) - db_gen['J_SEQ_START'] + 1, 0)
 
                         # Germline positions
-                        db_gen['J_GERM_START'] = int(j_align[10]) + overlap
-                        db_gen['J_GERM_LENGTH'] = max(int(j_align[11]) - db_gen['J_GERM_START'] + 1, 0)
+                        db_gen['J_GERM_START'] = int(j_align[fields.index('s. start')]) + overlap
+                        db_gen['J_GERM_LENGTH'] = max(int(j_align[fields.index('s. end')]) - db_gen['J_GERM_START'] + 1, 0)
 
                         # J alignment scores
                         if score_fields:
-                            try: db_gen['J_SCORE'] = float(j_align[13])
+                            try: db_gen['J_SCORE'] = float(j_align[fields.index('bit score')])
                             except (TypeError, ValueError): db_gen['J_SCORE'] = 'None'
 
-                            try: db_gen['J_IDENTITY'] = float(j_align[3]) / 100.0
+                            try: db_gen['J_IDENTITY'] = float(j_align[fields.index('% identity')]) / 100.0
                             except (TypeError, ValueError): db_gen['J_IDENTITY'] = 'None'
 
-                            try: db_gen['J_EVALUE'] = float(j_align[12])
+                            try: db_gen['J_EVALUE'] = float(j_align[fields.index('evalue')])
                             except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
 
-                            try: db_gen['J_BTOP'] = j_align[16]
+                            try: db_gen['J_BTOP'] = j_align[fields.index('BTOP')]
                             except (TypeError, ValueError): db_gen['J_BTOP'] = 'None'
 
                         # Update VDJ sequence, removing insertions
                         start = overlap
-                        for m in re.finditer(r'-', j_align[15]):
+                        for m in re.finditer(r'-', j_align[fields.index('subject seq')]):
                             ins = m.start()
-                            seq_vdj += j_align[14][start:ins]
+                            seq_vdj += j_align[fields.index('query seq')][start:ins]
                             start = ins + 1
-                        seq_vdj += j_align[14][start:]
+                        seq_vdj += j_align[fields.index('query seq')][start:]
 
                     db_gen['SEQUENCE_VDJ'] = seq_vdj
 
