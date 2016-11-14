@@ -1013,17 +1013,25 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                 fail_writer = getDbWriter(fail_handle, add_fields=ordered_fields)
 
         # Count pass or fail
-        if (record.v_call == 'None' and record.j_call == 'None') or \
-                record.functional is None or \
-                not record.seq_vdj or \
-                not record.junction:
-            # print('\n', record.v_call, record.j_call, record.functional, record.junction)
-            fail_count += 1
-            if fail_writer is not None: fail_writer.writerow(record.toDict())
-            continue
-        else: 
-            pass_count += 1
-            
+        if not out_args['partial']:
+            if (record.v_call == 'None' and record.j_call == 'None') or \
+                    record.functional is None or \
+                    not record.seq_vdj or \
+                    not record.junction:
+                # print('\n', record.v_call, record.j_call, record.functional, record.junction)
+                fail_count += 1
+                if fail_writer is not None: fail_writer.writerow(record.toDict())
+                continue
+            else:
+                pass_count += 1
+        else:
+            if (record.v_call != 'None' or record.j_call != 'None' or record.d_call != 'None'):
+                pass_count += 1
+            else:
+                fail_count += 1
+                if fail_writer is not None: fail_writer.writerow(record.toDict())
+                continue
+
         # Build sample sequence description
         if record.id in id_dict:
             record.id = id_dict[record.id]
