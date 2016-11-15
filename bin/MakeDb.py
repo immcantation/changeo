@@ -570,15 +570,22 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
                                            sm['V-REGION deletions'])) else 'F'
 
             # Sequences
-            db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
+            #db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
+            if nt['V-D-J-REGION']:
+                db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION']
+            elif nt['V-J-REGION']:
+                db_gen['SEQUENCE_VDJ'] = nt['V-J-REGION']
+            else:
+                db_gen['SEQUENCE_VDJ'] = nt['V-REGION']
+
+            #db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
             if gp['V-D-J-REGION']:
                 db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION']
             elif gp['V-J-REGION']:
                 db_gen['SEQUENCE_IMGT'] = gp['V-J-REGION']
             else:
                 db_gen['SEQUENCE_IMGT'] = gp['V-REGION']
-
-            db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
+                
             db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
             db_gen['JUNCTION'] = jn['JUNCTION']
 
