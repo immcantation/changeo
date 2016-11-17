@@ -930,8 +930,30 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     Returns:
     None
     """
-    pass_file = "%s_db-pass.tab" % file_prefix
-    fail_file = "%s_db-fail.tab" % file_prefix
+    # Function to check for valid records strictly
+    def _pass_strict(rec):
+        valid = [rec.v_call != 'None',
+                 rec.j_call != 'None',
+                 rec.functional is not None,
+                 rec.seq_vdj,
+                 rec.junction]
+        return all(valid)
+
+    # Function to check for valid records loosely
+    def _pass_gentle(rec):
+        valid = [rec.v_call != 'None',
+                 rec.d_call != 'None',
+                 rec.j_call != 'None']
+        return any(valid)
+
+    # Set pass criteria
+    _pass = _pass_gentle if out_args['partial'] else _pass_strict
+
+    # Define output file names
+    pass_file = '%s_db-pass.tab' % file_prefix
+    fail_file = '%s_db-fail.tab' % file_prefix
+
+    # Define core fields
     ordered_fields = ['SEQUENCE_ID',
                       'SEQUENCE_INPUT',
                       'FUNCTIONAL',
@@ -963,6 +985,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                       'JUNCTION_LENGTH',
                       'JUNCTION']
 
+    # Define optional scoring fields
     if score_fields:
         ordered_fields.extend(['V_SCORE',
                                'V_IDENTITY',
@@ -974,10 +997,12 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
                                'J_BTOP',
                                'HMM_SCORE'])
 
+    # Define optional region fields
     if region_fields:
         ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
                                'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
 
+    # Define optional junction fields
     if junction_fields:
         ordered_fields.extend(['N1_LENGTH', 'N2_LENGTH', 
                                'P3V_LENGTH', 'P5D_LENGTH', 'P3D_LENGTH', 'P5J_LENGTH',
@@ -987,53 +1012,21 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     # if ihmm_germ:
     #     ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
 
-    # TODO:  This is not the best approach. should pass in output fields.
-    # Initiate passed handle
+    # Initiate handles, writers and counters
     pass_handle = None
     fail_handle = None
-
-    # Initialize counters and file
     pass_writer = None
     fail_writer = None
     start_time = time()
     rec_count = pass_count = fail_count = 0
+
+    # Validate and write output
     for record in db_gen:
-        #printProgress(i + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
         printProgress(rec_count, total_count, 0.05, start_time)
         rec_count += 1
 
-        # TODO:  This is not the best approach. should pass in output fields.
-        # If first sequence, use parsed description to create new columns and initialize writer
-        if pass_writer is None:
-            if not no_parse:  ordered_fields.extend(list(record.annotations.keys()))
-            pass_handle = open(pass_file, 'wt')
-            pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
-            if out_args['failed']:
-                fail_handle = open(fail_file, 'wt')
-                fail_writer = getDbWriter(fail_handle, add_fields=ordered_fields)
-
-        # Count pass or fail
-        if not out_args['partial']:
-            if (record.v_call == 'None' and record.j_call == 'None') or \
-                    record.functional is None or \
-                    not record.seq_vdj or \
-                    not record.junction:
-                # print('\n', record.v_call, record.j_call, record.functional, record.junction)
-                fail_count += 1
-                if fail_writer is not None: fail_writer.writerow(record.toDict())
-                continue
-            else:
-                pass_count += 1
-        else:
-            if (record.v_call != 'None' or record.j_call != 'None' or record.d_call != 'None'):
-                pass_count += 1
-            else:
-                fail_count += 1
-                if fail_writer is not None: fail_writer.writerow(record.toDict())
-                continue
-
-        # Build sample sequence description
-        if record.id in id_dict:
+        # Replace sequence description with full string, if required
+        if id_dict and record.id in id_dict:
             record.id = id_dict[record.id]
 
         # Parse sequence description into new columns
@@ -1042,11 +1035,33 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
             record.id = record.annotations['ID']
             del record.annotations['ID']
 
-        # Write row to tab-delim CLIP file
-        pass_writer.writerow(record.toDict())
-    
+            # TODO:  This is not the best approach. should pass in output fields.
+            # If first record, use parsed description to define extra columns
+            if pass_writer is None and fail_writer is None:
+                ordered_fields.extend(list(record.annotations.keys()))
+
+        # Count pass or fail and write to appropriate file
+        if _pass(record):
+            # Open pass file
+            if pass_writer is None:
+                pass_handle = open(pass_file, 'wt')
+                pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+
+            # Write row to pass file
+            pass_count += 1
+            pass_writer.writerow(record.toDict())
+        else:
+            # Open failed file
+            if out_args['failed'] and fail_writer is None:
+                fail_handle = open(fail_file, 'wt')
+                fail_writer = getDbWriter(fail_handle, add_fields=ordered_fields)
+
+            # Write row to fail file if specified
+            fail_count += 1
+            if fail_writer is not None:
+                fail_writer.writerow(record.toDict())
+
     # Print log
-    #printProgress(i+1 + (total_count/2 if id_dict else 0), total_count, 0.05, start_time)
     printProgress(rec_count, total_count, 0.05, start_time)
 
     log = OrderedDict()
@@ -1303,10 +1318,10 @@ def getArgParser():
     parser_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
-                                extension), containing sequences''')
+                                     extension), containing sequences.''')
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
                                 help='''Specify if input IDs should not be parsed to add
-                                     new columns to database.''')
+                                    new columns to database.''')
     parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
@@ -1334,7 +1349,7 @@ def getArgParser():
     parser_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
                              required=False,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
-                             extension) containing sequences''')
+                                  extension) containing sequences.''')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='''Specify if input IDs should not be parsed to add new
                                   columns to database.''')
@@ -1365,13 +1380,13 @@ def getArgParser():
                              required=True,
                              help='''iHMMuneAlign output file.''')
     parser_ihmm.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
-                             help='''List of folders and/or fasta files containing
+                             help='''List of folders and/or FASTA files containing
                                   IMGT-gapped germline sequences corresponding to the
                                   set of germlines used in the IgBLAST alignment.''')
     parser_ihmm.add_argument('-s', action='store', nargs='+', dest='seq_files',
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
-                             extension) containing sequences''')
+                                  extension) containing sequences.''')
     parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
                              help='''Specify if input IDs should not be parsed to add
                                   new columns to database.''')
