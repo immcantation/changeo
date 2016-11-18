@@ -147,13 +147,13 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
       ndarray : numpy matrix of pairwise distances between input sequences
     """
     # Initialize output distance matrix
-    dists = np.zeros((len(sequences),len(sequences)))
+    dists = np.zeros((len(sequences), len(sequences)))
     # Generate dictionary of n-mers from input sequences
     nmers = getNmers(sequences, n)
     # Iterate over combinations of input sequences
-    for j,k in combinations(list(range(len(sequences))), 2):
+    for j, k in combinations(list(range(len(sequences))), 2):
         # Only consider characters and n-mers with mutations
-        mutated = [i for i,(c1,c2) in enumerate(zip(sequences[j],sequences[k])) if c1 != c2]
+        mutated = [i for i, (c1, c2) in enumerate(zip(sequences[j], sequences[k])) if c1 != c2]
         seq1 = [sequences[j][i] for i in mutated]
         seq2 = [sequences[k][i] for i in mutated]
         nmer1 = [nmers[sequences[j]][i] for i in mutated]
