@@ -8,7 +8,7 @@ from changeo import __version__, __date__
 # Imports
 import numpy as np
 import pandas as pd
-from itertools import combinations, product
+from itertools import combinations, product, zip_longest
 from pkg_resources import resource_stream
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
@@ -26,6 +26,22 @@ with resource_stream(__name__, 'data/HS1F_Distance.tab') as f:
 
 with resource_stream(__name__, 'data/HS5F_Distance.tab') as f:
     hs5f_model = pd.read_csv(f, sep='\t', index_col=0)
+
+
+def zip_equal(*iterables):
+    """
+    Zips iterables and raises exception if different lengths
+
+    Arguments:
+        *iterables = pointer to iterables to zip together
+
+    Returns:
+        a generator of tuples with combined elements from the iterables
+    """
+    for combo in zip_longest(*iterables):
+        if None in combo:
+            raise IndexError('Distance model requires sequences to have same length.')
+        yield combo
 
 
 def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):
@@ -147,15 +163,17 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
       ndarray : numpy matrix of pairwise distances between input sequences
     """
     # Initialize output distance matrix
-    dists = np.zeros((len(sequences),len(sequences)))
+    dists = np.zeros((len(sequences), len(sequences)))
     # Generate dictionary of n-mers from input sequences
     nmers = getNmers(sequences, n)
     # Iterate over combinations of input sequences
     for j,k in combinations(list(range(len(sequences))), 2):
         # Only consider characters and n-mers with mutations
-        mutated = [i for i,(c1,c2) in enumerate(zip(sequences[j],sequences[k])) if c1 != c2]
+        mutated = [i for i, (c1, c2) in enumerate(zip_equal(sequences[j], sequences[k])) if c1 != c2]
+
         seq1 = [sequences[j][i] for i in mutated]
         seq2 = [sequences[k][i] for i in mutated]
+
         nmer1 = [nmers[sequences[j]][i] for i in mutated]
         nmer2 = [nmers[sequences[k]][i] for i in mutated]
 
