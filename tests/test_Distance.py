@@ -31,9 +31,9 @@ class Test_Distance(unittest.TestCase):
         print("<- %s() %.3f" % (self._testMethodName, t))
         
     def test_calcDistances(self):
-	    result_mat = Distance.calcDistances(self.seq_list, n = 1, dist_mat = Distance.hs1f_model,
-                                            norm = 'len', sym = 'min')
-	    print(result_mat)
+        with self.assertRaises(IndexError):
+	        Distance.calcDistances(self.seq_list, n = 1, dist_mat = Distance.hs1f_model,
+                                   norm = 'len', sym = 'min')
 
     @unittest.skip("-> loadModels() skipped\n")
     def test_loadModels(self):
