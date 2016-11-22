@@ -259,10 +259,10 @@ def readIgBlastBlock(block):
       block : itertools groupby object for a single query.
 
     Returns:
-      dict : A dictionary containing the parsed block with
-             {query: query sequence identifier as a string,
-              summary: dictionary of the alignment summary,
-              hits: v(D)J hit table as a pandas.DataFrame).
+      dict : A parsed results block with
+            {query: sequence identifier as a string,
+             summary: dictionary of the alignment summary,
+             hits: V(D)J hit table as a pandas.DataFrame).
       None : If the block has no data that can be parsed.
     """
     # Parsing info
@@ -307,24 +307,30 @@ def readIgBlastBlock(block):
 
     # Function to parse query section into a string
     def _parseQuery(chunk):
+        # Extract query id from comments
         query = next((x for x in chunk if x.startswith('# Query:')))
         return query.lstrip('# Query: ')
 
     # Function to parse summary section into a dictionary
     def _parseSummary(chunk):
+        # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
         f = re.search('summary for query sequence \((.+)\)\.', f).group(1)
         columns = [summary_fields[x.strip()] for x in f.split(',')]
+        # Extract first row as a list
         row = next((x.split('\t') for x in chunk if not x.startswith('#')))
+        # Populate template dictionary with parsed fields
         summary = {v: None for v in summary_fields.values()}
         summary.update(dict(zip(columns, row)))
         return summary
 
     # Function to parse hits section into a DataFrame
     def _parseHits(chunk):
+        # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Fields:')))
         columns = chain(['segment'], f.lstrip('# Fields:').split(','))
         columns = [x.strip() for x in columns]
+        # Split non-comment rows into a list of lists
         rows = [x.split('\t') for x in chunk if not x.startswith('#')]
         return pd.DataFrame(rows, columns=columns)
 
@@ -362,7 +368,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
     Returns:
     a generator of dictionaries containing alignment data
     """
-    # Function to parse summary results
+    # Parse summary results
     def _parseSummary(db, parsed):
         result = {}
         # Parse V, D, and J calls
@@ -385,140 +391,144 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
         return result
 
-    # TODO: this is way too long. should be separate functions.
-    # Function to parse hit table
-    def _parseHits(db, parsed, score_fields=score_fields):
+    # Parse V alignment positions
+    def _parseVPos(v_hits):
         result = {}
-        seq_vdj = ''
-        hit_df = parsed['hits']
+        # Germline positions
+        result['V_GERM_START_VDJ'] = int(v_hits['s. start'])
+        result['V_GERM_LENGTH_VDJ'] = int(v_hits['s. end']) - result['V_GERM_START_VDJ'] + 1
+        # Query sequence positions
+        result['V_SEQ_START'] = int(v_hits['q. start'])
+        result['V_SEQ_LENGTH'] = int(v_hits['q. end']) - result['V_SEQ_START'] + 1
+        result['INDELS'] = 'F' if int(v_hits['gap opens']) == 0 else 'T'
 
-        # If V call exists, parse V alignment information
+        return result
+
+    # Parse D alignment positions
+    def _parseDPos(d_hits, overlap):
+        result = {}
+        # Query sequence positions
+        result['D_SEQ_START'] = int(d_hits['q. start']) + overlap
+        result['D_SEQ_LENGTH'] = max(int(d_hits['q. end']) - result['D_SEQ_START'] + 1, 0)
+        # Germline positions
+        result['D_GERM_START'] = int(d_hits['s. start']) + overlap
+        result['D_GERM_LENGTH'] = max(int(d_hits['s. end']) - result['D_GERM_START'] + 1, 0)
+        return result
+
+    # Parse J alignment positions
+    def _parseJPos(j_hits, overlap):
+        result = {}
+        # Query positions
+        result['J_SEQ_START'] = int(j_hits['q. start']) + overlap
+        result['J_SEQ_LENGTH'] = max(int(j_hits['q. end']) - result['J_SEQ_START'] + 1, 0)
+        # Germline positions
+        result['J_GERM_START'] = int(j_hits['s. start']) + overlap
+        result['J_GERM_LENGTH'] = max(int(j_hits['s. end']) - result['J_GERM_START'] + 1, 0)
+        return result
+
+    # Parse alignment scores
+    def _parseScores(hits, segment):
+        result = {}
+        s_hits = hits[hits['segment'] == segment].iloc[0]
+        # Score
+        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
+        except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
+        # Identity
+        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
+        except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
+        # E-value
+        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
+        except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
+        # BTOP
+        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
+        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
+        return result
+
+    # Update sequence, removing insertions
+    def _removeInsertions(seq, hits, start):
+        for m in re.finditer(r'-', hits['subject seq']):
+            ins = m.start()
+            seq += hits['query seq'][start:ins]
+            start = ins + 1
+        seq += hits['query seq'][start:]
+        return seq
+
+    # Parse V hit sub-table
+    def _parseVHits(db, hits):
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        v_hits = hits[hits['segment'] == 'V'].iloc[0]
+
+        # Alignment positions
+        result.update(_parseVPos(v_hits))
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, v_hits, 0)
+
+        return result
+
+    # Parse D hit sub-table
+    def _parseDHits(db, hits):
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        d_hits = hits[hits['segment'] == 'D'].iloc[0]
+
+        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+        # Determine N-region length and amount of J overlap with V or D alignment
+        overlap = 0
         if db['V_CALL']:
-            v_align = hit_df[hit_df['segment'] == 'V'].iloc[0]
-            # Germline positions
-            result['V_GERM_START_VDJ'] = int(v_align['s. start'])
-            result['V_GERM_LENGTH_VDJ'] = int(v_align['s. end']) - result['V_GERM_START_VDJ'] + 1
-            # Query sequence positions
-            result['V_SEQ_START'] = int(v_align['q. start'])
-            result['V_SEQ_LENGTH'] = int(v_align['q. end']) - result['V_SEQ_START'] + 1
-            result['INDELS'] = 'F' if int(v_align['gap opens']) == 0 else 'T'
-            # Alignment scores
-            if score_fields:
-                try:  result['V_SCORE'] = float(v_align['bit score'])
-                except (TypeError, ValueError):  result['V_SCORE'] = None
-
-                try:  result['V_IDENTITY'] = float(v_align['% identity']) / 100.0
-                except (TypeError, ValueError):  result['V_IDENTITY'] = None
-
-                try:  result['V_EVALUE'] = float(v_align['evalue'])
-                except (TypeError, ValueError):  result['V_EVALUE'] = None
-
-                try:  result['V_BTOP'] = v_align['BTOP']
-                except (TypeError, ValueError):  result['V_BTOP'] = None
-
-                # Update VDJ sequence, removing insertions
-                start = 0
-                for m in re.finditer(r'-', v_align['subject seq']):
-                    ins = m.start()
-                    seq_vdj += v_align['query seq'][start:ins]
-                    start = ins + 1
-                seq_vdj += v_align['query seq'][start:]
-
-        # If D call exists, parse D alignment information
-        if db['D_CALL']:
-            d_align = hit_df[hit_df['segment'] == 'D'].iloc[0]
-            # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-            # Determine N-region length and amount of J overlap with V or D alignment
-            overlap = 0
-            if db['V_CALL']:
-                np1_len = int(d_align['q. start']) - (result['V_SEQ_START'] + result['V_SEQ_LENGTH'])
-                if np1_len < 0:
-                    result['NP1_LENGTH'] = 0
-                    overlap = abs(np1_len)
-                else:
-                    result['NP1_LENGTH'] = np1_len
-                    n1_start = result['V_SEQ_START'] + result['V_SEQ_LENGTH'] - 1
-                    n1_end = int(d_align['q. start']) - 1
-                    seq_vdj += db['SEQUENCE_INPUT'][n1_start: n1_end]
-
-            # Query sequence positions
-            result['D_SEQ_START'] = int(d_align['q. start']) + overlap
-            result['D_SEQ_LENGTH'] = max(int(d_align['q. end']) - result['D_SEQ_START'] + 1, 0)
-
-            # Germline positions
-            result['D_GERM_START'] = int(d_align['s. start']) + overlap
-            result['D_GERM_LENGTH'] = max(int(d_align['s. end']) - result['D_GERM_START'] + 1, 0)
-
-            # Update VDJ sequence, removing insertions
-            start = overlap
-            for m in re.finditer(r'-', d_align['subject seq']):
-                ins = m.start()
-                seq_vdj += d_align['query seq'][start: ins]
-                start = ins + 1
-            seq_vdj += d_align['query seq'][start:]
-
-        # If J call exists, parse J alignment information
-        if db['J_CALL']:
-            j_align = hit_df[hit_df['segment'] == 'J'].iloc[0]
-
-            # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-            # Determine N-region length and amount of J overlap with V or D alignment
-            overlap = 0
-            if db['D_CALL']:
-                np2_len = int(j_align['q. start']) - (result['D_SEQ_START'] + result['D_SEQ_LENGTH'])
-                if np2_len < 0:
-                    result['NP2_LENGTH'] = 0
-                    overlap = abs(np2_len)
-                else:
-                    result['NP2_LENGTH'] = np2_len
-                    n2_start = result['D_SEQ_START'] + result['D_SEQ_LENGTH'] - 1
-                    n2_end = int(j_align['q. start']) - 1
-                    seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
-            elif db['V_CALL']:
-                np1_len = int(j_align['q. start']) - (
-                result['V_SEQ_START'] + result['V_SEQ_LENGTH'])
-                if np1_len < 0:
-                    result['NP1_LENGTH'] = 0
-                    overlap = abs(np1_len)
-                else:
-                    result['NP1_LENGTH'] = np1_len
-                    n1_start = result['V_SEQ_START'] + result['V_SEQ_LENGTH'] - 1
-                    n1_end = int(j_align['q. start']) - 1
-                    seq_vdj += db['SEQUENCE_INPUT'][n1_start: n1_end]
-            else:
+            np1_len = int(d_hits['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+            if np1_len < 0:
                 result['NP1_LENGTH'] = 0
+                overlap = abs(np1_len)
+            else:
+                result['NP1_LENGTH'] = np1_len
+                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                np1_end = int(d_hits['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
 
-            # Query positions
-            result['J_SEQ_START'] = int(j_align['q. start']) + overlap
-            result['J_SEQ_LENGTH'] = max(int(j_align['q. end']) - result['J_SEQ_START'] + 1, 0)
+        # D alignment positions
+        result.update(_parseDPos(d_hits, overlap))
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, d_hits, overlap)
 
-            # Germline positions
-            result['J_GERM_START'] = int(j_align['s. start']) + overlap
-            result['J_GERM_LENGTH'] = max(int(j_align['s. end']) - result['J_GERM_START'] + 1, 0)
+        return result
 
-            # J alignment scores
-            if score_fields:
-                try:  result['J_SCORE'] = float(j_align['bit score'])
-                except (TypeError, ValueError):  result['J_SCORE'] = None
+    # Parse J hit sub-table
+    def _parseJHits(db, hits):
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        j_hits = hits[hits['segment'] == 'J'].iloc[0]
 
-                try:  result['J_IDENTITY'] = float(j_align['% identity']) / 100.0
-                except (TypeError, ValueError):  result['J_IDENTITY'] = None
+        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+        # Determine N-region length and amount of J overlap with V or D alignment
+        overlap = 0
+        if db['D_CALL']:
+            np2_len = int(j_hits['q. start']) - (db['D_SEQ_START'] + db['D_SEQ_LENGTH'])
+            if np2_len < 0:
+                result['NP2_LENGTH'] = 0
+                overlap = abs(np2_len)
+            else:
+                result['NP2_LENGTH'] = np2_len
+                n2_start = db['D_SEQ_START'] + db['D_SEQ_LENGTH'] - 1
+                n2_end = int(j_hits['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
+        elif db['V_CALL']:
+            np1_len = int(j_hits['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+            if np1_len < 0:
+                result['NP1_LENGTH'] = 0
+                overlap = abs(np1_len)
+            else:
+                result['NP1_LENGTH'] = np1_len
+                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                np1_end = int(j_hits['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
+        else:
+            result['NP1_LENGTH'] = 0
 
-                try:  result['J_EVALUE'] = float(j_align['evalue'])
-                except (TypeError, ValueError):  result['J_EVALUE'] = None
-
-                try:  result['J_BTOP'] = j_align['BTOP']
-                except (TypeError, ValueError):  result['J_BTOP'] = None
-
-            # Update VDJ sequence, removing insertions
-            start = overlap
-            for m in re.finditer(r'-', j_align['subject seq']):
-                ins = m.start()
-                seq_vdj += j_align['query seq'][start: ins]
-                start = ins + 1
-            seq_vdj += j_align['query seq'][start:]
-
-        result['SEQUENCE_VDJ'] = seq_vdj
+        # J alignment positions
+        result.update(_parseJPos(j_hits, overlap))
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, j_hits, overlap)
 
         return result
 
@@ -543,7 +553,15 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
                 # Parse hit table
                 if 'hits' in parsed:
-                    db.update(_parseHits(db, parsed))
+                    db['SEQUENCE_VDJ'] = ''
+                    if db['V_CALL']:
+                        db.update(_parseVHits(db, parsed['hits']))
+                        if score_fields:  db.update(_parseScores(parsed['hits'], 'V'))
+                    if db['D_CALL']:
+                        db.update(_parseDHits(db, parsed['hits']))
+                    if db['J_CALL']:
+                        db.update(_parseJHits(db, parsed['hits']))
+                        if score_fields:  db.update(_parseScores(parsed['hits'], 'J'))
 
                 # Create IMGT-gapped sequence
                 if 'V_CALL' in db and db['V_CALL']:
