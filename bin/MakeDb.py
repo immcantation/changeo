@@ -426,24 +426,6 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
         result['J_GERM_LENGTH'] = max(int(j_hits['s. end']) - result['J_GERM_START'] + 1, 0)
         return result
 
-    # Parse alignment scores
-    def _parseScores(hits, segment):
-        result = {}
-        s_hits = hits[hits['segment'] == segment].iloc[0]
-        # Score
-        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
-        except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
-        # Identity
-        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
-        except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
-        # E-value
-        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
-        except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
-        # BTOP
-        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
-        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
-        return result
-
     # Update sequence, removing insertions
     def _removeInsertions(seq, hits, start):
         for m in re.finditer(r'-', hits['subject seq']):
@@ -530,6 +512,24 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
         # Update VDJ sequence, removing insertions
         result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, j_hits, overlap)
 
+        return result
+
+    # Parse alignment scores
+    def _parseScores(hits, segment):
+        result = {}
+        s_hits = hits[hits['segment'] == segment].iloc[0]
+        # Score
+        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
+        except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
+        # Identity
+        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
+        except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
+        # E-value
+        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
+        except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
+        # BTOP
+        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
+        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
         return result
 
     # Open IgBlast output file
