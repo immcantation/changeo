@@ -964,7 +964,7 @@ def getIDforIMGT(seq_file):
     return ids
 
 
-def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True,
+def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True, partial=False,
             score_fields=False, region_fields=False, junction_fields=False,
             out_args=default_out_args):
     """
@@ -976,6 +976,7 @@ def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True,
     total_count = number of records (for progress bar)
     id_dict = a dictionary of {IMGT ID: full seq description}
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    partial = If True put incomplete alignments in the pass file
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
     junction_fields = if True add D FRAME junction field to output file
@@ -1001,7 +1002,7 @@ def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True,
         return any(valid)
 
     # Set pass criteria
-    _pass = _pass_gentle if out_args['partial'] else _pass_strict
+    _pass = _pass_gentle if partial else _pass_strict
 
     # Define output file names
     pass_file = '%s_db-pass.tab' % file_prefix
@@ -1130,8 +1131,8 @@ def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True,
 
 
 # TODO:  may be able to merge with other mains
-def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=False,
-                 region_fields=False, out_args=default_out_args):
+def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, partial=False,
+                 score_fields=False, region_fields=False, out_args=default_out_args):
     """
     Main for IgBlast aligned sample sequences
 
@@ -1140,6 +1141,7 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
     seq_file = fasta file input to IgBlast (from which to get sequence)
     repo = folder with germline repertoire files
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    partial = If True put incomplete alignments in the pass file
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
     out_args = common output argument dictionary from parseCommonArgs
@@ -1154,6 +1156,7 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
     log['ALIGN_RESULTS'] = os.path.basename(igblast_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
+    log['PARTIAL'] = partial
     log['SCORE_FIELDS'] = score_fields
     log['REGION_FIELDS'] = region_fields
     printLog(log)
@@ -1184,8 +1187,9 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, score_fields=Fal
 
 
 # TODO:  may be able to merge with other mains
-def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
-              region_fields=False, junction_fields=False, out_args=default_out_args):
+def parseIMGT(imgt_output, seq_file=None, no_parse=True, partial=False,
+              score_fields=False, region_fields=False, junction_fields=False,
+              out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences
 
@@ -1193,6 +1197,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     imgt_output = zipped file or unzipped folder output by IMGT
     seq_file = FASTA file input to IMGT (from which to get seqID)
     no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    partial = If True put incomplete alignments in the pass file
     score_fields = if True add alignment score fields to output file
     region_fields = if True add FWR and CDR region fields to output file
     out_args = common output argument dictionary from parseCommonArgs
@@ -1207,6 +1212,7 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
     log['ALIGN_RESULTS'] = imgt_output
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
+    log['PARTIAL'] = partial
     log['SCORE_FIELDS'] = score_fields
     log['REGION_FIELDS'] = region_fields
     log['JUNCTION_FIELDS'] = junction_fields
@@ -1245,8 +1251,8 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, score_fields=False,
 
 
 # TODO:  may be able to merge with other mains
-def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, score_fields=False,
-              region_fields=False, out_args=default_out_args):
+def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, partial=False,
+              score_fields=False, region_fields=False, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences
 
@@ -1254,9 +1260,10 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, score_fields=False,
     ihmm_output = iHMMuneAlign output file to process
     seq_file = fasta file input to iHMMuneAlign (from which to get sequence)
     repo = folder with germline repertoire files
+    no_parse = if ID is to be parsed for pRESTO output with default delimiters
+    partial = If True put incomplete alignments in the pass file
     score_fields = if True parse alignment scores
     region_fields = if True add FWR and CDR region fields
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -1269,6 +1276,9 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, score_fields=False,
     log['ALIGN_RESULTS'] = os.path.basename(ihmm_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
+    log['PARTIAL'] = partial
+    log['SCORE_FIELDS'] = score_fields
+    log['REGION_FIELDS'] = region_fields
     printLog(log)
 
     # Get input sequence dictionary
@@ -1376,6 +1386,9 @@ def getArgParser():
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
                                 help='''Specify if input IDs should not be parsed to add
                                     new columns to database.''')
+    parser_igblast.add_argument('--partial', action='store_true', dest='partial',
+                                help='''If specified, include incomplete V(D)J alignments in
+                                     the pass file instead of the fail file.''')
     parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
@@ -1407,6 +1420,9 @@ def getArgParser():
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
                              help='''Specify if input IDs should not be parsed to add new
                                   columns to database.''')
+    parser_imgt.add_argument('--partial', action='store_true', dest='partial',
+                             help='''If specified, include incomplete V(D)J alignments in
+                                  the pass file instead of the fail file.''')
     parser_imgt.add_argument('--scores', action='store_true', dest='score_fields',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the V_SCORE, V_IDENTITY,
@@ -1444,6 +1460,9 @@ def getArgParser():
     parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
                              help='''Specify if input IDs should not be parsed to add
                                   new columns to database.''')
+    parser_ihmm.add_argument('--partial', action='store_true', dest='partial',
+                             help='''If specified, include incomplete V(D)J alignments in
+                                  the pass file instead of the fail file.''')
     parser_ihmm.add_argument('--scores', action='store_true', dest='score_fields',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the path score of the

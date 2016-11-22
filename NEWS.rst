@@ -1,13 +1,15 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  November 17, 2016
+Version 0.3.3.999:  November 22, 2016
 -------------------------------------------------------------------------------
 
 MakeDb:
 
++ Added compatibility for IgBLAST v1.6.
 + Added the flag ``--partial`` which tells MakeDb to pass incomplete alignment
   results specified.
++ Added missing console log entries for the ihmm subcommand.
 
 
 Version 0.3.3:  August 8, 2016
