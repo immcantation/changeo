@@ -369,23 +369,23 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
     a generator of dictionaries containing alignment data
     """
     # Parse summary results
-    def _parseSummary(db, parsed):
+    def _parseSummary(db, summary):
         result = {}
         # Parse V, D, and J calls
-        v_call = parseAllele(parsed['summary']['v_match'], v_allele_regex, action='list')
-        d_call = parseAllele(parsed['summary']['d_match'], d_allele_regex, action='list')
-        j_call = parseAllele(parsed['summary']['j_match'], j_allele_regex, action='list')
+        v_call = parseAllele(summary['v_match'], v_allele_regex, action='list')
+        d_call = parseAllele(summary['d_match'], d_allele_regex, action='list')
+        j_call = parseAllele(summary['j_match'], j_allele_regex, action='list')
         result['V_CALL'] = ','.join(v_call) if v_call else None
         result['D_CALL'] = ','.join(d_call) if d_call else None
         result['J_CALL'] = ','.join(j_call) if j_call else None
 
         # Parse quality information
-        result['STOP'] = 'T' if parsed['summary']['stop'] == 'Yes' else 'F'
-        result['IN_FRAME'] = 'T' if parsed['summary']['frame'] == 'In-frame' else 'F'
-        result['FUNCTIONAL'] = 'T' if parsed['summary']['productive'] == 'Yes' else 'F'
+        result['STOP'] = 'T' if summary['stop'] == 'Yes' else 'F'
+        result['IN_FRAME'] = 'T' if summary['frame'] == 'In-frame' else 'F'
+        result['FUNCTIONAL'] = 'T' if summary['productive'] == 'Yes' else 'F'
 
         # Reverse complement input sequence if required
-        if parsed['summary']['strand'] == '-':
+        if summary['strand'] == '-':
             seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
             result['SEQUENCE_INPUT'] = str(seq_rc)
 
@@ -549,7 +549,7 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
 
                 # Parse summary section
                 if 'summary' in parsed:
-                    db.update(_parseSummary(db, parsed))
+                    db.update(_parseSummary(db, parsed['summary']))
 
                 # Parse hit table
                 if 'hits' in parsed:
