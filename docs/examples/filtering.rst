@@ -84,23 +84,23 @@ to be added to the sequence header are specified by
 BASELINe FASTA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :program:`clip` subcommand generates a FASTA derivative format required by the
+The :program:`baseline` subcommand generates a FASTA derivative format required by the
 `BASELINe <http://selection.med.yale.edu/baseline>`__ web tool. Generating these
 files is similar to building standard FASTA files, but requires a few more options.
 An example function call using an imaginary file ``db.tab`` is provided below::
 
-    ParseDb.py clip -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT \
+    ParseDb.py baseline -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT \
         --cf CLONE --gf GERMLINE_IMGT_D_MASK
 
-The additional arguments required by the :program:`clip` subcommand include the
-clonal grouping (:option:`--cf CLONE <ParseDb clip --cf>`) and germline sequence
-(:option:`--gf GERMLINE_IMGT_D_MASK <ParseDb clip --gf>`) columns added by
+The additional arguments required by the :program:`baseline` subcommand include the
+clonal grouping (:option:`--cf CLONE <ParseDb baseline --cf>`) and germline sequence
+(:option:`--gf GERMLINE_IMGT_D_MASK <ParseDb baseline --gf>`) columns added by
 the :ref:`DefineClones <Cloning>` and :ref:`CreateGermlines <Germlines>` tasks,
 respectively.
 
 .. note::
 
-    The :program:`clip` subcommand requires the ``CLONE`` column to be sorted.
+    The :program:`baseline` subcommand requires the ``CLONE`` column to be sorted.
     :ref:`DefineClones` generates a sorted ``CLONE`` column by default. However,
     you needed to alter the order of the ``CLONE`` column at some point,
     then you can re-sort the clonal assignments using the :program:`sort`

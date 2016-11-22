@@ -16,7 +16,7 @@ import tarfile
 import zipfile
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import groupby
+from itertools import chain, groupby
 from shutil import rmtree
 from tempfile import mkdtemp
 from textwrap import dedent
@@ -47,9 +47,14 @@ def gapV(ig_dict, repo_dict):
       repo_dict : Dictionary of IMGT gapped germline sequences
 
     Returns:
-      dict : Updated with SEQUENCE_IMGT, V_GERM_START_IMGT, and V_GERM_LENGTH_IMGT fields
+      dict : dictionary containing {SEQUENCE_IMGT, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT}
     """
+    # Initialize return object
+    imgt_dict = {'SEQUENCE_IMGT': None,
+                 'V_GERM_START_IMGT': None,
+                 'V_GERM_LENGTH_IMGT': None}
 
+    # Initialize imgt gapped sequence
     seq_imgt = '.' * (int(ig_dict['V_GERM_START_VDJ']) - 1) + ig_dict['SEQUENCE_VDJ']
 
     # Find gapped germline V segment
@@ -70,15 +75,15 @@ def gapV(ig_dict, repo_dict):
             seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
             # Update gap counter
             gapcount += 1
-        ig_dict['SEQUENCE_IMGT'] = seq_imgt
+        imgt_dict['SEQUENCE_IMGT'] = seq_imgt
         # Update IMGT positioning information for V
-        ig_dict['V_GERM_START_IMGT'] = 1
-        ig_dict['V_GERM_LENGTH_IMGT'] = ig_dict['V_GERM_LENGTH_VDJ'] + gapcount
+        imgt_dict['V_GERM_START_IMGT'] = 1
+        imgt_dict['V_GERM_LENGTH_IMGT'] = ig_dict['V_GERM_LENGTH_VDJ'] + gapcount
 
-    return ig_dict
+    return imgt_dict
 
 
-def getIMGTJunc(ig_dict, repo_dict):
+def inferJunction(ig_dict, repo_dict):
     """
     Identify junction region by IMGT definition
 
@@ -87,16 +92,18 @@ def getIMGTJunc(ig_dict, repo_dict):
       repo_dict : Dictionary of IMGT gapped germline sequences
 
     Returns:
-      dict : Updated with JUNCTION_LENGTH_IMGT and JUNCTION_IMGT fields
+      dict : Dictionary containing {JUNCTION, JUNCTION_LENGTH}
     """
+    junc_dict = {'JUNCTION': None,
+                 'JUNCTION_LENGTH': None}
+
     # Find germline J segment
     jgene = parseAllele(ig_dict['J_CALL'], j_allele_regex, 'first')
     jkey = (jgene, )
-    #TODO: Figure out else case
     if jkey in repo_dict:
         # Get germline J sequence
         jgerm = repo_dict[jkey]
-        jgerm = jgerm[:ig_dict['J_GERM_START']+ig_dict['J_GERM_LENGTH']-1]
+        jgerm = jgerm[:(ig_dict['J_GERM_START'] + ig_dict['J_GERM_LENGTH'] - 1)]
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
         aa_end = len(ig_dict['SEQUENCE_IMGT'])
@@ -105,10 +112,10 @@ def getIMGTJunc(ig_dict, repo_dict):
             # print('\n', motif.group())
             aa_end = motif.start() - len(jgerm) + 3
         # Add fields to dict
-        ig_dict['JUNCTION'] = ig_dict['SEQUENCE_IMGT'][309:aa_end]
-        ig_dict['JUNCTION_LENGTH'] = len(ig_dict['JUNCTION'])
+        junc_dict['JUNCTION'] = ig_dict['SEQUENCE_IMGT'][309:aa_end]
+        junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
 
-    return ig_dict
+    return junc_dict
 
 
 def getRegions(ig_dict):
@@ -119,35 +126,42 @@ def getRegions(ig_dict):
       ig_dict : Dictionary of parsed alignment output
 
     Returns:
-      dict : Updated with FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
-             CDR1_IMGT, CDR2_IMGT, and CDR3_IMGT fields
+      dict : Dictionary containing {FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
+             CDR1_IMGT, CDR2_IMGT, CDR3_IMGT}
     """
+    region_dict = {'FWR1_IMGT': None,
+                   'FWR2_IMGT': None,
+                   'FWR3_IMGT': None,
+                   'FWR4_IMGT': None,
+                   'CDR1_IMGT': None,
+                   'CDR2_IMGT': None,
+                   'CDR3_IMGT': None}
     try:
         seq_len = len(ig_dict['SEQUENCE_IMGT'])
-        ig_dict['FWR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][0:min(78,seq_len)]
-    except (KeyError, IndexError):
-        return ig_dict
+        region_dict['FWR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][0:min(78, seq_len)]
+    except (KeyError, IndexError, TypeError):
+        return region_dict
 
-    try: ig_dict['CDR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
-    except (IndexError): return ig_dict
+    try: region_dict['CDR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    except (IndexError): return region_dict
 
-    try: ig_dict['FWR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
-    except (IndexError): return ig_dict
+    try: region_dict['FWR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    except (IndexError): return region_dict
 
-    try: ig_dict['CDR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
-    except (IndexError): return ig_dict
+    try: region_dict['CDR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    except (IndexError): return region_dict
 
-    try: ig_dict['FWR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
-    except (IndexError): return ig_dict
+    try: region_dict['FWR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    except (IndexError): return region_dict
 
     try:
         cdr3_end = 306 + ig_dict['JUNCTION_LENGTH']
-        ig_dict['CDR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
-        ig_dict['FWR4_IMGT'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
-    except (KeyError, IndexError):
-        return ig_dict
+        region_dict['CDR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
+        region_dict['FWR4_IMGT'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
+    except (KeyError, IndexError, TypeError):
+        return region_dict
 
-    return ig_dict
+    return region_dict
 
 
 def getInputSeq(seq_file):
@@ -192,10 +206,10 @@ def extractIMGT(imgt_output):
     Extract necessary files from IMGT results, zipped or unzipped
     
     Arguments:
-    imgt_output = zipped file or unzipped folder output by IMGT
+      imgt_output : zipped file or unzipped folder output by IMGT.
     
     Returns:
-    sorted list of filenames from which information will be read
+      list : Sorted list of filenames from which information will be read.
     """
     #file_ext = os.path.splitext(imgt_output)[1].lower()
     imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
@@ -237,39 +251,97 @@ def extractIMGT(imgt_output):
     return temp_dir, imgt_files
 
 
-# TODO: return a dictionary with keys determined by the comment strings in the blocks, thus avoiding problems with missing blocks
-def readOneIgBlastResult(block):
+def readIgBlastBlock(block):
     """
     Parse a single IgBLAST query result
 
     Arguments:
-    block =  itertools groupby object of single result
+      block : itertools groupby object for a single query.
 
     Returns:
-    None if no results, otherwise list of DataFrames for each result block
+      dict : A dictionary containing the parsed block with
+             {query: query sequence identifier as a string,
+              summary: dictionary of the alignment summary,
+              hits: v(D)J hit table as a pandas.DataFrame).
+      None : If the block has no data that can be parsed.
     """
-    results = list()
-    i = 0
-    for match, subblock in groupby(block, lambda l: l=='\n'):
-        if not match:
-            # Strip whitespace and comments, leave field list
-            sub = [s.strip() for s in subblock if not s.startswith('#') or s.startswith('# Fields:')]
+    # Parsing info
+    #
+    #   Columns for non-hit-table sections
+    #     'V-(D)-J rearrangement summary': (Top V gene match, Top D gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand)
+    #     'V-(D)-J junction details': (V end, V-D junction, D region, D-J junction, J start)
+    #     'Alignment summary': (from, to, length, matches, mismatches, gaps, percent identity)
+    #
+    #   Ignored sections
+    #     'junction': '# V-(D)-J junction details'
+    #     'subregion': '# Sub-region sequence details'
+    #     'v_alignment': '# Alignment summary'
+    #
+    #   Hit table fields for -outfmt "7 std qseq sseq btop"
+    #     0:  segment
+    #     1:  query id
+    #     2:  subject id
+    #     3:  % identity
+    #     4:  alignment length
+    #     5:  mismatches
+    #     6:  gap opens
+    #     7:  gaps
+    #     8:  q. start
+    #     9:  q. end
+    #    10:  s. start
+    #    11:  s. end
+    #    12:  evalue
+    #    13:  bit score
+    #    14:  query seq
+    #    15:  subject seq
+    #    16:  btop
 
-            # Continue on empty block
-            if not sub:  continue
-            else:  i += 1
+    summary_fields = {'Top V gene match': 'v_match',
+                      'Top D gene match': 'd_match',
+                      'Top J gene match': 'j_match',
+                      'Chain type': 'chain',
+                      'stop codon': 'stop',
+                      'V-J frame': 'frame',
+                      'Productive': 'productive',
+                      'Strand': 'strand'}
 
-            # Split by tabs
-            sub = [s.split('\t') for s in sub]
+    # Function to parse query section into a string
+    def _parseQuery(chunk):
+        query = next((x for x in chunk if x.startswith('# Query:')))
+        return query.lstrip('# Query: ')
 
-            # Append list for "V-(D)-J rearrangement summary" (i == 1)
-            # And "V-(D)-J junction details" (i == 2)
-            # Otherwise append DataFrame of subblock
-            if i == 1 or i == 2:
-                results.append(sub[0])
-            else:
-                df = pd.DataFrame(sub)
-                if not df.empty: results.append(df)
+    # Function to parse summary section into a dictionary
+    def _parseSummary(chunk):
+        f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
+        f = re.search('summary for query sequence \((.+)\)\.', f).group(1)
+        columns = [summary_fields[x.strip()] for x in f.split(',')]
+        row = next((x.split('\t') for x in chunk if not x.startswith('#')))
+        summary = {v: None for v in summary_fields.values()}
+        summary.update(dict(zip(columns, row)))
+        return summary
+
+    # Function to parse hits section into a DataFrame
+    def _parseHits(chunk):
+        f = next((x for x in chunk if x.startswith('# Fields:')))
+        columns = chain(['segment'], f.lstrip('# Fields:').split(','))
+        columns = [x.strip() for x in columns]
+        rows = [x.split('\t') for x in chunk if not x.startswith('#')]
+        return pd.DataFrame(rows, columns=columns)
+
+    # Map of valid block parsing keys and functions
+    header_map = {'query': ('# Query:', _parseQuery),
+                  'summary': ('# V-(D)-J rearrangement summary', _parseSummary),
+                  'hits': ('# Hit table', _parseHits)}
+
+    results = {}
+    for match, chunk in groupby(block, lambda x: x != '\n'):
+        if match:
+            # Strip whitespace and convert to list
+            chunk = [x.strip() for x in chunk]
+
+            # Parse non-query sections
+            chunk_dict = {k: f(chunk) for k, (v, f) in header_map.items() if chunk[0].startswith(v)}
+            results.update(chunk_dict)
 
     return results if results else None
 
@@ -281,244 +353,214 @@ def readIgBlast(igblast_output, seq_dict, repo_dict,
     Reads IgBlast output
 
     Arguments:
-    igblast_output = IgBlast output file (format 7)
-    seq_dict = a dictionary of {ID:Seq} from input fasta file
-    repo_dict = dictionary of IMGT gapped germline sequences
-    score_fields = if True parse alignment scores
-    region_fields = if True add FWR and CDR region fields
+    igblast_output = IgBlast output file (format 7).
+    seq_dict = a dictionary of {sequence id: Seq object} from input fasta file.
+    repo_dict = dictionary of IMGT gapped germline sequences.
+    score_fields = if True parse alignment scores.
+    region_fields = if True add FWR and CDR region fields.
 
     Returns:
     a generator of dictionaries containing alignment data
     """
+    # Function to parse summary results
+    def _parseSummary(db, parsed):
+        result = {}
+        # Parse V, D, and J calls
+        v_call = parseAllele(parsed['summary']['v_match'], v_allele_regex, action='list')
+        d_call = parseAllele(parsed['summary']['d_match'], d_allele_regex, action='list')
+        j_call = parseAllele(parsed['summary']['j_match'], j_allele_regex, action='list')
+        result['V_CALL'] = ','.join(v_call) if v_call else None
+        result['D_CALL'] = ','.join(d_call) if d_call else None
+        result['J_CALL'] = ','.join(j_call) if j_call else None
+
+        # Parse quality information
+        result['STOP'] = 'T' if parsed['summary']['stop'] == 'Yes' else 'F'
+        result['IN_FRAME'] = 'T' if parsed['summary']['frame'] == 'In-frame' else 'F'
+        result['FUNCTIONAL'] = 'T' if parsed['summary']['productive'] == 'Yes' else 'F'
+
+        # Reverse complement input sequence if required
+        if parsed['summary']['strand'] == '-':
+            seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
+            result['SEQUENCE_INPUT'] = str(seq_rc)
+
+        return result
+
+    # TODO: this is way too long. should be separate functions.
+    # Function to parse hit table
+    def _parseHits(db, parsed, score_fields=score_fields):
+        result = {}
+        seq_vdj = ''
+        hit_df = parsed['hits']
+
+        # If V call exists, parse V alignment information
+        if db['V_CALL']:
+            v_align = hit_df[hit_df['segment'] == 'V'].iloc[0]
+            # Germline positions
+            result['V_GERM_START_VDJ'] = int(v_align['s. start'])
+            result['V_GERM_LENGTH_VDJ'] = int(v_align['s. end']) - result['V_GERM_START_VDJ'] + 1
+            # Query sequence positions
+            result['V_SEQ_START'] = int(v_align['q. start'])
+            result['V_SEQ_LENGTH'] = int(v_align['q. end']) - result['V_SEQ_START'] + 1
+            result['INDELS'] = 'F' if int(v_align['gap opens']) == 0 else 'T'
+            # Alignment scores
+            if score_fields:
+                try:  result['V_SCORE'] = float(v_align['bit score'])
+                except (TypeError, ValueError):  result['V_SCORE'] = None
+
+                try:  result['V_IDENTITY'] = float(v_align['% identity']) / 100.0
+                except (TypeError, ValueError):  result['V_IDENTITY'] = None
+
+                try:  result['V_EVALUE'] = float(v_align['evalue'])
+                except (TypeError, ValueError):  result['V_EVALUE'] = None
+
+                try:  result['V_BTOP'] = v_align['BTOP']
+                except (TypeError, ValueError):  result['V_BTOP'] = None
+
+                # Update VDJ sequence, removing insertions
+                start = 0
+                for m in re.finditer(r'-', v_align['subject seq']):
+                    ins = m.start()
+                    seq_vdj += v_align['query seq'][start:ins]
+                    start = ins + 1
+                seq_vdj += v_align['query seq'][start:]
+
+        # If D call exists, parse D alignment information
+        if db['D_CALL']:
+            d_align = hit_df[hit_df['segment'] == 'D'].iloc[0]
+            # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+            # Determine N-region length and amount of J overlap with V or D alignment
+            overlap = 0
+            if db['V_CALL']:
+                np1_len = int(d_align['q. start']) - (result['V_SEQ_START'] + result['V_SEQ_LENGTH'])
+                if np1_len < 0:
+                    result['NP1_LENGTH'] = 0
+                    overlap = abs(np1_len)
+                else:
+                    result['NP1_LENGTH'] = np1_len
+                    n1_start = result['V_SEQ_START'] + result['V_SEQ_LENGTH'] - 1
+                    n1_end = int(d_align['q. start']) - 1
+                    seq_vdj += db['SEQUENCE_INPUT'][n1_start: n1_end]
+
+            # Query sequence positions
+            result['D_SEQ_START'] = int(d_align['q. start']) + overlap
+            result['D_SEQ_LENGTH'] = max(int(d_align['q. end']) - result['D_SEQ_START'] + 1, 0)
+
+            # Germline positions
+            result['D_GERM_START'] = int(d_align['s. start']) + overlap
+            result['D_GERM_LENGTH'] = max(int(d_align['s. end']) - result['D_GERM_START'] + 1, 0)
+
+            # Update VDJ sequence, removing insertions
+            start = overlap
+            for m in re.finditer(r'-', d_align['subject seq']):
+                ins = m.start()
+                seq_vdj += d_align['query seq'][start: ins]
+                start = ins + 1
+            seq_vdj += d_align['query seq'][start:]
+
+        # If J call exists, parse J alignment information
+        if db['J_CALL']:
+            j_align = hit_df[hit_df['segment'] == 'J'].iloc[0]
+
+            # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+            # Determine N-region length and amount of J overlap with V or D alignment
+            overlap = 0
+            if db['D_CALL']:
+                np2_len = int(j_align['q. start']) - (result['D_SEQ_START'] + result['D_SEQ_LENGTH'])
+                if np2_len < 0:
+                    result['NP2_LENGTH'] = 0
+                    overlap = abs(np2_len)
+                else:
+                    result['NP2_LENGTH'] = np2_len
+                    n2_start = result['D_SEQ_START'] + result['D_SEQ_LENGTH'] - 1
+                    n2_end = int(j_align['q. start']) - 1
+                    seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
+            elif db['V_CALL']:
+                np1_len = int(j_align['q. start']) - (
+                result['V_SEQ_START'] + result['V_SEQ_LENGTH'])
+                if np1_len < 0:
+                    result['NP1_LENGTH'] = 0
+                    overlap = abs(np1_len)
+                else:
+                    result['NP1_LENGTH'] = np1_len
+                    n1_start = result['V_SEQ_START'] + result['V_SEQ_LENGTH'] - 1
+                    n1_end = int(j_align['q. start']) - 1
+                    seq_vdj += db['SEQUENCE_INPUT'][n1_start: n1_end]
+            else:
+                result['NP1_LENGTH'] = 0
+
+            # Query positions
+            result['J_SEQ_START'] = int(j_align['q. start']) + overlap
+            result['J_SEQ_LENGTH'] = max(int(j_align['q. end']) - result['J_SEQ_START'] + 1, 0)
+
+            # Germline positions
+            result['J_GERM_START'] = int(j_align['s. start']) + overlap
+            result['J_GERM_LENGTH'] = max(int(j_align['s. end']) - result['J_GERM_START'] + 1, 0)
+
+            # J alignment scores
+            if score_fields:
+                try:  result['J_SCORE'] = float(j_align['bit score'])
+                except (TypeError, ValueError):  result['J_SCORE'] = None
+
+                try:  result['J_IDENTITY'] = float(j_align['% identity']) / 100.0
+                except (TypeError, ValueError):  result['J_IDENTITY'] = None
+
+                try:  result['J_EVALUE'] = float(j_align['evalue'])
+                except (TypeError, ValueError):  result['J_EVALUE'] = None
+
+                try:  result['J_BTOP'] = j_align['BTOP']
+                except (TypeError, ValueError):  result['J_BTOP'] = None
+
+            # Update VDJ sequence, removing insertions
+            start = overlap
+            for m in re.finditer(r'-', j_align['subject seq']):
+                ins = m.start()
+                seq_vdj += j_align['query seq'][start: ins]
+                start = ins + 1
+            seq_vdj += j_align['query seq'][start:]
+
+        result['SEQUENCE_VDJ'] = seq_vdj
+
+        return result
 
     # Open IgBlast output file
     with open(igblast_output) as f:
         # Iterate over individual results (separated by # IGBLASTN)
-        for k1, block in groupby(f, lambda x: re.match('# IGBLASTN', x)):
-            block = list(block)
-            if not k1:
-                # TODO: move query name extraction into block parser readOneIgBlastResult().
-                # Extract sequence ID
-                query_name = ' '.join(block[0].strip().split(' ')[2:])
-                # Initialize db_gen to have ID and input sequence
-                db_gen = {'SEQUENCE_ID':     query_name,
-                          'SEQUENCE_INPUT':  seq_dict[query_name]}
+        for match, block in groupby(f, lambda x: not re.match('# IGBLASTN', x)):
+            if match:
+                # Parse block
+                parsed = readIgBlastBlock(block)
 
-                # Parse further sub-blocks
-                block_list = readOneIgBlastResult(block)
+                # Initialize dictionary with input sequence and id
+                db = {}
+                if 'query' in parsed:
+                    query = parsed['query']
+                    db['SEQUENCE_ID'] = query
+                    db['SEQUENCE_INPUT'] = seq_dict[query]
 
-                # TODO: this is indented pretty far.  should be a separate function. or several functions.
-                # If results exist, parse further to obtain full db_gen
-                if block_list is not None:
-                    # Parse quality information
-                    db_gen['STOP'] = 'T' if block_list[0][-4] == 'Yes' else 'F'
-                    db_gen['IN_FRAME'] = 'T' if block_list[0][-3] == 'In-frame' else 'F'
-                    db_gen['FUNCTIONAL'] = 'T' if block_list[0][-2] == 'Yes' else 'F'
-                    if block_list[0][-1] == '-':
-                        db_gen['SEQUENCE_INPUT'] = str(Seq(db_gen['SEQUENCE_INPUT'],
-                                                           IUPAC.ambiguous_dna).reverse_complement())
+                # Parse summary section
+                if 'summary' in parsed:
+                    db.update(_parseSummary(db, parsed))
 
-                    # Parse V, D, and J calls
-                    call_str = ' '.join(block_list[0])
-                    v_call = parseAllele(call_str, v_allele_regex, action='list')
-                    d_call = parseAllele(call_str, d_allele_regex, action='list')
-                    j_call = parseAllele(call_str, j_allele_regex, action='list')
-                    db_gen['V_CALL'] = ','.join(v_call) if v_call is not None else 'None'
-                    db_gen['D_CALL'] = ','.join(d_call) if d_call is not None else 'None'
-                    db_gen['J_CALL'] = ','.join(j_call) if j_call is not None else 'None'
+                # Parse hit table
+                if 'hits' in parsed:
+                    db.update(_parseHits(db, parsed))
 
-                    # Parse junction sequence
-                    # db_gen['JUNCTION_VDJ'] = re.sub('(N/A)|\[|\(|\)|\]', '', ''.join(block_list[1]))
-                    # db_gen['JUNCTION_LENGTH_VDJ'] = len(db_gen['JUNCTION_VDJ'])
+                # Create IMGT-gapped sequence
+                if 'V_CALL' in db and db['V_CALL']:
+                    db.update(gapV(db, repo_dict))
 
-                    # TODO:  IgBLAST does a stupid and doesn't output block #3 sometimes. why?
-                    # TODO:  maybe we should fail these. they look craptastic.
-                    #pd.set_option('display.width', 500)
-                    #print query_name, len(block_list), hit_idx
-                    #for i, x in enumerate(block_list):
-                    #    print '[%i]' % i
-                    #    print x
+                # Infer IMGT junction
+                if ('J_CALL' in db and db['J_CALL']) and \
+                        ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
+                    db.update(inferJunction(db, repo_dict))
 
-                    # Parse segment start and stop positions
-                    hit_df = block_list[-1]
+                # Add FWR and CDR regions
+                if region_fields:
+                    db.update(getRegions(db))
 
-                    # Alignment info block fields
-                    if hit_df[0][0].startswith('# Fields:'):
-                        headers = re.compile('^#\s*Fields:\s*').sub('', hit_df[0][0], 0)
-                        fields = [ 'segment' ]
-                        fields += headers.split(',')
-                        fields = [ f.strip() for f in fields ]
-
-                    # Alignment info block
-                    #  0:  segment
-                    #  1:  query id
-                    #  2:  subject id
-                    #  3:  % identity
-                    #  4:  alignment length
-                    #  5:  mismatches
-                    #  6:  gap opens
-                    #  7:  gaps
-                    #  8:  q. start
-                    #  9:  q. end
-                    # 10:  s. start
-                    # 11:  s. end
-                    # 12:  evalue
-                    # 13:  bit score
-                    # 14:  query seq
-                    # 15:  subject seq
-                    # 16:  btop
-
-                    # If V call exists, parse V alignment information
-                    seq_vdj = ''
-                    if v_call is not None:
-                        v_align = hit_df[hit_df[0] == 'V'].iloc[0]
-                        # Germline positions
-                        db_gen['V_GERM_START_VDJ'] = int(v_align[fields.index('s. start')])
-                        db_gen['V_GERM_LENGTH_VDJ'] = int(v_align[fields.index('s. end')]) - db_gen['V_GERM_START_VDJ'] + 1
-                        # Query sequence positions
-                        db_gen['V_SEQ_START'] = int(v_align[fields.index('q. start')])
-                        db_gen['V_SEQ_LENGTH'] = int(v_align[fields.index('q. end')]) - db_gen['V_SEQ_START'] + 1
-
-                        if int(v_align[fields.index('gap opens')]) == 0:
-                            db_gen['INDELS'] = 'F'
-                        else:
-                            db_gen['INDELS'] = 'T'
-                            # Set functional to none so record gets tossed (junction will be wrong)
-                            # db_gen['FUNCTIONAL'] = None
-
-                        # V alignment scores
-                        if score_fields:
-                            try: db_gen['V_SCORE'] = float(v_align[fields.index('bit score')])
-                            except (TypeError, ValueError): db_gen['V_SCORE'] = 'None'
-
-                            try: db_gen['V_IDENTITY'] = float(v_align[fields.index('% identity')]) / 100.0
-                            except (TypeError, ValueError): db_gen['V_IDENTITY'] = 'None'
-
-                            try: db_gen['V_EVALUE'] = float(v_align[fields.index('evalue')])
-                            except (TypeError, ValueError): db_gen['V_EVALUE'] = 'None'
-
-                            try: db_gen['V_BTOP'] = v_align[fields.index('BTOP')]
-                            except (TypeError, ValueError): db_gen['V_BTOP'] = 'None'
-
-                        # Update VDJ sequence, removing insertions
-                        start = 0
-                        for m in re.finditer(r'-', v_align[fields.index('subject seq')]):
-                            ins = m.start()
-                            seq_vdj += v_align[fields.index('query seq')][start:ins]
-                            start = ins + 1
-                        seq_vdj += v_align[fields.index('query seq')][start:]
-
-                    # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
-                    # If D call exists, parse D alignment information
-                    if d_call is not None:
-                        d_align = hit_df[hit_df[0] == 'D'].iloc[0]
-
-                        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-                        # Determine N-region length and amount of J overlap with V or D alignment
-                        overlap = 0
-                        if v_call is not None:
-                            np1_len = int(d_align[fields.index('q. start')]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
-                            if np1_len < 0:
-                                db_gen['NP1_LENGTH'] = 0
-                                overlap = abs(np1_len)
-                            else:
-                                db_gen['NP1_LENGTH'] = np1_len
-                                n1_start = (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH']-1)
-                                n1_end = int(d_align[fields.index('q. start')])-1
-                                seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
-
-                        # Query sequence positions
-                        db_gen['D_SEQ_START'] = int(d_align[fields.index('q. start')]) + overlap
-                        db_gen['D_SEQ_LENGTH'] = max(int(d_align[fields.index('q. end')]) - db_gen['D_SEQ_START'] + 1, 0)
-
-                        # Germline positions
-                        db_gen['D_GERM_START'] = int(d_align[fields.index('s. start')]) + overlap
-                        db_gen['D_GERM_LENGTH'] = max(int(d_align[fields.index('s. end')]) - db_gen['D_GERM_START'] + 1, 0)
-
-                        # Update VDJ sequence, removing insertions
-                        start = overlap
-                        for m in re.finditer(r'-', d_align[fields.index('subject seq')]):
-                            ins = m.start()
-                            seq_vdj += d_align[fields.index('query seq')][start:ins]
-                            start = ins + 1
-                        seq_vdj += d_align[fields.index('query seq')][start:]
-
-                    # TODO:  needs to check that the V results are present before trying to determine NP1_LENGTH from them.
-                    # If J call exists, parse J alignment information
-                    if j_call is not None:
-                        j_align = hit_df[hit_df[0] == 'J'].iloc[0]
-
-                        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-                        # Determine N-region length and amount of J overlap with V or D alignment
-                        overlap = 0
-                        if d_call is not None:
-                            np2_len = int(j_align[fields.index('q. start')]) - (db_gen['D_SEQ_START'] + db_gen['D_SEQ_LENGTH'])
-                            if np2_len < 0:
-                                db_gen['NP2_LENGTH'] = 0
-                                overlap = abs(np2_len)
-                            else:
-                                db_gen['NP2_LENGTH'] = np2_len
-                                n2_start = (db_gen['D_SEQ_START']+db_gen['D_SEQ_LENGTH']-1)
-                                n2_end = int(j_align[fields.index('q. start')])-1
-                                seq_vdj += db_gen['SEQUENCE_INPUT'][n2_start:n2_end]
-                        elif v_call is not None:
-                            np1_len = int(j_align[fields.index('q. start')]) - (db_gen['V_SEQ_START'] + db_gen['V_SEQ_LENGTH'])
-                            if np1_len < 0:
-                                db_gen['NP1_LENGTH'] = 0
-                                overlap = abs(np1_len)
-                            else:
-                                db_gen['NP1_LENGTH'] = np1_len
-                                n1_start = (db_gen['V_SEQ_START']+db_gen['V_SEQ_LENGTH']-1)
-                                n1_end = int(j_align[fields.index('q. start')])-1
-                                seq_vdj += db_gen['SEQUENCE_INPUT'][n1_start:n1_end]
-                        else:
-                            db_gen['NP1_LENGTH'] = 0
-
-                        # Query positions
-                        db_gen['J_SEQ_START'] = int(j_align[fields.index('q. start')]) + overlap
-                        db_gen['J_SEQ_LENGTH'] = max(int(j_align[fields.index('q. end')]) - db_gen['J_SEQ_START'] + 1, 0)
-
-                        # Germline positions
-                        db_gen['J_GERM_START'] = int(j_align[fields.index('s. start')]) + overlap
-                        db_gen['J_GERM_LENGTH'] = max(int(j_align[fields.index('s. end')]) - db_gen['J_GERM_START'] + 1, 0)
-
-                        # J alignment scores
-                        if score_fields:
-                            try: db_gen['J_SCORE'] = float(j_align[fields.index('bit score')])
-                            except (TypeError, ValueError): db_gen['J_SCORE'] = 'None'
-
-                            try: db_gen['J_IDENTITY'] = float(j_align[fields.index('% identity')]) / 100.0
-                            except (TypeError, ValueError): db_gen['J_IDENTITY'] = 'None'
-
-                            try: db_gen['J_EVALUE'] = float(j_align[fields.index('evalue')])
-                            except (TypeError, ValueError): db_gen['J_EVALUE'] = 'None'
-
-                            try: db_gen['J_BTOP'] = j_align[fields.index('BTOP')]
-                            except (TypeError, ValueError): db_gen['J_BTOP'] = 'None'
-
-                        # Update VDJ sequence, removing insertions
-                        start = overlap
-                        for m in re.finditer(r'-', j_align[fields.index('subject seq')]):
-                            ins = m.start()
-                            seq_vdj += j_align[fields.index('query seq')][start:ins]
-                            start = ins + 1
-                        seq_vdj += j_align[fields.index('query seq')][start:]
-
-                    db_gen['SEQUENCE_VDJ'] = seq_vdj
-
-                    # Create IMGT-gapped sequence and infer IMGT junction
-                    if v_call is not None:
-                        db_gen = gapV(db_gen, repo_dict)
-                        if j_call is not None:
-                            db_gen = getIMGTJunc(db_gen, repo_dict)
-
-                    # FWR and CDR regions
-                    if region_fields: getRegions(db_gen)
-
-                yield IgRecord(db_gen)
+                yield IgRecord(db)
 
 
-# TODO:  should be more readable
 def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_fields=False):
     """
     Reads IMGT/HighV-Quest output
@@ -555,72 +597,72 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
             sys.exit('Error: IMGT files are corrupt starting with Summary file record %s' \
                      % sm['Sequence ID'])
 
-        db_gen = {'SEQUENCE_ID': sm['Sequence ID'],
-                  'SEQUENCE_INPUT': sm['Sequence']}
+        db = {'SEQUENCE_ID': sm['Sequence ID'],
+              'SEQUENCE_INPUT': sm['Sequence']}
 
         if 'No results' not in sm['Functionality']:
             # Functionality
-            db_gen['FUNCTIONAL'] = _functional(sm['Functionality'])
-            db_gen['IN_FRAME'] = _inframe(sm['JUNCTION frame'])
-            db_gen['STOP'] = 'T' if 'stop codon' in sm['Functionality comment'] else 'F'
-            db_gen['MUTATED_INVARIANT'] = 'T' if any(('missing' in sm['Functionality comment'],
+            db['FUNCTIONAL'] = _functional(sm['Functionality'])
+            db['IN_FRAME'] = _inframe(sm['JUNCTION frame'])
+            db['STOP'] = 'T' if 'stop codon' in sm['Functionality comment'] else 'F'
+            db['MUTATED_INVARIANT'] = 'T' if any(('missing' in sm['Functionality comment'],
                                                       'missing' in sm['V-REGION potential ins/del'])) else 'F'
-            db_gen['INDELS'] = 'T' if any((sm['V-REGION potential ins/del'],
+            db['INDELS'] = 'T' if any((sm['V-REGION potential ins/del'],
                                            sm['V-REGION insertions'],
                                            sm['V-REGION deletions'])) else 'F'
 
             # Sequences
-            #db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
+            #db['SEQUENCE_VDJ'] = nt['V-D-J-REGION'] if nt['V-D-J-REGION'] else nt['V-J-REGION']
             if nt['V-D-J-REGION']:
-                db_gen['SEQUENCE_VDJ'] = nt['V-D-J-REGION']
+                db['SEQUENCE_VDJ'] = nt['V-D-J-REGION']
             elif nt['V-J-REGION']:
-                db_gen['SEQUENCE_VDJ'] = nt['V-J-REGION']
+                db['SEQUENCE_VDJ'] = nt['V-J-REGION']
             else:
-                db_gen['SEQUENCE_VDJ'] = nt['V-REGION']
+                db['SEQUENCE_VDJ'] = nt['V-REGION']
 
-            #db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
+            #db['SEQUENCE_IMGT'] = gp['V-D-J-REGION'] if gp['V-D-J-REGION'] else gp['V-J-REGION']
             if gp['V-D-J-REGION']:
-                db_gen['SEQUENCE_IMGT'] = gp['V-D-J-REGION']
+                db['SEQUENCE_IMGT'] = gp['V-D-J-REGION']
             elif gp['V-J-REGION']:
-                db_gen['SEQUENCE_IMGT'] = gp['V-J-REGION']
+                db['SEQUENCE_IMGT'] = gp['V-J-REGION']
             else:
-                db_gen['SEQUENCE_IMGT'] = gp['V-REGION']
+                db['SEQUENCE_IMGT'] = gp['V-REGION']
                 
-            db_gen['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
-            db_gen['JUNCTION'] = jn['JUNCTION']
+            db['JUNCTION_LENGTH'] = len(jn['JUNCTION']) if jn['JUNCTION'] else 0
+            db['JUNCTION'] = jn['JUNCTION']
 
             # Gene calls
-            db_gen['V_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['V-GENE and allele']))
-            db_gen['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
-            db_gen['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
+            db['V_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['V-GENE and allele']))
+            db['D_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['D-GENE and allele']))
+            db['J_CALL'] = re.sub('\sor\s', ',', re.sub(',', '', gp['J-GENE and allele']))
 
             # V-segment alignment positions
             v_seq_length = len(nt['V-REGION']) if nt['V-REGION'] else 0
-            db_gen['V_SEQ_START'] = nt['V-REGION start']
-            db_gen['V_SEQ_LENGTH'] = v_seq_length
-            db_gen['V_GERM_START_IMGT'] = 1
-            db_gen['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
+            db['V_SEQ_START'] = nt['V-REGION start']
+            db['V_SEQ_LENGTH'] = v_seq_length
+            db['V_GERM_START_IMGT'] = 1
+            db['V_GERM_LENGTH_IMGT'] = len(gp['V-REGION']) if gp['V-REGION'] else 0
 
             # Junction alignment positions
-            db_gen['NP1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
+            db['NP1_LENGTH'] = sum(int(i) for i in [jn["P3'V-nt nb"],
                                                        jn['N-REGION-nt nb'],
                                                        jn['N1-REGION-nt nb'],
                                                        jn["P5'D-nt nb"]] if i)
-            db_gen['D_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'],
+            db['D_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'],
                                                          v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
                                                          jn['N1-REGION-nt nb'],
                                                          jn["P5'D-nt nb"]] if i)
-            db_gen['D_SEQ_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
-            db_gen['D_GERM_START'] = int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1
-            db_gen['D_GERM_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
-            db_gen['NP2_LENGTH'] = sum(int(i) for i in [jn["P3'D-nt nb"],
+            db['D_SEQ_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
+            db['D_GERM_START'] = int(jn["5'D-REGION trimmed-nt nb"] or 0) + 1
+            db['D_GERM_LENGTH'] = int(jn["D-REGION-nt nb"] or 0)
+            db['NP2_LENGTH'] = sum(int(i) for i in [jn["P3'D-nt nb"],
                                                        jn['N2-REGION-nt nb'],
                                                        jn["P5'J-nt nb"]] if i)
 
             # J-segment alignment positions
-            db_gen['J_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'], 
+            db['J_SEQ_START'] = sum(int(i) for i in [nt['V-REGION start'],
                                                          v_seq_length,
                                                          jn["P3'V-nt nb"],
                                                          jn['N-REGION-nt nb'],
@@ -630,44 +672,45 @@ def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_field
                                                          jn["P3'D-nt nb"],
                                                          jn['N2-REGION-nt nb'],
                                                          jn["P5'J-nt nb"]] if i)
-            db_gen['J_SEQ_LENGTH'] = len(nt['J-REGION']) if nt['J-REGION'] else 0
-            db_gen['J_GERM_START'] = int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1
-            db_gen['J_GERM_LENGTH'] = len(gp['J-REGION']) if gp['J-REGION'] else 0
+            db['J_SEQ_LENGTH'] = len(nt['J-REGION']) if nt['J-REGION'] else 0
+            db['J_GERM_START'] = int(jn["5'J-REGION trimmed-nt nb"] or 0) + 1
+            db['J_GERM_LENGTH'] = len(gp['J-REGION']) if gp['J-REGION'] else 0
 
             # Alignment scores
             if score_fields:
-                try:  db_gen['V_SCORE'] = float(sm['V-REGION score'])
-                except (TypeError, ValueError):  db_gen['V_SCORE'] = 'None'
+                try:  db['V_SCORE'] = float(sm['V-REGION score'])
+                except (TypeError, ValueError):  db['V_SCORE'] = 'None'
 
-                try:  db_gen['V_IDENTITY'] = float(sm['V-REGION identity %']) / 100.0
-                except (TypeError, ValueError):  db_gen['V_IDENTITY'] = 'None'
+                try:  db['V_IDENTITY'] = float(sm['V-REGION identity %']) / 100.0
+                except (TypeError, ValueError):  db['V_IDENTITY'] = 'None'
 
-                try:  db_gen['J_SCORE'] = float(sm['J-REGION score'])
-                except (TypeError, ValueError):  db_gen['J_SCORE'] = 'None'
+                try:  db['J_SCORE'] = float(sm['J-REGION score'])
+                except (TypeError, ValueError):  db['J_SCORE'] = 'None'
 
-                try:  db_gen['J_IDENTITY'] = float(sm['J-REGION identity %']) / 100.0
-                except (TypeError, ValueError):  db_gen['J_IDENTITY'] = 'None'
+                try:  db['J_IDENTITY'] = float(sm['J-REGION identity %']) / 100.0
+                except (TypeError, ValueError):  db['J_IDENTITY'] = 'None'
 
             # FWR and CDR regions
-            if region_fields: getRegions(db_gen)
+            if region_fields:
+                db.update(getRegions(db))
             
             # D Frame and junction fields
             if junction_fields:
-                db_gen['D_FRAME'] = int(jn['D-REGION reading frame'] or 0)
-                db_gen['N1_LENGTH'] = sum(int(i) for i in [jn['N-REGION-nt nb'],
+                db['D_FRAME'] = int(jn['D-REGION reading frame'] or 0)
+                db['N1_LENGTH'] = sum(int(i) for i in [jn['N-REGION-nt nb'],
                                                            jn['N1-REGION-nt nb']] if i)
-                db_gen['N2_LENGTH'] = int(jn['N2-REGION-nt nb'] or 0)
-                db_gen['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
-                db_gen['P5D_LENGTH'] = int(jn['P5\'D-nt nb'] or 0)    
-                db_gen['P3D_LENGTH'] = int(jn['P3\'D-nt nb'] or 0)  
-                db_gen['P5J_LENGTH'] = int(jn['P5\'J-nt nb'] or 0)  
+                db['N2_LENGTH'] = int(jn['N2-REGION-nt nb'] or 0)
+                db['P3V_LENGTH'] = int(jn['P3\'V-nt nb'] or 0)
+                db['P5D_LENGTH'] = int(jn['P5\'D-nt nb'] or 0)
+                db['P3D_LENGTH'] = int(jn['P3\'D-nt nb'] or 0)
+                db['P5J_LENGTH'] = int(jn['P5\'J-nt nb'] or 0)
 
         else:
-            db_gen['V_CALL'] = 'None'
-            db_gen['D_CALL'] = 'None'
-            db_gen['J_CALL'] = 'None'
+            db['V_CALL'] = 'None'
+            db['D_CALL'] = 'None'
+            db['J_CALL'] = 'None'
 
-        yield IgRecord(db_gen)
+        yield IgRecord(db)
 
     
 # TODO:  should be more readable
@@ -879,9 +922,12 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
         db['J_SEQ_LENGTH'] = len(sample_jseq)
 
         # Add IMGT gapped sequence
-        db = gapV(db, repo_dict)
+        if v_call:
+            db.update(gapV(db, repo_dict))
+
         # Extract junction regions
-        db = getIMGTJunc(db, repo_dict)
+        if v_call and j_call:
+            db.update(inferJunction(db, repo_dict))
 
          # Overall alignment score
         if score_fields:
@@ -889,7 +935,8 @@ def readIHMM(ihmm_output, seq_dict, repo_dict,
             except (TypeError, ValueError): db['HMM_SCORE'] = ''
 
         # FWR and CDR regions
-        if region_fields: getRegions(db)
+        if region_fields:
+            db.update(getRegions(db))
 
         yield IgRecord(db)
 
@@ -917,14 +964,14 @@ def getIDforIMGT(seq_file):
     return ids
 
 
-def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
+def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True,
             score_fields=False, region_fields=False, junction_fields=False,
             out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory
     
     Arguments:
-    db_gen = a generator of IgRecord objects containing alignment data
+    db = a iterator of IgRecord objects containing alignment data
     file_prefix = directory and prefix for CLIP tab-delim file
     total_count = number of records (for progress bar)
     id_dict = a dictionary of {IMGT ID: full seq description}
@@ -1028,7 +1075,7 @@ def writeDb(db_gen, file_prefix, total_count, id_dict={}, no_parse=True,
     rec_count = pass_count = fail_count = 0
 
     # Validate and write output
-    for record in db_gen:
+    for record in db:
         printProgress(rec_count, total_count, 0.05, start_time)
         rec_count += 1
 

@@ -33,10 +33,10 @@ def zip_equal(*iterables):
     Zips iterables and raises exception if different lengths
 
     Arguments:
-        *iterables = pointer to iterables to zip together
+        iterables : pointer to iterables to zip together
 
     Returns:
-        a generator of tuples with combined elements from the iterables
+        iter : A generator of tuples with combined elements from the iterables
     """
     for combo in zip_longest(*iterables):
         if None in combo:
