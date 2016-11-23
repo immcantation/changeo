@@ -51,7 +51,8 @@ def getRepo(repo):
             germlines = SeqIO.parse(file_handle, "fasta")
             for g in germlines:
                 germ_key = parseAllele(g.description, allele_regex, 'list')
-                repo_dict[germ_key] = str(g.seq).upper() # @UndefinedVariable
+                repo_dict[germ_key] = str(g.seq).upper()
+
     return repo_dict
 
 

@@ -37,6 +37,522 @@ from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_reg
 # Default parameters
 default_delimiter = ('\t', ',', '-')
 
+class IgBlastReader:
+    """
+    An iterator to read and parse IgBLAST output files
+    """
+    def __init__(self, handle, seq_dict, repo_dict, score_fields=False,
+                 region_fields=False, ig=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
+          seq_dict : dictionary of {sequence id: Seq object} containing the original query sequences.
+          repo_dict : dictionary of IMGT gapped germline sequences.
+          score_fields : if True parse alignment scores.
+          region_fields : if True add FWR and CDR region fields.
+          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+
+        Returns:
+          IgBlastReader
+        """
+        self.handle = handle
+        self.seq_dict = seq_dict
+        self.repo_dict = repo_dict
+        self.score_fields = score_fields
+        self.region_fields = region_fields
+        self.ig = ig
+
+
+    def _parseQueryChunk(self, chunk):
+        """
+        Parse query section
+
+        Arguments:
+          chunk : list of strings
+
+        Returns:
+          str : query identifier
+        """
+        # Extract query id from comments
+        query = next((x for x in chunk if x.startswith('# Query:')))
+
+        return query.lstrip('# Query: ')
+
+
+    def _parseSummaryChunk(self, chunk):
+        """
+        Parse summary section
+
+        Args:
+            chunk: list of strings
+
+        Returns:
+            dict : summary section.
+        """
+        # Mapping for field names in the summary section
+        summary_map = {'Top V gene match': 'v_match',
+                       'Top D gene match': 'd_match',
+                       'Top J gene match': 'j_match',
+                       'Chain type': 'chain',
+                       'stop codon': 'stop',
+                       'V-J frame': 'frame',
+                       'Productive': 'productive',
+                       'Strand': 'strand'}
+
+        # Extract column names from comments
+        f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
+        f = re.search('summary for query sequence \((.+)\)\.', f).group(1)
+        columns = [summary_map[x.strip()] for x in f.split(',')]
+
+        # Extract first row as a list
+        row = next((x.split('\t') for x in chunk if not x.startswith('#')))
+
+        # Populate template dictionary with parsed fields
+        summary = {v: None for v in summary_map.values()}
+        summary.update(dict(zip(columns, row)))
+
+        return summary
+
+
+    def _parseHitsChunk(self, chunk):
+        """
+        Parse hits section
+
+        Args:
+          chunk: list of strings
+
+        Returns:
+          pandas.DataFrame: hit table
+        """
+        # Extract column names from comments
+        f = next((x for x in chunk if x.startswith('# Fields:')))
+        columns = chain(['segment'], f.lstrip('# Fields:').split(','))
+        columns = [x.strip() for x in columns]
+
+        # Split non-comment rows into a list of lists
+        rows = [x.split('\t') for x in chunk if not x.startswith('#')]
+
+        return pd.DataFrame(rows, columns=columns)
+
+
+    # Parse summary results
+    def _parseSummarySection(self, summary, db):
+        """
+        Parse summary section
+
+        Arguments:
+          summary :  summary section dictionary return by parseBlock
+          db : initial database dictionary.
+
+        Returns:
+          dict : db of results.
+        """
+        result = {}
+        # Parse V, D, and J calls
+        v_call = parseAllele(summary['v_match'], v_allele_regex, action='list')
+        d_call = parseAllele(summary['d_match'], d_allele_regex, action='list')
+        j_call = parseAllele(summary['j_match'], j_allele_regex, action='list')
+        result['V_CALL'] = ','.join(v_call) if v_call else None
+        result['D_CALL'] = ','.join(d_call) if d_call else None
+        result['J_CALL'] = ','.join(j_call) if j_call else None
+
+        # Parse quality information
+        result['STOP'] = 'T' if summary['stop'] == 'Yes' else 'F'
+        result['IN_FRAME'] = 'T' if summary['frame'] == 'In-frame' else 'F'
+        result['FUNCTIONAL'] = 'T' if summary['productive'] == 'Yes' else 'F'
+
+        # Reverse complement input sequence if required
+        if summary['strand'] == '-':
+            seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
+            result['SEQUENCE_INPUT'] = str(seq_rc)
+
+        return result
+
+
+    def _parseVHitPos(self, v_hit):
+        """
+        Parse V alignment positions
+
+        Arguments:
+          v_hit :  V alignment row from the hit table
+
+        Returns:
+          dict: db of D starts and lengths
+        """
+        result = {}
+
+        # Germline positions
+        result['V_GERM_START_VDJ'] = int(v_hit['s. start'])
+        result['V_GERM_LENGTH_VDJ'] = int(v_hit['s. end']) - result['V_GERM_START_VDJ'] + 1
+
+        # Query sequence positions
+        result['V_SEQ_START'] = int(v_hit['q. start'])
+        result['V_SEQ_LENGTH'] = int(v_hit['q. end']) - result['V_SEQ_START'] + 1
+        result['INDELS'] = 'F' if int(v_hit['gap opens']) == 0 else 'T'
+
+        return result
+
+
+    def _parseDHitPos(self, d_hit, overlap):
+        """
+        Parse D alignment positions
+
+        Arguments:
+          d_hit :  D alignment row from the hit table
+          overlap : V-D overlap length
+
+        Returns:
+          dict: db of D starts and lengths
+        """
+        result = {}
+        # Query sequence positions
+        result['D_SEQ_START'] = int(d_hit['q. start']) + overlap
+        result['D_SEQ_LENGTH'] = max(int(d_hit['q. end']) - result['D_SEQ_START'] + 1, 0)
+        # Germline positions
+        result['D_GERM_START'] = int(d_hit['s. start']) + overlap
+        result['D_GERM_LENGTH'] = max(int(d_hit['s. end']) - result['D_GERM_START'] + 1, 0)
+        return result
+
+
+    def _parseJHitPos(self, j_hit, overlap):
+        """
+        Parse J alignment positions
+
+        Arguments:
+          j_hit :  J alignment row from the hit table
+          overlap : D-J or V-J overlap length
+
+        Returns:
+          dict: db of J starts and lengths
+        """
+        result = {}
+
+        # Query positions
+        result['J_SEQ_START'] = int(j_hit['q. start']) + overlap
+        result['J_SEQ_LENGTH'] = max(int(j_hit['q. end']) - result['J_SEQ_START'] + 1, 0)
+
+        # Germline positions
+        result['J_GERM_START'] = int(j_hit['s. start']) + overlap
+        result['J_GERM_LENGTH'] = max(int(j_hit['s. end']) - result['J_GERM_START'] + 1, 0)
+
+        return result
+
+
+    def _removeInsertions(self, seq, hits, start):
+        """
+        Remove insertions from aligned query sequences
+
+        Arguments:
+          seq :  sequence to modify
+          hits : hit table row for the sequence
+          start : start position of the query sequence
+
+        Returns:
+          str : modified sequence
+        """
+        for m in re.finditer(r'-', hits['subject seq']):
+            ins = m.start()
+            seq += hits['query seq'][start:ins]
+            start = ins + 1
+        seq += hits['query seq'][start:]
+
+        return seq
+
+
+    def _parseVHits(self, hits, db):
+        """
+        Parse V hit sub-table
+
+        Arguments:
+          hits :  hit table as a pandas.DataFrame.
+          db : database dictionary containing summary results.
+
+        Returns:
+          dict : db of results.
+        """
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        v_hit = hits[hits['segment'] == 'V'].iloc[0]
+
+        # Alignment positions
+        result.update(self._parseVHitPos(v_hit))
+
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = self._removeInsertions(seq_vdj, v_hit, 0)
+
+        return result
+
+
+    def _parseDHits(self, hits, db):
+        """
+        Parse D hit sub-table
+
+        Arguments:
+          hits :  hit table as a pandas.DataFrame.
+          db : database dictionary containing summary and V results.
+
+        Returns:
+          dict : db of results.
+        """
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        d_hit = hits[hits['segment'] == 'D'].iloc[0]
+
+        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+        # Determine N-region length and amount of J overlap with V or D alignment
+        overlap = 0
+        if db['V_CALL']:
+            np1_len = int(d_hit['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+            if np1_len < 0:
+                result['NP1_LENGTH'] = 0
+                overlap = abs(np1_len)
+            else:
+                result['NP1_LENGTH'] = np1_len
+                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                np1_end = int(d_hit['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
+
+        # D alignment positions
+        result.update(self._parseDHitPos(d_hit, overlap))
+
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = self._removeInsertions(seq_vdj, d_hit, overlap)
+
+        return result
+
+
+    def _parseJHits(self, hits, db):
+        """
+        Parse J hit sub-table
+
+        Arguments:
+          hits :  hit table as a pandas.DataFrame.
+          db : database dictionary containing summary, V and D results.
+
+        Returns:
+          dict : db of results.
+        """
+        result = {}
+        seq_vdj = db['SEQUENCE_VDJ']
+        j_hit = hits[hits['segment'] == 'J'].iloc[0]
+
+        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
+        # Determine N-region length and amount of J overlap with V or D alignment
+        overlap = 0
+        if db['D_CALL']:
+            np2_len = int(j_hit['q. start']) - (db['D_SEQ_START'] + db['D_SEQ_LENGTH'])
+            if np2_len < 0:
+                result['NP2_LENGTH'] = 0
+                overlap = abs(np2_len)
+            else:
+                result['NP2_LENGTH'] = np2_len
+                n2_start = db['D_SEQ_START'] + db['D_SEQ_LENGTH'] - 1
+                n2_end = int(j_hit['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
+        elif db['V_CALL']:
+            np1_len = int(j_hit['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+            if np1_len < 0:
+                result['NP1_LENGTH'] = 0
+                overlap = abs(np1_len)
+            else:
+                result['NP1_LENGTH'] = np1_len
+                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                np1_end = int(j_hit['q. start']) - 1
+                seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
+        else:
+            result['NP1_LENGTH'] = 0
+
+        # J alignment positions
+        result.update(self._parseJHitPos(j_hit, overlap))
+
+        # Update VDJ sequence, removing insertions
+        result['SEQUENCE_VDJ'] = self._removeInsertions(seq_vdj, j_hit, overlap)
+
+        return result
+
+
+    def _parseHitScores(self, hits, segment):
+        """
+        Parse alignment scores
+
+        Arguments:
+          hits :  hit table as a pandas.DataFrame.
+          segment : segment name; one of 'V', 'D' or 'J'.
+
+        Returns:
+          dict : scores
+        """
+        result = {}
+        s_hits = hits[hits['segment'] == segment].iloc[0]
+        # Score
+        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
+        except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
+        # Identity
+        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
+        except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
+        # E-value
+        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
+        except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
+        # BTOP
+        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
+        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
+
+        return result
+
+
+    def parseBlock(self, block):
+        """
+        Parses an IgBLAST result into separate sections
+
+        Arguments:
+          block : an iterator from itertools.groupby containing a single IgBLAST result
+
+        Returns:
+          dict : A parsed results block with
+                {query: sequence identifier as a string,
+                 summary: dictionary of the alignment summary,
+                 hits: V(D)J hit table as a pandas.DataFrame).
+          None : If the block has no data that can be parsed.
+        """
+        # Parsing info
+        #
+        #   Columns for non-hit-table sections
+        #     'V-(D)-J rearrangement summary': (Top V gene match, Top D gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand)
+        #     'V-(D)-J junction details': (V end, V-D junction, D region, D-J junction, J start)
+        #     'Alignment summary': (from, to, length, matches, mismatches, gaps, percent identity)
+        #
+        #   Ignored sections
+        #     'junction': '# V-(D)-J junction details'
+        #     'subregion': '# Sub-region sequence details'
+        #     'v_alignment': '# Alignment summary'
+        #
+        #   Hit table fields for -outfmt "7 std qseq sseq btop"
+        #     0:  segment
+        #     1:  query id
+        #     2:  subject id
+        #     3:  % identity
+        #     4:  alignment length
+        #     5:  mismatches
+        #     6:  gap opens
+        #     7:  gaps
+        #     8:  q. start
+        #     9:  q. end
+        #    10:  s. start
+        #    11:  s. end
+        #    12:  evalue
+        #    13:  bit score
+        #    14:  query seq
+        #    15:  subject seq
+        #    16:  btop
+        # Map of valid block parsing keys and functions
+        chunk_map = {'query': ('# Query:', self._parseQueryChunk),
+                     'summary': ('# V-(D)-J rearrangement summary', self._parseSummaryChunk),
+                     'hits': ('# Hit table', self._parseHitsChunk)}
+
+        # Parsing chunks
+        results = {}
+        for match, chunk in groupby(block, lambda x: x != '\n'):
+            if match:
+                # Strip whitespace and convert to list
+                chunk = [x.strip() for x in chunk]
+
+                # Parse non-query sections
+                chunk_dict = {k: f(chunk) for k, (v, f) in chunk_map.items() if chunk[0].startswith(v)}
+                results.update(chunk_dict)
+
+        return results if results else None
+
+
+    def parseSections(self, sections):
+        """
+        Parses an IgBLAST sections into a db dictionary
+
+        Arguments:
+            sections : dictionary of parsed sections from parseBlock
+
+        Returns:
+          dict : db entries
+        """
+
+        # Initialize dictionary with input sequence and id
+        db = {}
+        if 'query' in sections:
+            query = sections['query']
+            db['SEQUENCE_ID'] = query
+            db['SEQUENCE_INPUT'] = self.seq_dict[query]
+
+        # Parse summary section
+        if 'summary' in sections:
+            db.update(self._parseSummarySection(sections['summary'], db))
+
+        # Parse hit table
+        if 'hits' in sections:
+            db['SEQUENCE_VDJ'] = ''
+            if db['V_CALL']:
+                db.update(self._parseVHits(sections['hits'], db))
+                if self.score_fields:
+                    db.update(self._parseHitScores(sections['hits'], 'V'))
+            if db['D_CALL']:
+                db.update(self._parseDHits(sections['hits'], db))
+            if db['J_CALL']:
+                db.update(self._parseJHits(sections['hits'], db))
+                if self.score_fields:
+                    db.update(self._parseHitScores(sections['hits'], 'J'))
+
+        # Create IMGT-gapped sequence
+        if 'V_CALL' in db and db['V_CALL']:
+            db.update(gapV(db, self.repo_dict))
+
+        # Infer IMGT junction
+        if ('J_CALL' in db and db['J_CALL']) and \
+                ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
+            db.update(inferJunction(db, self.repo_dict))
+
+        # Add FWR and CDR regions
+        if self.region_fields:
+            db.update(getRegions(db))
+
+        return db
+
+
+    def __iter__(self):
+        """
+        Iterator initializer
+
+        Returns:
+          IgBlastReader
+        """
+        self.groups = groupby(self.handle, lambda x: not re.match('# IGBLASTN', x))
+        return self
+
+
+    def __next__(self):
+        """
+        Next method
+
+        Returns:
+            IgRecord : Parsed IgBLAST query result
+        """
+        # Get next block from groups iterator
+        try:
+            match = False
+            block = None
+            while not match:
+                match, block = next(self.groups)
+        except StopIteration:
+            raise StopIteration
+
+        # Parse block
+        sections = self.parseBlock(block)
+        db = self.parseSections(sections)
+
+        if self.ig:
+            return IgRecord(db)
+        else:
+            return db
+
 
 def gapV(ig_dict, repo_dict):
     """
@@ -249,334 +765,6 @@ def extractIMGT(imgt_output):
         sys.exit('ERROR: Missing necessary file IMGT output %s.' % imgt_output)
         
     return temp_dir, imgt_files
-
-
-def readIgBlastBlock(block):
-    """
-    Parse a single IgBLAST query result
-
-    Arguments:
-      block : itertools groupby object for a single query.
-
-    Returns:
-      dict : A parsed results block with
-            {query: sequence identifier as a string,
-             summary: dictionary of the alignment summary,
-             hits: V(D)J hit table as a pandas.DataFrame).
-      None : If the block has no data that can be parsed.
-    """
-    # Parsing info
-    #
-    #   Columns for non-hit-table sections
-    #     'V-(D)-J rearrangement summary': (Top V gene match, Top D gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand)
-    #     'V-(D)-J junction details': (V end, V-D junction, D region, D-J junction, J start)
-    #     'Alignment summary': (from, to, length, matches, mismatches, gaps, percent identity)
-    #
-    #   Ignored sections
-    #     'junction': '# V-(D)-J junction details'
-    #     'subregion': '# Sub-region sequence details'
-    #     'v_alignment': '# Alignment summary'
-    #
-    #   Hit table fields for -outfmt "7 std qseq sseq btop"
-    #     0:  segment
-    #     1:  query id
-    #     2:  subject id
-    #     3:  % identity
-    #     4:  alignment length
-    #     5:  mismatches
-    #     6:  gap opens
-    #     7:  gaps
-    #     8:  q. start
-    #     9:  q. end
-    #    10:  s. start
-    #    11:  s. end
-    #    12:  evalue
-    #    13:  bit score
-    #    14:  query seq
-    #    15:  subject seq
-    #    16:  btop
-
-    summary_fields = {'Top V gene match': 'v_match',
-                      'Top D gene match': 'd_match',
-                      'Top J gene match': 'j_match',
-                      'Chain type': 'chain',
-                      'stop codon': 'stop',
-                      'V-J frame': 'frame',
-                      'Productive': 'productive',
-                      'Strand': 'strand'}
-
-    # Function to parse query section into a string
-    def _parseQuery(chunk):
-        # Extract query id from comments
-        query = next((x for x in chunk if x.startswith('# Query:')))
-        return query.lstrip('# Query: ')
-
-    # Function to parse summary section into a dictionary
-    def _parseSummary(chunk):
-        # Extract column names from comments
-        f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
-        f = re.search('summary for query sequence \((.+)\)\.', f).group(1)
-        columns = [summary_fields[x.strip()] for x in f.split(',')]
-        # Extract first row as a list
-        row = next((x.split('\t') for x in chunk if not x.startswith('#')))
-        # Populate template dictionary with parsed fields
-        summary = {v: None for v in summary_fields.values()}
-        summary.update(dict(zip(columns, row)))
-        return summary
-
-    # Function to parse hits section into a DataFrame
-    def _parseHits(chunk):
-        # Extract column names from comments
-        f = next((x for x in chunk if x.startswith('# Fields:')))
-        columns = chain(['segment'], f.lstrip('# Fields:').split(','))
-        columns = [x.strip() for x in columns]
-        # Split non-comment rows into a list of lists
-        rows = [x.split('\t') for x in chunk if not x.startswith('#')]
-        return pd.DataFrame(rows, columns=columns)
-
-    # Map of valid block parsing keys and functions
-    header_map = {'query': ('# Query:', _parseQuery),
-                  'summary': ('# V-(D)-J rearrangement summary', _parseSummary),
-                  'hits': ('# Hit table', _parseHits)}
-
-    results = {}
-    for match, chunk in groupby(block, lambda x: x != '\n'):
-        if match:
-            # Strip whitespace and convert to list
-            chunk = [x.strip() for x in chunk]
-
-            # Parse non-query sections
-            chunk_dict = {k: f(chunk) for k, (v, f) in header_map.items() if chunk[0].startswith(v)}
-            results.update(chunk_dict)
-
-    return results if results else None
-
-
-# TODO:  needs more speeds. pandas is probably to blame.
-def readIgBlast(igblast_output, seq_dict, repo_dict,
-                score_fields=False, region_fields=False):
-    """
-    Reads IgBlast output
-
-    Arguments:
-    igblast_output = IgBlast output file (format 7).
-    seq_dict = a dictionary of {sequence id: Seq object} from input fasta file.
-    repo_dict = dictionary of IMGT gapped germline sequences.
-    score_fields = if True parse alignment scores.
-    region_fields = if True add FWR and CDR region fields.
-
-    Returns:
-    a generator of dictionaries containing alignment data
-    """
-    # Parse summary results
-    def _parseSummary(db, summary):
-        result = {}
-        # Parse V, D, and J calls
-        v_call = parseAllele(summary['v_match'], v_allele_regex, action='list')
-        d_call = parseAllele(summary['d_match'], d_allele_regex, action='list')
-        j_call = parseAllele(summary['j_match'], j_allele_regex, action='list')
-        result['V_CALL'] = ','.join(v_call) if v_call else None
-        result['D_CALL'] = ','.join(d_call) if d_call else None
-        result['J_CALL'] = ','.join(j_call) if j_call else None
-
-        # Parse quality information
-        result['STOP'] = 'T' if summary['stop'] == 'Yes' else 'F'
-        result['IN_FRAME'] = 'T' if summary['frame'] == 'In-frame' else 'F'
-        result['FUNCTIONAL'] = 'T' if summary['productive'] == 'Yes' else 'F'
-
-        # Reverse complement input sequence if required
-        if summary['strand'] == '-':
-            seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
-            result['SEQUENCE_INPUT'] = str(seq_rc)
-
-        return result
-
-    # Parse V alignment positions
-    def _parseVPos(v_hits):
-        result = {}
-        # Germline positions
-        result['V_GERM_START_VDJ'] = int(v_hits['s. start'])
-        result['V_GERM_LENGTH_VDJ'] = int(v_hits['s. end']) - result['V_GERM_START_VDJ'] + 1
-        # Query sequence positions
-        result['V_SEQ_START'] = int(v_hits['q. start'])
-        result['V_SEQ_LENGTH'] = int(v_hits['q. end']) - result['V_SEQ_START'] + 1
-        result['INDELS'] = 'F' if int(v_hits['gap opens']) == 0 else 'T'
-
-        return result
-
-    # Parse D alignment positions
-    def _parseDPos(d_hits, overlap):
-        result = {}
-        # Query sequence positions
-        result['D_SEQ_START'] = int(d_hits['q. start']) + overlap
-        result['D_SEQ_LENGTH'] = max(int(d_hits['q. end']) - result['D_SEQ_START'] + 1, 0)
-        # Germline positions
-        result['D_GERM_START'] = int(d_hits['s. start']) + overlap
-        result['D_GERM_LENGTH'] = max(int(d_hits['s. end']) - result['D_GERM_START'] + 1, 0)
-        return result
-
-    # Parse J alignment positions
-    def _parseJPos(j_hits, overlap):
-        result = {}
-        # Query positions
-        result['J_SEQ_START'] = int(j_hits['q. start']) + overlap
-        result['J_SEQ_LENGTH'] = max(int(j_hits['q. end']) - result['J_SEQ_START'] + 1, 0)
-        # Germline positions
-        result['J_GERM_START'] = int(j_hits['s. start']) + overlap
-        result['J_GERM_LENGTH'] = max(int(j_hits['s. end']) - result['J_GERM_START'] + 1, 0)
-        return result
-
-    # Update sequence, removing insertions
-    def _removeInsertions(seq, hits, start):
-        for m in re.finditer(r'-', hits['subject seq']):
-            ins = m.start()
-            seq += hits['query seq'][start:ins]
-            start = ins + 1
-        seq += hits['query seq'][start:]
-        return seq
-
-    # Parse V hit sub-table
-    def _parseVHits(db, hits):
-        result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
-        v_hits = hits[hits['segment'] == 'V'].iloc[0]
-
-        # Alignment positions
-        result.update(_parseVPos(v_hits))
-        # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, v_hits, 0)
-
-        return result
-
-    # Parse D hit sub-table
-    def _parseDHits(db, hits):
-        result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
-        d_hits = hits[hits['segment'] == 'D'].iloc[0]
-
-        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-        # Determine N-region length and amount of J overlap with V or D alignment
-        overlap = 0
-        if db['V_CALL']:
-            np1_len = int(d_hits['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
-            if np1_len < 0:
-                result['NP1_LENGTH'] = 0
-                overlap = abs(np1_len)
-            else:
-                result['NP1_LENGTH'] = np1_len
-                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
-                np1_end = int(d_hits['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
-
-        # D alignment positions
-        result.update(_parseDPos(d_hits, overlap))
-        # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, d_hits, overlap)
-
-        return result
-
-    # Parse J hit sub-table
-    def _parseJHits(db, hits):
-        result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
-        j_hits = hits[hits['segment'] == 'J'].iloc[0]
-
-        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
-        # Determine N-region length and amount of J overlap with V or D alignment
-        overlap = 0
-        if db['D_CALL']:
-            np2_len = int(j_hits['q. start']) - (db['D_SEQ_START'] + db['D_SEQ_LENGTH'])
-            if np2_len < 0:
-                result['NP2_LENGTH'] = 0
-                overlap = abs(np2_len)
-            else:
-                result['NP2_LENGTH'] = np2_len
-                n2_start = db['D_SEQ_START'] + db['D_SEQ_LENGTH'] - 1
-                n2_end = int(j_hits['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
-        elif db['V_CALL']:
-            np1_len = int(j_hits['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
-            if np1_len < 0:
-                result['NP1_LENGTH'] = 0
-                overlap = abs(np1_len)
-            else:
-                result['NP1_LENGTH'] = np1_len
-                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
-                np1_end = int(j_hits['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
-        else:
-            result['NP1_LENGTH'] = 0
-
-        # J alignment positions
-        result.update(_parseJPos(j_hits, overlap))
-        # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = _removeInsertions(seq_vdj, j_hits, overlap)
-
-        return result
-
-    # Parse alignment scores
-    def _parseScores(hits, segment):
-        result = {}
-        s_hits = hits[hits['segment'] == segment].iloc[0]
-        # Score
-        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
-        except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
-        # Identity
-        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
-        except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
-        # E-value
-        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
-        except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
-        # BTOP
-        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
-        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
-        return result
-
-    # Open IgBlast output file
-    with open(igblast_output) as f:
-        # Iterate over individual results (separated by # IGBLASTN)
-        for match, block in groupby(f, lambda x: not re.match('# IGBLASTN', x)):
-            if match:
-                # Parse block
-                parsed = readIgBlastBlock(block)
-
-                # Initialize dictionary with input sequence and id
-                db = {}
-                if 'query' in parsed:
-                    query = parsed['query']
-                    db['SEQUENCE_ID'] = query
-                    db['SEQUENCE_INPUT'] = seq_dict[query]
-
-                # Parse summary section
-                if 'summary' in parsed:
-                    db.update(_parseSummary(db, parsed['summary']))
-
-                # Parse hit table
-                if 'hits' in parsed:
-                    db['SEQUENCE_VDJ'] = ''
-                    if db['V_CALL']:
-                        db.update(_parseVHits(db, parsed['hits']))
-                        if score_fields:  db.update(_parseScores(parsed['hits'], 'V'))
-                    if db['D_CALL']:
-                        db.update(_parseDHits(db, parsed['hits']))
-                    if db['J_CALL']:
-                        db.update(_parseJHits(db, parsed['hits']))
-                        if score_fields:  db.update(_parseScores(parsed['hits'], 'J'))
-
-                # Create IMGT-gapped sequence
-                if 'V_CALL' in db and db['V_CALL']:
-                    db.update(gapV(db, repo_dict))
-
-                # Infer IMGT junction
-                if ('J_CALL' in db and db['J_CALL']) and \
-                        ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-                    db.update(inferJunction(db, repo_dict))
-
-                # Add FWR and CDR regions
-                if region_fields:
-                    db.update(getRegions(db))
-
-                yield IgRecord(db)
 
 
 def readIMGT(imgt_files, score_fields=False, region_fields=False, junction_fields=False):
@@ -1152,20 +1340,20 @@ def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True, partial=Fal
 def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, partial=False,
                  score_fields=False, region_fields=False, out_args=default_out_args):
     """
-    Main for IgBlast aligned sample sequences
+    Main for IgBLAST aligned sample sequences
 
     Arguments:
-    igblast_output = IgBlast output file to process
-    seq_file = fasta file input to IgBlast (from which to get sequence)
-    repo = folder with germline repertoire files
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
-    partial = If True put incomplete alignments in the pass file
-    score_fields = if True add alignment score fields to output file
-    region_fields = if True add FWR and CDR region fields to output file
-    out_args = common output argument dictionary from parseCommonArgs
+      igblast_output : IgBLAST output file to process
+      seq_file : fasta file input to IgBlast (from which to get sequence)
+      repo : folder with germline repertoire files
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters
+      partial : If True put incomplete alignments in the pass file
+      score_fields : if True add alignment score fields to output file
+      region_fields : if True add FWR and CDR region fields to output file
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns:
-    None
+      None
     """
     # Print parameter info
     log = OrderedDict()
@@ -1196,12 +1384,17 @@ def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, partial=False,
 
     total_count = countSeqFile(seq_file)
 
-    # Create
+    # Create germline repo dictionary
     repo_dict = getRepo(repo)
-    igblast_dict = readIgBlast(igblast_output, seq_dict, repo_dict,
-                               score_fields=score_fields, region_fields=region_fields)
-    writeDb(igblast_dict, file_prefix, total_count, no_parse=no_parse,
-            score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+
+    # Parse and write output
+    with open(igblast_output, 'r') as f:
+        parse_iter = IgBlastReader(f, seq_dict, repo_dict, score_fields=score_fields,
+                                   region_fields=region_fields)
+        writeDb(parse_iter, file_prefix, total_count, no_parse=no_parse,
+                score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+
+    return None
 
 
 # TODO:  may be able to merge with other mains

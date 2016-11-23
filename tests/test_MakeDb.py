@@ -40,7 +40,7 @@ class Test_MakeDb(unittest.TestCase):
         self.igblast_tr_fmt7_file = os.path.join(data_path, 'igblast_test_tr.fmt7')
         self.igblast_tr_seq_dict = MakeDb.getInputSeq(os.path.join(data_path, 'igblast_test_tr.fasta'))
 
-        self.repo_dict = getRepo([data_path])
+        self.repo_dict = getRepo(['/home/jason/share/germlines/imgt/human/vdj'])
 
         self.start = time.time()
 
@@ -71,6 +71,19 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
+    @unittest.skip("-> IgBlastReader() skipped\n")
+    def test_IgBlastReader(self):
+        print('Testing IG\n')
+        with open(self.igblast_ig_fmt7_file, 'r') as f:
+            result = MakeDb.IgBlastReader(f, self.igblast_ig_seq_dict, self.repo_dict)
+            #for x in result: print(list(x))
+            for x in result: print(x.toDict())
+
+        with open(self.igblast_ig_fmt7_file, 'r') as f:
+            result = MakeDb.IgBlastReader(f, self.igblast_ig_seq_dict, self.repo_dict, ig=False)
+            for x in result: print(list(x))
+
+        self.fail('TODO')
 
 if __name__ == '__main__':
     unittest.main()
