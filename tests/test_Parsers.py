@@ -17,8 +17,9 @@ data_path = os.path.join(test_path, 'data')
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
-from changeo.IO import getRepo
 import MakeDb
+from changeo.IO import getRepo
+from changeo.Parsers import IgBLASTReader, IMGTReader
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -42,32 +43,23 @@ class Test_MakeDb(unittest.TestCase):
 
         self.repo_dict = getRepo(['/home/jason/share/germlines/imgt/human/vdj'])
 
+        self.imgt_files = [os.path.join(data_path, 'run_21_TR_all', '1_Summary.txt'),
+                           os.path.join(data_path, 'run_21_TR_all', '2_IMGT-gapped-nt-sequences.txt'),
+                           os.path.join(data_path, 'run_21_TR_all', '3_Nt-sequences.txt'),
+                           os.path.join(data_path, 'run_21_TR_all', '6_Junction.txt')]
+
         self.start = time.time()
 
     def tearDown(self):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    @unittest.skip("-> readIgBlast() skipped\n")
-    def test_readIgBlast(self):
-
+    @unittest.skip("-> IMGTReader() skipped\n")
+    def test_IMGTReader(self):
         print('Testing IG\n')
-        result = MakeDb.readIgBlast(self.igblast_ig_fmt7_file, self.igblast_ig_seq_dict, self.repo_dict)
-        for x in result:
-            print('   ID> %s' % x.id)
-            print('VCALL> %s' % x.v_call)
-            print('INPUT> %s' % x.seq_input)
-            print('  VDJ> %s' % x.seq_vdj)
-            print(' JUNC> %s\n' % x.junction)
-
-        print('Testing TCR\n')
-        result = MakeDb.readIgBlast(self.igblast_tr_fmt7_file, self.igblast_tr_seq_dict, self.repo_dict)
-        for x in result:
-            print('   ID> %s' % x.id)
-            print('VCALL> %s' % x.v_call)
-            print('INPUT> %s' % x.seq_input)
-            print('  VDJ> %s' % x.seq_vdj)
-            print(' JUNC> %s\n' % x.junction)
+        handles = [open(f, 'r') for f in self.imgt_files]
+        result = IMGTReader(*handles, ig=False)
+        for x in result: print(x)
 
         self.fail('TODO')
 
@@ -75,12 +67,12 @@ class Test_MakeDb(unittest.TestCase):
     def test_IgBlastReader(self):
         print('Testing IG\n')
         with open(self.igblast_ig_fmt7_file, 'r') as f:
-            result = MakeDb.IgBlastReader(f, self.igblast_ig_seq_dict, self.repo_dict)
+            result = IgBLASTReader(f, self.igblast_ig_seq_dict, self.repo_dict)
             #for x in result: print(list(x))
             for x in result: print(x.toDict())
 
         with open(self.igblast_ig_fmt7_file, 'r') as f:
-            result = MakeDb.IgBlastReader(f, self.igblast_ig_seq_dict, self.repo_dict, ig=False)
+            result = IgBLASTReader(f, self.igblast_ig_seq_dict, self.repo_dict, ig=False)
             for x in result: print(list(x))
 
         self.fail('TODO')

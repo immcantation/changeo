@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  November 22, 2016
+Version 0.3.3.999:  November 25, 2016
 -------------------------------------------------------------------------------
 
 MakeDb:
@@ -10,6 +10,13 @@ MakeDb:
 + Added the flag ``--partial`` which tells MakeDb to pass incomplete alignment
   results specified.
 + Added missing console log entries for the ihmm subcommand.
++ IMGT/HighV-QUEST and IgBLAST parsers have been cleaned up, better documented
+  and moved into the iterable classes `changeo.Parsers.IMGTReader` and
+  `change.Parsers.IgBLASTReader`, respectively.
++ Corrected behavior of ``D_FRAME`` annotation from the ``--junction``
+  argument to the imgt subcommand such that it now reports no value when no
+  value is reported by IMGT, rather than reporting the reading frame as 0 in
+  these cases.
 
 
 Version 0.3.3:  August 8, 2016

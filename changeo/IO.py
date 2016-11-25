@@ -2,7 +2,7 @@
 File I/O and logging functions
 """
 # Info
-__author__ = 'Jason Anthony Vander Heiden'
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
