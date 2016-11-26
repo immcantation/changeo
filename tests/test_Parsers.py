@@ -19,12 +19,15 @@ data_path = os.path.join(test_path, 'data')
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
 from changeo.IO import extractIMGT, getRepo
-from changeo.Parsers import IgBLASTReader, IMGTReader
+from changeo.Parsers import IgBLASTReader, IHMMReader, IMGTReader
 
 
 class Test_MakeDb(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
+
+        # IMGT output
+        self.imgt_file = os.path.join(data_path, 'imgt_ig.txz')
 
         # Define data files
         # Created by: ./igblastn -germline_db_V database/IMGT_Human_IGHV -germline_db_D database/IMGT_Human_IGHD
@@ -41,9 +44,14 @@ class Test_MakeDb(unittest.TestCase):
         self.igblast_tr_fmt7_file = os.path.join(data_path, 'igblast1.4_tr.fmt7')
         self.igblast_tr_seq_dict = MakeDb.getInputSeq(os.path.join(data_path, 'reads_tr.fasta'))
 
+
+        # iHMMune-Align output
+        self.ihmm_seq = MakeDb.getInputSeq(os.path.join(data_path, 'short.fasta'))
+        self.ihmm_output = os.path.join(data_path, 'ihmm_short.csv')
+
+        # Germline repo
         self.repo_dict = getRepo(['/home/jason/share/germlines/imgt/human/vdj'])
 
-        self.imgt_file = os.path.join(data_path, 'imgt_ig.txz')
 
         self.start = time.time()
 
@@ -70,8 +78,8 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
-    @unittest.skip("-> IgBlastReader() skipped\n")
-    def test_IgBlastReader(self):
+    @unittest.skip("-> IgBLASTReader() skipped\n")
+    def test_IgBLASTReader(self):
         print('Testing IG\n')
         with open(self.igblast_ig_fmt7_file, 'r') as f:
             result = IgBLASTReader(f, self.igblast_ig_seq_dict, self.repo_dict)
@@ -81,6 +89,14 @@ class Test_MakeDb(unittest.TestCase):
         with open(self.igblast_ig_fmt7_file, 'r') as f:
             result = IgBLASTReader(f, self.igblast_ig_seq_dict, self.repo_dict, ig=False)
             for x in result: print(list(x))
+
+        self.fail('TODO')
+
+    @unittest.skip("-> IHMMReader() skipped\n")
+    def test_IHMMReader(self):
+        with open(self.ihmm_output, 'r') as f:
+            result = IHMMReader(f, self.ihmm_seq, self.repo_dict, ig=False)
+            for x in result: print(x)
 
         self.fail('TODO')
 

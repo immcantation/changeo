@@ -337,7 +337,7 @@ class IMGTReader:
         return result
 
 
-    def parseRow(self, summary, gapped, ntseq, junction):
+    def parseRecord(self, summary, gapped, ntseq, junction):
         """
         Parses a single row from each IMTG file
 
@@ -392,7 +392,7 @@ class IMGTReader:
                    csv.DictReader(self.gapped, delimiter='\t'),
                    csv.DictReader(self.ntseq, delimiter='\t'),
                    csv.DictReader(self.junction, delimiter='\t')]
-        self.imgt_iter = zip(*readers)
+        self.records = zip(*readers)
 
         return self
 
@@ -402,15 +402,16 @@ class IMGTReader:
         Next method
 
         Returns:
-            IgRecord : Parsed IgBLAST query result
+            changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result (ig=True).
+            dict : parsed IMGT/HighV-QUEST query (ig=False).
         """
         # Get next set of records from dictionary readers
         try:
-            summary, gapped, ntseq, junction = next(self.imgt_iter)
+            summary, gapped, ntseq, junction = next(self.records)
         except StopIteration:
             raise StopIteration
 
-        db = self.parseRow(summary, gapped, ntseq, junction)
+        db = self.parseRecord(summary, gapped, ntseq, junction)
 
         if self.ig:
             return IgRecord(db)
@@ -914,7 +915,8 @@ class IgBLASTReader:
         Next method
 
         Returns:
-            IgRecord : Parsed IgBLAST query result
+            changeo.Receptor.IgRecord : parsed IgBLAST result (ig=True).
+            dict : parsed IgBLAST result (ig=False).
         """
         # Get next block from groups iterator
         try:
@@ -935,16 +937,446 @@ class IgBLASTReader:
             return db
 
 
-def gapV(ig_dict, repo_dict):
+class IHMMReader:
     """
-    Insert gaps into V region and update alignment information
+    An iterator to read and parse iHMMune-Align output files
+    """
+    # iHMMuneAlign columns
+    # Courtesy of Katherine Jackson
+    #
+    #  1: Identifier - sequence identifer from FASTA input file
+    #  2: IGHV - IGHV gene match from the IGHV repertoire, if multiple genes had equally
+    #            good alignments both will be listed, if indels were found this will be
+    #            listed, in case of multiple IGHV all further data is reported with
+    #            respect to the first listed gene
+    #  3: IGHD - IGHD gene match, if no IGHD could be found or the IGHD that was found
+    #            failed to meet confidence criteria this will be 'NO_DGENE_ALIGNMENT'
+    #  4: IGHJ - IGHJ gene match, only a single best matching IGHJ is reported, if indels
+    #            are found then 'indel' will be listed
+    #  5: V-REGION - portion of input sequence that matches to the germline IGHV, were
+    #                nucleotide are missing at start or end the sequence is padded back
+    #                to full length with '.' (the exonuclease loss from the end of the
+    #                gene will therefore be equal to the number of '.' characters at the
+    #                5` end), mismatches between germline and rearranged are in uppercase,
+    #                matches are in lowercase
+    #  6: N1-REGION - sequence between V- and D-REGIONs
+    #  7: D-REGION - portion of input sequence that matches to the germline IGHD
+    #                (model doesn't currently permit indels in the IGHD), where IGHD is
+    #                reported as 'NO_DGENE_ALIGNMENT' this field contains all nucleotides
+    #                between the V- and J-REGIONs
+    #  8: N2-REGION - sequence between D- and J-REGIONs
+    #  9: J-REGION - portion of the input sequence that matches germline IGHJ, padded
+    #                5` and 3` to length of germline match
+    # 10: V mutation count - count of mismatches in the V-REGION
+    # 11: D mutation count - count of mismatches in the D-REGION
+    # 12: J mutation count - count of mismatches in the J-REGION
+    # 13: count of ambigious nts - count of 'n' or 'x' nucleotides in the input sequence
+    # 14: IGHJ in-frame - 'true' is IGHJ is in-frame and 'false' if IGHJ is out-of-frame,
+    #                     WARNING indels and germline IGHV database sequences that are
+    #                     not RF1 can cause this to report inaccurately
+    # 15: IGHV start offset - offset for start of alignment between input sequence and
+    #                         germline IGHV
+    #                         NOTE: appears to be base 1 indexing.
+    # 16: stop codons - count of stop codons in the sequence, WARNING indels and germline
+    #                   IGHV database sequence that are not RF can cause this to be inaccurate
+    # 17: IGHD probability - probability that N-nucleotide addition could have created the
+    #                        D-REGION sequence
+    # 18: HMM path score - path score from HMM
+    # 19: reverse complement - 0 for no reverse complement, 1 if alignment was to reverse
+    #                          complement NOTE currently this version only functions with
+    #                          input in coding orientation
+    # 20: mutations in common region - count of mutations in common region, which is a
+    #                                  portion of the IGHV that is highly conserved,
+    #                                  mutations in this region are used to set various
+    #                                  probabilities in the HMM
+    # 21: ambigious nts in common region - count of 'n' or 'x' nucleotides in the
+    #                                      common region
+    # 22: IGHV start offset  - offset for start of alignment between input sequence and
+    #                          germline IGHV
+    #                          NOTE: appears to be base 0 indexing.
+    #                          NOTE: don't know if this differs from 15; it doesn't appear to.
+    # 23: IGHV gene length - length of IGHV gene
+    # 24: A score - A score probability is calculated from the common region mutations
+    #               and is used for HMM calculations relating to expected mutation
+    #               probability at different positions in the rearrangement
+    fields = ['SEQUENCE_ID',
+              'V_CALL',
+              'D_CALL',
+              'J_CALL',
+              'V_SEQ',
+              'NP1_SEQ',
+              'D_SEQ',
+              'NP2_SEQ',
+              'J_SEQ',
+              'V_MUT',
+              'D_MUT',
+              'J_MUT',
+              'NX_COUNT',
+              'J_INFRAME',
+              'V_SEQ_START',
+              'STOP_COUNT',
+              'D_PROB',
+              'HMM_SCORE',
+              'RC',
+              'COMMON_MUT',
+              'COMMON_NX_COUNT',
+              'V_SEQ_START2',
+              'V_SEQ_LENGTH',
+              'A_SCORE']
+
+    def __init__(self, ihmmune, seq_dict, repo_dict, score_fields=False,
+                 region_fields=False, ig=True):
+        """
+        Initializer
+
+        Arguments:
+          ihmmune : handle to an open iHMMune-Align output file.
+          seq_dict : dictionary of {sequence id: Seq object} containing the original query sequences.
+          repo_dict : dictionary of IMGT gapped germline sequences.
+          score_fields : if True parse alignment scores.
+          region_fields : if True add FWR and CDR region fields.
+          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+
+        Returns:
+          IHMMReader
+        """
+        self.ihmmune = ihmmune
+        self.seq_dict = seq_dict
+        self.repo_dict = repo_dict
+        self.score_fields = score_fields
+        self.region_fields = region_fields
+        self.ig = ig
+
+    @staticmethod
+    def _parseFunctionality(record):
+        """
+        Parse functionality information
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+
+        Returns:
+          dict : database entries containing functionality information.
+        """
+        # Functional
+        def _functional():
+            if not record['V_CALL'] or \
+                    record['J_INFRAME'] != 'true' or \
+                    not record['J_CALL'] or \
+                    record['J_CALL'] == 'NO_JGENE_ALIGNMENT':
+                return 'F'
+            else:
+                return 'F' if int(record['STOP_COUNT']) > 0 else 'T'
+
+        # J in-frame
+        def _inframe():
+            return 'T' if record['J_INFRAME'] != 'true' else 'F'
+
+        # Indels
+        def _indels():
+            if re.search('\[indels\]', record['V_CALL'] + record['D_CALL'] + record['J_CALL']):
+                result['INDELS'] = 'T'
+            else:
+                result['INDELS'] = 'F'
+
+        # Parse functionality
+        result = {}
+        result['FUNCTIONAL'] = _functional()
+        result['IN_FRAME'] = _inframe()
+        result['INDELS'] = _indels()
+
+        return result
+
+    @staticmethod
+    def _parseGenes(record):
+        """
+        Parse gene calls
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+
+        Returns:
+          dict : database entries for gene calls.
+        """
+        result = {}
+        v_call = parseAllele(record['V_CALL'], v_allele_regex, action='list')
+        d_call = parseAllele(record['D_CALL'], d_allele_regex, action='list')
+        j_call = parseAllele(record['J_CALL'], j_allele_regex, action='list')
+        result['V_CALL'] = ','.join(v_call) if v_call else None
+        result['D_CALL'] = ','.join(d_call) if d_call else None
+        result['J_CALL'] = ','.join(j_call) if j_call else None
+
+        return result
+
+
+    @staticmethod
+    def _parseNPHit(record):
+        """
+        Parse N/P region alignment information
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+
+        Returns:
+          dict : database entries containing N/P region lengths.
+        """
+        # N/P lengths
+        result = {}
+        result['NP1_LENGTH'] = len(record['NP1_SEQ'])
+        result['NP2_LENGTH'] = len(record['NP2_SEQ'])
+
+        return result
+
+
+    @staticmethod
+    def _parseVHit(record, db):
+        """
+        Parse V alignment information
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+          db : database containing V and D alignment information.
+
+        Returns:
+          dict : database entries containing V call and alignment positions.
+        """
+        # Default return
+        result = {'V_SEQ_START': None,
+                  'V_SEQ_LENGTH': None,
+                  'V_GERM_START': None,
+                  'V_GERM_LENGTH': None}
+
+        # Find V positions
+        if db['V_CALL']:
+            vseq = record['V_SEQ'].strip('.')
+            # Query positions
+            result['V_SEQ_START'] = int(record['V_SEQ_START'])
+            result['V_SEQ_LENGTH'] = len(vseq)
+            # Germline positions
+            db['V_GERM_START_VDJ'] = 1
+            db['V_GERM_LENGTH_VDJ'] = len(vseq)
+
+        return result
+
+
+    def _parseDHit(record, db):
+        """
+        Parse D alignment information
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+          db : database containing V alignment information.
+
+
+        Returns:
+          dict : database entries containing D call and alignment positions.
+        """
+        # D start position
+        def _dstart():
+            nb = [db['V_SEQ_START'],
+                  db['V_SEQ_LENGTH'],
+                  db['NP1_LENGTH']]
+            return sum(int(i) for i in nb if i)
+
+        # Default return
+        result = {'D_SEQ_START': None,
+                  'D_SEQ_LENGTH': None,
+                  'D_GERM_START': None,
+                  'D_GERM_LENGTH': None}
+
+        if db['D_CALL']:
+            dseq = record['D_SEQ'].strip('.')
+            # Query positions
+            db['D_SEQ_START'] = _dstart()
+            db['D_SEQ_LENGTH'] = len(dseq)
+            # Germline positions
+            result['D_GERM_START'] = len(record['D_SEQ']) - len(dseq)
+            result['D_GERM_LENGTH'] = len(dseq)
+
+        return result
+
+
+    @staticmethod
+    def _parseJHit(record, db):
+        """
+        Parse J alignment information
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+          db : database containing V and D alignment information.
+
+        Returns:
+          dict : database entries containing J call and alignment positions.
+        """
+        # J start position
+        def _jstart():
+            # J positions
+            nb = [db['V_SEQ_START'],
+                  db['V_SEQ_LENGTH'],
+                  db['NP1_LENGTH'],
+                  db['D_SEQ_LENGTH'],
+                  db['NP2_LENGTH']]
+            return sum(int(i) for i in nb if i)
+
+        # Default return
+        result = {'J_SEQ_START': None,
+                  'J_SEQ_LENGTH': None,
+                  'J_GERM_START': None,
+                  'J_GERM_LENGTH': None}
+
+        # Find J region
+        if db['J_CALL']:
+            jseq = record['J_SEQ'].strip('.')
+            # Query positions
+            result['J_SEQ_START'] = _jstart()
+            result['J_SEQ_LENGTH'] = len(jseq)
+            # Germline positions
+            result['J_GERM_START'] = len(record['J_SEQ']) - len(jseq)
+            result['J_GERM_LENGTH'] = len(jseq)
+
+        return result
+
+
+    @staticmethod
+    def _assembleVDJ(record, db):
+        """
+        Build full length V(D)J sequence
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+          db : database containing V and D alignment information.
+
+        Returns:
+          dict : database entries containing the full length V(D)J sequence.
+        """
+        # Assemble V(D)J sequence segments
+        segments = [record['V_SEQ'].strip('.') if db['V_CALL'] else '',
+                    record['NP1_SEQ'] if db['NP1_LENGTH'] else '',
+                    record['D_SEQ'].strip('.') if db['D_CALL'] else '',
+                    record['NP2_SEQ'] if db['NP2_LENGTH'] else '',
+                    record['J_SEQ'].strip('.') if db['J_CALL'] else '']
+
+        return {'SEQUENCE_VDJ': ''.join(segments)}
+
+
+    @staticmethod
+    def _parseScores(record):
+        """
+        Parse alignment scores
+
+        Arguments:
+          record : dictionary containing a single row from the iHMMune-Align ouptut.
+
+        Returns:
+          dict : database entries for alignment scores.
+        """
+        result = {}
+        try:  result['HMM_SCORE'] = float(row['HMM_SCORE'])
+        except (TypeError, ValueError):  result['HMM_SCORE'] = ''
+
+        return result
+
+
+    def parseRecord(self, record):
+        """
+        Parses a single row from each IMTG file
+
+        Arguments:
+          record : dictionary containing one row of iHMMune-Align file.
+
+        Returns:
+          dict : database entry for the row.
+        """
+        # Extract query ID and sequence
+        db = {'SEQUENCE_ID': record['SEQUENCE_ID'],
+              'SEQUENCE_INPUT': self.seq_dict[record['SEQUENCE_ID']]}
+
+        # Check for valid alignment
+        if not record['V_CALL'] or \
+                record['V_CALL'].startswith('NA - ') or \
+                record['V_CALL'].startswith('State path'):
+            db['FUNCTIONAL'] = None
+            db['V_CALL'] = None
+            db['D_CALL'] = None
+            db['J_CALL'] = None
+            return db
+
+        # Parse record
+        db.update(IHMMReader._parseFunctionality(record))
+        db.update(IHMMReader._parseGenes(record))
+        db.update(IHMMReader._parseNPHit(record))
+        db.update(IHMMReader._parseVHit(record, db))
+        db.update(IHMMReader._parseDHit(record, db))
+        db.update(IHMMReader._parseJHit(record, db))
+        db.update(IHMMReader._assembleVDJ(record, db))
+
+        # Create IMGT-gapped sequence
+        if 'V_CALL' in db and db['V_CALL']:
+            db.update(gapV(db, self.repo_dict))
+
+        # Infer IMGT junction
+        if ('J_CALL' in db and db['J_CALL']) and \
+                ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
+            db.update(inferJunction(db, self.repo_dict))
+
+         # Overall alignment score
+        if self.score_fields:
+            db.update(_parseScores(record))
+
+        # FWR and CDR regions
+        if self.region_fields:
+            db.update(getRegions(db))
+
+        return db
+
+
+    def __iter__(self):
+        """
+        Iterator initializer
+
+        Returns:
+          IHMMReader
+        """
+        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMReader.fields,
+                                      delimiter=';', quotechar='"')
+        return self
+
+
+    def __next__(self):
+        """
+        Next method
+
+        Returns:
+            changeo.Receptor.IgRecord : parsed iHMMune-Align result (ig=True).
+            dict : parsed iHMMune-Align result (ig=False).
+        """
+        # Get next set of records from dictionary readers
+        try:
+            record = None
+            while not record:
+                record = next(self.records)
+        except StopIteration:
+            raise StopIteration
+
+        db = self.parseRecord(record)
+
+        if self.ig:
+            return IgRecord(db)
+        else:
+            return db
+
+
+
+def gapV(db, repo_dict):
+    """
+    Construction IMGT-gapped V-region sequences
 
     Arguments:
-      ig_dict : Dictionary of parsed IgBlast output
-      repo_dict : Dictionary of IMGT gapped germline sequences
+      db : database dictionary of parsed IgBLAST.
+      repo_dict : dictionary of IMGT-gapped reference sequences.
 
     Returns:
-      dict : dictionary containing {SEQUENCE_IMGT, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT}
+      dict : database entries containing IMGT-gapped query sequences and germline positions.
     """
     # Initialize return object
     imgt_dict = {'SEQUENCE_IMGT': None,
@@ -952,21 +1384,21 @@ def gapV(ig_dict, repo_dict):
                  'V_GERM_LENGTH_IMGT': None}
 
     # Initialize imgt gapped sequence
-    seq_imgt = '.' * (int(ig_dict['V_GERM_START_VDJ']) - 1) + ig_dict['SEQUENCE_VDJ']
+    seq_imgt = '.' * (int(db['V_GERM_START_VDJ']) - 1) + db['SEQUENCE_VDJ']
 
     # Find gapped germline V segment
-    vgene = parseAllele(ig_dict['V_CALL'], v_allele_regex, 'first')
+    vgene = parseAllele(db['V_CALL'], v_allele_regex, 'first')
     vkey = (vgene, )
     #TODO: Figure out else case
     if vkey in repo_dict:
         vgap = repo_dict[vkey]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
-        gapcount = int(ig_dict['V_GERM_START_VDJ']) - 1
+        gapcount = int(db['V_GERM_START_VDJ']) - 1
         for gap in gaps:
             i = gap.start()
             # Break if gap begins after V region
-            if i >= ig_dict['V_GERM_LENGTH_VDJ'] + gapcount:
+            if i >= db['V_GERM_LENGTH_VDJ'] + gapcount:
                 break
             # Insert gap into IMGT sequence
             seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
@@ -975,56 +1407,55 @@ def gapV(ig_dict, repo_dict):
         imgt_dict['SEQUENCE_IMGT'] = seq_imgt
         # Update IMGT positioning information for V
         imgt_dict['V_GERM_START_IMGT'] = 1
-        imgt_dict['V_GERM_LENGTH_IMGT'] = ig_dict['V_GERM_LENGTH_VDJ'] + gapcount
+        imgt_dict['V_GERM_LENGTH_IMGT'] = db['V_GERM_LENGTH_VDJ'] + gapcount
 
     return imgt_dict
 
 
-def inferJunction(ig_dict, repo_dict):
+def inferJunction(db, repo_dict):
     """
     Identify junction region by IMGT definition
 
     Arguments:
-      ig_dict : Dictionary of parsed IgBlast output
-      repo_dict : Dictionary of IMGT gapped germline sequences
+      db : database dictionary of parsed IgBLAST.
+      repo_dict : dictionary of IMGT-gapped reference sequences
 
     Returns:
-      dict : Dictionary containing {JUNCTION, JUNCTION_LENGTH}
+      dict : database entries containing junction sequence and length.
     """
     junc_dict = {'JUNCTION': None,
                  'JUNCTION_LENGTH': None}
 
     # Find germline J segment
-    jgene = parseAllele(ig_dict['J_CALL'], j_allele_regex, 'first')
+    jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
     jkey = (jgene, )
     if jkey in repo_dict:
         # Get germline J sequence
         jgerm = repo_dict[jkey]
-        jgerm = jgerm[:(ig_dict['J_GERM_START'] + ig_dict['J_GERM_LENGTH'] - 1)]
+        jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
-        aa_end = len(ig_dict['SEQUENCE_IMGT'])
+        aa_end = len(db['SEQUENCE_IMGT'])
         #TODO: Figure out else case
         if motif:
             # print('\n', motif.group())
             aa_end = motif.start() - len(jgerm) + 3
         # Add fields to dict
-        junc_dict['JUNCTION'] = ig_dict['SEQUENCE_IMGT'][309:aa_end]
+        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
 
     return junc_dict
 
 
-def getRegions(ig_dict):
+def getRegions(db):
     """
-    Identify FWR and CDR regions by IMGT definition
+    Identify FWR and CDR regions by IMGT definition.
 
     Arguments:
-      ig_dict : Dictionary of parsed alignment output
+      db : database dictionary of parsed alignment output.
 
     Returns:
-      dict : Dictionary containing {FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
-             CDR1_IMGT, CDR2_IMGT, CDR3_IMGT}
+      dict : database entries containing FWR and CDR sequences.
     """
     region_dict = {'FWR1_IMGT': None,
                    'FWR2_IMGT': None,
@@ -1034,27 +1465,27 @@ def getRegions(ig_dict):
                    'CDR2_IMGT': None,
                    'CDR3_IMGT': None}
     try:
-        seq_len = len(ig_dict['SEQUENCE_IMGT'])
-        region_dict['FWR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][0:min(78, seq_len)]
+        seq_len = len(db['SEQUENCE_IMGT'])
+        region_dict['FWR1_IMGT'] = db['SEQUENCE_IMGT'][0:min(78, seq_len)]
     except (KeyError, IndexError, TypeError):
         return region_dict
 
-    try: region_dict['CDR1_IMGT'] = ig_dict['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    try: region_dict['CDR1_IMGT'] = db['SEQUENCE_IMGT'][78:min(114, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    try: region_dict['FWR2_IMGT'] = db['SEQUENCE_IMGT'][114:min(165, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['CDR2_IMGT'] = ig_dict['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    try: region_dict['CDR2_IMGT'] = db['SEQUENCE_IMGT'][165:min(195, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    try: region_dict['FWR3_IMGT'] = db['SEQUENCE_IMGT'][195:min(312, seq_len)]
     except (IndexError): return region_dict
 
     try:
-        cdr3_end = 306 + ig_dict['JUNCTION_LENGTH']
-        region_dict['CDR3_IMGT'] = ig_dict['SEQUENCE_IMGT'][312:cdr3_end]
-        region_dict['FWR4_IMGT'] = ig_dict['SEQUENCE_IMGT'][cdr3_end:]
+        cdr3_end = 306 + db['JUNCTION_LENGTH']
+        region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
+        region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
     except (KeyError, IndexError, TypeError):
         return region_dict
 
