@@ -3,24 +3,19 @@
 Create tab-delimited database file to store sequence alignment information
 """
 # Info
-__author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Scott Christley'
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
 import csv
 import os
 import re
-import sys
-import tarfile
-import zipfile
 from argparse import ArgumentParser
 from collections import OrderedDict
 from shutil import rmtree
-from tempfile import mkdtemp
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
@@ -28,7 +23,7 @@ from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printProgress
 from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbWriter, countDbFile, getRepo
+from changeo.IO import countDbFile, extractIMGT, getDbWriter, getRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, gapV, getRegions, inferJunction
 from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
                              j_allele_regex
@@ -57,72 +52,6 @@ def getInputSeq(seq_file):
         seqs.update({seq.description:str(seq.seq)})
 
     return seqs
-
-
-def findLine(handle, query):
-    """
-    Finds line with query string in file
-
-    Arguments:
-    handle = file handle in which to search for line
-    query = query string for which to search in file
-
-    Returns:
-    line from handle in which query string was found
-    """
-    for line in handle:
-        if(re.match(query, line)):
-            return line
-
-
-def extractIMGT(imgt_output):
-    """
-    Extract necessary files from IMGT results, zipped or unzipped
-    
-    Arguments:
-      imgt_output : zipped file or unzipped folder output by IMGT.
-    
-    Returns:
-      list : Sorted list of filenames from which information will be read.
-    """
-    #file_ext = os.path.splitext(imgt_output)[1].lower()
-    imgt_flags = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
-    temp_dir = mkdtemp()
-    if zipfile.is_zipfile(imgt_output):
-        # Open zip file
-        imgt_zip = zipfile.ZipFile(imgt_output, 'r')
-        # Extract required files
-        imgt_files = sorted([n for n in imgt_zip.namelist() \
-                             if os.path.basename(n).startswith(imgt_flags)])
-        imgt_zip.extractall(temp_dir, imgt_files)
-        # Define file list
-        imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
-    elif os.path.isdir(imgt_output):
-        # Find required files in folder
-        folder_files = []
-        for root, dirs, files in os.walk(imgt_output):
-            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
-        # Define file list
-        imgt_files = sorted([n for n in folder_files \
-                             if os.path.basename(n).startswith(imgt_flags)])
-    elif tarfile.is_tarfile(imgt_output):
-        # Open zip file
-        imgt_tar = tarfile.open(imgt_output, 'r')
-        # Extract required files
-        imgt_files = sorted([n for n in imgt_tar.getnames() \
-                             if os.path.basename(n).startswith(imgt_flags)])
-        imgt_tar.extractall(temp_dir, [imgt_tar.getmember(n) for n in imgt_files])
-        # Define file list
-        imgt_files = [os.path.join(temp_dir, f) for f in imgt_files]
-    else:
-        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
-    
-    if len(imgt_files) > len(imgt_flags): # e.g. multiple 1_Summary files
-        sys.exit('ERROR: Wrong files in IMGT output %s.' % imgt_output)
-    elif len(imgt_files) < len(imgt_flags):
-        sys.exit('ERROR: Missing necessary file IMGT output %s.' % imgt_output)
-        
-    return temp_dir, imgt_files
 
     
 # TODO:  should be more readable
@@ -543,7 +472,7 @@ def writeDb(db, file_prefix, total_count, id_dict={}, no_parse=True, partial=Fal
 
 
 # TODO:  may be able to merge with other mains
-def parseIgBlast(igblast_output, seq_file, repo, no_parse=True, partial=False,
+def parseIgBLAST(igblast_output, seq_file, repo, no_parse=True, partial=False,
                  score_fields=False, region_fields=False, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences
@@ -634,9 +563,6 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, partial=False,
     log['REGION_FIELDS'] = region_fields
     log['JUNCTION_FIELDS'] = junction_fields
     printLog(log)
-    
-    # Get individual IMGT result files
-    temp_dir, imgt_files = extractIMGT(imgt_output)
         
     # Formalize out_dir and file-prefix
     if not out_args['out_dir']:
@@ -650,16 +576,18 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, partial=False,
         file_prefix = os.path.splitext(os.path.split(os.path.abspath(imgt_output))[1])[0]
     file_prefix = os.path.join(out_dir, file_prefix)
 
-    total_count = countDbFile(imgt_files[0])
-    
+    # Extract IMGT files
+    temp_dir, imgt_files = extractIMGT(imgt_output)
+    total_count = countDbFile(imgt_files['summary'])
+
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     
     # Parse IMGT output and write db
-    with open(imgt_files[0], 'r') as summary_handle, \
-            open(imgt_files[1], 'r') as gapped_handle, \
-            open(imgt_files[2], 'r') as ntseq_handle, \
-            open(imgt_files[3], 'r') as junction_handle:
+    with open(imgt_files['summary'], 'r') as summary_handle, \
+            open(imgt_files['gapped'], 'r') as gapped_handle, \
+            open(imgt_files['ntseq'], 'r') as ntseq_handle, \
+            open(imgt_files['junction'], 'r') as junction_handle:
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
                                 score_fields=score_fields, region_fields=region_fields,
                                 junction_fields=junction_fields)
@@ -667,9 +595,10 @@ def parseIMGT(imgt_output, seq_file=None, no_parse=True, partial=False,
                 score_fields=score_fields, region_fields=region_fields, junction_fields=junction_fields,
                 out_args=out_args)
 
-    # Delete temp directory
-    # TODO:  should use named temporary directory
-    rmtree(temp_dir)
+    # Cleanup temp directory
+    temp_dir.cleanup()
+
+    return None
 
 
 # TODO:  may be able to merge with other mains
@@ -727,6 +656,8 @@ def parseIHMM(ihmm_output, seq_file, repo, no_parse=True, partial=False,
     writeDb(ihmm_dict, file_prefix, total_count,
             score_fields=score_fields, region_fields=region_fields,
             no_parse=no_parse, out_args=out_args)
+
+    return None
 
 
 def getArgParser():
@@ -821,7 +752,7 @@ def getArgParser():
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                      FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
-    parser_igblast.set_defaults(func=parseIgBlast)
+    parser_igblast.set_defaults(func=parseIgBLAST)
 
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],

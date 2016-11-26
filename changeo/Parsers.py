@@ -2,7 +2,7 @@
 Alignment tool parsing functions
 """
 # Info
-__author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
+__author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Scott Christley'
 from changeo import __version__, __date__
 
 # Imports
@@ -63,10 +63,8 @@ class IMGTReader:
         Returns:
           dict : database entries for functionality information.
         """
-        result = {}
-
         # Functionality parser
-        def _functional(summary):
+        def _functional():
             x = summary['Functionality']
             if x.startswith('productive'):
                 return 'T'
@@ -76,35 +74,36 @@ class IMGTReader:
                 return None
 
         # Junction frame parser
-        def _inframe(summary):
+        def _inframe():
             x = summary['JUNCTION frame']
             return {'in-frame': 'T', 'out-of-frame': 'F'}.get(x, None)
 
         # Stop codon parser
-        def _stop(summary):
+        def _stop():
             x = summary['Functionality comment']
             return 'T' if 'stop codon' in x else 'F'
 
         # Mutated invariant parser
-        def _invariant(summary):
+        def _invariant():
             x = summary['Functionality comment']
             y = summary['V-REGION potential ins/del']
             return 'T' if ('missing' in x) or ('missing' in y) else 'F'
 
         # Mutated invariant parser
-        def _indels(summary):
+        def _indels():
             x = summary['V-REGION potential ins/del']
             y = summary['V-REGION insertions']
             z = summary['V-REGION deletions']
             return 'T' if any([x, y, z]) else 'F'
 
+        result = {}
         # Parse functionality information
         if 'No results' not in summary['Functionality']:
-            result['FUNCTIONAL'] = _functional(summary)
-            result['IN_FRAME'] = _inframe(summary)
-            result['STOP'] = _stop(summary)
-            result['MUTATED_INVARIANT'] = _invariant(summary)
-            result['INDELS'] = _indels(summary)
+            result['FUNCTIONAL'] = _functional()
+            result['IN_FRAME'] = _inframe()
+            result['STOP'] = _stop()
+            result['MUTATED_INVARIANT'] = _invariant()
+            result['INDELS'] = _indels()
 
         return result
 
@@ -120,11 +119,11 @@ class IMGTReader:
         Returns:
           dict : database entries for gene calls.
         """
-        result = {}
         clean_regex = re.compile('(,)|(\(see comment\))')
         delim_regex = re.compile('\sor\s')
 
         # Gene calls
+        result = {}
         v_call = summary['V-GENE and allele']
         d_call = summary['D-GENE and allele']
         j_call = summary['J-GENE and allele']
@@ -148,7 +147,6 @@ class IMGTReader:
           dict : database entries for fill length V(D)J sequences.
         """
         result = {}
-
         # Extract ungapped sequences
         if ntseq['V-D-J-REGION']:
             result['SEQUENCE_VDJ'] = ntseq['V-D-J-REGION']
@@ -156,7 +154,6 @@ class IMGTReader:
             result['SEQUENCE_VDJ'] = ntseq['V-J-REGION']
         else:
             result['SEQUENCE_VDJ'] = ntseq['V-REGION']
-
         # Extract gapped sequences
         if gapped['V-D-J-REGION']:
             result['SEQUENCE_IMGT'] = gapped['V-D-J-REGION']
@@ -181,8 +178,6 @@ class IMGTReader:
           dict : database entries for V query and germline alignment positions.
         """
         result = {}
-
-        # V-segment alignment positions
         result['V_SEQ_START'] = ntseq['V-REGION start']
         result['V_SEQ_LENGTH'] = len(ntseq['V-REGION']) if ntseq['V-REGION'] else 0
         result['V_GERM_START_IMGT'] = 1
@@ -203,12 +198,11 @@ class IMGTReader:
         Returns:
           dict : database entries for junction, N/P and D region alignment positions.
         """
-        result = {}
         v_start = db['V_SEQ_START']
         v_length = db['V_SEQ_LENGTH']
 
         # First N/P length
-        def _np1(junction):
+        def _np1():
             nb = [junction['P3\'V-nt nb'],
                   junction['N-REGION-nt nb'],
                   junction['N1-REGION-nt nb'],
@@ -216,7 +210,7 @@ class IMGTReader:
             return sum(int(i) for i in nb if i)
 
         # D start
-        def _dstart(junction):
+        def _dstart():
             nb = [v_start,
                   v_length,
                   junction['P3\'V-nt nb'],
@@ -226,23 +220,23 @@ class IMGTReader:
             return sum(int(i) for i in nb if i)
 
         # Second N/P length
-        def _np2(junction):
+        def _np2():
             nb = [junction['P3\'D-nt nb'],
                   junction['N2-REGION-nt nb'],
                   junction['P5\'J-nt nb']]
             return sum(int(i) for i in nb if i)
 
+        result = {}
         # Junction sequence
         result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
         result['JUNCTION'] = junction['JUNCTION']
-
         # N/P and D alignment positions
-        result['NP1_LENGTH'] = _np1(junction)
-        result['D_SEQ_START'] = _dstart(junction)
+        result['NP1_LENGTH'] = _np1()
+        result['D_SEQ_START'] = _dstart()
         result['D_SEQ_LENGTH'] = int(junction['D-REGION-nt nb'] or 0)
         result['D_GERM_START'] = int(junction['5\'D-REGION trimmed-nt nb'] or 0) + 1
         result['D_GERM_LENGTH'] = int(junction['D-REGION-nt nb'] or 0)
-        result['NP2_LENGTH'] = _np2(junction)
+        result['NP2_LENGTH'] = _np2()
 
         return result
 
@@ -261,10 +255,8 @@ class IMGTReader:
         Returns:
           dict : database entries for J region alignment positions.
         """
-        result = {}
-
         # J start
-        def _jstart(db):
+        def _jstart():
             nb = [db['V_SEQ_START'],
                   db['V_SEQ_LENGTH'],
                   db['NP1_LENGTH'],
@@ -273,7 +265,8 @@ class IMGTReader:
             return sum(int(i) for i in nb if i)
 
         # J region alignment positions
-        result['J_SEQ_START'] = _jstart(db)
+        result = {}
+        result['J_SEQ_START'] = _jstart()
         result['J_SEQ_LENGTH'] = len(ntseq['J-REGION']) if ntseq['J-REGION'] else 0
         result['J_GERM_START'] = int(junction['5\'J-REGION trimmed-nt nb'] or 0) + 1
         result['J_GERM_LENGTH'] = len(gapped['J-REGION']) if gapped['J-REGION'] else 0
@@ -321,21 +314,20 @@ class IMGTReader:
         Returns:
           dict : database entries for detailed D, N and P region information.
         """
-        result = {}
-
         # D reading frame
-        def _dframe(junction):
+        def _dframe():
             x = junction['D-REGION reading frame']
             return int(x) if x else None
 
         # First N region length
-        def _n1(junction):
+        def _n1():
             nb = [junction['N-REGION-nt nb'], junction['N1-REGION-nt nb']]
             return sum(int(i) for i in nb if i)
 
         # D Frame and junction fields
-        result['D_FRAME'] = _dframe(junction)
-        result['N1_LENGTH'] = _n1(junction)
+        result = {}
+        result['D_FRAME'] = _dframe()
+        result['N1_LENGTH'] = _n1()
         result['N2_LENGTH'] = int(junction['N2-REGION-nt nb'] or 0)
         result['P3V_LENGTH'] = int(junction['P3\'V-nt nb'] or 0)
         result['P5D_LENGTH'] = int(junction['P5\'D-nt nb'] or 0)
@@ -576,11 +568,9 @@ class IgBLASTReader:
           dict: db of D starts and lengths
         """
         result = {}
-
         # Germline positions
         result['V_GERM_START_VDJ'] = int(v_hit['s. start'])
         result['V_GERM_LENGTH_VDJ'] = int(v_hit['s. end']) - result['V_GERM_START_VDJ'] + 1
-
         # Query sequence positions
         result['V_SEQ_START'] = int(v_hit['q. start'])
         result['V_SEQ_LENGTH'] = int(v_hit['q. end']) - result['V_SEQ_START'] + 1
@@ -601,11 +591,9 @@ class IgBLASTReader:
           dict: db of D starts and lengths
         """
         result = {}
-
         # Query sequence positions
         result['D_SEQ_START'] = int(d_hit['q. start']) + overlap
         result['D_SEQ_LENGTH'] = max(int(d_hit['q. end']) - result['D_SEQ_START'] + 1, 0)
-
         # Germline positions
         result['D_GERM_START'] = int(d_hit['s. start']) + overlap
         result['D_GERM_LENGTH'] = max(int(d_hit['s. end']) - result['D_GERM_START'] + 1, 0)
@@ -625,12 +613,8 @@ class IgBLASTReader:
           dict: db of J starts and lengths
         """
         result = {}
-
-        # Query positions
         result['J_SEQ_START'] = int(j_hit['q. start']) + overlap
         result['J_SEQ_LENGTH'] = max(int(j_hit['q. end']) - result['J_SEQ_START'] + 1, 0)
-
-        # Germline positions
         result['J_GERM_START'] = int(j_hit['s. start']) + overlap
         result['J_GERM_LENGTH'] = max(int(j_hit['s. end']) - result['J_GERM_START'] + 1, 0)
 
@@ -676,7 +660,6 @@ class IgBLASTReader:
 
         # Alignment positions
         result.update(IgBLASTReader._parseVHitPos(v_hit))
-
         # Update VDJ sequence, removing insertions
         result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, v_hit, 0)
 
@@ -714,7 +697,6 @@ class IgBLASTReader:
 
         # D alignment positions
         result.update(IgBLASTReader._parseDHitPos(d_hit, overlap))
-
         # Update VDJ sequence, removing insertions
         result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, d_hit, overlap)
 
@@ -765,7 +747,6 @@ class IgBLASTReader:
 
         # J alignment positions
         result.update(IgBLASTReader._parseJHitPos(j_hit, overlap))
-
         # Update VDJ sequence, removing insertions
         result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, j_hit, overlap)
 
@@ -952,9 +933,6 @@ class IgBLASTReader:
             return IgRecord(db)
         else:
             return db
-
-
-
 
 
 def gapV(ig_dict, repo_dict):

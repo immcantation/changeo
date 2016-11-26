@@ -9,6 +9,11 @@ from changeo import __version__, __date__
 import csv
 import os
 import sys
+import tarfile
+import zipfile
+from collections import OrderedDict
+from itertools import zip_longest
+from tempfile import TemporaryDirectory
 from Bio import SeqIO
 
 # Presto and changeo imports
@@ -152,3 +157,57 @@ def countDbFile(db_file):
         if db_count == 0:  sys.exit('ERROR:  File %s is empty' % db_file)
 
     return db_count
+
+
+def extractIMGT(imgt_output):
+    """
+    Extract necessary files from IMGT/HighV-QUEST results.
+
+    Arguments:
+      imgt_output : zipped file or unzipped folder output by IMGT/HighV-QUEST.
+
+    Returns:
+      tuple : (temporary directory handle, dictionary with names of extracted IMGT files).
+    """
+    # Map of IMGT file names
+    imgt_names = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
+    imgt_keys = ('summary', 'gapped', 'ntseq', 'junction')
+
+    # Open temporary directory and intialize return dictionary
+    temp_dir = TemporaryDirectory()
+
+    # Zip input
+    if zipfile.is_zipfile(imgt_output):
+        imgt_zip = zipfile.ZipFile(imgt_output, 'r')
+        # Extract required files
+        imgt_files = sorted([n for n in imgt_zip.namelist() \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_zip.extractall(temp_dir.name, imgt_files)
+        # Define file dictionary
+        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
+    # Folder input
+    elif os.path.isdir(imgt_output):
+        folder_files = []
+        for root, dirs, files in os.walk(imgt_output):
+            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
+        # Define file dictionary
+        imgt_files = sorted([n for n in folder_files \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_dict = {k: f for k, f in zip_longest(imgt_keys, imgt_files)}
+    # Tarball input
+    elif tarfile.is_tarfile(imgt_output):
+        imgt_tar = tarfile.open(imgt_output, 'r')
+        # Extract required files
+        imgt_files = sorted([n for n in imgt_tar.getnames() \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_tar.extractall(temp_dir.name, [imgt_tar.getmember(n) for n in imgt_files])
+        # Define file dictionary
+        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
+    else:
+        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
+
+    # Check extraction for errors
+    if len(imgt_dict) != len(imgt_names):
+        sys.exit('ERROR: Extra files or missing necessary file IMGT output %s.' % imgt_output)
+
+    return temp_dir, imgt_dict
