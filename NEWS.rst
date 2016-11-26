@@ -10,9 +10,10 @@ MakeDb:
 + Added the flag ``--partial`` which tells MakeDb to pass incomplete alignment
   results specified.
 + Added missing console log entries for the ihmm subcommand.
-+ IMGT/HighV-QUEST and IgBLAST parsers have been cleaned up, better documented
-  and moved into the iterable classes `changeo.Parsers.IMGTReader` and
-  `change.Parsers.IgBLASTReader`, respectively.
++ IMGT/HighV-QUEST, IgBLAST and iHMMune-Align parsers have been cleaned up,
+  better documented and moved into the iterable classes
+  ``changeo.Parsers.IMGTReader``, ``change.Parsers.IgBLASTReader``, and
+  ``change.Parsers.IHMMuneReader``, respectively.
 + Corrected behavior of ``D_FRAME`` annotation from the ``--junction``
   argument to the imgt subcommand such that it now reports no value when no
   value is reported by IMGT, rather than reporting the reading frame as 0 in

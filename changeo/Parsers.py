@@ -937,7 +937,7 @@ class IgBLASTReader:
             return db
 
 
-class IHMMReader:
+class IHMMuneReader:
     """
     An iterator to read and parse iHMMune-Align output files
     """
@@ -1024,6 +1024,7 @@ class IHMMReader:
               'V_SEQ_LENGTH',
               'A_SCORE']
 
+
     def __init__(self, ihmmune, seq_dict, repo_dict, score_fields=False,
                  region_fields=False, ig=True):
         """
@@ -1038,7 +1039,7 @@ class IHMMReader:
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
 
         Returns:
-          IHMMReader
+          IHMMuneReader
         """
         self.ihmmune = ihmmune
         self.seq_dict = seq_dict
@@ -1302,13 +1303,13 @@ class IHMMReader:
             return db
 
         # Parse record
-        db.update(IHMMReader._parseFunctionality(record))
-        db.update(IHMMReader._parseGenes(record))
-        db.update(IHMMReader._parseNPHit(record))
-        db.update(IHMMReader._parseVHit(record, db))
-        db.update(IHMMReader._parseDHit(record, db))
-        db.update(IHMMReader._parseJHit(record, db))
-        db.update(IHMMReader._assembleVDJ(record, db))
+        db.update(IHMMuneReader._parseFunctionality(record))
+        db.update(IHMMuneReader._parseGenes(record))
+        db.update(IHMMuneReader._parseNPHit(record))
+        db.update(IHMMuneReader._parseVHit(record, db))
+        db.update(IHMMuneReader._parseDHit(record, db))
+        db.update(IHMMuneReader._parseJHit(record, db))
+        db.update(IHMMuneReader._assembleVDJ(record, db))
 
         # Create IMGT-gapped sequence
         if 'V_CALL' in db and db['V_CALL']:
@@ -1335,9 +1336,9 @@ class IHMMReader:
         Iterator initializer
 
         Returns:
-          IHMMReader
+          IHMMuneReader
         """
-        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMReader.fields,
+        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.fields,
                                       delimiter=';', quotechar='"')
         return self
 

@@ -19,7 +19,7 @@ data_path = os.path.join(test_path, 'data')
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
 from changeo.IO import extractIMGT, getRepo
-from changeo.Parsers import IgBLASTReader, IHMMReader, IMGTReader
+from changeo.Parsers import IgBLASTReader, IHMMuneReader, IMGTReader
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -95,7 +95,7 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> IHMMReader() skipped\n")
     def test_IHMMReader(self):
         with open(self.ihmm_output, 'r') as f:
-            result = IHMMReader(f, self.ihmm_seq, self.repo_dict, ig=False)
+            result = IHMMuneReader(f, self.ihmm_seq, self.repo_dict, ig=False)
             for x in result: print(x)
 
         self.fail('TODO')
