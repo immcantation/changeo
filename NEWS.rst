@@ -20,6 +20,7 @@ MakeDb:
   these cases.
 + Fixed parsing of ``IN_FRAME``, ``STOP``, ``D_SEQ_START`` and ``D_SEQ_LENGTH``
   fields from iHMMune-Align output.
++ Removed extraneous score fields from each parser.
 
 
 Version 0.3.3:  August 8, 2016
