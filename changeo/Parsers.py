@@ -345,7 +345,7 @@ class IMGTReader:
         Arguments:
           summary : dictionary containing one row of the '1_Summary' file.
           gapped : dictionary containing one row of the '2_IMGT-gapped-nt-sequences' file.
-          ntseq: dictionary containing one row of the '3_Nt-sequences' file.
+          ntseq : dictionary containing one row of the '3_Nt-sequences' file.
           junction : dictionary containing one row of the '6_Junction' file.
 
         Returns:
@@ -790,13 +790,13 @@ class IgBLASTReader:
         Parses an IgBLAST result into separate sections
 
         Arguments:
-          block : an iterator from itertools.groupby containing a single IgBLAST result
+          block : an iterator from itertools.groupby containing a single IgBLAST result.
 
         Returns:
           dict : A parsed results block with the keys 'query' (sequence identifier as a string),
-                 'summary' (dictionary of the alignment summary), and
-                 'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
-                 data that can be parsed.
+            'summary' (dictionary of the alignment summary), and
+            'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
+            data that can be parsed.
         """
         # Parsing info
         #
