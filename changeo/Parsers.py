@@ -22,7 +22,7 @@ from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_reg
 
 class IMGTReader:
     """
-    An iterator to read and parse IMGT output files
+    An iterator to read and parse IMGT output files.
     """
     def __init__(self, summary, gapped, ntseq, junction, score_fields=False,
                  region_fields=False, junction_fields=False, ig=True):
@@ -38,7 +38,7 @@ class IMGTReader:
           region_fields : if True add FWR and CDR region fields.
           junction_fields : if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
                             P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
 
         Returns:
           change.Parsers.IMGTReader
@@ -340,7 +340,7 @@ class IMGTReader:
 
     def parseRecord(self, summary, gapped, ntseq, junction):
         """
-        Parses a single row from each IMTG file
+        Parses a single row from each IMTG file.
 
         Arguments:
           summary : dictionary containing one row of the '1_Summary' file.
@@ -384,7 +384,7 @@ class IMGTReader:
 
     def __iter__(self):
         """
-        Iterator initializer
+        Iterator initializer.
 
         Returns:
           changeo.Parsers.IgBLASTReader
@@ -400,11 +400,10 @@ class IMGTReader:
 
     def __next__(self):
         """
-        Next method
+        Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord if ig=True,
-                                      or as a dictionary ig=False.
+          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -427,7 +426,7 @@ class IgBLASTReader:
     def __init__(self, igblast, seq_dict, repo_dict, score_fields=False,
                  region_fields=False, ig=True):
         """
-        Initializer
+        Initializer.
 
         Arguments:
           igblast : handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
@@ -436,7 +435,7 @@ class IgBLASTReader:
           repo_dict : dictionary of IMGT gapped germline sequences.
           score_fields : if True parse alignment scores.
           region_fields : if True add FWR and CDR region fields.
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
 
         Returns:
           changeo.Parsers.IgBLASTReader
@@ -902,7 +901,7 @@ class IgBLASTReader:
 
     def __iter__(self):
         """
-        Iterator initializer
+        Iterator initializer.
 
         Returns:
           changeo.Parsers.IgBLASTReader
@@ -913,11 +912,10 @@ class IgBLASTReader:
 
     def __next__(self):
         """
-        Next method
+        Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IgBLAST result as an IgRecord if ig=True,
-                                      or as a dictionary ig=False.
+          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
         """
         # Get next block from groups iterator
         try:
@@ -940,7 +938,7 @@ class IgBLASTReader:
 
 class IHMMuneReader:
     """
-    An iterator to read and parse iHMMune-Align output files
+    An iterator to read and parse iHMMune-Align output files.
     """
     # iHMMuneAlign columns
     # Courtesy of Katherine Jackson
@@ -1284,7 +1282,7 @@ class IHMMuneReader:
 
     def parseRecord(self, record):
         """
-        Parses a single row from each IMTG file
+        Parses a single row from each IMTG file.
 
         Arguments:
           record : dictionary containing one row of iHMMune-Align file.
@@ -1338,7 +1336,7 @@ class IHMMuneReader:
 
     def __iter__(self):
         """
-        Iterator initializer
+        Iterator initializer.
 
         Returns:
           changeo.Parsers.IHMMuneReader
@@ -1350,11 +1348,10 @@ class IHMMuneReader:
 
     def __next__(self):
         """
-        Next method
+        Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed iHMMune-Align result as an IgRecord if ig=True,
-                                      or as a dictionary ig=False.
+          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -1374,7 +1371,7 @@ class IHMMuneReader:
 
 def gapV(db, repo_dict):
     """
-    Construction IMGT-gapped V-region sequences
+    Construction IMGT-gapped V-region sequences.
 
     Arguments:
       db : database dictionary of parsed IgBLAST.
@@ -1421,11 +1418,11 @@ def gapV(db, repo_dict):
 
 def inferJunction(db, repo_dict):
     """
-    Identify junction region by IMGT definition
+    Identify junction region by IMGT definition.
 
     Arguments:
       db : database dictionary of parsed IgBLAST.
-      repo_dict : dictionary of IMGT-gapped reference sequences
+      repo_dict : dictionary of IMGT-gapped reference sequences.
 
     Returns:
       dict : database entries containing junction sequence and length.
@@ -1501,14 +1498,13 @@ def getRegions(db):
 
 def getIDforIMGT(seq_file):
     """
-    Create a sequence ID translation using IMGT truncation
+    Create a sequence ID translation using IMGT truncation.
 
     Arguments:
       seq_file : a fasta file of sequences input to IMGT.
 
     Returns:
-      dict : a dictionary of with the IMGT truncated ID as the key and the full
-             sequence description as the value.
+      dict : a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
     """
 
     # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
