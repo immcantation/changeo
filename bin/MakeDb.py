@@ -26,30 +26,24 @@ from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCo
 from changeo.IO import countDbFile, extractIMGT, getDbWriter, getRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
 
-# Default parameters
-default_delimiter = ('\t', ',', '-')
 
-
-def writeDb(db, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
-            score_fields=False, region_fields=False, junction_fields=False,
+def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
             out_args=default_out_args):
     """
-    Writes tab-delimited database file in output directory
+    Writes tab-delimited database file in output directory.
     
     Arguments:
-    db = a iterator of IgRecord objects containing alignment data
-    file_prefix = directory and prefix for CLIP tab-delim file
-    total_count = number of records (for progress bar)
-    id_dict = a dictionary of the truncated sequence ID mapped to the full sequence ID
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
-    partial = If True put incomplete alignments in the pass file
-    score_fields = if True add alignment score fields to output file
-    region_fields = if True add FWR and CDR region fields to output file
-    junction_fields = if True add D FRAME junction field to output file
-    out_args = common output argument dictionary from parseCommonArgs
+      db : a iterator of IgRecord objects containing alignment data.
+      fields : a list of ordered field names to write.
+      file_prefix : directory and prefix for CLIP tab-delim file.
+      total_count : number of records (for progress bar).
+      id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
+      partial : if True put incomplete alignments in the pass file.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    None
+      None
     """
     # Function to check for valid records strictly
     def _pass_strict(rec):
@@ -73,65 +67,6 @@ def writeDb(db, file_prefix, total_count, id_dict=None, no_parse=True, partial=F
     # Define output file names
     pass_file = '%s_db-pass.tab' % file_prefix
     fail_file = '%s_db-fail.tab' % file_prefix
-
-    # Define core fields
-    ordered_fields = ['SEQUENCE_ID',
-                      'SEQUENCE_INPUT',
-                      'FUNCTIONAL',
-                      'IN_FRAME',
-                      'STOP',
-                      'MUTATED_INVARIANT',
-                      'INDELS',
-                      'V_CALL',
-                      'D_CALL',
-                      'J_CALL',
-                      'SEQUENCE_VDJ',
-                      'SEQUENCE_IMGT',
-                      'V_SEQ_START',
-                      'V_SEQ_LENGTH',
-                      'V_GERM_START_VDJ',
-                      'V_GERM_LENGTH_VDJ',
-                      'V_GERM_START_IMGT',
-                      'V_GERM_LENGTH_IMGT',
-                      'NP1_LENGTH',
-                      'D_SEQ_START',
-                      'D_SEQ_LENGTH',
-                      'D_GERM_START',
-                      'D_GERM_LENGTH',
-                      'NP2_LENGTH',
-                      'J_SEQ_START',
-                      'J_SEQ_LENGTH',
-                      'J_GERM_START',
-                      'J_GERM_LENGTH',
-                      'JUNCTION_LENGTH',
-                      'JUNCTION']
-
-    # Define optional scoring fields
-    if score_fields:
-        ordered_fields.extend(['V_SCORE',
-                               'V_IDENTITY',
-                               'V_EVALUE',
-                               'V_BTOP',
-                               'J_SCORE',
-                               'J_IDENTITY',
-                               'J_EVALUE',
-                               'J_BTOP',
-                               'HMM_SCORE'])
-
-    # Define optional region fields
-    if region_fields:
-        ordered_fields.extend(['FWR1_IMGT', 'FWR2_IMGT', 'FWR3_IMGT', 'FWR4_IMGT',
-                               'CDR1_IMGT', 'CDR2_IMGT', 'CDR3_IMGT'])
-
-    # Define optional junction fields
-    if junction_fields:
-        ordered_fields.extend(['N1_LENGTH', 'N2_LENGTH', 
-                               'P3V_LENGTH', 'P5D_LENGTH', 'P3D_LENGTH', 'P5J_LENGTH',
-                               'D_FRAME'])
-
-    # Not currently implemented
-    # if ihmm_germ:
-    #     ordered_fields.extend(['GERMLINE_IHMM', 'GERMLINE_IHMM_D_MASK'])
 
     # Initiate handles, writers and counters
     pass_handle = None
@@ -159,14 +94,14 @@ def writeDb(db, file_prefix, total_count, id_dict=None, no_parse=True, partial=F
             # TODO:  This is not the best approach. should pass in output fields.
             # If first record, use parsed description to define extra columns
             if pass_writer is None and fail_writer is None:
-                ordered_fields.extend(list(record.annotations.keys()))
+                fields.extend(list(record.annotations.keys()))
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
             # Open pass file
             if pass_writer is None:
                 pass_handle = open(pass_file, 'wt')
-                pass_writer = getDbWriter(pass_handle, add_fields=ordered_fields)
+                pass_writer = getDbWriter(pass_handle, add_fields=fields)
 
             # Write row to pass file
             pass_count += 1
@@ -175,7 +110,7 @@ def writeDb(db, file_prefix, total_count, id_dict=None, no_parse=True, partial=F
             # Open failed file
             if out_args['failed'] and fail_writer is None:
                 fail_handle = open(fail_file, 'wt')
-                fail_writer = getDbWriter(fail_handle, add_fields=ordered_fields)
+                fail_writer = getDbWriter(fail_handle, add_fields=fields)
 
             # Write row to fail file if specified
             fail_count += 1
@@ -198,19 +133,19 @@ def writeDb(db, file_prefix, total_count, id_dict=None, no_parse=True, partial=F
 
 # TODO:  may be able to merge with other mains
 def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
-                 score_fields=False, region_fields=False, out_args=default_out_args):
+                 parse_regions=False, parse_scores=False, out_args=default_out_args):
     """
-    Main for IgBLAST aligned sample sequences
+    Main for IgBLAST aligned sample sequences.
 
     Arguments:
-      aligner_file : IgBLAST output file to process
-      seq_file : fasta file input to IgBlast (from which to get sequence)
-      repo : folder with germline repertoire files
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters
-      partial : If True put incomplete alignments in the pass file
-      score_fields : if True add alignment score fields to output file
-      region_fields : if True add FWR and CDR region fields to output file
-      out_args : common output argument dictionary from parseCommonArgs
+      aligner_file : IgBLAST output file to process.
+      seq_file : fasta file input to IgBlast (from which to get sequence).
+      repo : folder with germline repertoire files.
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
+      partial : If True put incomplete alignments in the pass file.
+      parse_regions : if True add FWR and CDR fields to output file.
+      parse_scores : if True add alignment score fields to output file.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       None
@@ -223,8 +158,8 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
-    log['SCORE_FIELDS'] = score_fields
-    log['REGION_FIELDS'] = region_fields
+    log['SCORES'] = parse_scores
+    log['REGIONS'] = parse_regions
     printLog(log)
 
     # Formalize out_dir and file-prefix
@@ -241,46 +176,49 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
 
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
-
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
-
     # Get input sequence dictionary
     seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
-
     # Create germline repo dictionary
     repo_dict = getRepo(repo)
-
     printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Define output fields
+    fields = IgBLASTReader.core_fields
+    if parse_regions:
+        fields.extend(IgBLASTReader.region_fields)
+    if parse_scores:
+        fields.extend(IgBLASTReader.score_fields)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = IgBLASTReader(f, seq_dict, repo_dict, score_fields=score_fields,
-                                   region_fields=region_fields)
-        writeDb(parse_iter, file_prefix, total_count, no_parse=no_parse,
-                score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+        parse_iter = IgBLASTReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
+                                   parse_regions=parse_regions)
+        writeDb(parse_iter, fields, file_prefix, total_count, no_parse=no_parse,
+                out_args=out_args)
 
     return None
 
 
 # TODO:  may be able to merge with other mains
 def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
-              score_fields=False, region_fields=False, junction_fields=False,
+              parse_scores=False, parse_regions=False, parse_junction=False,
               out_args=default_out_args):
     """
-    Main for IMGT aligned sample sequences
+    Main for IMGT aligned sample sequences.
 
     Arguments:
-    aligner_file = zipped file or unzipped folder output by IMGT
-    seq_file = FASTA file input to IMGT (from which to get seqID)
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
-    partial = If True put incomplete alignments in the pass file
-    score_fields = if True add alignment score fields to output file
-    region_fields = if True add FWR and CDR region fields to output file
-    out_args = common output argument dictionary from parseCommonArgs
+      aligner_file : zipped file or unzipped folder output by IMGT.
+      seq_file : FASTA file input to IMGT (from which to get seqID).
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
+      partial : If True put incomplete alignments in the pass file.
+      parse_scores : if True add alignment score fields to output file.
+      parse_regions : if True add FWR and CDR region fields to output file.
+      out_args : common output argument dictionary from parseCommonArgs.
         
     Returns: 
-    None
+      None
     """
     # Print parameter info
     log = OrderedDict()
@@ -290,9 +228,9 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
-    log['SCORE_FIELDS'] = score_fields
-    log['REGION_FIELDS'] = region_fields
-    log['JUNCTION_FIELDS'] = junction_fields
+    log['SCORES'] = parse_scores
+    log['REGIONS'] = parse_regions
+    log['JUNCTION'] = parse_junction
     printLog(log)
         
     # Formalize out_dir and file-prefix
@@ -307,19 +245,24 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
         file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_file))[1])[0]
     file_prefix = os.path.join(out_dir, file_prefix)
 
-    # Extract IMGT files
-    temp_dir, imgt_files = extractIMGT(aligner_file)
-
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
-
+    # Extract IMGT files
+    temp_dir, imgt_files = extractIMGT(aligner_file)
     # Count records in IMGT files
     total_count = countDbFile(imgt_files['summary'])
-
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
-
     printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Define output fields
+    fields = IMGTReader.core_fields
+    if parse_regions:
+        fields.extend(IMGTReader.region_fields)
+    if parse_junction:
+        fields.extend(IMGTReader.junction_fields)
+    if parse_scores:
+        fields.extend(IMGTReader.score_fields)
 
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
@@ -327,11 +270,10 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
             open(imgt_files['ntseq'], 'r') as ntseq_handle, \
             open(imgt_files['junction'], 'r') as junction_handle:
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
-                                score_fields=score_fields, region_fields=region_fields,
-                                junction_fields=junction_fields)
-        writeDb(parse_iter, file_prefix, total_count, id_dict=id_dict, no_parse=no_parse,
-                score_fields=score_fields, region_fields=region_fields, junction_fields=junction_fields,
-                out_args=out_args)
+                                parse_scores=parse_scores, parse_regions=parse_regions,
+                                parse_junction=parse_junction)
+        writeDb(parse_iter, fields, file_prefix, total_count, id_dict=id_dict,
+                no_parse=no_parse, out_args=out_args)
 
     # Cleanup temp directory
     temp_dir.cleanup()
@@ -341,22 +283,22 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
 
 # TODO:  may be able to merge with other mains
 def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
-              score_fields=False, region_fields=False, out_args=default_out_args):
+              parse_scores=False, parse_regions=False, out_args=default_out_args):
     """
-    Main for iHMMuneAlign aligned sample sequences
+    Main for iHMMuneAlign aligned sample sequences.
 
     Arguments:
-    aligner_file = iHMMune-Align output file to process
-    seq_file = fasta file input to iHMMuneAlign (from which to get sequence)
-    repo = folder with germline repertoire files
-    no_parse = if ID is to be parsed for pRESTO output with default delimiters
-    partial = If True put incomplete alignments in the pass file
-    score_fields = if True parse alignment scores
-    region_fields = if True add FWR and CDR region fields
-    out_args = common output argument dictionary from parseCommonArgs
+      aligner_file : iHMMune-Align output file to process.
+      seq_file : fasta file input to iHMMuneAlign (from which to get sequence).
+      repo : folder with germline repertoire files.
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
+      partial : If True put incomplete alignments in the pass file.
+      parse_scores : if True parse alignment scores.
+      parse_regions : if True add FWR and CDR region fields.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    None
+      None
     """
     # Print parameter info
     log = OrderedDict()
@@ -366,8 +308,8 @@ def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
-    log['SCORE_FIELDS'] = score_fields
-    log['REGION_FIELDS'] = region_fields
+    log['SCORES'] = parse_scores
+    log['REGIONS'] = parse_regions
     printLog(log)
 
     # Formalize out_dir and file-prefix
@@ -384,37 +326,37 @@ def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
 
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
-
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
-
     # Get input sequence dictionary
     seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
-
     # Create germline repo dictionary
     repo_dict = getRepo(repo)
-
     printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Define output fields
+    fields = IHMMuneReader.core_fields
+    if parse_regions:
+        fields.extend(IHMMuneReader.region_fields)
+    if parse_scores:
+        fields.extend(IHMMuneReader.score_fields)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = IHMMuneReader(f, seq_dict, repo_dict, score_fields=score_fields,
-                                   region_fields=region_fields)
-        writeDb(parse_iter, file_prefix, total_count, no_parse=no_parse,
-                score_fields=score_fields, region_fields=region_fields, out_args=out_args)
+        parse_iter = IHMMuneReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
+                                   parse_regions=parse_regions)
+        writeDb(parse_iter, fields, file_prefix, total_count, no_parse=no_parse,
+                out_args=out_args)
 
     return None
 
 
 def getArgParser():
     """
-    Defines the ArgumentParser
+    Defines the ArgumentParser.
 
-    Arguments: 
-    None
-                      
     Returns: 
-    an ArgumentParser object
+      argparse.ArgumentParser
     """
     fields = dedent(
              '''
@@ -488,13 +430,13 @@ def getArgParser():
     parser_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file.''')
-    parser_igblast.add_argument('--scores', action='store_true', dest='score_fields',
+    parser_igblast.add_argument('--scores', action='store_true', dest='parse_scores',
                                 help='''Specify if alignment score metrics should be
                                      included in the output. Adds the V_SCORE, V_IDENTITY,
                                      V_EVALUE, V_BTOP, J_SCORE, J_IDENTITY,
                                      J_BTOP, and J_EVALUE columns.''')
-    parser_igblast.add_argument('--regions', action='store_true', dest='region_fields',
-                                help='''Specify if IMGT framework and CDR regions should be
+    parser_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
+                                help='''Specify if IMGT FWR and CDRs should be
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                      FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
@@ -522,19 +464,17 @@ def getArgParser():
     parser_imgt.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
-    parser_imgt.add_argument('--scores', action='store_true', dest='score_fields',
+    parser_imgt.add_argument('--scores', action='store_true', dest='parse_scores',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the V_SCORE, V_IDENTITY,
-                                  J_SCORE and J_IDENTITY. Note, this will also add
-                                  the columns V_EVALUE, V_BTOP, J_EVALUE and J_BTOP,
-                                  but they will be empty for IMGT output.''')
-    parser_imgt.add_argument('--regions', action='store_true', dest='region_fields',
-                             help='''Specify if IMGT framework and CDR regions should be
+                                  J_SCORE and J_IDENTITY.''')
+    parser_imgt.add_argument('--regions', action='store_true', dest='parse_regions',
+                             help='''Specify if IMGT FWRs and CDRs should be
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
-    parser_imgt.add_argument('--junction', action='store_true', dest='junction_fields',
-                             help='''Specify if junction fields should be
+    parser_imgt.add_argument('--junction', action='store_true', dest='parse_junction',
+                             help='''Specify if detailed junction fields should be
                                   included in the output. Adds the columns 
                                   N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
                                   P5J_LENGTH, D_FRAME.''')
@@ -562,12 +502,12 @@ def getArgParser():
     parser_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
-    parser_ihmm.add_argument('--scores', action='store_true', dest='score_fields',
+    parser_ihmm.add_argument('--scores', action='store_true', dest='parse_scores',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the path score of the
-                                  iHMMuneAlign hidden Markov model to HMM_SCORE.''')
-    parser_ihmm.add_argument('--regions', action='store_true', dest='region_fields',
-                             help='''Specify if IMGT framework and CDR regions should be
+                                  iHMMune-Align hidden Markov model to HMM_SCORE.''')
+    parser_ihmm.add_argument('--regions', action='store_true', dest='parse_regions',
+                             help='''Specify if IMGT FWRs and CDRs should be
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')

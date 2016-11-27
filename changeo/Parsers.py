@@ -19,13 +19,71 @@ from presto.IO import readSeqFile
 from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
                              j_allele_regex
 
+# Define core field column ordering
+default_core_fields = ['SEQUENCE_ID',
+                       'SEQUENCE_INPUT',
+                       'FUNCTIONAL',
+                       'IN_FRAME',
+                       'STOP',
+                       'MUTATED_INVARIANT',
+                       'INDELS',
+                       'V_CALL',
+                       'D_CALL',
+                       'J_CALL',
+                       'SEQUENCE_VDJ',
+                       'SEQUENCE_IMGT',
+                       'V_SEQ_START',
+                       'V_SEQ_LENGTH',
+                       'V_GERM_START_VDJ',
+                       'V_GERM_LENGTH_VDJ',
+                       'V_GERM_START_IMGT',
+                       'V_GERM_LENGTH_IMGT',
+                       'NP1_LENGTH',
+                       'D_SEQ_START',
+                       'D_SEQ_LENGTH',
+                       'D_GERM_START',
+                       'D_GERM_LENGTH',
+                       'NP2_LENGTH',
+                       'J_SEQ_START',
+                       'J_SEQ_LENGTH',
+                       'J_GERM_START',
+                       'J_GERM_LENGTH',
+                       'JUNCTION_LENGTH',
+                       'JUNCTION']
+
+# Define default FWR amd CDR field ordering
+default_region_fields = ['FWR1_IMGT',
+                         'FWR2_IMGT',
+                         'FWR3_IMGT',
+                         'FWR4_IMGT',
+                         'CDR1_IMGT',
+                         'CDR2_IMGT',
+                         'CDR3_IMGT']
+
+# Define default detailed junction field ordering
+default_junction_fields = ['N1_LENGTH',
+                           'N2_LENGTH',
+                           'P3V_LENGTH',
+                           'P5D_LENGTH',
+                           'P3D_LENGTH',
+                           'P5J_LENGTH',
+                           'D_FRAME']
 
 class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
     """
-    def __init__(self, summary, gapped, ntseq, junction, score_fields=False,
-                 region_fields=False, junction_fields=False, ig=True):
+    # Define parsed fields
+    core_fields = default_core_fields
+    region_fields = default_region_fields
+    junction_fields = default_junction_fields
+    score_fields = ['V_SCORE',
+                    'V_IDENTITY',
+                    'J_IDENTITY',
+                    'J_EVALUE']
+
+    def __init__(self, summary, gapped, ntseq, junction, parse_scores=False,
+                 parse_regions=False, parse_junction=False, ig=True):
         """
         Initializer
 
@@ -34,10 +92,10 @@ class IMGTReader:
           gapped : handle to an open '2_IMGT-gapped-nt-sequences' IMGT/HighV-QUEST output file.
           ntseq: handle to an open '3_Nt-sequences' IMGT/HighV-QUEST output file.
           junction : handle to an open '6_Junction' IMGT/HighV-QUEST output file.
-          score_fields : if True parse alignment scores.
-          region_fields : if True add FWR and CDR region fields.
-          junction_fields : if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
-                            P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields
+          parse_scores : if True parse alignment scores.
+          parse_regions : if True add FWR and CDR region fields.
+          parse_junction : if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
+                           P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields.
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
 
         Returns:
@@ -47,9 +105,9 @@ class IMGTReader:
         self.gapped = gapped
         self.ntseq = ntseq
         self.junction = junction
-        self.score_fields = score_fields
-        self.region_fields = region_fields
-        self.junction_fields = junction_fields
+        self.parse_scores = parse_scores
+        self.parse_regions = parse_regions
+        self.parse_junction = parse_junction
         self.ig = ig
 
 
@@ -372,11 +430,11 @@ class IMGTReader:
         db.update(IMGTReader._parseJPos(gapped, ntseq, junction, db))
 
         # Parse optional fields
-        if self.score_fields:
+        if self.parse_scores:
             db.update(IMGTReader._parseScores(summary))
-        if self.region_fields:
+        if self.parse_regions:
             db.update(getRegions(db))
-        if self.junction_fields:
+        if self.parse_junction:
             db.update(IMGTReader._parseJuncDetails(junction))
 
         return db
@@ -423,8 +481,20 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
-    def __init__(self, igblast, seq_dict, repo_dict, score_fields=False,
-                 region_fields=False, ig=True):
+    # Define parsed fields
+    core_fields = default_core_fields
+    region_fields = default_region_fields
+    score_fields = ['V_SCORE',
+                    'V_IDENTITY',
+                    'V_EVALUE',
+                    'V_BTOP',
+                    'J_SCORE',
+                    'J_IDENTITY',
+                    'J_EVALUE',
+                    'J_BTOP']
+
+    def __init__(self, igblast, seq_dict, repo_dict, parse_scores=False,
+                 parse_regions=False, ig=True):
         """
         Initializer.
 
@@ -433,8 +503,8 @@ class IgBLASTReader:
           seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
                     the original query sequences.
           repo_dict : dictionary of IMGT gapped germline sequences.
-          score_fields : if True parse alignment scores.
-          region_fields : if True add FWR and CDR region fields.
+          parse_scores : if True parse alignment scores.
+          parse_regions : if True add FWR and CDR region fields.
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
 
         Returns:
@@ -443,8 +513,8 @@ class IgBLASTReader:
         self.igblast = igblast
         self.seq_dict = seq_dict
         self.repo_dict = repo_dict
-        self.score_fields = score_fields
-        self.region_fields = region_fields
+        self.parse_scores = parse_scores
+        self.parse_regions = parse_regions
         self.ig = ig
 
 
@@ -793,10 +863,10 @@ class IgBLASTReader:
           block : an iterator from itertools.groupby containing a single IgBLAST result.
 
         Returns:
-          dict : A parsed results block with the keys 'query' (sequence identifier as a string),
-            'summary' (dictionary of the alignment summary), and
-            'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
-            data that can be parsed.
+          dict : a parsed results block with the keys 'query' (sequence identifier as a string),
+                 'summary' (dictionary of the alignment summary), and
+                 'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
+                 data that can be parsed.
         """
         # Parsing info
         #
@@ -874,13 +944,13 @@ class IgBLASTReader:
             db['SEQUENCE_VDJ'] = ''
             if db['V_CALL']:
                 db.update(self._parseVHits(sections['hits'], db))
-                if self.score_fields:
+                if self.parse_scores:
                     db.update(self._parseHitScores(sections['hits'], 'V'))
             if db['D_CALL']:
                 db.update(self._parseDHits(sections['hits'], db))
             if db['J_CALL']:
                 db.update(self._parseJHits(sections['hits'], db))
-                if self.score_fields:
+                if self.parse_scores:
                     db.update(self._parseHitScores(sections['hits'], 'J'))
 
         # Create IMGT-gapped sequence
@@ -893,7 +963,7 @@ class IgBLASTReader:
             db.update(inferJunction(db, self.repo_dict))
 
         # Add FWR and CDR regions
-        if self.region_fields:
+        if self.parse_regions:
             db.update(getRegions(db))
 
         return db
@@ -998,34 +1068,38 @@ class IHMMuneReader:
     # 24: A score - A score probability is calculated from the common region mutations
     #               and is used for HMM calculations relating to expected mutation
     #               probability at different positions in the rearrangement
-    fields = ('SEQUENCE_ID',
-              'V_CALL',
-              'D_CALL',
-              'J_CALL',
-              'V_SEQ',
-              'NP1_SEQ',
-              'D_SEQ',
-              'NP2_SEQ',
-              'J_SEQ',
-              'V_MUT',
-              'D_MUT',
-              'J_MUT',
-              'NX_COUNT',
-              'J_INFRAME',
-              'V_SEQ_START',
-              'STOP_COUNT',
-              'D_PROB',
-              'HMM_SCORE',
-              'RC',
-              'COMMON_MUT',
-              'COMMON_NX_COUNT',
-              'V_SEQ_START2',
-              'V_SEQ_LENGTH',
-              'A_SCORE')
+    ihmmune_fields = ['SEQUENCE_ID',
+                      'V_CALL',
+                      'D_CALL',
+                      'J_CALL',
+                      'V_SEQ',
+                      'NP1_SEQ',
+                      'D_SEQ',
+                      'NP2_SEQ',
+                      'J_SEQ',
+                      'V_MUT',
+                      'D_MUT',
+                      'J_MUT',
+                      'NX_COUNT',
+                      'J_INFRAME',
+                      'V_SEQ_START',
+                      'STOP_COUNT',
+                      'D_PROB',
+                      'HMM_SCORE',
+                      'RC',
+                      'COMMON_MUT',
+                      'COMMON_NX_COUNT',
+                      'V_SEQ_START2',
+                      'V_SEQ_LENGTH',
+                      'A_SCORE']
 
+    # Define parsed fields
+    core_fields = default_core_fields
+    region_fields = default_region_fields
+    score_fields = ['HMM_SCORE']
 
-    def __init__(self, ihmmune, seq_dict, repo_dict, score_fields=False,
-                 region_fields=False, ig=True):
+    def __init__(self, ihmmune, seq_dict, repo_dict, parse_scores=False,
+                 parse_regions=False, ig=True):
         """
         Initializer
 
@@ -1034,8 +1108,8 @@ class IHMMuneReader:
           seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
                     the original query sequences.
           repo_dict : dictionary of IMGT gapped germline sequences.
-          score_fields : if True parse alignment scores.
-          region_fields : if True add FWR and CDR region fields.
+          parse_scores : if True parse alignment scores.
+          parse_regions : if True add FWR and CDR region fields.
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
 
         Returns:
@@ -1044,8 +1118,8 @@ class IHMMuneReader:
         self.ihmmune = ihmmune
         self.seq_dict = seq_dict
         self.repo_dict = repo_dict
-        self.score_fields = score_fields
-        self.region_fields = region_fields
+        self.parse_scores = parse_scores
+        self.parse_regions = parse_regions
         self.ig = ig
 
     @staticmethod
@@ -1324,11 +1398,11 @@ class IHMMuneReader:
             db.update(inferJunction(db, self.repo_dict))
 
          # Overall alignment score
-        if self.score_fields:
+        if self.parse_scores:
             db.update(IHMMuneReader._parseScores(record))
 
         # FWR and CDR regions
-        if self.region_fields:
+        if self.parse_regions:
             db.update(getRegions(db))
 
         return db
@@ -1341,7 +1415,7 @@ class IHMMuneReader:
         Returns:
           changeo.Parsers.IHMMuneReader
         """
-        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.fields,
+        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
                                       delimiter=';', quotechar='"')
         return self
 
