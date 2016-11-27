@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  November 25, 2016
+Version 0.3.3.999:  November 27, 2016
 -------------------------------------------------------------------------------
 
 MakeDb:
@@ -18,6 +18,8 @@ MakeDb:
   argument to the imgt subcommand such that it now reports no value when no
   value is reported by IMGT, rather than reporting the reading frame as 0 in
   these cases.
++ Fixed parsing of ``IN_FRAME``, ``STOP``, ``D_SEQ_START`` and ``D_SEQ_LENGTH``
+  fields from iHMMune-Align output.
 
 
 Version 0.3.3:  August 8, 2016

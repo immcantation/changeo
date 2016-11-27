@@ -15,6 +15,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
+from presto.IO import readSeqFile
 from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
                              j_allele_regex
 
@@ -40,7 +41,7 @@ class IMGTReader:
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
 
         Returns:
-          IMGTReader
+          change.Parsers.IMGTReader
         """
         self.summary = summary
         self.gapped = gapped
@@ -386,7 +387,7 @@ class IMGTReader:
         Iterator initializer
 
         Returns:
-          IgBLASTReader
+          changeo.Parsers.IgBLASTReader
         """
         readers = [csv.DictReader(self.summary, delimiter='\t'),
                    csv.DictReader(self.gapped, delimiter='\t'),
@@ -402,8 +403,8 @@ class IMGTReader:
         Next method
 
         Returns:
-            changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result (ig=True).
-            dict : parsed IMGT/HighV-QUEST query (ig=False).
+          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord if ig=True,
+                                      or as a dictionary ig=False.
         """
         # Get next set of records from dictionary readers
         try:
@@ -430,14 +431,15 @@ class IgBLASTReader:
 
         Arguments:
           igblast : handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
-          seq_dict : dictionary of {sequence id: Seq object} containing the original query sequences.
+          seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
+                    the original query sequences.
           repo_dict : dictionary of IMGT gapped germline sequences.
           score_fields : if True parse alignment scores.
           region_fields : if True add FWR and CDR region fields.
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
 
         Returns:
-          IgBLASTReader
+          changeo.Parsers.IgBLASTReader
         """
         self.igblast = igblast
         self.seq_dict = seq_dict
@@ -792,11 +794,10 @@ class IgBLASTReader:
           block : an iterator from itertools.groupby containing a single IgBLAST result
 
         Returns:
-          dict : A parsed results block with
-                {query: sequence identifier as a string,
-                 summary: dictionary of the alignment summary,
-                 hits: V(D)J hit table as a pandas.DataFrame).
-          None : If the block has no data that can be parsed.
+          dict : A parsed results block with the keys 'query' (sequence identifier as a string),
+                 'summary' (dictionary of the alignment summary), and
+                 'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
+                 data that can be parsed.
         """
         # Parsing info
         #
@@ -852,10 +853,10 @@ class IgBLASTReader:
         Parses an IgBLAST sections into a db dictionary
 
         Arguments:
-            sections : dictionary of parsed sections from parseBlock
+            sections : dictionary of parsed sections from parseBlock.
 
         Returns:
-          dict : db entries
+          dict : db entries.
         """
 
         # Initialize dictionary with input sequence and id
@@ -863,7 +864,7 @@ class IgBLASTReader:
         if 'query' in sections:
             query = sections['query']
             db['SEQUENCE_ID'] = query
-            db['SEQUENCE_INPUT'] = self.seq_dict[query]
+            db['SEQUENCE_INPUT'] = str(self.seq_dict[query].seq)
 
         # Parse summary section
         if 'summary' in sections:
@@ -904,7 +905,7 @@ class IgBLASTReader:
         Iterator initializer
 
         Returns:
-          IgBLASTReader
+          changeo.Parsers.IgBLASTReader
         """
         self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
         return self
@@ -915,8 +916,8 @@ class IgBLASTReader:
         Next method
 
         Returns:
-            changeo.Receptor.IgRecord : parsed IgBLAST result (ig=True).
-            dict : parsed IgBLAST result (ig=False).
+          changeo.Receptor.IgRecord : parsed IgBLAST result as an IgRecord if ig=True,
+                                      or as a dictionary ig=False.
         """
         # Get next block from groups iterator
         try:
@@ -999,7 +1000,7 @@ class IHMMuneReader:
     # 24: A score - A score probability is calculated from the common region mutations
     #               and is used for HMM calculations relating to expected mutation
     #               probability at different positions in the rearrangement
-    fields = ['SEQUENCE_ID',
+    fields = ('SEQUENCE_ID',
               'V_CALL',
               'D_CALL',
               'J_CALL',
@@ -1022,7 +1023,7 @@ class IHMMuneReader:
               'COMMON_NX_COUNT',
               'V_SEQ_START2',
               'V_SEQ_LENGTH',
-              'A_SCORE']
+              'A_SCORE')
 
 
     def __init__(self, ihmmune, seq_dict, repo_dict, score_fields=False,
@@ -1032,14 +1033,15 @@ class IHMMuneReader:
 
         Arguments:
           ihmmune : handle to an open iHMMune-Align output file.
-          seq_dict : dictionary of {sequence id: Seq object} containing the original query sequences.
+          seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
+                    the original query sequences.
           repo_dict : dictionary of IMGT gapped germline sequences.
           score_fields : if True parse alignment scores.
           region_fields : if True add FWR and CDR region fields.
           ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
 
         Returns:
-          IHMMuneReader
+          changeo.Parsers.IHMMuneReader
         """
         self.ihmmune = ihmmune
         self.seq_dict = seq_dict
@@ -1062,28 +1064,34 @@ class IHMMuneReader:
         # Functional
         def _functional():
             if not record['V_CALL'] or \
+                    record['V_CALL'].startswith('NA - ') or \
                     record['J_INFRAME'] != 'true' or \
                     not record['J_CALL'] or \
-                    record['J_CALL'] == 'NO_JGENE_ALIGNMENT':
+                    record['J_CALL'] == 'NO_JGENE_ALIGNMENT' or \
+                    int(record['STOP_COUNT']) > 0:
                 return 'F'
             else:
-                return 'F' if int(record['STOP_COUNT']) > 0 else 'T'
+                return 'T'
+
+        # Stop codon
+        def _stop():
+            return 'T' if int(record['STOP_COUNT']) > 0 else 'F'
 
         # J in-frame
         def _inframe():
-            return 'T' if record['J_INFRAME'] != 'true' else 'F'
+            return 'T' if record['J_INFRAME'] == 'true' else 'F'
 
         # Indels
         def _indels():
-            if re.search('\[indels\]', record['V_CALL'] + record['D_CALL'] + record['J_CALL']):
-                result['INDELS'] = 'T'
-            else:
-                result['INDELS'] = 'F'
+            check = [x is not None and 'indels' in x \
+                     for x in [record['V_CALL'], record['D_CALL'], record['J_CALL']]]
+            return 'T' if any(check) else 'F'
 
         # Parse functionality
         result = {}
         result['FUNCTIONAL'] = _functional()
         result['IN_FRAME'] = _inframe()
+        result['STOP'] = _stop()
         result['INDELS'] = _indels()
 
         return result
@@ -1149,13 +1157,12 @@ class IHMMuneReader:
 
         # Find V positions
         if db['V_CALL']:
-            vseq = record['V_SEQ'].strip('.')
             # Query positions
             result['V_SEQ_START'] = int(record['V_SEQ_START'])
-            result['V_SEQ_LENGTH'] = len(vseq)
+            result['V_SEQ_LENGTH'] = len(record['V_SEQ'].strip('.'))
             # Germline positions
             db['V_GERM_START_VDJ'] = 1
-            db['V_GERM_LENGTH_VDJ'] = len(vseq)
+            db['V_GERM_LENGTH_VDJ'] = result['V_SEQ_LENGTH']
 
         return result
 
@@ -1186,13 +1193,12 @@ class IHMMuneReader:
                   'D_GERM_LENGTH': None}
 
         if db['D_CALL']:
-            dseq = record['D_SEQ'].strip('.')
             # Query positions
-            db['D_SEQ_START'] = _dstart()
-            db['D_SEQ_LENGTH'] = len(dseq)
+            result['D_SEQ_START'] = _dstart()
+            result['D_SEQ_LENGTH'] = len(record['D_SEQ'].strip('.'))
             # Germline positions
-            result['D_GERM_START'] = len(record['D_SEQ']) - len(dseq)
-            result['D_GERM_LENGTH'] = len(dseq)
+            result['D_GERM_START'] = len(record['D_SEQ']) - len(record['D_SEQ'].lstrip('.'))
+            result['D_GERM_LENGTH'] = result['D_SEQ_LENGTH']
 
         return result
 
@@ -1227,13 +1233,12 @@ class IHMMuneReader:
 
         # Find J region
         if db['J_CALL']:
-            jseq = record['J_SEQ'].strip('.')
             # Query positions
             result['J_SEQ_START'] = _jstart()
-            result['J_SEQ_LENGTH'] = len(jseq)
+            result['J_SEQ_LENGTH'] = len(record['J_SEQ'].strip('.'))
             # Germline positions
-            result['J_GERM_START'] = len(record['J_SEQ']) - len(jseq)
-            result['J_GERM_LENGTH'] = len(jseq)
+            result['J_GERM_START'] = len(record['J_SEQ']) - len(record['J_SEQ'].lstrip('.'))
+            result['J_GERM_LENGTH'] = result['J_SEQ_LENGTH']
 
         return result
 
@@ -1250,12 +1255,11 @@ class IHMMuneReader:
         Returns:
           dict : database entries containing the full length V(D)J sequence.
         """
-        # Assemble V(D)J sequence segments
         segments = [record['V_SEQ'].strip('.') if db['V_CALL'] else '',
-                    record['NP1_SEQ'] if db['NP1_LENGTH'] else '',
-                    record['D_SEQ'].strip('.') if db['D_CALL'] else '',
-                    record['NP2_SEQ'] if db['NP2_LENGTH'] else '',
-                    record['J_SEQ'].strip('.') if db['J_CALL'] else '']
+                   record['NP1_SEQ'] if db['NP1_LENGTH'] else '',
+                   record['D_SEQ'].strip('.') if db['D_CALL'] else '',
+                   record['NP2_SEQ'] if db['NP2_LENGTH'] else '',
+                   record['J_SEQ'].strip('.') if db['J_CALL'] else '']
 
         return {'SEQUENCE_VDJ': ''.join(segments)}
 
@@ -1272,8 +1276,8 @@ class IHMMuneReader:
           dict : database entries for alignment scores.
         """
         result = {}
-        try:  result['HMM_SCORE'] = float(row['HMM_SCORE'])
-        except (TypeError, ValueError):  result['HMM_SCORE'] = ''
+        try:  result['HMM_SCORE'] = float(record['HMM_SCORE'])
+        except (TypeError, ValueError):  result['HMM_SCORE'] = None
 
         return result
 
@@ -1289,8 +1293,9 @@ class IHMMuneReader:
           dict : database entry for the row.
         """
         # Extract query ID and sequence
-        db = {'SEQUENCE_ID': record['SEQUENCE_ID'],
-              'SEQUENCE_INPUT': self.seq_dict[record['SEQUENCE_ID']]}
+        query = record['SEQUENCE_ID']
+        db = {'SEQUENCE_ID': query,
+              'SEQUENCE_INPUT': str(self.seq_dict[query].seq)}
 
         # Check for valid alignment
         if not record['V_CALL'] or \
@@ -1322,7 +1327,7 @@ class IHMMuneReader:
 
          # Overall alignment score
         if self.score_fields:
-            db.update(_parseScores(record))
+            db.update(IHMMuneReader._parseScores(record))
 
         # FWR and CDR regions
         if self.region_fields:
@@ -1336,7 +1341,7 @@ class IHMMuneReader:
         Iterator initializer
 
         Returns:
-          IHMMuneReader
+          changeo.Parsers.IHMMuneReader
         """
         self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.fields,
                                       delimiter=';', quotechar='"')
@@ -1348,8 +1353,8 @@ class IHMMuneReader:
         Next method
 
         Returns:
-            changeo.Receptor.IgRecord : parsed iHMMune-Align result (ig=True).
-            dict : parsed iHMMune-Align result (ig=False).
+          changeo.Receptor.IgRecord : parsed iHMMune-Align result as an IgRecord if ig=True,
+                                      or as a dictionary ig=False.
         """
         # Get next set of records from dictionary readers
         try:
@@ -1365,7 +1370,6 @@ class IHMMuneReader:
             return IgRecord(db)
         else:
             return db
-
 
 
 def gapV(db, repo_dict):
@@ -1390,7 +1394,6 @@ def gapV(db, repo_dict):
     # Find gapped germline V segment
     vgene = parseAllele(db['V_CALL'], v_allele_regex, 'first')
     vkey = (vgene, )
-    #TODO: Figure out else case
     if vkey in repo_dict:
         vgap = repo_dict[vkey]
         # Iterate over gaps in the germline segment
@@ -1409,6 +1412,9 @@ def gapV(db, repo_dict):
         # Update IMGT positioning information for V
         imgt_dict['V_GERM_START_IMGT'] = 1
         imgt_dict['V_GERM_LENGTH_IMGT'] = db['V_GERM_LENGTH_VDJ'] + gapcount
+    else:
+        sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined for %s' \
+                         % (vgene, db['SEQUENCE_ID']))
 
     return imgt_dict
 
@@ -1491,3 +1497,27 @@ def getRegions(db):
         return region_dict
 
     return region_dict
+
+
+def getIDforIMGT(seq_file):
+    """
+    Create a sequence ID translation using IMGT truncation
+
+    Arguments:
+      seq_file : a fasta file of sequences input to IMGT.
+
+    Returns:
+      dict : a dictionary of with the IMGT truncated ID as the key and the full
+             sequence description as the value.
+    """
+
+    # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
+    ids = {}
+    for rec in readSeqFile(seq_file):
+        if len(rec.description) <= 50:
+            id_key = rec.description
+        else:
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:50])
+        ids.update({id_key: rec.description})
+
+    return ids
