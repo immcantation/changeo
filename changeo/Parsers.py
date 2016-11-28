@@ -391,8 +391,15 @@ class IMGTReader:
         """
         # D reading frame
         def _dframe():
+            frame = None
             x = junction['D-REGION reading frame']
-            return int(x) if x else None
+            if x:
+                try:
+                    frame = int(x)
+                except ValueError:
+                    m = re.search(r'reading frame ([0-9])', x).group(1)
+                    frame = int(m)
+            return frame
 
         # First N region length
         def _n1():

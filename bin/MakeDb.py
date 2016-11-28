@@ -27,6 +27,34 @@ from changeo.IO import countDbFile, extractIMGT, getDbWriter, getRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
 
 
+def getFilePrefix(aligner_output, out_args):
+    """
+    Get file name prefix and create output directory
+
+    Arguments:
+      aligner_output : aligner output file or directory.
+      out_args : dictionary of output arguments.
+
+    Returns:
+        str : file name prefix.
+    """
+    # Determine output directory
+    if not out_args['out_dir']:
+        out_dir = os.path.dirname(os.path.abspath(aligner_output))
+    else:
+        out_dir = os.path.abspath(out_args['out_dir'])
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+
+    # Determine file prefix
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_output))[1])[0]
+
+    return os.path.join(out_dir, file_prefix)
+
+
 def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
             out_args=default_out_args):
     """
@@ -132,14 +160,14 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 
 
 # TODO:  may be able to merge with other mains
-def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
+def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
               parse_scores=False, parse_regions=False, parse_junction=False,
               out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences.
 
     Arguments:
-      aligner_file : zipped file or unzipped folder output by IMGT.
+      aligner_output : zipped file or unzipped folder output by IMGT.
       seq_file : FASTA file input to IMGT (from which to get seqID).
       no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : If True put incomplete alignments in the pass file.
@@ -154,7 +182,7 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
     log = OrderedDict()
     log['START'] = 'MakeDb'
     log['ALIGNER'] = 'IMGT'
-    log['ALIGN_RESULTS'] = aligner_file
+    log['ALIGNER_OUTPUT'] = aligner_output
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
@@ -163,22 +191,10 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
     log['JUNCTION'] = parse_junction
     printLog(log)
 
-    # Formalize out_dir and file-prefix
-    if not out_args['out_dir']:
-        out_dir = os.path.dirname(os.path.abspath(aligner_file))
-    else:
-        out_dir = os.path.abspath(out_args['out_dir'])
-        if not os.path.exists(out_dir):  os.mkdir(out_dir)
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_file))[1])[0]
-    file_prefix = os.path.join(out_dir, file_prefix)
-
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
     # Extract IMGT files
-    temp_dir, imgt_files = extractIMGT(aligner_file)
+    temp_dir, imgt_files = extractIMGT(aligner_output)
     # Count records in IMGT files
     total_count = countDbFile(imgt_files['summary'])
     # Get (parsed) IDs from fasta file submitted to IMGT
@@ -193,6 +209,7 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
                                 parse_scores=parse_scores, parse_regions=parse_regions,
                                 parse_junction=parse_junction)
+        file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, id_dict=id_dict,
                 no_parse=no_parse, out_args=out_args)
 
@@ -203,13 +220,13 @@ def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
 
 
 # TODO:  may be able to merge with other mains
-def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
+def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
                  parse_regions=False, parse_scores=False, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
 
     Arguments:
-      aligner_file : IgBLAST output file to process.
+      aligner_output : IgBLAST output file to process.
       seq_file : fasta file input to IgBlast (from which to get sequence).
       repo : folder with germline repertoire files.
       no_parse : if ID is to be parsed for pRESTO output with default delimiters.
@@ -225,25 +242,13 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
     log = OrderedDict()
     log['START'] = 'MakeDB'
     log['ALIGNER'] = 'IgBlast'
-    log['ALIGN_RESULTS'] = os.path.basename(aligner_file)
+    log['ALIGNER_OUTPUT'] = os.path.basename(aligner_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
     log['SCORES'] = parse_scores
     log['REGIONS'] = parse_regions
     printLog(log)
-
-    # Formalize out_dir and file-prefix
-    if not out_args['out_dir']:
-        out_dir = os.path.split(aligner_file)[0]
-    else:
-        out_dir = os.path.abspath(out_args['out_dir'])
-        if not os.path.exists(out_dir):  os.mkdir(out_dir)
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.basename(os.path.splitext(aligner_file)[0])
-    file_prefix = os.path.join(out_dir, file_prefix)
 
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
@@ -256,9 +261,10 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Parse and write output
-    with open(aligner_file, 'r') as f:
+    with open(aligner_output, 'r') as f:
         parse_iter = IgBLASTReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
                                    parse_regions=parse_regions)
+        file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
                 out_args=out_args)
 
@@ -266,13 +272,13 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
 
 
 # TODO:  may be able to merge with other mains
-def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
+def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
               parse_scores=False, parse_regions=False, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
     Arguments:
-      aligner_file : iHMMune-Align output file to process.
+      aligner_output : iHMMune-Align output file to process.
       seq_file : fasta file input to iHMMuneAlign (from which to get sequence).
       repo : folder with germline repertoire files.
       no_parse : if ID is to be parsed for pRESTO output with default delimiters.
@@ -288,25 +294,13 @@ def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
     log = OrderedDict()
     log['START'] = 'MakeDB'
     log['ALIGNER'] = 'iHMMune-Align'
-    log['ALIGN_RESULTS'] = os.path.basename(aligner_file)
+    log['ALIGNER_OUTPUT'] = os.path.basename(aligner_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
     log['SCORES'] = parse_scores
     log['REGIONS'] = parse_regions
     printLog(log)
-
-    # Formalize out_dir and file-prefix
-    if not out_args['out_dir']:
-        out_dir = os.path.split(aligner_file)[0]
-    else:
-        out_dir = os.path.abspath(out_args['out_dir'])
-        if not os.path.exists(out_dir):  os.mkdir(out_dir)
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.basename(os.path.splitext(aligner_file)[0])
-    file_prefix = os.path.join(out_dir, file_prefix)
 
     start_time = time()
     printMessage('Loading sequence files', start_time=start_time, width=25)
@@ -319,9 +313,10 @@ def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Parse and write output
-    with open(aligner_file, 'r') as f:
+    with open(aligner_output, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
                                    parse_regions=parse_regions)
+        file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
                 out_args=out_args)
 
@@ -389,7 +384,7 @@ def getArgParser():
                                            formatter_class=CommonHelpFormatter,
                                            help='Process IgBLAST output.',
                                            description='Process IgBLAST output.')
-    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+    parser_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_outputs',
                                 required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
                                      (IgBLAST argument \'-outfmt "7 std qseq sseq btop"\').''')
@@ -426,7 +421,7 @@ def getArgParser():
                                              (does not work with V-QUEST).''',
                                         description='''Process IMGT/HighV-Quest output
                                              (does not work with V-QUEST).''')
-    parser_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+    parser_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_outputs',
                              help='''Either zipped IMGT output files (.zip or .txz) or a
                                   folder containing unzipped IMGT output files (which must
                                   include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
@@ -462,7 +457,7 @@ def getArgParser():
                                         formatter_class=CommonHelpFormatter,
                                         help='Process iHMMune-Align output.',
                                         description='Process iHMMune-Align output.')
-    parser_ihmm.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+    parser_ihmm.add_argument('-i', nargs='+', action='store', dest='aligner_outputs',
                              required=True,
                              help='''iHMMune-Align output file.''')
     parser_ihmm.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
@@ -499,7 +494,7 @@ if __name__ == "__main__":
     """
     parser = getArgParser()    
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args, in_arg='aligner_files')
+    args_dict = parseCommonArgs(args, in_arg='aligner_outputs')
 
     # Set no ID parsing if sequence files are not provided
     if 'seq_files' in args_dict and not args_dict['seq_files']:
@@ -507,18 +502,18 @@ if __name__ == "__main__":
 
     # Delete
     if 'seq_files' in args_dict: del args_dict['seq_files']
-    if 'aligner_files' in args_dict: del args_dict['aligner_files']
+    if 'aligner_outputs' in args_dict: del args_dict['aligner_outputs']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
     if args.command == 'imgt':
-        for i in range(len(args.__dict__['aligner_files'])):
-            args_dict['aligner_file'] = args.__dict__['aligner_files'][i]
+        for i in range(len(args.__dict__['aligner_outputs'])):
+            args_dict['aligner_output'] = args.__dict__['aligner_outputs'][i]
             args_dict['seq_file'] = args.__dict__['seq_files'][i] \
                                     if args.__dict__['seq_files'] else None
             args.func(**args_dict)
     elif args.command == 'igblast' or args.command == 'ihmm':
-        for i in range(len(args.__dict__['aligner_files'])):
-            args_dict['aligner_file'] =  args.__dict__['aligner_files'][i]
+        for i in range(len(args.__dict__['aligner_outputs'])):
+            args_dict['aligner_output'] =  args.__dict__['aligner_outputs'][i]
             args_dict['seq_file'] = args.__dict__['seq_files'][i]
             args.func(**args_dict)

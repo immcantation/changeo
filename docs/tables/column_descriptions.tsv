@@ -36,7 +36,7 @@ FWR4_IMGT	string	IMGT-gapped sample FWR4 nucleotide sequence
 CDR1_IMGT	string	IMGT-gapped sample CDR1 nucleotide sequence
 CDR2_IMGT	string	IMGT-gapped sample CDR2 nucleotide sequence
 CDR3_IMGT	string	IMGT-gapped sample CDR3 nucleotide sequence
-**MakeDb - IMGT Specific Annotations**
+**MakeDb - IMGT Optional Annotations**
 N1_LENGTH	integer	N nucleotides 5' of the D-segment
 N2_LENGTH	integer	Nucleotides 3' of the D-segment
 P3V_LENGTH	integer	Palindromic nucleotides 3' of the V-segment
@@ -48,7 +48,7 @@ V_SCORE	float	Alignment score for the V
 V_IDENTITY	float	Alignment identity for the V
 J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
-**MakeDb - IgBLAST Specific Annotations**
+**MakeDb - IgBLAST Optional Annotations**
 V_SCORE	float	Alignment score for the V
 V_IDENTITY	float	Alignment identity for the V
 V_EVALUE	float	E-value for the alignment of the V
@@ -57,7 +57,7 @@ J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 J_EVALUE	float	E-value for the alignment of the J
 J_BTOP	string	BTOP for the alignment of the J
-**MakeDb - iHHMune-Align Specific Annotations**
+**MakeDb - iHHMune-Align Optional Annotations**
 HMM_SCORE	float	Alignment score for the V(D)J
 **CreateGermlines Annotations**
 GERMLINE_VDJ	string	Full Ungapped germline V(D)J nucleotide sequence
