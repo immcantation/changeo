@@ -82,9 +82,7 @@ class IMGTReader:
     @property
     def fields(self):
         """
-
-        Returns:
-            list : ordered field names.
+        List of ordered output field names.
         """
         return self._fields
 
@@ -517,9 +515,7 @@ class IgBLASTReader:
     @property
     def fields(self):
         """
-
-        Returns:
-            list : ordered field names.
+        List of ordered output field names.
         """
         return self._fields
 
@@ -1139,9 +1135,7 @@ class IHMMuneReader:
     @property
     def fields(self):
         """
-
-        Returns:
-            list : ordered field names.
+        List of ordered output field names.
         """
         return self._fields
 
