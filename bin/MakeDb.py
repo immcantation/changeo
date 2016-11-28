@@ -132,6 +132,77 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 
 
 # TODO:  may be able to merge with other mains
+def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
+              parse_scores=False, parse_regions=False, parse_junction=False,
+              out_args=default_out_args):
+    """
+    Main for IMGT aligned sample sequences.
+
+    Arguments:
+      aligner_file : zipped file or unzipped folder output by IMGT.
+      seq_file : FASTA file input to IMGT (from which to get seqID).
+      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
+      partial : If True put incomplete alignments in the pass file.
+      parse_scores : if True add alignment score fields to output file.
+      parse_regions : if True add FWR and CDR region fields to output file.
+      out_args : common output argument dictionary from parseCommonArgs.
+
+    Returns:
+      None
+    """
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'MakeDb'
+    log['ALIGNER'] = 'IMGT'
+    log['ALIGN_RESULTS'] = aligner_file
+    log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
+    log['NO_PARSE'] = no_parse
+    log['PARTIAL'] = partial
+    log['SCORES'] = parse_scores
+    log['REGIONS'] = parse_regions
+    log['JUNCTION'] = parse_junction
+    printLog(log)
+
+    # Formalize out_dir and file-prefix
+    if not out_args['out_dir']:
+        out_dir = os.path.dirname(os.path.abspath(aligner_file))
+    else:
+        out_dir = os.path.abspath(out_args['out_dir'])
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    if out_args['out_name']:
+        file_prefix = out_args['out_name']
+    else:
+        file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_file))[1])[0]
+    file_prefix = os.path.join(out_dir, file_prefix)
+
+    start_time = time()
+    printMessage('Loading sequence files', start_time=start_time, width=25)
+    # Extract IMGT files
+    temp_dir, imgt_files = extractIMGT(aligner_file)
+    # Count records in IMGT files
+    total_count = countDbFile(imgt_files['summary'])
+    # Get (parsed) IDs from fasta file submitted to IMGT
+    id_dict = getIDforIMGT(seq_file) if seq_file else {}
+    printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Parse IMGT output and write db
+    with open(imgt_files['summary'], 'r') as summary_handle, \
+            open(imgt_files['gapped'], 'r') as gapped_handle, \
+            open(imgt_files['ntseq'], 'r') as ntseq_handle, \
+            open(imgt_files['junction'], 'r') as junction_handle:
+        parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
+                                parse_scores=parse_scores, parse_regions=parse_regions,
+                                parse_junction=parse_junction)
+        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, id_dict=id_dict,
+                no_parse=no_parse, out_args=out_args)
+
+    # Cleanup temp directory
+    temp_dir.cleanup()
+
+    return None
+
+
+# TODO:  may be able to merge with other mains
 def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
                  parse_regions=False, parse_scores=False, out_args=default_out_args):
     """
@@ -184,99 +255,12 @@ def parseIgBLAST(aligner_file, seq_file, repo, no_parse=True, partial=False,
     repo_dict = getRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
-    # Define output fields
-    fields = IgBLASTReader.core_fields
-    if parse_regions:
-        fields.extend(IgBLASTReader.region_fields)
-    if parse_scores:
-        fields.extend(IgBLASTReader.score_fields)
-
     # Parse and write output
     with open(aligner_file, 'r') as f:
         parse_iter = IgBLASTReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
                                    parse_regions=parse_regions)
-        writeDb(parse_iter, fields, file_prefix, total_count, no_parse=no_parse,
+        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
                 out_args=out_args)
-
-    return None
-
-
-# TODO:  may be able to merge with other mains
-def parseIMGT(aligner_file, seq_file=None, no_parse=True, partial=False,
-              parse_scores=False, parse_regions=False, parse_junction=False,
-              out_args=default_out_args):
-    """
-    Main for IMGT aligned sample sequences.
-
-    Arguments:
-      aligner_file : zipped file or unzipped folder output by IMGT.
-      seq_file : FASTA file input to IMGT (from which to get seqID).
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
-      partial : If True put incomplete alignments in the pass file.
-      parse_scores : if True add alignment score fields to output file.
-      parse_regions : if True add FWR and CDR region fields to output file.
-      out_args : common output argument dictionary from parseCommonArgs.
-        
-    Returns: 
-      None
-    """
-    # Print parameter info
-    log = OrderedDict()
-    log['START'] = 'MakeDb'
-    log['ALIGNER'] = 'IMGT'
-    log['ALIGN_RESULTS'] = aligner_file
-    log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
-    log['NO_PARSE'] = no_parse
-    log['PARTIAL'] = partial
-    log['SCORES'] = parse_scores
-    log['REGIONS'] = parse_regions
-    log['JUNCTION'] = parse_junction
-    printLog(log)
-        
-    # Formalize out_dir and file-prefix
-    if not out_args['out_dir']:
-        out_dir = os.path.dirname(os.path.abspath(aligner_file))
-    else:
-        out_dir = os.path.abspath(out_args['out_dir'])
-        if not os.path.exists(out_dir):  os.mkdir(out_dir)
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_file))[1])[0]
-    file_prefix = os.path.join(out_dir, file_prefix)
-
-    start_time = time()
-    printMessage('Loading sequence files', start_time=start_time, width=25)
-    # Extract IMGT files
-    temp_dir, imgt_files = extractIMGT(aligner_file)
-    # Count records in IMGT files
-    total_count = countDbFile(imgt_files['summary'])
-    # Get (parsed) IDs from fasta file submitted to IMGT
-    id_dict = getIDforIMGT(seq_file) if seq_file else {}
-    printMessage('Done', start_time=start_time, end=True, width=25)
-
-    # Define output fields
-    fields = IMGTReader.core_fields
-    if parse_regions:
-        fields.extend(IMGTReader.region_fields)
-    if parse_junction:
-        fields.extend(IMGTReader.junction_fields)
-    if parse_scores:
-        fields.extend(IMGTReader.score_fields)
-
-    # Parse IMGT output and write db
-    with open(imgt_files['summary'], 'r') as summary_handle, \
-            open(imgt_files['gapped'], 'r') as gapped_handle, \
-            open(imgt_files['ntseq'], 'r') as ntseq_handle, \
-            open(imgt_files['junction'], 'r') as junction_handle:
-        parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
-                                parse_scores=parse_scores, parse_regions=parse_regions,
-                                parse_junction=parse_junction)
-        writeDb(parse_iter, fields, file_prefix, total_count, id_dict=id_dict,
-                no_parse=no_parse, out_args=out_args)
-
-    # Cleanup temp directory
-    temp_dir.cleanup()
 
     return None
 
@@ -334,18 +318,11 @@ def parseIHMM(aligner_file, seq_file, repo, no_parse=True, partial=False,
     repo_dict = getRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
-    # Define output fields
-    fields = IHMMuneReader.core_fields
-    if parse_regions:
-        fields.extend(IHMMuneReader.region_fields)
-    if parse_scores:
-        fields.extend(IHMMuneReader.score_fields)
-
     # Parse and write output
     with open(aligner_file, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
                                    parse_regions=parse_regions)
-        writeDb(parse_iter, fields, file_prefix, total_count, no_parse=no_parse,
+        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
                 out_args=out_args)
 
     return None

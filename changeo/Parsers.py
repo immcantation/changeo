@@ -73,14 +73,21 @@ class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
     """
-    # Define parsed fields
-    core_fields = default_core_fields
-    region_fields = default_region_fields
-    junction_fields = default_junction_fields
-    score_fields = ['V_SCORE',
-                    'V_IDENTITY',
-                    'J_IDENTITY',
-                    'J_EVALUE']
+    # IMGT score fields
+    _score_fields = ['V_SCORE',
+                     'V_IDENTITY',
+                     'J_IDENTITY',
+                     'J_EVALUE']
+
+    @property
+    def fields(self):
+        """
+
+        Returns:
+            list : ordered field names.
+        """
+        return self._fields
+
 
     def __init__(self, summary, gapped, ntseq, junction, parse_scores=False,
                  parse_regions=False, parse_junction=False, ig=True):
@@ -101,6 +108,7 @@ class IMGTReader:
         Returns:
           change.Parsers.IMGTReader
         """
+        # Arguments
         self.summary = summary
         self.gapped = gapped
         self.ntseq = ntseq
@@ -110,6 +118,14 @@ class IMGTReader:
         self.parse_junction = parse_junction
         self.ig = ig
 
+        # Define field list
+        self._fields = default_core_fields
+        if parse_regions:
+            self._fields.extend(default_region_fields)
+        if parse_junction:
+            self._fields.extend(default_junction_fields)
+        if parse_scores:
+            self._fields.extend(self._score_fields)
 
     @staticmethod
     def _parseFunctionality(summary):
@@ -481,17 +497,25 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
-    # Define parsed fields
-    core_fields = default_core_fields
-    region_fields = default_region_fields
-    score_fields = ['V_SCORE',
-                    'V_IDENTITY',
-                    'V_EVALUE',
-                    'V_BTOP',
-                    'J_SCORE',
-                    'J_IDENTITY',
-                    'J_EVALUE',
-                    'J_BTOP']
+    # IgBLAST score fields
+    _score_fields = ['V_SCORE',
+                     'V_IDENTITY',
+                     'V_EVALUE',
+                     'V_BTOP',
+                     'J_SCORE',
+                     'J_IDENTITY',
+                     'J_EVALUE',
+                     'J_BTOP']
+
+    @property
+    def fields(self):
+        """
+
+        Returns:
+            list : ordered field names.
+        """
+        return self._fields
+
 
     def __init__(self, igblast, seq_dict, repo_dict, parse_scores=False,
                  parse_regions=False, ig=True):
@@ -500,8 +524,8 @@ class IgBLASTReader:
 
         Arguments:
           igblast : handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
-          seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
-                    the original query sequences.
+          seq_dict : dictionary of query sequences;
+                     sequence descriptions as keys with original query sequences as SeqRecord values.
           repo_dict : dictionary of IMGT gapped germline sequences.
           parse_scores : if True parse alignment scores.
           parse_regions : if True add FWR and CDR region fields.
@@ -510,12 +534,20 @@ class IgBLASTReader:
         Returns:
           changeo.Parsers.IgBLASTReader
         """
+        # Arguments
         self.igblast = igblast
         self.seq_dict = seq_dict
         self.repo_dict = repo_dict
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.ig = ig
+
+        # Define field list
+        self._fields = default_core_fields
+        if parse_regions:
+            self._fields.extend(default_region_fields)
+        if parse_scores:
+            self._fields.extend(self._score_fields)
 
 
     @staticmethod
@@ -863,10 +895,11 @@ class IgBLASTReader:
           block : an iterator from itertools.groupby containing a single IgBLAST result.
 
         Returns:
-          dict : a parsed results block with the keys 'query' (sequence identifier as a string),
+          dict : a parsed results block;
+                 with the keys 'query' (sequence identifier as a string),
                  'summary' (dictionary of the alignment summary), and
-                 'hits' (VDJ hit table as a pandas.DataFrame). Returns None if the block has no
-                 data that can be parsed.
+                 'hits' (VDJ hit table as a pandas.DataFrame).
+                 Returns None if the block has no data that can be parsed.
         """
         # Parsing info
         #
@@ -1093,10 +1126,18 @@ class IHMMuneReader:
                       'V_SEQ_LENGTH',
                       'A_SCORE']
 
-    # Define parsed fields
-    core_fields = default_core_fields
-    region_fields = default_region_fields
-    score_fields = ['HMM_SCORE']
+    # iHMMUne-Align score fields
+    _score_fields = ['HMM_SCORE']
+
+    @property
+    def fields(self):
+        """
+
+        Returns:
+            list : ordered field names.
+        """
+        return self._fields
+
 
     def __init__(self, ihmmune, seq_dict, repo_dict, parse_scores=False,
                  parse_regions=False, ig=True):
@@ -1115,12 +1156,21 @@ class IHMMuneReader:
         Returns:
           changeo.Parsers.IHMMuneReader
         """
+        # Arguments
         self.ihmmune = ihmmune
         self.seq_dict = seq_dict
         self.repo_dict = repo_dict
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.ig = ig
+
+        # Define field list
+        self._fields = default_core_fields
+        if parse_regions:
+            self._fields.extend(default_region_fields)
+        if parse_scores:
+            self._fields.extend(self._score_fields)
+
 
     @staticmethod
     def _parseFunctionality(record):
