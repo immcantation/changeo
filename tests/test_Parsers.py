@@ -118,26 +118,27 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
-    # @unittest.skip("-> decodeCIGAR() skipped\n")
+    @unittest.skip("-> decodeCIGAR() skipped\n")
     def test_decodeCIGAR(self):
         for cigar, truth in zip(self.cigar_string, self.cigar_decoded):
             result = decodeCIGAR(cigar)
             print(result)
             self.assertListEqual(truth, result)
 
-    # @unittest.skip("-> decodeBTOP() skipped\n")
+    @unittest.skip("-> decodeBTOP() skipped\n")
     def test_decodeBTOP(self):
         for btop, truth in zip(self.btop_string, self.btop_decoded):
             result = decodeBTOP(btop)
             print(result)
             self.assertListEqual(truth, result)
 
-    # @unittest.skip("-> encodeCIGAR() skipped\n")
+    @unittest.skip("-> encodeCIGAR() skipped\n")
     def test_encodeCIGAR(self):
         for align, truth in zip(self.cigar_decoded, self.cigar_string):
             result = encodeCIGAR(align)
             print(result)
             self.assertEqual(truth, result)
+
 
 if __name__ == '__main__':
     unittest.main()
