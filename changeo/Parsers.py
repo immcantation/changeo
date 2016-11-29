@@ -1642,3 +1642,56 @@ def getIDforIMGT(seq_file):
         ids.update({id_key: rec.description})
 
     return ids
+
+
+def decodeCIGAR(cigar):
+    """
+    Parse a CIGAR string into a list of tuples.
+
+    Arguments:
+      cigar : CIGAR string.
+
+    Returns:
+      list : tuples of (type, length) for each operation in the CIGAR string.
+    """
+    matches = re.findall(r'(\d+)([A-Z])', cigar)
+
+    return [(m[1], int(m[0])) for m in matches]
+
+
+def decodeBTOP(btop):
+    """
+    Parse a BTOP string into a list of tuples.
+
+    Arguments:
+      btop : BTOP string.
+
+    Returns:
+      list : tuples of (type, length) for each operation in the BTOP string.
+    """
+    # Determine chunk type and length
+    def _recode(m):
+        if m.isdigit():  return ('=', int(m))
+        elif m[0] == '-':  return ('I', len(m) // 2)
+        elif m[1] == '-':  return ('D', len(m) // 2)
+        else:  return ('X', len(m) // 2)
+
+    # Split BTOP string into sections
+    btop_split = re.sub(r'(\d+|[-A-Z]{2})', r'\1;', btop)
+    # Parse each chunk of encoding
+    matches = re.finditer(r'(\d+)|([A-Z]{2};)+|(-[A-Z];)+|([A-Z]-;)+', btop_split)
+
+    return [_recode(m.group().replace(';', '')) for m in matches]
+
+
+def encodeCIGAR(alignment):
+    """
+    Encodes a list of tuple with alignment information into a CIGAR string.
+
+    Arguments:
+      alignment : tuples of (type, length) for each alignment operation.
+
+    Returns:
+      str : CIGAR string.
+    """
+    return ''.join(['%i%s' % (x, s) for s, x in alignment])
