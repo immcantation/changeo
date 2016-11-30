@@ -7,16 +7,12 @@ __author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
-import csv
 import os
-import re
 from argparse import ArgumentParser
 from collections import OrderedDict
-from shutil import rmtree
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
@@ -53,6 +49,22 @@ def getFilePrefix(aligner_output, out_args):
         file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_output))[1])[0]
 
     return os.path.join(out_dir, file_prefix)
+
+
+def getSeqDict(seq_file):
+    """
+    Create a dictionary from a sequence file.
+
+    Arguments:
+      seq_file : sequence file.
+
+    Returns:
+        dict : sequence description as keys with Bio.SeqRecords as values.
+    """
+    seq_dict = SeqIO.to_dict(readSeqFile(seq_file),
+                             key_function=lambda x: x.description)
+
+    return seq_dict
 
 
 def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
@@ -254,7 +266,7 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
     # Get input sequence dictionary
-    seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
+    seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
     repo_dict = getRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
@@ -306,7 +318,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
     # Get input sequence dictionary
-    seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
+    seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
     repo_dict = getRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)

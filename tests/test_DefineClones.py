@@ -273,6 +273,5 @@ class Test_DefineClones(unittest.TestCase):
         self.assertSetEqual(results_set, self.unambig_clones)
 
 
-
 if __name__ == '__main__':
     unittest.main()
