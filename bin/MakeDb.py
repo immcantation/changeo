@@ -105,9 +105,8 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
     rec_count = pass_count = fail_count = 0
 
     # Validate and write output
-    for record in db:
-        printProgress(rec_count, total_count, 0.05, start_time)
-        rec_count += 1
+    printProgress(0, total_count, 0.05, start_time)
+    for i, record in enumerate(db, start=1):
 
         # Replace sequence description with full string, if required
         if id_dict is not None and record.id in id_dict:
@@ -121,7 +120,7 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 
             # TODO:  This is not the best approach. should pass in output fields.
             # If first record, use parsed description to define extra columns
-            if rec_count == 1:  fields.extend(list(record.annotations.keys()))
+            if i == 1:  fields.extend(list(record.annotations.keys()))
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
@@ -144,9 +143,10 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
             if fail_writer is not None:
                 fail_writer.writerow(record.toDict())
 
-    # Print log
-    printProgress(rec_count, total_count, 0.05, start_time)
+        # Print progress
+        printProgress(i, total_count, 0.05, start_time)
 
+    # Print consol log
     log = OrderedDict()
     log['OUTPUT'] = pass_file
     log['PASS'] = pass_count
@@ -210,7 +210,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
                                 parse_junction=parse_junction)
         file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, id_dict=id_dict,
-                no_parse=no_parse, out_args=out_args)
+                no_parse=no_parse, partial=partial, out_args=out_args)
 
     # Cleanup temp directory
     temp_dir.cleanup()
@@ -261,11 +261,11 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
-        parse_iter = IgBLASTReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
-                                   parse_regions=parse_regions)
+        parse_iter = IgBLASTReader(f, seq_dict, repo_dict,
+                                   parse_scores=parse_scores, parse_regions=parse_regions)
         file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
-                out_args=out_args)
+        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
+                no_parse=no_parse, partial=partial, out_args=out_args)
 
     return None
 
@@ -313,11 +313,11 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
-        parse_iter = IHMMuneReader(f, seq_dict, repo_dict, parse_scores=parse_scores,
-                                   parse_regions=parse_regions)
+        parse_iter = IHMMuneReader(f, seq_dict, repo_dict,
+                                   parse_scores=parse_scores, parse_regions=parse_regions)
         file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, no_parse=no_parse,
-                out_args=out_args)
+        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
+                no_parse=no_parse, partial=partial, out_args=out_args)
 
     return None
 
