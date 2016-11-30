@@ -76,8 +76,8 @@ class IMGTReader:
     # IMGT score fields
     _score_fields = ['V_SCORE',
                      'V_IDENTITY',
-                     'J_IDENTITY',
-                     'J_EVALUE']
+                     'J_SCORE',
+                     'J_IDENTITY']
 
     @property
     def fields(self):
