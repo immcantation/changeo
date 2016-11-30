@@ -121,8 +121,7 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 
             # TODO:  This is not the best approach. should pass in output fields.
             # If first record, use parsed description to define extra columns
-            if pass_writer is None and fail_writer is None:
-                fields.extend(list(record.annotations.keys()))
+            if rec_count == 1:  fields.extend(list(record.annotations.keys()))
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
