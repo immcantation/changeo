@@ -1,0 +1,22 @@
+
+"GATAATACCATATATAA|CONSCOUNT=2|PRCONS=IGL";"NA - V too short";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"GATAATACCATATATAA1|CONSCOUNT=2|PRCONS=IGL";"NA - V too short";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"CTTGGTACCAAATATAA|CONSCOUNT=12|PRCONS=IGK";"NA - V too short";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"ACAAGAAGACTAGTGAA|CONSCOUNT=3|PRCONS=IGA";"NA - J too short, possible V alignment to IGHV4_VH4-62.1P [or IGHV4_VH4-62.1P or IGHV4_VH4-62.1P or IGHV4_VH4-62.1P or IGHV4_VH4-62.1P]";"NA";"NA";"ctctgggaggg";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"CAGTAACAAAATAATCT|CONSCOUNT=2|PRCONS=IGL";"NA - No V found in input sequence";"NA";"NA";"NA - not found";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"AGCGTATTACATCATAA|CONSCOUNT=70|PRCONS=IGG,267_20140102_TS_shift2";"NA - No V found in input sequence";"NA";"NA";"NA - not found";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"AGCACAGCAGGTATCTT|PRCONS=Human-IGHA|SEQORIENT=F|CREGION=Human-IGHA-InternalC|CONSCOUNT=28|DUPCOUNT=2";"IGHV1-2*02(L2)";"IGHD3-22*01";"IGHJ4*02";"caggtgcagctggtgcagtctggggctgaggtgaagaagcctggggcctcagtgaaggtctcctgcaaggcttctggatacaTcttAaccggctactatatAcactgggtgcgacaggcccctggacaagggcttgagtggatgggatggatcaaTcctaacagtggtggcacaaaGtatgGacagaagtCtcaTggcagggtcaccatgaccagggacacgtccatcagcacagTctacatggagctgagcaTgctgaAaCctgacgacacggccgtgtattactgtgTgagaga";"ccaag";"..attTctatgatagtagt............";"agt";"..tactttgaGtaTtggggccagggaaccctggtcaccgtctcctcag";"13";"1";"2";"0";"true";"1";"0";"0.0";"-116.69366168065126";"0";"6";"0";"0";"296";"0.0405"
+
+"AATCTTCTAGGATTGTA|PRCONS=Human-IGL|SEQORIENT=F|CREGION=Human-IGLC-3-InternalC|CONSCOUNT=24|DUPCOUNT=1";"NA - V too short";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"ATTGATGGCCTAACTGC|PRCONS=Human-IGK|SEQORIENT=F|CREGION=Human-IGKC-IGKJ-InternalC|CONSCOUNT=23|DUPCOUNT=1";"NA - J too short, possible V alignment to IGHV1-45*01(L2)";"NA";"NA";"gacagagtcaccatcact";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
+
+"AGACGAATACATTGCAA|PRCONS=Human-IGHM|SEQORIENT=F|CREGION=Human-IGHM-InternalC|CONSCOUNT=3|DUPCOUNT=1";"IGHV5-51*01(L1)";"IGHD3-22*01";"IGHJ1*01";"gaggtgcagctggtgcagtctggagcagaggtgaaaaagcccggggagtctctgaagatctcctgtaagggttctggatacagctttaccaActactggatcggctgggtgcgccagatgcccgggaaaggcctggagtggGtgggAGtcTtctatcctggtgactctgataccagatacagTccgtcGttccaaggccaggtcaccatctcagccgacaagtccatcagcaccgcctacctgcagtggagcagcctgaaggcctcggacaccgccatgtattactgtgcgagaca";"ttctgggcta";"..........gataAtagtggtt........";"t";".....atacttccagTactggggccagggcaccctggtcaccgtctcGtcag";"7";"1";"2";"0";"true";"1";"0";"7.319999999999999E-6";"-91.81726863968379";"0";"6";"0";"0";"296";"0.0405"
+
+"CGTCGAACAGATCATCT|PRCONS=Human-IGHA|SEQORIENT=F|CREGION=Human-IGLC-4-InternalC|CONSCOUNT=2|DUPCOUNT=1";"NA - V too short";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA";"NA"
