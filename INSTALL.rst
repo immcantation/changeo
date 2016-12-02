@@ -9,6 +9,10 @@ The current development build can be installed using pip and mercurial in simila
 
     > pip3 install hg+https://bitbucket.org/kleinstein/changeo#default --user
 
+If you currently have a development version installed, then you will likely
+need to add the arguments ``--upgrade --no-deps --force-reinstall`` to the
+pip3 command.
+
 Requirements
 --------------------------------------------------------------------------------
 
