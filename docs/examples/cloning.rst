@@ -30,7 +30,8 @@ with clonal relatives in the dataset and the second mode representing singletons
 The ideal threshold for separating clonal groups is the value that separates
 the two modes of this distribution and can be found using the 
 `findThreshold <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__ 
-function in the `SHazaM <http://shazam.readthedocs.io>`__ R package. The `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__ 
+function in the `SHazaM <http://shazam.readthedocs.io>`__ R package. The
+`distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
 function allows selection of all parameters that are available in :ref:`DefineClones`. 
 Using the length normalization parameter ensures that mutations are weighted equally
 regardless of junction sequence length. The distance to nearest neighbor distribution
@@ -45,7 +46,8 @@ the distance to nearest neighbor distribution.
 
 .. seealso::
 
-    For additional details see the `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
+    For additional details see the
+    `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
     documentation.
 
 Assigning clones

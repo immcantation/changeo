@@ -16,17 +16,6 @@ from scipy.spatial.distance import squareform
 # Presto and changeo imports
 from presto.Sequence import scoreDNA, scoreAA
 
-# Load model data
-with resource_stream(__name__, 'data/M1N_Distance.tab') as f:
-    #m1n_distance = pd.read_csv(f, sep='\t', index_col=0).to_dict()
-    m1n_model = pd.read_csv(f, sep='\t', index_col=0)
-
-with resource_stream(__name__, 'data/HS1F_Distance.tab') as f:
-    hs1f_model = pd.read_csv(f, sep='\t', index_col=0)
-
-with resource_stream(__name__, 'data/HS5F_Distance.tab') as f:
-    hs5f_model = pd.read_csv(f, sep='\t', index_col=0)
-
 
 def zip_equal(*iterables):
     """
@@ -225,3 +214,39 @@ def formClusters(dists, link, distance):
     # Break into clusters based on cutoff
     clusters = fcluster(links, distance, criterion='distance')
     return clusters
+
+# TODO: This should all probably be a class
+
+# Amino acid Hamming distance
+aa_model = getAADistMatrix(mask_dist=1, gap_dist=0)
+
+# DNA Hamming distance
+ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
+
+# Load model data
+with resource_stream(__name__, 'data/hh_s1f_dist.tsv') as f:
+    hh_s1f_model = pd.read_csv(f, sep='\t', index_col=0)
+
+with resource_stream(__name__, 'data/hh_s5f_dist.tsv') as f:
+    hh_s5f_model = pd.read_csv(f, sep='\t', index_col=0)
+
+with resource_stream(__name__, 'data/mk_rs1nf_dist.tsv') as f:
+    mk_rs1nf_model = pd.read_csv(f, sep='\t', index_col=0)
+
+with resource_stream(__name__, 'data/mk_rs5nf_dist.tsv') as f:
+    mk_rs5nf_model = pd.read_csv(f, sep='\t', index_col=0)
+
+with resource_stream(__name__, 'data/m1n_compat_dist.tsv') as f:
+    m1n_compat_model = pd.read_csv(f, sep='\t', index_col=0)
+
+with resource_stream(__name__, 'data/hs1f_compat_dist.tsv') as f:
+    hs1f_compat_model = pd.read_csv(f, sep='\t', index_col=0)
+
+distance_models = {'ham': ham_model,
+                   'aa': aa_model,
+                   'hh_s1f': hh_s1f_model,
+                   'hh_s5f': hh_s5f_model,
+                   'mk_rs1nf': mk_rs1nf_model,
+                   'mk_rs5nf': mk_rs5nf_model,
+                   'm1n_compat': m1n_compat_model,
+                   'hs1f_compat': hs1f_compat_model}

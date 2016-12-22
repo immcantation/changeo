@@ -26,9 +26,7 @@ from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
 from presto.Sequence import getDNAScoreDict
 from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.Distance import getDNADistMatrix, getAADistMatrix, \
-                             hs1f_model, m1n_model, hs5f_model, \
-                             calcDistances, formClusters
+from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
 
@@ -46,39 +44,7 @@ default_seq_field = 'JUNCTION'
 default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
-
-# TODO:  should be in Distance, but need to be after function definitions
-# Amino acid Hamming distance
-aa_model = getAADistMatrix(mask_dist=1, gap_dist=0)
-
-# DNA Hamming distance
-ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
-
-
-# TODO:  this function is an abstraction to facilitate later cleanup
-def getModelMatrix(model):
-    """
-    Simple wrapper to get distance matrix from model name
-
-    Arguments:
-    model = model name
-
-    Return:
-    a pandas.DataFrame containing the character distance matrix
-    """
-    if model == 'aa':
-        return(aa_model)
-    elif model == 'ham':
-        return(ham_model)
-    elif model == 'm1n':
-        return(m1n_model)
-    elif model == 'hs1f':
-        return(hs1f_model)
-    elif model == 'hs5f':
-        return(hs5f_model)
-    else:
-        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
-
+choices_bygroup_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
 
 
 def indexByIdentity(index, key, rec, fields=None):
@@ -267,15 +233,20 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     a dictionary of lists defining {clone number: [IgRecords clonal group]}
     """
     # Get distance matrix if not provided
-    if dist_mat is None:  dist_mat = getModelMatrix(model)
+    if dist_mat is None:
+        try:
+            dist_mat = distance_models[model]
+        except KeyError:
+            sys.exit('Unrecognized distance model: %s' % args_dict['model'])
 
+    # TODO:  can be cleaned up with abstract model class
     # Determine length of n-mers
-    if model in ['hs1f', 'm1n', 'aa', 'ham']:
+    if model in ['hs1f_compat', 'm1n_compat', 'aa', 'ham', 'hh_s1f', 'mk_rs1nf']:
         nmer_len = 1
-    elif model in ['hs5f']:
+    elif model in ['hh_s5f', 'mk_rs5nf']:
         nmer_len = 5
     else:
-        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
+        sys.exit('Unrecognized distance model: %s.\n' % model)
 
     # Define unique junction mapping
     seq_map = {}
@@ -1033,17 +1004,18 @@ def getArgParser():
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
     parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=('aa', 'ham', 'm1n', 'hs1f', 'hs5f'),
+                             choices=choices_bygroup_model,
                              default=default_bygroup_model,
-                             help='''Specifies which substitution model to use for
-                                  calculating distance between sequences. Where m1n is the
-                                  mouse single nucleotide transition/trasversion model
-                                  of Smith et al, 1996; hs1f is the human single
-                                  nucleotide model derived from Yaari et al, 2013; hs5f
-                                  is the human S5F model of Yaari et al, 2013; ham is
-                                  nucleotide Hamming distance; and aa is amino acid
-                                  Hamming distance. The hs5f data should be
-                                  considered experimental.''')
+                             help='''Specifies which substitution model to use for calculating distance
+                                  between sequences. The "ham" model is nucleotide Hamming distance and
+                                  "aa" is amino acid Hamming distance. The "hh_s1f" and "hh_s5f" models are
+                                  human specific single nucleotide and 5-mer content models, respectively,
+                                  from Yaari et al, 2013. The "mk_rs1nf" and "mk_rs5nf" models are
+                                  mouse specific single nucleotide and 5-mer content models, respectively,
+                                  from Cui et al, 2016. The "m1n_compat" and "hs1f_compat" models are
+                                  deprecated models provided backwards compatibility with the "m1n" and
+                                  "hs1f" models in Change-O v0.3.3 and SHazaM v0.1.4. Both
+                                  5-mer models should be considered experimental.''')
     parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
                              default=default_distance,
                              help='The distance threshold for clonal grouping')
@@ -1118,8 +1090,11 @@ if __name__ == '__main__':
                                    'linkage': args_dict['linkage'],
                                    'seq_field': args_dict['seq_field']}
 
-        # TODO:  can be cleaned up with abstract model class
-        args_dict['clone_args']['dist_mat'] = getModelMatrix(args_dict['model'])
+        # Get distance matrix
+        try:
+            args_dict['clone_args']['dist_mat'] = distance_models[args_dict['model']]
+        except KeyError:
+            sys.exit('Unrecognized distance model: %s' % args_dict['model'])
 
         del args_dict['fields']
         del args_dict['action']

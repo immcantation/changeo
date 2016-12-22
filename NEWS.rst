@@ -1,8 +1,16 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  November 27, 2016
+Version 0.3.3.999:  December 22, 2016
 -------------------------------------------------------------------------------
+
+DefineClones:
+
++ Deprecated ``m1n`` and ``hs1f`` distance models, renamed them to
+  ``m1n_compat`` and ``hs1f_compat``, and replaced them with ``hh_s1f`` and
+  replaced ``mk_rs1nf``, respectively.
++ Renamed the ``hs5f`` distance model to ``hh_s5f``.
++ Added the mouse specific distance model ``mk_rs5nf`` from Cui et al, 2016.
 
 MakeDb:
 

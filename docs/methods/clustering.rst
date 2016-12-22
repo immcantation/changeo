@@ -32,30 +32,44 @@ Hamming distance model
 The :option:`ham <DefineClones bygroup --model>` distance model is the Hamming
 distance between junction nucleotide sequences.
 
-Human 1-mer model
+Human and mouse 1-mer models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`hs1f <DefineClones bygroup --model>` distance model is defined as the
-number of point mutations between two junctions weighted by a symmetric version
-of the single nucleotide substitution distance matrix based on the human 5-mer
-targeting model in :cite:`Yaari2013` and included in the `HS1F substitution matrix`_.
-A distance of 3 corresponds to three transition mutations
-or to one of the less likely mutations.
+The :option:`hh_s1f <DefineClones bygroup --model>` and
+:option:`mk_rs5nf <DefineClones bygroup --model>` distance models are single
+nucleotide distance matrices derived from averaging and symmetrizing the human 5-mer
+targeting model in :cite:`Yaari2013` and the mouse 5-mer targeting model in
+:cite:`Cui2016`. The are broadly similar to a transition/transversion model.
 
-.. _`HS1F substitution matrix`:
+.. _`HH_S1F substitution matrix`:
+
+Human 1-mer substitution matrix:
 
 .. csv-table::
-   :file: ../tables/hs1f_substitution.tsv
+   :file: ../tables/hh_s1f_substitution.tsv
    :delim: tab
    :header-rows: 1
    :stub-columns: 1
    :widths: 15, 10, 10, 10, 10, 10
 
-Human 5-mer model
+.. _`MK_RS1NF substitution matrix`:
+
+Mouse 1-mer substitution matrix:
+
+.. csv-table::
+   :file: ../tables/mk_rs1nf_substitution.tsv
+   :delim: tab
+   :header-rows: 1
+   :stub-columns: 1
+   :widths: 15, 10, 10, 10, 10, 10
+
+Human and mouse 5-mer models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`hs5f <DefineClones bygroup --model>` distance model is based on the
-human 5-mer targeting model in :cite:`Yaari2013`. The targeting
+The :option:`hh_s5f <DefineClones bygroup --model>` and
+:option:`mk_rs5nf <DefineClones bygroup --model>` distance models are based on
+the human 5-mer targeting model in :cite:`Yaari2013` and mouse 5-mer
+argeting models in :cite:`Cui2016`, respectively. The targeting
 matrix :math:`T` has 5-mers across the columns and the nucleotide to
 which the center base of the 5-mer mutates as the rows. The value for a
 given nucleotide, 5-mer pair :math:`T[i,j]` is the product of the
@@ -79,49 +93,18 @@ The distances defined by :math:`D` for each nucleotide difference are
 summed for all 5-mers in the junction to yield the distance between the
 two junction sequences.
 
-Mouse 1-mer model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :option:`m1n <DefineClones bygroup --model>` distance model is defined as the
-number of point mutations between two junctions weighted by a symmetric version of the nucleotide
-substitution distance matrix previously described :cite:`Smith1996` and included in the
-`M1N substitution matrix`_. A distance of 3 corresponds to three transition mutations
-or to one of the less likely mutations.
-
-.. _`M1N substitution matrix`:
-
-.. csv-table::
-   :file: ../tables/m1n_substitution.tsv
-   :delim: tab
-   :header-rows: 1
-   :stub-columns: 1
-   :widths: 15, 10, 10, 10, 10, 10
 
 Clustering by the full sequence
 ---------------------------------------------------------------------------------
 
-All methods provided by the :program:`hclust` subcommand of :ref:`DefineClones`
-cluster sequences based on the full length sequence, with imposed penalties
-for V-gene and/or J-gene mismatches.
-
-Ademokun et al, 2011 method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :option:`ademokun2011 <DefineClones hclust --method>` method is directly
-from :cite:`Ademokun2011`, with additional flexibility in
-selecting the threshold for determining clonally related groups. The
-distance metric is a minimum edit distance normalized to the length of
-the shorter sequence up to a maximum of 1 in 5 (or a total of 10)
-mismatches or indels. Distance is set to 1 for sequences with more than
-the maximum number of mismatches or sequences with different
-V-gene families. This metric is then used to do complete
-linkage hierarchical clustering. The resulting dendrogram is trimmed at
-the specified threshold.
+The :program:`chen2010` and :program:`ademokun2011` methods provided by
+:ref:`DefineClones` cluster sequences based on the full length sequence, with
+imposed penalties for V-gene and/or J-gene mismatches.
 
 Chen et al, 2010 method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`chen2010 <DefineClones hclust --method>` method is directly from
+The :program:`chen2010` method of :ref:`DefineClones` is directly from
 :cite:`Chen2010`, with additional flexibility in
 selecting the threshold for determining clonally related groups. The
 distance metric is a normalized edit distance (:math:`NED_VJ`)
@@ -137,5 +120,19 @@ gene, 1 if allele differs, 3 if gene differs). :math:`L` is the CDR3
 alignment length. Given this distance metric, sequences are clustered
 using hierarchical clustering with average linkage. The
 resulting dendrogram is trimmed at the specified threshold.
+
+Ademokun et al, 2011 method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :program:`ademokun2011` method of :ref:`DefineClones` is directly
+from :cite:`Ademokun2011`, with additional flexibility in
+selecting the threshold for determining clonally related groups. The
+distance metric is a minimum edit distance normalized to the length of
+the shorter sequence up to a maximum of 1 in 5 (or a total of 10)
+mismatches or indels. Distance is set to 1 for sequences with more than
+the maximum number of mismatches or sequences with different
+V-gene families. This metric is then used to do complete
+linkage hierarchical clustering. The resulting dendrogram is trimmed at
+the specified threshold.
 
 .. bibliography:: ../references.bib

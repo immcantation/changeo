@@ -32,13 +32,13 @@ class Test_Distance(unittest.TestCase):
         
     def test_calcDistances(self):
         with self.assertRaises(IndexError):
-	        Distance.calcDistances(self.seq_list, n = 1, dist_mat = Distance.hs1f_model,
+	        Distance.calcDistances(self.seq_list, n = 1, dist_mat = Distance.hh_s1f_model,
                                    norm = 'len', sym = 'min')
 
     @unittest.skip("-> loadModels() skipped\n")
     def test_loadModels(self):
-        print(' M1N> ', Distance.m1n_model)
-        print('HS5F> ', Distance.hs5f_model)
+        print('MK_RS1NF> ', Distance.mk_rs1nf_model)
+        print('  HH_S1F> ', Distance.hh_s5f_model)
 
         self.fail('TODO')
 
