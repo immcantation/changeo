@@ -244,24 +244,24 @@ class Test_DefineClones(unittest.TestCase):
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
-        # m1n model
-        results = DefineClones.distanceClones(self.unambig_records, model='m1n', distance=10.0, norm='none')
+        # m1n_compat model
+        results = DefineClones.distanceClones(self.unambig_records, model='m1n_compat', distance=10.0, norm='none')
         results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
-        print('MODEL> m1n')
+        print('MODEL> m1n_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
-        # hs1f model
-        results = DefineClones.distanceClones(self.unambig_records, model='hs1f', distance=0.25)
+        # hs1f_compat model
+        results = DefineClones.distanceClones(self.unambig_records, model='hs1f_compat', distance=0.25)
         results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
-        print('MODEL> hs1f')
+        print('MODEL> hs1f_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
-        # hs5f model
-        results = DefineClones.distanceClones(self.unambig_records, model='hs5f', distance=0.1)
+        # hh_s5f model
+        results = DefineClones.distanceClones(self.unambig_records, model='hh_s5f', distance=0.1)
         results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
-        print('MODEL> hs5f')
+        print('MODEL> hh_s5f')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
