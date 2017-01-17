@@ -471,6 +471,11 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
             if 'regions' in germ_types: val['GERMLINE_REGIONS'] = germlines['regions']
 
+            # Add field
+            val['GERMLINE_V_CALL'] = result_log['V_CALL']
+            val['GERMLINE_D_CALL'] = result_log['D_CALL']
+            val['GERMLINE_J_CALL'] = result_log['J_CALL']
+            
             result_log['SEQUENCE'] = cons[seq_field]
             result_log['GERMLINE'] = germlines['full']
             result_log['REGIONS'] = germlines['regions']
@@ -533,6 +538,10 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
     if 'regions' in germ_types: add_fields += ['GERMLINE_REGIONS']
 
+    add_fields += ['GERMLINE_V_CALL']
+    add_fields += ['GERMLINE_D_CALL']
+    add_fields += ['GERMLINE_J_CALL']
+    
     # Create output file handle and Db writer
     writers = {}
     pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
