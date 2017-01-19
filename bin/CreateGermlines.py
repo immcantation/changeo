@@ -641,6 +641,7 @@ def getArgParser():
              output fields:
                  GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
                  GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
+                 GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
                  GERMLINE_REGIONS
               ''')
 
@@ -659,11 +660,14 @@ def getArgParser():
                          extension) with germline sequences.''')
     parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly', 'regions'),
-                        help='Specify type(s) of germlines to include full germline, \
-                              germline with D-region masked, or germline for V region only.')
+                        help='''Specify type(s) of germlines to include full germline,
+                             germline with D-region masked, or germline for V region only.''')
     parser.add_argument('--cloned', action='store_true', dest='cloned',
-                        help='Specify to create only one germline per clone \
-                             (assumes input file is sorted by clone column)')
+                        help='''Specify to create only one germline per clone. Assumes input file is
+                             sorted by clone column, and will not yield correct results if the data
+                             is unsorted. Note, if allele calls are ambiguous within a clonal group,
+                             this will place the germline call used for the entire clone within the
+                             GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
     parser.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
                         help='Specify field to use for germline V call')
     parser.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,

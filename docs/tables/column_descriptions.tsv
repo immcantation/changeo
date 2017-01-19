@@ -66,6 +66,9 @@ GERMLINE_VDJ_D_MASK	string	Ungapped germline V(D)J nucleotides sequence with Ns 
 GERMLINE_IMGT	string	Full IMGT-gapped germline V(D)J nucleotide sequence
 GERMLINE_IMGT_V_REGION	string	IMGT-gapped germline V segment nucleotide sequence
 GERMLINE_IMGT_D_MASK	string	IMGT-gapped germline V(D)J nucleotide sequence with Ns masking the NP1-D-NP2 regions
+GERMLINE_V_CALL	string	Clonal consensus germline V assignment 
+GERMLINE_D_CALL	string	Clonal consensus germline D assignment
+GERMLINE_J_CALL	string	Clonal consensus germline J assignment
 GERMLINE_REGIONS	string	Germline regions by position encoded as V, D, J, N, and P characters
 **DefineClones Annotations**
 CLONE	integer	Numerical clone identifier of sample sequence
