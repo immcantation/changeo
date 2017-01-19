@@ -961,7 +961,7 @@ def getArgParser():
                      database with records failing clonal grouping.
 
              required fields:
-                 SEQUENCE_ID, V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL, JUNCTION_LENGTH
+                 SEQUENCE_ID, V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL, JUNCTION
 
                  <field>
                      sequence field specified by the --sf parameter
