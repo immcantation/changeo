@@ -9,7 +9,6 @@ from changeo import __version__, __date__
 import csv
 import re
 import sys
-import pandas as pd
 from itertools import chain, groupby
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -615,17 +614,18 @@ class IgBLASTReader:
           chunk: list of strings
 
         Returns:
-          pandas.DataFrame: hit table
+          list: hit table as a list of dictionaries
         """
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Fields:')))
         columns = chain(['segment'], f.lstrip('# Fields:').split(','))
         columns = [x.strip() for x in columns]
-
         # Split non-comment rows into a list of lists
         rows = [x.split('\t') for x in chunk if not x.startswith('#')]
+        # Create list of dictionaries containing hits
+        hits = [{k:x[i] for i, k in enumerate(columns)} for x in rows]
 
-        return pd.DataFrame(rows, columns=columns)
+        return hits
 
 
     # Parse summary results
@@ -755,7 +755,7 @@ class IgBLASTReader:
         Parse V hit sub-table
 
         Arguments:
-          hits :  hit table as a pandas.DataFrame.
+          hits :  hit table as a list of dictionaries.
           db : database dictionary containing summary results.
 
         Returns:
@@ -763,7 +763,7 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['SEQUENCE_VDJ']
-        v_hit = hits[hits['segment'] == 'V'].iloc[0]
+        v_hit = next(x for x in hits if x['segment'] == 'V')
 
         # Alignment positions
         result.update(IgBLASTReader._parseVHitPos(v_hit))
@@ -778,7 +778,7 @@ class IgBLASTReader:
         Parse D hit sub-table
 
         Arguments:
-          hits :  hit table as a pandas.DataFrame.
+          hits :  hit table as a list of dictionaries.
           db : database dictionary containing summary and V results.
 
         Returns:
@@ -786,7 +786,7 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['SEQUENCE_VDJ']
-        d_hit = hits[hits['segment'] == 'D'].iloc[0]
+        d_hit = next(x for x in hits if x['segment'] == 'D')
 
         # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
@@ -816,7 +816,7 @@ class IgBLASTReader:
         Parse J hit sub-table
 
         Arguments:
-          hits :  hit table as a pandas.DataFrame.
+          hits :  hit table as a list of dictionaries.
           db : database dictionary containing summary, V and D results.
 
         Returns:
@@ -824,7 +824,8 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['SEQUENCE_VDJ']
-        j_hit = hits[hits['segment'] == 'J'].iloc[0]
+        j_hit = next(x for x in hits if x['segment'] == 'J')
+
 
         # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
@@ -866,25 +867,26 @@ class IgBLASTReader:
         Parse alignment scores
 
         Arguments:
-          hits :  hit table as a pandas.DataFrame.
+          hits :  hit table as a list of dictionaries.
           segment : segment name; one of 'V', 'D' or 'J'.
 
         Returns:
           dict : scores
         """
         result = {}
-        s_hits = hits[hits['segment'] == segment].iloc[0]
+        s_hit = next(x for x in hits if x['segment'] == segment)
+
         # Score
-        try:  result['%s_SCORE' % segment] = float(s_hits['bit score'])
+        try:  result['%s_SCORE' % segment] = float(s_hit['bit score'])
         except (TypeError, ValueError):  result['%s_SCORE' % segment] = None
         # Identity
-        try:  result['%s_IDENTITY' % segment] = float(s_hits['% identity']) / 100.0
+        try:  result['%s_IDENTITY' % segment] = float(s_hit['% identity']) / 100.0
         except (TypeError, ValueError):  result['%s_IDENTITY' % segment] = None
         # E-value
-        try:  result['%s_EVALUE' % segment] = float(s_hits['evalue'])
+        try:  result['%s_EVALUE' % segment] = float(s_hit['evalue'])
         except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
         # BTOP
-        try:  result['%s_BTOP' % segment] = s_hits['BTOP']
+        try:  result['%s_BTOP' % segment] = s_hit['BTOP']
         except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
 
         return result
@@ -901,7 +903,7 @@ class IgBLASTReader:
           dict : a parsed results block;
                  with the keys 'query' (sequence identifier as a string),
                  'summary' (dictionary of the alignment summary), and
-                 'hits' (VDJ hit table as a pandas.DataFrame).
+                 'hits' (VDJ hit table as a list of dictionaries).
                  Returns None if the block has no data that can be parsed.
         """
         # Parsing info
