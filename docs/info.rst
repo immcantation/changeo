@@ -22,4 +22,5 @@ License
 --------------------------------------------------------------------------------
 
 This work is licensed under the
-`Creative Commons Attribution-NonCommercial 4.0 United States License. <http://creativecommons.org/licenses/by-nc/3.0/us>`__
+`Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) license <https://creativecommons.org/licenses/by-sa/4.0/>`__
+
