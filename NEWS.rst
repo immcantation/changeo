@@ -4,6 +4,9 @@ Release Notes
 Version 0.3.3.999:  February 7, 2017
 -------------------------------------------------------------------------------
 
+License changed to Creative Commons Attribution-ShareAlike 4.0 International
+(CC BY-SA 4.0).
+
 CreateGermlines:
 
 + Added ``GERMLINE_V_CALL``, ``GERMLINE_D_CALL`` and ``GERMLINE_J_CALL``
