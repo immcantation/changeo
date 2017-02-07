@@ -1,8 +1,15 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  December 22, 2016
+Version 0.3.3.999:  February 7, 2017
 -------------------------------------------------------------------------------
+
+CreateGermlines:
+
++ Added ``GERMLINE_V_CALL``, ``GERMLINE_D_CALL`` and ``GERMLINE_J_CALL``
+  columns to the output when the ``-cloned`` argument is specified. These
+  columns contain the consensus annotations when clonal groups contain
+  ambiguous gene assignments.
 
 DefineClones:
 
