@@ -59,7 +59,7 @@ else:
         requirements = parse_requirements(require_file)
     install_requires = [str(r.req) for r in requirements]
 
-# Setup
+# Setup changeo
 setup(name='changeo',
       version=__version__,
       author=__author__,
