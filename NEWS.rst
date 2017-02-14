@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.3.999:  February 7, 2017
+Version 0.3.4:  February 14, 2017
 -------------------------------------------------------------------------------
 
 License changed to Creative Commons Attribution-ShareAlike 4.0 International
@@ -13,6 +13,7 @@ CreateGermlines:
   columns to the output when the ``-cloned`` argument is specified. These
   columns contain the consensus annotations when clonal groups contain
   ambiguous gene assignments.
+ Fixed the error message for an invalid repo (``-r``) argument.
 
 DefineClones:
 
@@ -39,6 +40,7 @@ MakeDb:
 + Fixed parsing of ``IN_FRAME``, ``STOP``, ``D_SEQ_START`` and ``D_SEQ_LENGTH``
   fields from iHMMune-Align output.
 + Removed extraneous score fields from each parser.
++ Fixed the error message for an invalid repo (``-r``) argument.
 
 
 Version 0.3.3:  August 8, 2016
