@@ -18,7 +18,7 @@ from time import time
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbWriter, readDbFile, countDbFile, getRepo
+from changeo.IO import getDbWriter, readDbFile, countDbFile, readRepo
 from changeo.Receptor import allele_regex, parseAllele
 
 # Defaults
@@ -307,7 +307,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     printLog(log)
 
     # Get repertoire and open Db reader
-    repo_dict = getRepo(repo)
+    repo_dict = readRepo(repo)
     reader = readDbFile(db_file, ig=False)
 
     # Exit if V call field does not exist in reader
@@ -518,7 +518,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     printLog(log)
 
     # Get repertoire and open Db reader
-    repo_dict = getRepo(repo)
+    repo_dict = readRepo(repo)
     reader = readDbFile(db_file, ig=False)
 
     # Exit if V call field does not exist in reader

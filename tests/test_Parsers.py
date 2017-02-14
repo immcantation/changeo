@@ -19,7 +19,7 @@ data_path = os.path.join(test_path, 'data')
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
-from changeo.IO import extractIMGT, getRepo
+from changeo.IO import extractIMGT, readRepo
 from changeo.Parsers import IgBLASTReader, IHMMuneReader, IMGTReader, decodeBTOP, decodeCIGAR, encodeCIGAR
 
 
@@ -80,7 +80,7 @@ class Test_MakeDb(unittest.TestCase):
     def test_IgBLASTReader(self):
         # Load germlines and sequences
         seq_dict = MakeDb.getSeqDict(self.ig_read_file)
-        repo_dict = getRepo([self.ig_repo_dir])
+        repo_dict = readRepo([self.ig_repo_dir])
 
         # Parse
         with open(self.ig_igblast_file, 'r') as f:
@@ -93,7 +93,7 @@ class Test_MakeDb(unittest.TestCase):
     def test_IHMMReader(self):
         # Load germlines and sequences
         seq_dict = MakeDb.getSeqDict(self.ig_read_file)
-        repo_dict = getRepo([self.ig_repo_dir])
+        repo_dict = readRepo([self.ig_repo_dir])
 
         # Parse
         with open(self.ig_ihmmune_file, 'r') as f:

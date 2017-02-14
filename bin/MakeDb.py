@@ -19,7 +19,7 @@ from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
 from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, getDbWriter, getRepo
+from changeo.IO import countDbFile, extractIMGT, getDbWriter, readRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
 
 
@@ -268,7 +268,7 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = getRepo(repo)
+    repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Parse and write output
@@ -320,7 +320,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = getRepo(repo)
+    repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Parse and write output

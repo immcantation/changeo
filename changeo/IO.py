@@ -24,7 +24,7 @@ from presto.IO import getFileType
 csv.field_size_limit(sys.maxsize)
 
 
-def getRepo(repo):
+def readRepo(repo):
     """
     Parses germline repositories
 
@@ -48,12 +48,13 @@ def getRepo(repo):
 
     # Catch instances where no valid fasta files were passed in
     if len(repo_files) < 1:
-        sys.exit('ERROR: No valid germline fasta files (.fasta, .fna, .fa) were found in %s', repo)
+        sys.exit('\nERROR: No valid germline fasta files (.fasta, .fna, .fa) were found in %s' \
+                 % ','.join(repo))
 
     repo_dict = {}
     for file_name in repo_files:
-        with open(file_name, "rU") as file_handle:
-            germlines = SeqIO.parse(file_handle, "fasta")
+        with open(file_name, 'rU') as file_handle:
+            germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
                 germ_key = parseAllele(g.description, allele_regex, 'list')
                 repo_dict[germ_key] = str(g.seq).upper()
