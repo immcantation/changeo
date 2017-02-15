@@ -59,11 +59,11 @@ else:
         requirements = parse_requirements(require_file)
     install_requires = [str(r.req) for r in requirements]
 
-# Setup changeo
+# Setup
 setup(name='changeo',
       version=__version__,
       author=__author__,
-      author_email='namita.gupta@yale.edu',
+      author_email='jason.vanderheiden@yale.edu',
       description='A bioinformatics toolkit for processing high-throughput lymphocyte receptor sequencing data.',
       long_description=long_description,
       zip_safe=False,

@@ -16,13 +16,13 @@ pip3 command.
 Requirements
 --------------------------------------------------------------------------------
 
--  `Python 3.4.0 <http://python.org>`__
--  `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
--  `NumPy 1.8 <http://numpy.org>`__
--  `SciPy 0.14 <http://scipy.org>`__
--  `pandas 0.15 <http://pandas.pydata.org>`__
--  `Biopython 1.65 <http://biopython.org>`__
--  `presto 0.5 <http://presto.readthedocs.io>`__
++  `Python 3.4.0 <http://python.org>`__
++  `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
++  `NumPy 1.8 <http://numpy.org>`__
++  `SciPy 0.14 <http://scipy.org>`__
++  `pandas 0.15 <http://pandas.pydata.org>`__
++  `Biopython 1.65 <http://biopython.org>`__
++  `presto 0.5 <http://presto.readthedocs.io>`__
 
 Linux
 --------------------------------------------------------------------------------

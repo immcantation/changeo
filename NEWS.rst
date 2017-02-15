@@ -13,7 +13,7 @@ CreateGermlines:
   columns to the output when the ``-cloned`` argument is specified. These
   columns contain the consensus annotations when clonal groups contain
   ambiguous gene assignments.
- Fixed the error message for an invalid repo (``-r``) argument.
++ Fixed the error message for an invalid repo (``-r``) argument.
 
 DefineClones:
 
