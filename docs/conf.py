@@ -28,10 +28,13 @@ class Mock(MagicMock):
     def __getattr__(cls, name):  return Mock()
 
 mock_modules = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
-                'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
-                'Bio.Seq', 'Bio.SeqRecord',
-                'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
-                'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
+                 'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
+                 'Bio.Seq', 'Bio.SeqRecord']
+# mock_modules = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
+#                 'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
+#                 'Bio.Seq', 'Bio.SeqRecord',
+#                 'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
+#                 'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
 sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
 
 # If extensions (or modules to document with autodoc) are in another directory,
