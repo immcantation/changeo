@@ -22,15 +22,17 @@ from unittest.mock import MagicMock
 import changeo.Version
 
 # Mock modules for readthedocs
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):  return Mock()
-mock_modules = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
-                'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
-                'Bio.Seq', 'Bio.SeqRecord',
-                'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
-                'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
-sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
+if os.environ.get('READTHEDOCS', None) == 'True':
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):  return MagicMock()
+
+    mock_modules = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
+                    'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
+                    'Bio.Seq', 'Bio.SeqRecord',
+                    'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
+                    'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
+    sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
