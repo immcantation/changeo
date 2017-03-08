@@ -86,7 +86,9 @@ class IgRecord:
                 'p5d_length': 'P5D_LENGTH',
                 'p3d_length': 'P3D_LENGTH',
                 'p5j_length': 'P5J_LENGTH',
-                'd_frame': 'D_FRAME'}
+                'd_frame': 'D_FRAME',
+                'igblast_cdr3_nt': 'IGBLAST_CDR3_NT',
+                'igblast_cdr3_aa': 'IGBLAST_CDR3_AA'}
 
     # Mapping of column names to member variables
     _field_map = {v: k for k, v in _key_map.items()}
@@ -147,7 +149,9 @@ class IgRecord:
                   'p5d_length': '_integer',
                   'p3d_length': '_integer',
                   'p5j_length': '_integer',
-                  'd_frame': '_integer'}
+                  'd_frame': '_integer',
+                  'igblast_cdr3_nt': '_sequence',
+                  'igblast_cdr3_aa': '_sequence'}
 
     _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False,
                       'NA':None, 'None':None, '':None}
