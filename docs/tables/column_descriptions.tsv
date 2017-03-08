@@ -49,6 +49,8 @@ V_IDENTITY	float	Alignment identity for the V
 J_SCORE	float	Alignment score for the J
 J_IDENTITY	float	Alignment identity for the J
 **MakeDb - IgBLAST Optional Annotations**
+CDR3_IGBLAST_NT	string	CDR3 nucleotide sequence assigned by IgBLAST
+CDR3_IGBLAST_AA	string	CDR3 amino acid sequence assigned by IgBLAST
 V_SCORE	float	Alignment score for the V
 V_IDENTITY	float	Alignment identity for the V
 V_EVALUE	float	E-value for the alignment of the V

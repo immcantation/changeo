@@ -1,6 +1,15 @@
 Release Notes
 ================================================================================
 
+Version 0.3.4.999:  March 8, 2017
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Added the ``--cdr3`` argument to the igblast subcommand to extract the
+  CDR3 nucleotide and amino acid sequence defined by IgBLAST.
+
+
 Version 0.3.4:  February 14, 2017
 -------------------------------------------------------------------------------
 
