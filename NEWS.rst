@@ -1,13 +1,18 @@
 Release Notes
 ================================================================================
 
-Version 0.3.4.999:  March 8, 2017
+Version 0.3.4.999:  March 16, 2017
 -------------------------------------------------------------------------------
 
 MakeDb:
 
 + Added the ``--cdr3`` argument to the igblast subcommand to extract the
   CDR3 nucleotide and amino acid sequence defined by IgBLAST.
+
+DefineClones:
+
++ Changed the way ``X`` characters are handled in the amino acid Hamming
+  distance model to count as a match against any character.
 
 
 Version 0.3.4:  February 14, 2017

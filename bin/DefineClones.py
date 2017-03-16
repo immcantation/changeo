@@ -269,7 +269,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     seqs = list(seq_map.keys())
 
     # Calculate pairwise distance matrix
-    dists = calcDistances(seqs, nmer_len, dist_mat, norm, sym)
+    dists = calcDistances(seqs, nmer_len, dist_mat, sym=sym, norm=norm)
 
     # Perform hierarchical clustering
     clusters = formClusters(dists, linkage, distance)

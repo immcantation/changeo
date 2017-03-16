@@ -53,12 +53,6 @@ def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     # Default matrix to inf
     dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars,
                             dtype=float)
-    # Set gap distance
-    for c in '-.':
-        dist_mat.loc[c] = dist_mat.loc[:, c] = gap_dist
-
-    # Set mask distance
-    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = mask_dist
 
     # Fill in provided distances from input matrix
     if mat is not None:
@@ -67,9 +61,14 @@ def getDNADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     # If no input matrix, create IUPAC-defined Hamming distance
     else:
         for i,j in product(dist_mat.index, dist_mat.columns):
-            dist_mat.at[i, j] = 1 - scoreDNA(i, j,
-                                             mask_score=(1 - mask_dist, 1 - mask_dist),
-                                             gap_score=(1 - gap_dist, 1 - gap_dist))
+            dist_mat.at[i, j] = 1 - scoreDNA(i, j)
+
+    # Set gap distance
+    for c in '-.':
+        dist_mat.loc[c] = dist_mat.loc[:, c] = float(gap_dist)
+
+    # Set mask distance
+    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = float(mask_dist)
 
     return dist_mat
 
@@ -95,23 +94,20 @@ def getAADistMatrix(mat=None, mask_dist=0, gap_dist=0):
     dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars,
                             dtype=float)
 
-    # Set gap distance
-    for c in '-.':
-        dist_mat.loc[c] = dist_mat.loc[:, c] = gap_dist
-
-    # Set mask distance
-    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = mask_dist
-
     # Fill in provided distances from input matrix
     if mat is not None:
-        for i,j in product(mat.index, mat.columns):
+        for i, j in product(mat.index, mat.columns):
             dist_mat.at[i, j] = mat.at[i, j]
     # If no input matrix, create IUPAC-defined Hamming distance
     else:
-        for i,j in product(dist_mat.index, dist_mat.columns):
-            dist_mat.at[i, j] = 1 - scoreAA(i, j,
-                                            mask_score=(1 - mask_dist, 1 - mask_dist),
-                                            gap_score=(1 - gap_dist, 1 - gap_dist))
+        for i, j in product(dist_mat.index, dist_mat.columns):
+            dist_mat.at[i, j] = 1 - scoreAA(i, j)
+    # Set gap distance
+    for c in '-.':
+        dist_mat.loc[c] = dist_mat.loc[:, c] = float(gap_dist)
+
+    # Set mask distance
+    dist_mat.loc[mask_char] = dist_mat.loc[:, mask_char] = float(mask_dist)
 
     return dist_mat
 
@@ -137,7 +133,7 @@ def getNmers(sequences, n):
     return nmers
 
 
-def calcDistances(sequences, n, dist_mat, norm, sym):
+def calcDistances(sequences, n, dist_mat, sym='avg', norm=None):
     """
     Calculate pairwise distances between input sequences
 
@@ -145,8 +141,8 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
       sequences : List of sequences for which to calculate pairwise distances
       n : Length of n-mers to be used in calculating distance
       dist_mat : pandas.DataFrame of mutation distances
-      norm : Normalization method
-      sym : Symmetry method
+      norm : Normalization method. One of None, 'len', or 'mut'.
+      sym : Symmetry method; one of 'avg' of 'min.
 
     Returns:
       ndarray : numpy matrix of pairwise distances between input sequences
@@ -156,7 +152,7 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
     # Generate dictionary of n-mers from input sequences
     nmers = getNmers(sequences, n)
     # Iterate over combinations of input sequences
-    for j,k in combinations(list(range(len(sequences))), 2):
+    for j, k in combinations(list(range(len(sequences))), 2):
         # Only consider characters and n-mers with mutations
         mutated = [i for i, (c1, c2) in enumerate(zip_equal(sequences[j], sequences[k])) if c1 != c2]
 
@@ -184,10 +180,8 @@ def calcDistances(sequences, n, dist_mat, norm, sym):
 
         # Calculate distances
         try:
-            dists[j, k] = dists[k, j] = \
-                    sum([sym_fun([dist_mat.at[c1, n2], dist_mat.at[c2, n1]]) \
-                         for c1, c2, n1, n2 in zip(seq1, seq2, nmer1, nmer2)]) / \
-                    (norm_by)
+            dists[j, k] = dists[k, j] = sum([sym_fun([dist_mat.at[c1, n2], dist_mat.at[c2, n1]])
+                                             for c1, c2, n1, n2 in zip(seq1, seq2, nmer1, nmer2)]) / norm_by
         except (KeyError):
             raise KeyError('Unrecognized character in sequence.')
 
@@ -218,7 +212,7 @@ def formClusters(dists, link, distance):
 # TODO: This should all probably be a class
 
 # Amino acid Hamming distance
-aa_model = getAADistMatrix(mask_dist=1, gap_dist=0)
+aa_model = getAADistMatrix(mask_dist=0, gap_dist=0)
 
 # DNA Hamming distance
 ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
