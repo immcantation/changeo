@@ -27,6 +27,7 @@ class Test_Distance(unittest.TestCase):
                        'TGTGCAAGGGGGCCA',
                        'TGTATTTGGGGGCCA',
                        'ACACTTGCCACTGAT',
+                       'NNNNNNNNNNNNTGA',
                        'NNNNNNNNNNNNNNN']
         self.nt_seq_short = ['TGTGCAAGG',
                              'TGTGCAAGG',
@@ -34,7 +35,12 @@ class Test_Distance(unittest.TestCase):
                              'NNNNNNNNN']
         self.aa_seq = [str(Seq(x).translate()) for x in self.nt_seq]
 
-        # Nucleotide distances sequence 1 to sequence 1,..,5
+
+        # Amino acid distance from sequence 0 to sequence 0,..,5
+        self.aa_len = 5.0
+        self.aa_ham = np.array([0.0, 0.0, 2.0, 5.0, 1.0, 0.0])
+
+        # Nucleotide distances sequence 0 to sequence 0,..,5
         self.nt_len = 15.0
         # 0 vs 2
         #   A-C = 0; A-G = 1; A-T = 2;
@@ -42,21 +48,26 @@ class Test_Distance(unittest.TestCase):
         # 0 vs 3
         #   A-C = 1; A-G = 2; A-T = 4;
         #   C-G = 6; C-T = 1; G-T = 1
-        self.nt_ham = np.array([0.0, 0.0, 4.0, 15.0, 0.0])
+        # 0 vs 4
+        #   A-C = 0; A-G = 0; A-T = 0;
+        #   C-G = 1; C-T = 1; G-T = 0
+        self.nt_ham = np.array([0.0, 0.0, 4.0, 15.0, 2.0, 0.0])
         self.nt_hh_s1f = np.array([0.0,
                                    0.0,
                                    0.0 + 1*0.64 + 2*1.16 + 0.0 + 1*0.64 + 0.0,
                                    1*1.21 + 2*0.64 + 4*1.16 + 6*1.16 + 1*0.64 + 1*1.21,
+                                   0.0 + 0.0 + 0.0 + 0.0 + 1*1.16 + 1*0.64 + 0.0,
                                    0.0])
         self.nt_mk_rs1nf = np.array([0.0,
                                      0.0,
                                      0.0 + 1*0.32 + 2*1.17 + 0.0 + 1*0.32 + 0.0,
                                      1*1.51 + 2*0.32 + 4*1.17 + 6*1.17 + 1*0.32 + 1*1.51,
+                                     0.0 + 0.0 + 0.0 + 0.0 + 1*1.17 + 1*0.32 + 0.0,
                                      0.0])
 
         # 5-mer models use shorter sequence
+        # For sequence 0 to sequence 0,..,3
         self.nt_short_len = 9.0
-
         # hh_hs5f
         #   GTGCA-GTATT = [0.97, 0.84]
         #   TGCAA-TATTT = [0.93, 0.83]
@@ -87,10 +98,6 @@ class Test_Distance(unittest.TestCase):
                                          np.min([0.71, 0.77]) + np.min([0.71, 0.93]) +
                                          np.min([1.05, 1.03]) + np.min([1.08, 1.13]),
                                          0.0])
-
-        # Amino acid distance from sequence 1 to sequence 1,..,5
-        self.aa_len = 5.0
-        self.aa_ham = np.array([0.0, 0.0, 2.0, 5.0, 0.0])
 
         self.start = time.time()
 
