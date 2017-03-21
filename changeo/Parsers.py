@@ -1589,7 +1589,7 @@ def gapV(db, repo_dict):
         imgt_dict['V_GERM_START_IMGT'] = 1
         imgt_dict['V_GERM_LENGTH_IMGT'] = db['V_GERM_LENGTH_VDJ'] + gapcount
     else:
-        sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined for %s' \
+        sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined for %s.\n' \
                          % (vgene, db['SEQUENCE_ID']))
 
     return imgt_dict
