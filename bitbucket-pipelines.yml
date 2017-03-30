@@ -1,5 +1,5 @@
 image:
-  name: javh/immcantation:test-python
+  name: javh/immcantation:test
 
 pipelines:
   default:
