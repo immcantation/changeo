@@ -4,6 +4,8 @@ Release Notes
 Version 0.3.4.999:  March 16, 2017
 -------------------------------------------------------------------------------
 
+Fixed a bug wherein ``.tsv`` was not being recognized as a valid extension.
+
 MakeDb:
 
 + Added the ``--cdr3`` argument to the igblast subcommand to extract the
