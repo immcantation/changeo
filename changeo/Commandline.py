@@ -139,7 +139,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     Returns:
       dict : Dictionary copy of args with output arguments embedded in the dictionary out_args
     """ 
-    db_types = ['.tab']
+    db_types = ['.tab', '.tsv']
     seq_types = ['.fasta', 'fna', '.fa', '.fastq', '.fq']
     primer_types = ['.fasta', '.regex']
     if in_types is not None:  in_types = [f.lower for f in in_types]
