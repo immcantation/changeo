@@ -10,6 +10,7 @@ MakeDb:
 
 + Added the ``--cdr3`` argument to the igblast subcommand to extract the
   CDR3 nucleotide and amino acid sequence defined by IgBLAST.
++ Updated the IMGT/HighV-QUEST parser to handle recent column name changes.
 
 DefineClones:
 

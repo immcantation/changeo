@@ -135,6 +135,11 @@ class IMGTReader:
         Returns:
           dict : database entries for functionality information.
         """
+        # Correct for new functionality column names
+        if 'Functionality' not in summary:
+            summary['Functionality'] = summary['V-DOMAIN Functionality']
+            summary['Functionality comment'] = summary['V-DOMAIN Functionality comment']
+
         # Functionality parser
         def _functional():
             x = summary['Functionality']
