@@ -8,6 +8,7 @@ from changeo import __version__, __date__
 
 # Imports
 import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -134,10 +135,10 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
                 # TODO:  This is not the best approach. should pass in output fields.
                 # If first record, use parsed description to define extra columns
                 if i == 1:  fields.extend(list(record.annotations.keys()))
-
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 no_parse = True
+                sys.stderr.write('\nWARNING: Sequence annotation format not recognized. Sequence headers will not be parsed.\n')
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
@@ -420,7 +421,8 @@ def getArgParser():
                                 help='''Specify to prevent input sequence headers from being parsed
                                     to add new columns to database. Parsing of sequence headers requires
                                     headers to be in the pRESTO annotation format, so this should be specified
-                                    when sequence headers are incompatible with the pRESTO annotation scheme.''')
+                                    when sequence headers are incompatible with the pRESTO annotation scheme.
+                                    Note, unrecognized header formats will default to this behavior.''')
     parser_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file.''')
@@ -462,7 +464,8 @@ def getArgParser():
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
                                   headers to be in the pRESTO annotation format, so this should be specified
-                                  when sequence headers are incompatible with the pRESTO annotation scheme.''')
+                                  when sequence headers are incompatible with the pRESTO annotation scheme.
+                                  Note, unrecognized header formats will default to this behavior.''')
     parser_imgt.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
@@ -502,7 +505,8 @@ def getArgParser():
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
                                   headers to be in the pRESTO annotation format, so this should be specified
-                                  when sequence headers are incompatible with the pRESTO annotation scheme.''')
+                                  when sequence headers are incompatible with the pRESTO annotation scheme.
+                                  Note, unrecognized header formats will default to this behavior.''')
     parser_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
