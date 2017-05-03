@@ -417,8 +417,10 @@ def getArgParser():
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
     parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
-                                help='''Specify if input IDs should not be parsed to add
-                                    new columns to database.''')
+                                help='''Specify to prevent input sequence headers from being parsed
+                                    to add new columns to database. Parsing of sequence headers requires
+                                    headers to be in the pRESTO annotation format, so this should be specified
+                                    when sequence headers are incompatible with the pRESTO annotation scheme.''')
     parser_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file.''')
@@ -457,8 +459,10 @@ def getArgParser():
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
     parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
-                             help='''Specify if input IDs should not be parsed to add new
-                                  columns to database.''')
+                             help='''Specify to prevent input sequence headers from being parsed
+                                  to add new columns to database. Parsing of sequence headers requires
+                                  headers to be in the pRESTO annotation format, so this should be specified
+                                  when sequence headers are incompatible with the pRESTO annotation scheme.''')
     parser_imgt.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
@@ -495,8 +499,10 @@ def getArgParser():
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
     parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
-                             help='''Specify if input IDs should not be parsed to add
-                                  new columns to database.''')
+                             help='''Specify to prevent input sequence headers from being parsed
+                                  to add new columns to database. Parsing of sequence headers requires
+                                  headers to be in the pRESTO annotation format, so this should be specified
+                                  when sequence headers are incompatible with the pRESTO annotation scheme.''')
     parser_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file.''')
