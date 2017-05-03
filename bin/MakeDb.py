@@ -126,13 +126,18 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 
         # Parse sequence description into new columns
         if not no_parse:
-            record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
-            record.id = record.annotations['ID']
-            del record.annotations['ID']
+            try:
+                record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
+                record.id = record.annotations['ID']
+                del record.annotations['ID']
 
-            # TODO:  This is not the best approach. should pass in output fields.
-            # If first record, use parsed description to define extra columns
-            if i == 1:  fields.extend(list(record.annotations.keys()))
+                # TODO:  This is not the best approach. should pass in output fields.
+                # If first record, use parsed description to define extra columns
+                if i == 1:  fields.extend(list(record.annotations.keys()))
+
+            except IndexError:
+                # Could not parse pRESTO-style annotations so fall back to no parse
+                no_parse = True
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
