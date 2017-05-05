@@ -579,7 +579,7 @@ class IgBLASTReader:
         # Extract query id from comments
         query = next((x for x in chunk if x.startswith('# Query:')))
 
-        return query.lstrip('# Query: ')
+        return query.replace('# Query: ', '', 1)
 
 
     @staticmethod
@@ -663,7 +663,7 @@ class IgBLASTReader:
         """
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Fields:')))
-        columns = chain(['segment'], f.lstrip('# Fields:').split(','))
+        columns = chain(['segment'], f.replace('# Fields:', '', 1).split(','))
         columns = [x.strip() for x in columns]
         # Split non-comment rows into a list of lists
         rows = [x.split('\t') for x in chunk if not x.startswith('#')]
