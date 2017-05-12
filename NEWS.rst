@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.4.999:  March 16, 2017
+Version 0.3.5:  May 12, 2017
 -------------------------------------------------------------------------------
 
 Fixed a bug wherein ``.tsv`` was not being recognized as a valid extension.
