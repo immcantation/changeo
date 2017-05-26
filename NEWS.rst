@@ -5,6 +5,7 @@ Version 0.3.5.999:  May 26, 2017
 -------------------------------------------------------------------------------
 
 + Fixed an overflow error on Windows that caused tools to fatally exit.
++ All tools will now print detailed help if no arguments are provided.
 
 
 Version 0.3.5:  May 12, 2017

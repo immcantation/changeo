@@ -19,7 +19,7 @@ from Bio import SeqIO
 from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, extractIMGT, getDbWriter, readRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
 
@@ -528,7 +528,8 @@ if __name__ == "__main__":
     """
     Parses command line arguments and calls main
     """
-    parser = getArgParser()    
+    parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='aligner_outputs')
 

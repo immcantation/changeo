@@ -25,7 +25,7 @@ from presto.Defaults import default_out_args, default_separator, default_muscle_
 from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
 
 # Globals
@@ -257,6 +257,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 

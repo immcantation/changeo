@@ -7,7 +7,6 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
-import sys
 import csv
 import os
 import re
@@ -25,11 +24,12 @@ from Bio.Alphabet import IUPAC
 from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Defaults import default_csv_size
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 
-# Set maximum field size for csv.reader
-csv.field_size_limit(sys.maxsize)
+# System settings
+csv.field_size_limit(default_csv_size)
 
 # Defaults
 default_id_field = 'SEQUENCE_ID'
@@ -1082,6 +1082,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields

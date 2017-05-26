@@ -230,4 +230,19 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     
     return args_dict
 
-    
+
+def checkArgs(parser):
+    """
+    Checks that arguments have been provided and prints help if they have not.
+
+    Arguments:
+      parser : An argparse.ArgumentParser defining the commandline arguments.
+
+    Returns:
+      boolean : True if arguments are present. Prints help and exits if not.
+    """
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    return True

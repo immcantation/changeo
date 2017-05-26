@@ -18,7 +18,7 @@ from Bio.Seq import Seq
 # Presto and changeo imports
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 
 # Defaults
@@ -242,6 +242,7 @@ if __name__ == "__main__":
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     args_dict['seq_field'] = args_dict['seq_field'].upper()

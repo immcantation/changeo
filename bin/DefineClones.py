@@ -25,13 +25,10 @@ from presto.Defaults import default_out_args
 from presto.IO import getFileType, getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
 from presto.Sequence import getDNAScoreDict
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import getDbWriter, readDbFile, countDbFile
 from changeo.Multiprocessing import DbData, DbResult
-
-## Set maximum field size for csv.reader
-csv.field_size_limit(sys.maxsize)
 
 # Defaults
 default_translate = False
@@ -1070,6 +1067,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields

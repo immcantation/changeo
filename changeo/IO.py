@@ -11,18 +11,17 @@ import os
 import sys
 import tarfile
 import zipfile
-from collections import OrderedDict
 from itertools import zip_longest
 from tempfile import TemporaryDirectory
 from Bio import SeqIO
 
 # Presto and changeo imports
+from changeo.Defaults import default_csv_size
 from changeo.Receptor import IgRecord, parseAllele, allele_regex
 from presto.IO import getFileType
 
-# Set maximum field size for csv.reader
-#csv.field_size_limit(sys.maxsize)
-csv.field_size_limit(2**32)
+# System settings
+csv.field_size_limit(default_csv_size)
 
 
 def readRepo(repo):

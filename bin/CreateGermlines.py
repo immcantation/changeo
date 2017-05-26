@@ -17,7 +17,7 @@ from time import time
 # Presto and change imports
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
-from changeo.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile, readRepo
 from changeo.Receptor import allele_regex, parseAllele
 
@@ -683,6 +683,7 @@ if __name__ == "__main__":
 
     # Parse command line arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     del args_dict['db_files']
