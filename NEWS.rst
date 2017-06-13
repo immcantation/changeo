@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.3.5.999:  May 26, 2017
+Version 0.3.6:  June 13, 2017
 -------------------------------------------------------------------------------
 
 + Fixed an overflow error on Windows that caused tools to fatally exit.
