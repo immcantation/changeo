@@ -631,7 +631,10 @@ class IgBLASTReader:
         """
        
         cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST_NT',
-                    'translation': 'CDR3_IGBLAST_AA'}
+                    'translation': 'CDR3_IGBLAST_AA',
+                    'start': 'CDR3_IGBLAST_START',
+                    'stop': 'CDR3_IGBLAST_STOP',
+                    }
  
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Sub-region sequence details')))
@@ -640,7 +643,7 @@ class IgBLASTReader:
 
         # Extract first row as a list ignoring the first item ("CDR3" label)
         # Example:
-        #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT
+        #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
         rows = next((x.split('\t') for x in chunk if not x.startswith('#')))[1:]
  
         # Populate dictionary with parsed fields
