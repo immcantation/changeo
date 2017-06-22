@@ -633,7 +633,7 @@ class IgBLASTReader:
         cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST_NT',
                     'translation': 'CDR3_IGBLAST_AA',
                     'start': 'CDR3_IGBLAST_START',
-                    'stop': 'CDR3_IGBLAST_STOP',
+                    'end': 'CDR3_IGBLAST_END'
                     }
  
         # Extract column names from comments
