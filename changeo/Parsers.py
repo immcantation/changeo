@@ -629,28 +629,28 @@ class IgBLASTReader:
         Returns:
           dict : nucleotide and amino acid CDR3 sequences
         """
-       
+        # Example:
+        #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
+
+        # Define column names
         cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST_NT',
                     'translation': 'CDR3_IGBLAST_AA',
                     'start': 'CDR3_IGBLAST_START',
-                    'end': 'CDR3_IGBLAST_END'
-                    }
+                    'end': 'CDR3_IGBLAST_END'}
  
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Sub-region sequence details')))
         f = re.search('sequence details \((.+)\)', f).group(1)
         columns = [cdr3_map[x.strip()] for x in f.split(',')]
 
-        # Extract first row as a list ignoring the first item ("CDR3" label)
-        # Example:
-        #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
-        rows = next((x.split('\t') for x in chunk if not x.startswith('#')))[1:]
- 
-        # Populate dictionary with parsed fields
-        cdr3s = {v: None for v in cdr3_map.values()}
-        cdr3s.update(dict(zip(columns, rows)))
+        # Extract first CDR3 as a list and remove the CDR3 label
+        rows = next((x.split('\t') for x in chunk if x.startswith('CDR3')))[1:]
 
-        return cdr3s 
+        # Populate dictionary with parsed fields
+        cdr = {v: None for v in columns}
+        cdr.update(dict(zip(columns, rows)))
+
+        return cdr
 
 
     @staticmethod

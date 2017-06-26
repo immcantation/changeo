@@ -34,7 +34,7 @@ class Test_MakeDb(unittest.TestCase):
         # IMGT output
         self.ig_imgt_file = os.path.join(data_path, 'imgt_ig.txz')
         # IgBLAST output
-        self.ig_igblast_file = os.path.join(data_path, 'igblast1.6_ig.fmt7')
+        self.ig_igblast_file = os.path.join(data_path, 'igblast1.7_ig.fmt7')
         # iHMMune-Align output
         self.ig_ihmmune_file = os.path.join(data_path, 'ihmmune_ig.csv')
 
