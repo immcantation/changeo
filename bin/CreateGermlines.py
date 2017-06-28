@@ -349,7 +349,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     rec_count = countDbFile(db_file)
     pass_count = fail_count = 0
     # Iterate over rows
-    for i,row in enumerate(reader):
+    for i, row in enumerate(reader):
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
 
@@ -375,7 +375,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         printLog(result_log, handle=log_handle)
 
     # Print log
-    printProgress(i+1, rec_count, 0.05, start_time)
+    printProgress(i + 1, rec_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -390,7 +390,8 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     if log_handle is not None:  log_handle.close()
 
 
-def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_field, counts, writers, out_args):
+def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
+                      seq_field, counts, writers, out_args):
     """
     Determine consensus clone sequence and create germline for clone
 
@@ -420,22 +421,27 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
     max_length = 0
     for val in clone_dict.values():
         v = val[v_field]
-        v_dict[v] = v_dict.get(v,0) + 1
+        v_dict[v] = v_dict.get(v, 0) + 1
         j = val[j_field]
-        j_dict[j] = j_dict.get(j,0) + 1
-        if len(val[seq_field]) > max_length: max_length = len(val[seq_field])
+        j_dict[j] = j_dict.get(j, 0) + 1
+        if len(val[seq_field]) > max_length:
+            max_length = len(val[seq_field])
 
     # Consensus V and J having most observations
     v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
     j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
+
     # Consensus sequence(s) with consensus V/J calls and longest sequence
-    cons = [val for val in list(clone_dict.values()) if val.get(v_field,'') in v_cons and \
-                                                  val.get(j_field,'') in j_cons and \
-                                                  len(val[seq_field])==max_length]
+    cons = [val for val in list(clone_dict.values()) \
+            if val.get(v_field, '') in v_cons and \
+            val.get(j_field, '') in j_cons and \
+            len(val[seq_field]) == max_length]
+
     # Sequence(s) with consensus V/J are not longest
     if not cons:
         # Sequence(s) with consensus V/J (not longest)
-        cons = [val for val in list(clone_dict.values()) if val.get(v_field,'') in v_cons and val.get(j_field,'') in j_cons]
+        cons = [val for val in list(clone_dict.values()) \
+                if val.get(v_field, '') in v_cons and val.get(j_field, '') in j_cons]
 
         # No sequence has both consensus V and J call
         if not cons:
@@ -448,22 +454,22 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
             # Pad end of consensus sequence with gaps to make it the max length
             cons = cons[0]
             cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
-            cons[seq_field] += '.'*(max_length - len(cons[seq_field]))
+            cons[seq_field] += '.' * (max_length - len(cons[seq_field]))
             result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
             result_log['ID'] = clone
-            result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+            #result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
         result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
         result_log['ID'] = clone
-        result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+        #result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
     # Write sequences of clone
     for val in clone_dict.values():
         if 'ERROR' not in result_log:
             # Update lengths padded to longest sequence in clone
             val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val[seq_field]))
-            val[seq_field] += '.'*(max_length - len(val[seq_field]))
+            val[seq_field] += '.' * (max_length - len(val[seq_field]))
 
             # Add column(s) to tab-delimited database file
             if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
@@ -486,7 +492,8 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field, seq_fie
         else:
             # Write to fail file
             counts['fail'] += 1
-            if writers['fail'] is not None: writers['fail'].writerow(val)
+            if writers['fail'] is not None:
+                writers['fail'].writerow(val)
     # Return log
     return result_log
 
@@ -499,7 +506,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     db_file = input tab-delimited database file
     repo = folder with germline repertoire files
     germ_types = types of germline sequences to be output
-                     (full germline, D-region masked, only V-region germline)
+                 (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
     seq_field = field in which to look for sequence
     out_args = arguments for output preferences
@@ -545,7 +552,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     # Create output file handle and Db writer
     writers = {}
     pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     writers['pass'] = getDbWriter(pass_handle, db_file, add_fields=add_fields)
 
     if out_args['failed']:
@@ -564,13 +571,14 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     # Iterate over rows
     clone = 'initial'
     clone_dict = OrderedDict()
-    for i,row in enumerate(reader):
+    for i, row in enumerate(reader):
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
 
         # Clone isn't over yet
-        if row.get('CLONE','') == clone:
-            clone_dict[row["SEQUENCE_ID"]] = row
+        if row.get('CLONE', '') == clone:
+            #clone_dict[row['SEQUENCE_ID']] = row
+            clone_dict[i] = row
         # Clone just finished
         elif clone_dict:
             clone_count += 1
@@ -579,18 +587,21 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
             printLog(result_log, handle=log_handle)
             # Now deal with current row (first of next clone)
             clone = row['CLONE']
-            clone_dict = OrderedDict([(row['SEQUENCE_ID'],row)])
+            #clone_dict = OrderedDict([(row['SEQUENCE_ID'], row)])
+            clone_dict = OrderedDict([(i, row)])
         # Last case is only for first row of file
         else:
             clone = row['CLONE']
-            clone_dict = OrderedDict([(row['SEQUENCE_ID'],row)])
+            #clone_dict = OrderedDict([(row['SEQUENCE_ID'], row)])
+            clone_dict = OrderedDict([(i, row)])
+
     clone_count += 1
     result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
                                    seq_field, counts, writers, out_args)
     printLog(result_log, handle=log_handle)
 
     # Print log
-    printProgress(i+1, rec_count, 0.05, start_time)
+    printProgress(i + 1, rec_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['CLONES'] = clone_count
