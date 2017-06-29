@@ -457,12 +457,12 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
             cons[seq_field] += '.' * (max_length - len(cons[seq_field]))
             result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
             result_log['ID'] = clone
-            #result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+            result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
         result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
         result_log['ID'] = clone
-        #result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+        result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
     # Write sequences of clone
     for val in clone_dict.values():

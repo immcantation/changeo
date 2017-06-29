@@ -1,12 +1,18 @@
 Release Notes
 ================================================================================
 
-Version 0.3.6.999:  June 26, 2017
+Version 0.3.6.999:  June 29, 2017
 -------------------------------------------------------------------------------
 
 MakeDb:
 
 + Fixed an incompatibility with IgBLAST v1.7.0.
+
+CreateGermlines:
+
++ Fixed an error that occurs when using the ``--cloned`` with an input file
+  containing duplicate values in ``SEQUENCE_ID`` that caused some records to
+  be discarded.
 
 
 Version 0.3.6:  June 13, 2017
