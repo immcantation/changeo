@@ -577,7 +577,6 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
 
         # Clone isn't over yet
         if row.get('CLONE', '') == clone:
-            #clone_dict[row['SEQUENCE_ID']] = row
             clone_dict[i] = row
         # Clone just finished
         elif clone_dict:
@@ -587,12 +586,10 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
             printLog(result_log, handle=log_handle)
             # Now deal with current row (first of next clone)
             clone = row['CLONE']
-            #clone_dict = OrderedDict([(row['SEQUENCE_ID'], row)])
             clone_dict = OrderedDict([(i, row)])
         # Last case is only for first row of file
         else:
             clone = row['CLONE']
-            #clone_dict = OrderedDict([(row['SEQUENCE_ID'], row)])
             clone_dict = OrderedDict([(i, row)])
 
     clone_count += 1
