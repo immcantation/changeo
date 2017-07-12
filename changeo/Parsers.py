@@ -68,6 +68,217 @@ default_junction_fields = ['N1_LENGTH',
                            'P5J_LENGTH',
                            'D_FRAME']
 
+
+class ChangeoReader:
+    """
+    An iterator to read and parse Change-O formatted data.
+    """
+
+    # Mapping of Change-O column names to output fields and typing functions
+    fields = {'SEQUENCE_ID': ('id', '_identity'),
+              'V_CALL': ('v_call', '_identity'),
+              'V_CALL_GENOTYPED': ('v_call_genotyped', '_identity'),
+              'D_CALL': ('d_call', '_identity'),
+              'J_CALL': ('j_call', '_identity'),
+              'SEQUENCE_INPUT': ('seq_input', '_sequence'),
+              'SEQUENCE_VDJ': ('seq_vdj', '_sequence'),
+              'SEQUENCE_IMGT': ('seq_imgt', '_sequence'),
+              'JUNCTION': ('junction', '_sequence'),
+              'FUNCTIONAL': ('functional', '_logical'),
+              'IN_FRAME': ('in_frame', '_logical'),
+              'STOP': ('stop', '_logical'),
+              'MUTATED_INVARIANT': ('mutated_invariant', '_logical'),
+              'INDELS': ('indels', '_logical'),
+              'V_SEQ_START': ('v_seq_start', '_integer'),
+              'V_SEQ_LENGTH': ('v_seq_length', '_integer'),
+              'V_GERM_START_VDJ': ('v_germ_start_vdj', '_integer'),
+              'V_GERM_LENGTH_VDJ': ('v_germ_length_vdj', '_integer'),
+              'V_GERM_START_IMGT': ('v_germ_start_imgt', '_integer'),
+              'V_GERM_LENGTH_IMGT': ('v_germ_length_imgt', '_integer'),
+              'NP1_LENGTH': ('np1_length', '_integer'),
+              'D_SEQ_START': ('d_seq_start', '_integer'),
+              'D_SEQ_LENGTH': ('d_seq_length', '_integer'),
+              'D_GERM_START': ('d_germ_start', '_integer'),
+              'D_GERM_LENGTH': ('d_germ_length', '_integer'),
+              'NP2_LENGTH': ('np2_length', '_integer'),
+              'J_SEQ_START': ('j_seq_start', '_integer'),
+              'J_SEQ_LENGTH': ('j_seq_length', '_integer'),
+              'J_GERM_START': ('j_germ_start', '_integer'),
+              'J_GERM_LENGTH': ('j_germ_length', '_integer'),
+              'JUNCTION_LENGTH': ('junction_length', '_integer'),
+              'V_SCORE': ('v_score', '_float'),
+              'V_IDENTITY': ('v_identity', '_float'),
+              'V_EVALUE': ('v_evalue', '_float'),
+              'V_BTOP': ('v_btop', '_identity'),
+              'J_SCORE': ('j_score', '_float'),
+              'J_IDENTITY': ('j_identity', '_float'),
+              'J_EVALUE': ('j_evalue', '_float'),
+              'J_BTOP': ('j_btop', '_identity'),
+              'HMM_SCORE': ('hmm_score', '_float'),
+              'FWR1_IMGT': ('fwr1', '_sequence'),
+              'FWR2_IMGT': ('fwr2', '_sequence'),
+              'FWR3_IMGT': ('fwr3', '_sequence'),
+              'FWR4_IMGT': ('fwr4', '_sequence'),
+              'CDR1_IMGT': ('cdr1', '_sequence'),
+              'CDR2_IMGT': ('cdr2', '_sequence'),
+              'CDR3_IMGT': ('cdr3', '_sequence'),
+              'GERMLINE': ('germline', '_sequence'),
+              'GERMLINE_D_MASK': ('germline_d_mask', '_sequence'),
+              'N1_LENGTH': ('n1_length', '_integer'),
+              'N2_LENGTH': ('n2_length', '_integer'),
+              'P3V_LENGTH': ('p3v_length', '_integer'),
+              'P5D_LENGTH': ('p5d_length', '_integer'),
+              'P3D_LENGTH': ('p3d_length', '_integer'),
+              'P5J_LENGTH': ('p5j_length', '_integer'),
+              'D_FRAME': ('d_frame', '_integer'),
+              'CDR3_IGBLAST_NT': ('cdr3_igblast_nt', '_sequence'),
+              'CDR3_IGBLAST_AA': ('cdr3_igblast_aa', '_sequence')}
+
+    # Pass through type conversion
+    @staticmethod
+    def _identity(v, deparse=False):
+        return v
+
+    # Logical type conversion
+    @staticmethod
+    def _logical(v, deparse=False):
+        parse_map = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
+                     'NA': None, 'None': None, '': None}
+        deparse_map = {False: 'F', True: 'T', None: ''}
+        if not deparse:
+            try:
+                return parse_map[v]
+            except:
+                return None
+        else:
+            try:
+                return deparse_map[v]
+            except:
+                return ''
+
+    # Integer type conversion
+    @staticmethod
+    def _integer(v, deparse=False):
+        if not deparse:
+            try:
+                return int(v)
+            except:
+                return ''
+        else:
+            try:
+                return str(v)
+            except:
+                return ''
+
+    # Float type conversion
+    @staticmethod
+    def _float(v, deparse=False):
+        if not deparse:
+            try:
+                return float(v)
+            except:
+                return ''
+        else:
+            try:
+                return str(v)
+            except:
+                return ''
+
+    # Sequence type conversion
+    @staticmethod
+    def _sequence(v, deparse=False):
+        if not deparse:
+            try:
+                if v in ['NA', 'None']:
+                    return ''
+                else:
+                    return Seq(v, IUPAC.ambiguous_dna).upper()
+            except:
+                return ''
+        else:
+            try:
+                if v in ['NA', 'None']:
+                    return ''
+                else:
+                    return str(v)
+            except:
+                return ''
+
+    def parseFields(self, row):
+        """
+        Parses a dictionary of fields in the Change-O format
+
+        Arguments:
+          row : dict with fields and values in the Change-O format
+
+        Returns:
+          dict : a parsed dict
+        """
+        # Get list of known fields in input
+        keys = [k for k in row if k in ChangeoReader.fields]
+
+        # Parse known fields
+        result = {}
+        for k, v in row.items():
+            if k in ChangeoReader.fields:
+                f = getattr(ChangeoReader, ChangeoReader.fields[k][1])
+                v = f(row.pop(k))
+                k = ChangeoReader.fields[k][0]
+            else:
+                k = k.lower()
+            result[k] = v
+
+        return result
+
+    def __init__(self, handle, ig=True):
+        """
+        Initializer
+
+        Arguments:
+          file : handle to an open Change-O formatted file
+          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+
+        Returns:
+          change.Schema.ChangeoReader
+        """
+        # Arguments
+        self.handle = handle
+        self.ig = ig
+
+    def __iter__(self):
+        """
+        Iterator initializer.
+
+        Returns:
+          changeo.Parsers.ChangeoReader
+        """
+        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
+
+        return self
+
+    def __next__(self):
+        """
+        Next method.
+
+        Returns:
+          changeo.Receptor.IgRecord : Parsed Change-O data
+        """
+        # Get next row from reader iterator
+        try:
+            row = next(self.reader)
+        except StopIteration:
+            raise StopIteration
+
+        # Parse row
+        db = self.parseFields(row)
+
+        if self.ig:
+            return IgRecord(db)
+        else:
+            return db
+
+
 class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
