@@ -15,8 +15,8 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
-from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
-                             j_allele_regex
+from changeo.Receptor import Receptor, IgRecord, parseAllele, \
+                             v_allele_regex, d_allele_regex, j_allele_regex
 
 # Define core field column ordering
 default_core_fields = ['SEQUENCE_ID',
@@ -73,136 +73,65 @@ class ChangeoReader:
     """
     An iterator to read and parse Change-O formatted data.
     """
-
-    # Mapping of Change-O column names to output fields and typing functions
-    fields = {'SEQUENCE_ID': ('id', '_identity'),
-              'V_CALL': ('v_call', '_identity'),
-              'V_CALL_GENOTYPED': ('v_call_genotyped', '_identity'),
-              'D_CALL': ('d_call', '_identity'),
-              'J_CALL': ('j_call', '_identity'),
-              'SEQUENCE_INPUT': ('seq_input', '_sequence'),
-              'SEQUENCE_VDJ': ('seq_vdj', '_sequence'),
-              'SEQUENCE_IMGT': ('seq_imgt', '_sequence'),
-              'JUNCTION': ('junction', '_sequence'),
-              'FUNCTIONAL': ('functional', '_logical'),
-              'IN_FRAME': ('in_frame', '_logical'),
-              'STOP': ('stop', '_logical'),
-              'MUTATED_INVARIANT': ('mutated_invariant', '_logical'),
-              'INDELS': ('indels', '_logical'),
-              'V_SEQ_START': ('v_seq_start', '_integer'),
-              'V_SEQ_LENGTH': ('v_seq_length', '_integer'),
-              'V_GERM_START_VDJ': ('v_germ_start_vdj', '_integer'),
-              'V_GERM_LENGTH_VDJ': ('v_germ_length_vdj', '_integer'),
-              'V_GERM_START_IMGT': ('v_germ_start_imgt', '_integer'),
-              'V_GERM_LENGTH_IMGT': ('v_germ_length_imgt', '_integer'),
-              'NP1_LENGTH': ('np1_length', '_integer'),
-              'D_SEQ_START': ('d_seq_start', '_integer'),
-              'D_SEQ_LENGTH': ('d_seq_length', '_integer'),
-              'D_GERM_START': ('d_germ_start', '_integer'),
-              'D_GERM_LENGTH': ('d_germ_length', '_integer'),
-              'NP2_LENGTH': ('np2_length', '_integer'),
-              'J_SEQ_START': ('j_seq_start', '_integer'),
-              'J_SEQ_LENGTH': ('j_seq_length', '_integer'),
-              'J_GERM_START': ('j_germ_start', '_integer'),
-              'J_GERM_LENGTH': ('j_germ_length', '_integer'),
-              'JUNCTION_LENGTH': ('junction_length', '_integer'),
-              'V_SCORE': ('v_score', '_float'),
-              'V_IDENTITY': ('v_identity', '_float'),
-              'V_EVALUE': ('v_evalue', '_float'),
-              'V_BTOP': ('v_btop', '_identity'),
-              'J_SCORE': ('j_score', '_float'),
-              'J_IDENTITY': ('j_identity', '_float'),
-              'J_EVALUE': ('j_evalue', '_float'),
-              'J_BTOP': ('j_btop', '_identity'),
-              'HMM_SCORE': ('hmm_score', '_float'),
-              'FWR1_IMGT': ('fwr1', '_sequence'),
-              'FWR2_IMGT': ('fwr2', '_sequence'),
-              'FWR3_IMGT': ('fwr3', '_sequence'),
-              'FWR4_IMGT': ('fwr4', '_sequence'),
-              'CDR1_IMGT': ('cdr1', '_sequence'),
-              'CDR2_IMGT': ('cdr2', '_sequence'),
-              'CDR3_IMGT': ('cdr3', '_sequence'),
-              'GERMLINE': ('germline', '_sequence'),
-              'GERMLINE_D_MASK': ('germline_d_mask', '_sequence'),
-              'N1_LENGTH': ('n1_length', '_integer'),
-              'N2_LENGTH': ('n2_length', '_integer'),
-              'P3V_LENGTH': ('p3v_length', '_integer'),
-              'P5D_LENGTH': ('p5d_length', '_integer'),
-              'P3D_LENGTH': ('p3d_length', '_integer'),
-              'P5J_LENGTH': ('p5j_length', '_integer'),
-              'D_FRAME': ('d_frame', '_integer'),
-              'CDR3_IGBLAST_NT': ('cdr3_igblast_nt', '_sequence'),
-              'CDR3_IGBLAST_AA': ('cdr3_igblast_aa', '_sequence')}
-
-    # Pass through type conversion
-    @staticmethod
-    def _identity(v, deparse=False):
-        return v
-
-    # Logical type conversion
-    @staticmethod
-    def _logical(v, deparse=False):
-        parse_map = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
-                     'NA': None, 'None': None, '': None}
-        deparse_map = {False: 'F', True: 'T', None: ''}
-        if not deparse:
-            try:
-                return parse_map[v]
-            except:
-                return None
-        else:
-            try:
-                return deparse_map[v]
-            except:
-                return ''
-
-    # Integer type conversion
-    @staticmethod
-    def _integer(v, deparse=False):
-        if not deparse:
-            try:
-                return int(v)
-            except:
-                return ''
-        else:
-            try:
-                return str(v)
-            except:
-                return ''
-
-    # Float type conversion
-    @staticmethod
-    def _float(v, deparse=False):
-        if not deparse:
-            try:
-                return float(v)
-            except:
-                return ''
-        else:
-            try:
-                return str(v)
-            except:
-                return ''
-
-    # Sequence type conversion
-    @staticmethod
-    def _sequence(v, deparse=False):
-        if not deparse:
-            try:
-                if v in ['NA', 'None']:
-                    return ''
-                else:
-                    return Seq(v, IUPAC.ambiguous_dna).upper()
-            except:
-                return ''
-        else:
-            try:
-                if v in ['NA', 'None']:
-                    return ''
-                else:
-                    return str(v)
-            except:
-                return ''
+    # Mapping of Change-O column names to output fields
+    fields = {'SEQUENCE_ID': 'sequence_id',
+              'V_CALL': 'v_call',
+              'V_CALL_GENOTYPED': 'v_call_genotyped',
+              'D_CALL': 'd_call',
+              'J_CALL': 'j_call',
+              'SEQUENCE_INPUT': 'sequence_input',
+              'SEQUENCE_VDJ': 'sequence_vdj',
+              'SEQUENCE_IMGT': 'sequence_imgt',
+              'JUNCTION': 'junction',
+              'FUNCTIONAL': 'functional',
+              'IN_FRAME': 'in_frame',
+              'STOP': 'stop',
+              'MUTATED_INVARIANT': 'mutated_invariant',
+              'INDELS': 'indels',
+              'V_SEQ_START': 'v_seq_start',
+              'V_SEQ_LENGTH': 'v_seq_length',
+              'V_GERM_START_VDJ': 'v_germ_start_vdj',
+              'V_GERM_LENGTH_VDJ': 'v_germ_length_vdj',
+              'V_GERM_START_IMGT': 'v_germ_start_imgt',
+              'V_GERM_LENGTH_IMGT': 'v_germ_length_imgt',
+              'NP1_LENGTH': 'np1_length',
+              'D_SEQ_START': 'd_seq_start',
+              'D_SEQ_LENGTH': 'd_seq_length',
+              'D_GERM_START': 'd_germ_start',
+              'D_GERM_LENGTH': 'd_germ_length',
+              'NP2_LENGTH': 'np2_length',
+              'J_SEQ_START': 'j_seq_start',
+              'J_SEQ_LENGTH': 'j_seq_length',
+              'J_GERM_START': 'j_germ_start',
+              'J_GERM_LENGTH': 'j_germ_length',
+              'JUNCTION_LENGTH': 'junction_length',
+              'V_SCORE': 'v_score',
+              'V_IDENTITY': 'v_identity',
+              'V_EVALUE': 'v_evalue',
+              'V_BTOP': 'v_btop',
+              'J_SCORE': 'j_score',
+              'J_IDENTITY': 'j_identity',
+              'J_EVALUE': 'j_evalue',
+              'J_BTOP': 'j_btop',
+              'HMM_SCORE': 'hmm_score',
+              'FWR1_IMGT': 'fwr1_imgt',
+              'FWR2_IMGT': 'fwr2_imgt',
+              'FWR3_IMGT': 'fwr3_imgt',
+              'FWR4_IMGT': 'fwr4_imgt',
+              'CDR1_IMGT': 'cdr1_imgt',
+              'CDR2_IMGT': 'cdr2_imgt',
+              'CDR3_IMGT': 'cdr3_imgt',
+              'GERMLINE': 'germline',
+              'GERMLINE_D_MASK': 'germline_d_mask',
+              'N1_LENGTH': 'n1_length',
+              'N2_LENGTH': 'n2_length',
+              'P3V_LENGTH': 'p3v_length',
+              'P5D_LENGTH': 'p5d_length',
+              'P3D_LENGTH': 'p3d_length',
+              'P5J_LENGTH': 'p5j_length',
+              'D_FRAME': 'd_frame',
+              'CDR3_IGBLAST_NT': 'cdr3_igblast_nt',
+              'CDR3_IGBLAST_AA': 'cdr3_igblast_aa'}
 
     def parseFields(self, row):
         """
@@ -220,30 +149,28 @@ class ChangeoReader:
         # Parse known fields
         result = {}
         for k, v in row.items():
-            if k in ChangeoReader.fields:
-                f = getattr(ChangeoReader, ChangeoReader.fields[k][1])
-                v = f(row.pop(k))
-                k = ChangeoReader.fields[k][0]
+            if k in keys:
+                k = ChangeoReader.fields[k]
             else:
                 k = k.lower()
             result[k] = v
 
         return result
 
-    def __init__(self, handle, ig=True):
+    def __init__(self, handle, receptor=True):
         """
         Initializer
 
         Arguments:
-          file : handle to an open Change-O formatted file
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+          handle : handle to an open Change-O formatted file
+          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          change.Schema.ChangeoReader
+          change.Receptor.Receptor
         """
         # Arguments
         self.handle = handle
-        self.ig = ig
+        self.receptor = receptor
 
     def __iter__(self):
         """
@@ -271,12 +198,12 @@ class ChangeoReader:
             raise StopIteration
 
         # Parse row
-        db = self.parseFields(row)
+        result = self.parseFields(row)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(result)
         else:
-            return db
+            return result
 
 
 class IMGTReader:

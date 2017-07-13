@@ -20,7 +20,8 @@ data_path = os.path.join(test_path, 'data')
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
 from changeo.IO import extractIMGT, readRepo
-from changeo.Parsers import IgBLASTReader, IHMMuneReader, IMGTReader, decodeBTOP, decodeCIGAR, encodeCIGAR
+from changeo.Parsers import ChangeoReader, IgBLASTReader, IHMMuneReader, IMGTReader, \
+                            decodeBTOP, decodeCIGAR, encodeCIGAR
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -37,6 +38,8 @@ class Test_MakeDb(unittest.TestCase):
         self.ig_igblast_file = os.path.join(data_path, 'igblast1.7_ig.fmt7')
         # iHMMune-Align output
         self.ig_ihmmune_file = os.path.join(data_path, 'ihmmune_ig.csv')
+        # Change-O files
+        self.ig_db_file = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
 
         # CIGAR strings
         self.cigar_string = ['30M1I69M3D']
@@ -57,6 +60,19 @@ class Test_MakeDb(unittest.TestCase):
     def tearDown(self):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
+
+    #@unittest.skip("-> ChangeoReader() skipped\n")
+    def test_ChangeoReader(self):
+        # Parse
+        with open(self.ig_db_file, 'r') as f:
+            result = ChangeoReader(f, receptor=False)
+            for x in result: print(x)
+
+        with open(self.ig_db_file, 'r') as f:
+            result = ChangeoReader(f, receptor=True)
+            for x in result: print(x.toDict())
+
+        self.fail('TODO')
 
     @unittest.skip("-> IMGTReader() skipped\n")
     def test_IMGTReader(self):
