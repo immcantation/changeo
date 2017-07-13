@@ -133,7 +133,8 @@ class ChangeoReader:
                     'CDR3_IGBLAST_NT': 'cdr3_igblast_nt',
                     'CDR3_IGBLAST_AA': 'cdr3_igblast_aa'}
 
-    def parseFields(self, row):
+    @staticmethod
+    def _parseFields(row):
         """
         Parses a dictionary of fields in the Change-O format
 
@@ -198,7 +199,7 @@ class ChangeoReader:
             raise StopIteration
 
         # Parse row
-        result = self.parseFields(row)
+        result = ChangeoReader._parseFields(row)
 
         if self.receptor:
             return Receptor(result)
