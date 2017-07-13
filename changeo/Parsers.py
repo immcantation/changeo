@@ -74,64 +74,64 @@ class ChangeoReader:
     An iterator to read and parse Change-O formatted data.
     """
     # Mapping of Change-O column names to output fields
-    fields = {'SEQUENCE_ID': 'sequence_id',
-              'V_CALL': 'v_call',
-              'V_CALL_GENOTYPED': 'v_call_genotyped',
-              'D_CALL': 'd_call',
-              'J_CALL': 'j_call',
-              'SEQUENCE_INPUT': 'sequence_input',
-              'SEQUENCE_VDJ': 'sequence_vdj',
-              'SEQUENCE_IMGT': 'sequence_imgt',
-              'JUNCTION': 'junction',
-              'FUNCTIONAL': 'functional',
-              'IN_FRAME': 'in_frame',
-              'STOP': 'stop',
-              'MUTATED_INVARIANT': 'mutated_invariant',
-              'INDELS': 'indels',
-              'V_SEQ_START': 'v_seq_start',
-              'V_SEQ_LENGTH': 'v_seq_length',
-              'V_GERM_START_VDJ': 'v_germ_start_vdj',
-              'V_GERM_LENGTH_VDJ': 'v_germ_length_vdj',
-              'V_GERM_START_IMGT': 'v_germ_start_imgt',
-              'V_GERM_LENGTH_IMGT': 'v_germ_length_imgt',
-              'NP1_LENGTH': 'np1_length',
-              'D_SEQ_START': 'd_seq_start',
-              'D_SEQ_LENGTH': 'd_seq_length',
-              'D_GERM_START': 'd_germ_start',
-              'D_GERM_LENGTH': 'd_germ_length',
-              'NP2_LENGTH': 'np2_length',
-              'J_SEQ_START': 'j_seq_start',
-              'J_SEQ_LENGTH': 'j_seq_length',
-              'J_GERM_START': 'j_germ_start',
-              'J_GERM_LENGTH': 'j_germ_length',
-              'JUNCTION_LENGTH': 'junction_length',
-              'V_SCORE': 'v_score',
-              'V_IDENTITY': 'v_identity',
-              'V_EVALUE': 'v_evalue',
-              'V_BTOP': 'v_btop',
-              'J_SCORE': 'j_score',
-              'J_IDENTITY': 'j_identity',
-              'J_EVALUE': 'j_evalue',
-              'J_BTOP': 'j_btop',
-              'HMM_SCORE': 'hmm_score',
-              'FWR1_IMGT': 'fwr1_imgt',
-              'FWR2_IMGT': 'fwr2_imgt',
-              'FWR3_IMGT': 'fwr3_imgt',
-              'FWR4_IMGT': 'fwr4_imgt',
-              'CDR1_IMGT': 'cdr1_imgt',
-              'CDR2_IMGT': 'cdr2_imgt',
-              'CDR3_IMGT': 'cdr3_imgt',
-              'GERMLINE': 'germline',
-              'GERMLINE_D_MASK': 'germline_d_mask',
-              'N1_LENGTH': 'n1_length',
-              'N2_LENGTH': 'n2_length',
-              'P3V_LENGTH': 'p3v_length',
-              'P5D_LENGTH': 'p5d_length',
-              'P3D_LENGTH': 'p3d_length',
-              'P5J_LENGTH': 'p5j_length',
-              'D_FRAME': 'd_frame',
-              'CDR3_IGBLAST_NT': 'cdr3_igblast_nt',
-              'CDR3_IGBLAST_AA': 'cdr3_igblast_aa'}
+    _changeo_map = {'SEQUENCE_ID': 'sequence_id',
+                    'V_CALL': 'v_call',
+                    'V_CALL_GENOTYPED': 'v_call_genotyped',
+                    'D_CALL': 'd_call',
+                    'J_CALL': 'j_call',
+                    'SEQUENCE_INPUT': 'sequence_input',
+                    'SEQUENCE_VDJ': 'sequence_vdj',
+                    'SEQUENCE_IMGT': 'sequence_imgt',
+                    'JUNCTION': 'junction',
+                    'FUNCTIONAL': 'functional',
+                    'IN_FRAME': 'in_frame',
+                    'STOP': 'stop',
+                    'MUTATED_INVARIANT': 'mutated_invariant',
+                    'INDELS': 'indels',
+                    'V_SEQ_START': 'v_seq_start',
+                    'V_SEQ_LENGTH': 'v_seq_length',
+                    'V_GERM_START_VDJ': 'v_germ_start_vdj',
+                    'V_GERM_LENGTH_VDJ': 'v_germ_length_vdj',
+                    'V_GERM_START_IMGT': 'v_germ_start_imgt',
+                    'V_GERM_LENGTH_IMGT': 'v_germ_length_imgt',
+                    'NP1_LENGTH': 'np1_length',
+                    'D_SEQ_START': 'd_seq_start',
+                    'D_SEQ_LENGTH': 'd_seq_length',
+                    'D_GERM_START': 'd_germ_start',
+                    'D_GERM_LENGTH': 'd_germ_length',
+                    'NP2_LENGTH': 'np2_length',
+                    'J_SEQ_START': 'j_seq_start',
+                    'J_SEQ_LENGTH': 'j_seq_length',
+                    'J_GERM_START': 'j_germ_start',
+                    'J_GERM_LENGTH': 'j_germ_length',
+                    'JUNCTION_LENGTH': 'junction_length',
+                    'V_SCORE': 'v_score',
+                    'V_IDENTITY': 'v_identity',
+                    'V_EVALUE': 'v_evalue',
+                    'V_BTOP': 'v_btop',
+                    'J_SCORE': 'j_score',
+                    'J_IDENTITY': 'j_identity',
+                    'J_EVALUE': 'j_evalue',
+                    'J_BTOP': 'j_btop',
+                    'HMM_SCORE': 'hmm_score',
+                    'FWR1_IMGT': 'fwr1_imgt',
+                    'FWR2_IMGT': 'fwr2_imgt',
+                    'FWR3_IMGT': 'fwr3_imgt',
+                    'FWR4_IMGT': 'fwr4_imgt',
+                    'CDR1_IMGT': 'cdr1_imgt',
+                    'CDR2_IMGT': 'cdr2_imgt',
+                    'CDR3_IMGT': 'cdr3_imgt',
+                    'GERMLINE': 'germline',
+                    'GERMLINE_D_MASK': 'germline_d_mask',
+                    'N1_LENGTH': 'n1_length',
+                    'N2_LENGTH': 'n2_length',
+                    'P3V_LENGTH': 'p3v_length',
+                    'P5D_LENGTH': 'p5d_length',
+                    'P3D_LENGTH': 'p3d_length',
+                    'P5J_LENGTH': 'p5j_length',
+                    'D_FRAME': 'd_frame',
+                    'CDR3_IGBLAST_NT': 'cdr3_igblast_nt',
+                    'CDR3_IGBLAST_AA': 'cdr3_igblast_aa'}
 
     def parseFields(self, row):
         """
@@ -144,13 +144,13 @@ class ChangeoReader:
           dict : a parsed dict
         """
         # Get list of known fields in input
-        keys = [k for k in row if k in ChangeoReader.fields]
+        keys = [k for k in row if k in ChangeoReader._changeo_map]
 
         # Parse known fields
         result = {}
         for k, v in row.items():
             if k in keys:
-                k = ChangeoReader.fields[k]
+                k = ChangeoReader._changeo_map[k]
             else:
                 k = k.lower()
             result[k] = v
@@ -166,7 +166,7 @@ class ChangeoReader:
           receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          change.Receptor.Receptor
+          changeo.Parsers.ChangeoReader
         """
         # Arguments
         self.handle = handle
@@ -204,6 +204,91 @@ class ChangeoReader:
             return Receptor(result)
         else:
             return result
+
+
+class ChangeoWriter:
+    """
+    An iterator to write Change-O formatted data.
+    """
+    # Mapping of Change-O column names to output fields
+    _receptor_map = {v: k for k, v in ChangeoReader._changeo_map.items()}
+
+    @staticmethod
+    def _parseRow(row):
+        """
+        Parses a dictionary of fields in Receptor format to the Change-O format
+
+        Arguments:
+          row : dict with fields and values in the Receptor format
+
+        Returns:
+          dict : a parsed dict
+        """
+        # Get list of known fields in input
+        keys = [k for k in row if k in ChangeoWriter._receptor_map]
+
+        # Parse known fields
+        result = {}
+        for k, v in row.items():
+            if k in keys:
+                k = ChangeoWriter._receptor_map[k]
+            else:
+                k = k.upper()
+            result[k] = v
+
+        return result
+
+    def __init__(self, handle, fields=list(ChangeoReader._changeo_map.keys())):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open output file
+          fields : list of output field names
+
+        Returns:
+          changeo.Parsers.ChangeoWriter
+        """
+        # Arguments
+        self.handle = handle
+        self.fields = [n.strip().upper() for n in fields]
+        self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
+                                     dialect='excel-tab', extrasaction='ignore')
+
+    def writeHeader(self):
+            """
+            Writes the header
+
+            Returns:
+              None
+            """
+            self.writer.writeheader()
+
+    def writeDict(self, record):
+            """
+            Writes a row from a dictionary
+
+            Arguments:
+              record : dictionary of row data
+
+            Returns:
+              None
+            """
+            row = self._parseRow(record)
+            self.writer.writerow(row)
+
+    def writeReceptor(self, record):
+            """
+            Writes a row from a Receptor object
+
+            Arguments:
+              record : a changeo.Receptor.Receptor object to write
+
+            Returns:
+              None
+            """
+            row = record.toDict()
+            self.writer.writerow(row)
 
 
 class IMGTReader:
