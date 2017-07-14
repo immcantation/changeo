@@ -212,3 +212,53 @@ def extractIMGT(imgt_output):
         sys.exit('ERROR: Extra files or missing necessary file IMGT output %s.' % imgt_output)
 
     return temp_dir, imgt_dict
+
+
+# TODO
+def getFields(file, add=None, exclude=None):
+    """
+    Get field names from a db file
+
+    Arguments:
+      file : db file to pull base fields from.
+      add : fields to append to the field set.
+      exclude : fields to exclude from the field set.
+
+    Returns:
+        list : list of field names
+    """
+    pass
+
+# TODO
+def nameOutputDb(file, out_name=None, out_label=None, out_type=None):
+    """
+    Create output filename from input filename
+
+    Arguments:
+      file : input file name to base output name on
+      out_name : the short filename to use for the output file;
+                 if None use input file short name
+      out_label : Text to be inserted before the file extension;
+                  if None do not add a label
+      out_type : the file extension of the output file;
+                 if None use input file extension
+
+    Returns:
+        str : output file name
+    """
+    pass
+
+# TODO
+def openOutputDb(file, out_dir=None):
+    """
+    Opens an output file handle
+
+    Arguments:
+      file : output file name
+      out_dir : the output directory;
+                if None use directory of input file
+
+    Returns:
+      file : File handle
+    """
+    pass
