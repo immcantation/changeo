@@ -62,6 +62,60 @@ def readRepo(repo):
     return repo_dict
 
 
+def extractIMGT(imgt_output):
+    """
+    Extract necessary files from IMGT/HighV-QUEST results.
+
+    Arguments:
+      imgt_output : zipped file or unzipped folder output by IMGT/HighV-QUEST.
+
+    Returns:
+      tuple : (temporary directory handle, dictionary with names of extracted IMGT files).
+    """
+    # Map of IMGT file names
+    imgt_names = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
+    imgt_keys = ('summary', 'gapped', 'ntseq', 'junction')
+
+    # Open temporary directory and intialize return dictionary
+    temp_dir = TemporaryDirectory()
+
+    # Zip input
+    if zipfile.is_zipfile(imgt_output):
+        imgt_zip = zipfile.ZipFile(imgt_output, 'r')
+        # Extract required files
+        imgt_files = sorted([n for n in imgt_zip.namelist() \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_zip.extractall(temp_dir.name, imgt_files)
+        # Define file dictionary
+        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
+    # Folder input
+    elif os.path.isdir(imgt_output):
+        folder_files = []
+        for root, dirs, files in os.walk(imgt_output):
+            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
+        # Define file dictionary
+        imgt_files = sorted([n for n in folder_files \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_dict = {k: f for k, f in zip_longest(imgt_keys, imgt_files)}
+    # Tarball input
+    elif tarfile.is_tarfile(imgt_output):
+        imgt_tar = tarfile.open(imgt_output, 'r')
+        # Extract required files
+        imgt_files = sorted([n for n in imgt_tar.getnames() \
+                             if os.path.basename(n).startswith(imgt_names)])
+        imgt_tar.extractall(temp_dir.name, [imgt_tar.getmember(n) for n in imgt_files])
+        # Define file dictionary
+        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
+    else:
+        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
+
+    # Check extraction for errors
+    if len(imgt_dict) != len(imgt_names):
+        sys.exit('ERROR: Extra files or missing necessary file IMGT output %s.' % imgt_output)
+
+    return temp_dir, imgt_dict
+
+
 # TODO:  change to require output fields rather than in_file? probably better that way.
 def getDbWriter(out_handle, in_file=None, add_fields=None, exclude_fields=None):
     """
@@ -134,19 +188,19 @@ def readDbFile(db_file, ig=True):
     return db_iter
 
 
-def countDbFile(db_file):
+def countDbFile(file):
     """
     Counts the records in database files
 
     Arguments:
-      db_file : tab-delimited database file.
+      file : tab-delimited database file.
 
     Returns:
       int : count of records in the database file.
     """
     # Count records and check file
     try:
-        with open(db_file, 'rt') as db_handle:
+        with open(file, 'rt') as db_handle:
             db_records = csv.reader(db_handle, dialect='excel-tab')
             for i, __ in enumerate(db_records):  pass
         db_count = i
@@ -160,62 +214,7 @@ def countDbFile(db_file):
     return db_count
 
 
-def extractIMGT(imgt_output):
-    """
-    Extract necessary files from IMGT/HighV-QUEST results.
-
-    Arguments:
-      imgt_output : zipped file or unzipped folder output by IMGT/HighV-QUEST.
-
-    Returns:
-      tuple : (temporary directory handle, dictionary with names of extracted IMGT files).
-    """
-    # Map of IMGT file names
-    imgt_names = ('1_Summary', '2_IMGT-gapped', '3_Nt-sequences', '6_Junction')
-    imgt_keys = ('summary', 'gapped', 'ntseq', 'junction')
-
-    # Open temporary directory and intialize return dictionary
-    temp_dir = TemporaryDirectory()
-
-    # Zip input
-    if zipfile.is_zipfile(imgt_output):
-        imgt_zip = zipfile.ZipFile(imgt_output, 'r')
-        # Extract required files
-        imgt_files = sorted([n for n in imgt_zip.namelist() \
-                             if os.path.basename(n).startswith(imgt_names)])
-        imgt_zip.extractall(temp_dir.name, imgt_files)
-        # Define file dictionary
-        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
-    # Folder input
-    elif os.path.isdir(imgt_output):
-        folder_files = []
-        for root, dirs, files in os.walk(imgt_output):
-            folder_files.extend([os.path.join(os.path.abspath(root), f) for f in files])
-        # Define file dictionary
-        imgt_files = sorted([n for n in folder_files \
-                             if os.path.basename(n).startswith(imgt_names)])
-        imgt_dict = {k: f for k, f in zip_longest(imgt_keys, imgt_files)}
-    # Tarball input
-    elif tarfile.is_tarfile(imgt_output):
-        imgt_tar = tarfile.open(imgt_output, 'r')
-        # Extract required files
-        imgt_files = sorted([n for n in imgt_tar.getnames() \
-                             if os.path.basename(n).startswith(imgt_names)])
-        imgt_tar.extractall(temp_dir.name, [imgt_tar.getmember(n) for n in imgt_files])
-        # Define file dictionary
-        imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
-    else:
-        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
-
-    # Check extraction for errors
-    if len(imgt_dict) != len(imgt_names):
-        sys.exit('ERROR: Extra files or missing necessary file IMGT output %s.' % imgt_output)
-
-    return temp_dir, imgt_dict
-
-
-# TODO
-def getFields(file, add=None, exclude=None):
+def getDbFields(file, add=None, exclude=None):
     """
     Get field names from a db file
 
@@ -227,7 +226,26 @@ def getFields(file, add=None, exclude=None):
     Returns:
         list : list of field names
     """
-    pass
+    try:
+        with open(file, 'rt') as handle:
+            reader = csv.DictReader(handle, dialect='excel-tab')
+            fields = [n.strip().upper() for n in reader.fieldnames]
+    except IOError:
+        sys.exit('ERROR:  File %s cannot be read' % file)
+    except:
+        sys.exit('ERROR:  File %s is invalid' % file)
+
+    # Add extra fields
+    if add is not None:
+        if not isinstance(add, list):  add = [add]
+        fields.extend([f for f in add if f not in fields])
+    # Remove unwanted fields
+    if exclude is not None:
+        if not isinstance(exclude, list):  exclude = [exclude]
+        fields = [f for f in fields if f not in exclude]
+
+    return fields
+
 
 # TODO
 def nameOutputDb(file, out_name=None, out_label=None, out_type=None):
@@ -247,6 +265,7 @@ def nameOutputDb(file, out_name=None, out_label=None, out_type=None):
         str : output file name
     """
     pass
+
 
 # TODO
 def openOutputDb(file, out_dir=None):

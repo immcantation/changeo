@@ -174,6 +174,10 @@ class Receptor:
         Returns:
           changeo.Receptor.Receptor
         """
+        # Convert case
+        data = {k.lower(): v for k, v in data.items()}
+
+        # Define known keys
         required_keys = ('sequence_id',)
         optional_keys = (x for x in Receptor._parse_map if x not in required_keys)
 
@@ -191,7 +195,7 @@ class Receptor:
             setattr(self, k, f(data.pop(k, None)))
 
         # Add remaining elements as annotations dictionary
-        self.annotations = {k.lower(): v for k, v in data.items()}
+        self.annotations = data
 
     def toSeq(self, field):
         """
