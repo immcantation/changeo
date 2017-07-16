@@ -16,12 +16,12 @@ from time import time
 from Bio import SeqIO
 
 # Presto and changeo imports
-from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
-from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
+from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
+from changeo.Defaults import default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, extractIMGT, getDbWriter, readRepo
-from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
+from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoReader, ChangeoWriter
 
 
 def getFilePrefix(aligner_output, out_args):
@@ -68,7 +68,7 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
+def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, partial=False,
             out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory.
@@ -76,7 +76,7 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
     Arguments:
       db : a iterator of IgRecord objects containing alignment data.
       fields : a list of ordered field names to write.
-      file_prefix : directory and prefix for CLIP tab-delim file.
+      in_file : input file name.
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
       no_parse : if ID is to be parsed for pRESTO output with default delimiters.
@@ -105,17 +105,13 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
     # Set pass criteria
     _pass = _pass_gentle if partial else _pass_strict
 
-    # Define output file names
-    pass_file = '%s_db-pass.tab' % file_prefix
-    fail_file = '%s_db-fail.tab' % file_prefix
-
     # Initiate handles, writers and counters
     pass_handle = None
     fail_handle = None
     pass_writer = None
     fail_writer = None
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    pass_count = fail_count = 0
 
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time)
@@ -144,29 +140,35 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
         if _pass(record):
             # Open pass file
             if pass_writer is None:
-                pass_handle = open(pass_file, 'wt')
-                pass_writer = getDbWriter(pass_handle, add_fields=fields)
+                pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'], out_type='tsv')
+                pass_writer = ChangeoWriter(pass_handle, fields)
+                #pass_handle = open(pass_file, 'wt')
+                #pass_writer = getDbWriter(pass_handle, add_fields=fields)
 
             # Write row to pass file
             pass_count += 1
-            pass_writer.writerow(record.toDict())
+            pass_writer.writeDict(record.toDict())
         else:
             # Open failed file
             if out_args['failed'] and fail_writer is None:
-                fail_handle = open(fail_file, 'wt')
-                fail_writer = getDbWriter(fail_handle, add_fields=fields)
+                fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'], out_type='tsv')
+                fail_writer = ChangeoWriter(fail_handle, fields)
+                #fail_handle = open(fail_file, 'wt')
+                #fail_writer = getDbWriter(fail_handle, add_fields=fields)
 
             # Write row to fail file if specified
             fail_count += 1
             if fail_writer is not None:
-                fail_writer.writerow(record.toDict())
+                fail_writer.writeDict(record.toDict())
 
         # Print progress
         printProgress(i, total_count, 0.05, start_time)
 
     # Print consol log
     log = OrderedDict()
-    log['OUTPUT'] = pass_file
+    log['OUTPUT'] = pass_handle.name
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     log['END'] = 'MakeDb'
@@ -226,8 +228,8 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
                                 parse_scores=parse_scores, parse_regions=parse_regions,
                                 parse_junction=parse_junction)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, id_dict=id_dict,
+        #file_prefix = getFilePrefix(aligner_output, out_args)
+        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count, id_dict=id_dict,
                 no_parse=no_parse, partial=partial, out_args=out_args)
 
     # Cleanup temp directory
@@ -284,8 +286,8 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
         parse_iter = IgBLASTReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions,
                                    parse_igblast_cdr3=parse_igblast_cdr3)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
+        #file_prefix = getFilePrefix(aligner_output, out_args)
+        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count,
                 no_parse=no_parse, partial=partial, out_args=out_args)
 
     return None
@@ -336,8 +338,8 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     with open(aligner_output, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
+        #file_prefix = getFilePrefix(aligner_output, out_args)
+        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count,
                 no_parse=no_parse, partial=partial, out_args=out_args)
 
     return None
