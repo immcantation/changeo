@@ -14,6 +14,7 @@ default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]
 
 # Commandline arguments
+default_format = 'changeo'
 default_out_args = {'log_file':None,
                     'delimiter':default_delimiter,
                     'separator':default_separator,

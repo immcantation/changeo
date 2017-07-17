@@ -245,39 +245,3 @@ def getDbFields(file, add=None, exclude=None):
         fields = [f for f in fields if f not in exclude]
 
     return fields
-
-
-# TODO
-def nameOutputDb(file, out_name=None, out_label=None, out_type=None):
-    """
-    Create output filename from input filename
-
-    Arguments:
-      file : input file name to base output name on
-      out_name : the short filename to use for the output file;
-                 if None use input file short name
-      out_label : Text to be inserted before the file extension;
-                  if None do not add a label
-      out_type : the file extension of the output file;
-                 if None use input file extension
-
-    Returns:
-        str : output file name
-    """
-    pass
-
-
-# TODO
-def openOutputDb(file, out_dir=None):
-    """
-    Opens an output file handle
-
-    Arguments:
-      file : output file name
-      out_dir : the output directory;
-                if None use directory of input file
-
-    Returns:
-      file : File handle
-    """
-    pass

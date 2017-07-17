@@ -75,64 +75,64 @@ class ChangeoReader:
     An iterator to read and parse Change-O formatted data.
     """
     # Mapping of Change-O column names to output fields
-    _changeo = OrderedDict(('SEQUENCE_ID', 'sequence_id'),
-                           ('SEQUENCE_INPUT', 'sequence_input'),
-                           ('IN_FRAME', 'in_frame'),
-                           ('STOP', 'stop'),
-                           ('MUTATED_INVARIANT', 'mutated_invariant'),
-                           ('INDELS', 'indels'),
-                           ('V_CALL', 'v_call'),
-                           ('V_CALL_GENOTYPED', 'v_call_genotyped'),
-                           ('D_CALL', 'd_call'),
-                           ('J_CALL', 'j_call'),
-                           ('SEQUENCE_VDJ', 'sequence_vdj'),
-                           ('SEQUENCE_IMGT', 'sequence_imgt'),
-                           ('JUNCTION', 'junction'),
-                           ('FUNCTIONAL', 'functional'),
-                           ('V_SEQ_START', 'v_seq_start'),
-                           ('V_SEQ_LENGTH', 'v_seq_length'),
-                           ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
-                           ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
-                           ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
-                           ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
-                           ('NP1_LENGTH', 'np1_length'),
-                           ('D_SEQ_START', 'd_seq_start'),
-                           ('D_SEQ_LENGTH', 'd_seq_length'),
-                           ('D_GERM_START', 'd_germ_start'),
-                           ('D_GERM_LENGTH', 'd_germ_length'),
-                           ('NP2_LENGTH', 'np2_length'),
-                           ('J_SEQ_START', 'j_seq_start'),
-                           ('J_SEQ_LENGTH', 'j_seq_length'),
-                           ('J_GERM_START', 'j_germ_start'),
-                           ('J_GERM_LENGTH', 'j_germ_length'),
-                           ('JUNCTION_LENGTH', 'junction_length'),
-                           ('V_SCORE', 'v_score'),
-                           ('V_IDENTITY', 'v_identity'),
-                           ('V_EVALUE', 'v_evalue'),
-                           ('V_BTOP', 'v_btop'),
-                           ('J_SCORE', 'j_score'),
-                           ('J_IDENTITY', 'j_identity'),
-                           ('J_EVALUE', 'j_evalue'),
-                           ('J_BTOP', 'j_btop'),
-                           ('HMM_SCORE', 'hmm_score'),
-                           ('FWR1_IMGT', 'fwr1_imgt'),
-                           ('FWR2_IMGT', 'fwr2_imgt'),
-                           ('FWR3_IMGT', 'fwr3_imgt'),
-                           ('FWR4_IMGT', 'fwr4_imgt'),
-                           ('CDR1_IMGT', 'cdr1_imgt'),
-                           ('CDR2_IMGT', 'cdr2_imgt'),
-                           ('CDR3_IMGT', 'cdr3_imgt'),
-                           ('N1_LENGTH', 'n1_length'),
-                           ('N2_LENGTH', 'n2_length'),
-                           ('P3V_LENGTH', 'p3v_length'),
-                           ('P5D_LENGTH', 'p5d_length'),
-                           ('P3D_LENGTH', 'p3d_length'),
-                           ('P5J_LENGTH', 'p5j_length'),
-                           ('D_FRAME', 'd_frame'),
-                           ('CDR3_IGBLAST_NT', 'cdr3_igblast_nt'),
-                           ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
-                           ('GERMLINE', 'germline'),
-                           ('GERMLINE_D_MASK', 'germline_d_mask'))
+    _changeo = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
+                            ('SEQUENCE_INPUT', 'sequence_input'),
+                            ('IN_FRAME', 'in_frame'),
+                            ('STOP', 'stop'),
+                            ('MUTATED_INVARIANT', 'mutated_invariant'),
+                            ('INDELS', 'indels'),
+                            ('V_CALL', 'v_call'),
+                            ('V_CALL_GENOTYPED', 'v_call_genotyped'),
+                            ('D_CALL', 'd_call'),
+                            ('J_CALL', 'j_call'),
+                            ('SEQUENCE_VDJ', 'sequence_vdj'),
+                            ('SEQUENCE_IMGT', 'sequence_imgt'),
+                            ('JUNCTION', 'junction'),
+                            ('FUNCTIONAL', 'functional'),
+                            ('V_SEQ_START', 'v_seq_start'),
+                            ('V_SEQ_LENGTH', 'v_seq_length'),
+                            ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
+                            ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
+                            ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
+                            ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
+                            ('NP1_LENGTH', 'np1_length'),
+                            ('D_SEQ_START', 'd_seq_start'),
+                            ('D_SEQ_LENGTH', 'd_seq_length'),
+                            ('D_GERM_START', 'd_germ_start'),
+                            ('D_GERM_LENGTH', 'd_germ_length'),
+                            ('NP2_LENGTH', 'np2_length'),
+                            ('J_SEQ_START', 'j_seq_start'),
+                            ('J_SEQ_LENGTH', 'j_seq_length'),
+                            ('J_GERM_START', 'j_germ_start'),
+                            ('J_GERM_LENGTH', 'j_germ_length'),
+                            ('JUNCTION_LENGTH', 'junction_length'),
+                            ('V_SCORE', 'v_score'),
+                            ('V_IDENTITY', 'v_identity'),
+                            ('V_EVALUE', 'v_evalue'),
+                            ('V_BTOP', 'v_btop'),
+                            ('J_SCORE', 'j_score'),
+                            ('J_IDENTITY', 'j_identity'),
+                            ('J_EVALUE', 'j_evalue'),
+                            ('J_BTOP', 'j_btop'),
+                            ('HMM_SCORE', 'hmm_score'),
+                            ('FWR1_IMGT', 'fwr1_imgt'),
+                            ('FWR2_IMGT', 'fwr2_imgt'),
+                            ('FWR3_IMGT', 'fwr3_imgt'),
+                            ('FWR4_IMGT', 'fwr4_imgt'),
+                            ('CDR1_IMGT', 'cdr1_imgt'),
+                            ('CDR2_IMGT', 'cdr2_imgt'),
+                            ('CDR3_IMGT', 'cdr3_imgt'),
+                            ('N1_LENGTH', 'n1_length'),
+                            ('N2_LENGTH', 'n2_length'),
+                            ('P3V_LENGTH', 'p3v_length'),
+                            ('P5D_LENGTH', 'p5d_length'),
+                            ('P3D_LENGTH', 'p3d_length'),
+                            ('P5J_LENGTH', 'p5j_length'),
+                            ('D_FRAME', 'd_frame'),
+                            ('CDR3_IGBLAST_NT', 'cdr3_igblast_nt'),
+                            ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
+                            ('GERMLINE', 'germline'),
+                            ('GERMLINE_D_MASK', 'germline_d_mask')])
 
     @staticmethod
     def _parseFields(row):
@@ -191,7 +191,7 @@ class ChangeoReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : Parsed Change-O data
+          changeo.Receptor.Receptor : Parsed Change-O data
         """
         # Get next row from reader iterator
         try:
@@ -210,7 +210,7 @@ class ChangeoReader:
 
 class ChangeoWriter:
     """
-    An iterator to write Change-O formatted data.
+    Writes Change-O formatted data.
     """
     # Mapping of Change-O column names to output fields
     _receptor = {v: k for k, v in ChangeoReader._changeo.items()}
@@ -289,7 +289,7 @@ class ChangeoWriter:
             Returns:
               None
             """
-            row = record.toDict()
+            row = self._parseRow(record.toDict())
             self.writer.writerow(row)
 
 
@@ -312,7 +312,7 @@ class IMGTReader:
 
 
     def __init__(self, summary, gapped, ntseq, junction, parse_scores=False,
-                 parse_regions=False, parse_junction=False, ig=True):
+                 parse_regions=False, parse_junction=False, receptor=True):
         """
         Initializer
 
@@ -325,7 +325,7 @@ class IMGTReader:
           parse_regions : if True add FWR and CDR region fields.
           parse_junction : if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
                            P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields.
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
           change.Parsers.IMGTReader
@@ -338,7 +338,7 @@ class IMGTReader:
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.parse_junction = parse_junction
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
         self._fields = default_core_fields
@@ -711,7 +711,7 @@ class IMGTReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -721,8 +721,8 @@ class IMGTReader:
 
         db = self.parseRecord(summary, gapped, ntseq, junction)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
@@ -754,7 +754,7 @@ class IgBLASTReader:
 
 
     def __init__(self, igblast, seq_dict, repo_dict, parse_scores=False,
-                 parse_regions=False, parse_igblast_cdr3=False, ig=True):
+                 parse_regions=False, parse_igblast_cdr3=False, receptor=True):
         """
         Initializer.
 
@@ -766,7 +766,7 @@ class IgBLASTReader:
           parse_scores : if True parse alignment scores.
           parse_regions : if True add FWR and CDR region fields.
           parse_igblast_cdr3 : if True, parse CDR3 sequences generated by IgBLAST
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
           changeo.Parsers.IgBLASTReader
@@ -778,7 +778,7 @@ class IgBLASTReader:
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.parse_igblast_cdr3 = parse_igblast_cdr3
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
         self._fields = default_core_fields
@@ -1308,7 +1308,7 @@ class IgBLASTReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next block from groups iterator
         try:
@@ -1323,8 +1323,8 @@ class IgBLASTReader:
         sections = self.parseBlock(block)
         db = self.parseSections(sections)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
@@ -1428,7 +1428,7 @@ class IHMMuneReader:
 
 
     def __init__(self, ihmmune, seq_dict, repo_dict, parse_scores=False,
-                 parse_regions=False, ig=True):
+                 parse_regions=False, receptor=True):
         """
         Initializer
 
@@ -1439,7 +1439,7 @@ class IHMMuneReader:
           repo_dict : dictionary of IMGT gapped germline sequences.
           parse_scores : if True parse alignment scores.
           parse_regions : if True add FWR and CDR region fields.
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary
 
         Returns:
           changeo.Parsers.IHMMuneReader
@@ -1450,7 +1450,7 @@ class IHMMuneReader:
         self.repo_dict = repo_dict
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
         self._fields = default_core_fields
@@ -1763,7 +1763,7 @@ class IHMMuneReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -1775,8 +1775,8 @@ class IHMMuneReader:
 
         db = self.parseRecord(record)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
