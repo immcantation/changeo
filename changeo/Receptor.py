@@ -304,7 +304,7 @@ class Receptor:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        x = self.v_call_geno if self.v_call_geno is not None else self.v_call
+        x = self.v_call_genotyped if self.v_call_genotyped is not None else self.v_call
         return parseAllele(x, allele_regex, action)
 
     def getDAllele(self, action='first'):

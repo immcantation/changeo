@@ -197,6 +197,7 @@ class ChangeoReader:
         try:
             row = next(self.reader)
         except StopIteration:
+            self.handle.close()
             raise StopIteration
 
         # Parse row

@@ -10,7 +10,6 @@ from changeo import __version__, __date__
 import os
 import re
 import sys
-import csv
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -22,13 +21,14 @@ from Bio.Seq import translate
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import getFileType, getOutputHandle, printLog, printProgress
+from presto.IO import getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
 from presto.Sequence import getDNAScoreDict
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
-from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.IO import countDbFile, getDbFields
 from changeo.Multiprocessing import DbData, DbResult
+from changeo.Parsers import ChangeoReader, ChangeoWriter
 
 # Defaults
 default_translate = False
@@ -49,14 +49,14 @@ def indexByIdentity(index, key, rec, fields=None):
     Updates a preclone index with a simple key
 
     Arguments:
-    index = preclone index from indexJunctions
-    key = index key
-    rec = IgRecord to add to the index
-    fields = additional annotation fields to use to group preclones;
-             if None use only V, J and junction length
+      index : preclone index from indexJunctions
+      key : index key
+      rec : Receptor to add to the index
+      fields : additional annotation fields to use to group preclones;
+               if None use only V, J and junction length
 
     Returns:
-    None. Updates index with new key and records.
+      None : Updates index with new key and records.
     """
     index.setdefault(tuple(key), []).append(rec)
 
@@ -66,14 +66,14 @@ def indexByUnion(index, key, rec, fields=None):
     Updates a preclone index with the union of nested keys
 
     Arguments:
-    index = preclone index from indexJunctions
-    key = index key
-    rec = IgRecord to add to the index
-    fields = additional annotation fields to use to group preclones;
-             if None use only V, J and junction length
+      index : preclone index from indexJunctions
+      key : index key
+      rec : Receptor to add to the index
+      fields : additional annotation fields to use to group preclones;
+               if None use only V, J and junction length
 
     Returns:
-    None. Updates index with new key and records.
+      None : Updates index with new key and records.
     """
     # List of values for this/new key
     val = [rec]
@@ -129,16 +129,16 @@ def indexJunctions(db_iter, fields=None, mode=default_index_mode,
     Identifies preclonal groups by V, J and junction length
 
     Arguments: 
-    db_iter = an iterator of IgRecords defined by readDbFile
-    fields = additional annotation fields to use to group preclones;
-             if None use only V, J and junction length
-    mode = specificity of alignment call to use for assigning preclones;
-           one of ('allele', 'gene')
-    action = how to handle multiple value fields when assigning preclones;
-             one of ('first', 'set')
+      db_iter : an iterator of Receptor objects defined by ChangeoReader
+      fields : additional annotation fields to use to group preclones;
+               if None use only V, J and junction length
+      mode : specificity of alignment call to use for assigning preclones;
+             one of ('allele', 'gene')
+      action : how to handle multiple value fields when assigning preclones;
+               one of ('first', 'set')
     
     Returns: 
-    a dictionary of {(V, J, junction length):[IgRecords]}
+      dict: dictionary of {(V, J, junction length):[Receptor]}
     """
     # print(fields)
     # Define functions for grouping keys
@@ -214,20 +214,20 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
                    dist_mat=None, norm=default_norm, sym=default_sym,
                    linkage=default_linkage, seq_field=default_seq_field):
     """
-    Separates a set of IgRecords into clones
+    Separates a set of Receptor objects into clones
 
     Arguments: 
-    records = an iterator of IgRecords
-    model = substitution model used to calculate distance
-    distance = the distance threshold to assign clonal groups
-    dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
-    norm = normalization method
-    sym = symmetry method
-    linkage = type of linkage
-    seq_field = sequence field used to calculate distance between records
+      records : an iterator of Receptor objects
+      model : substitution model used to calculate distance
+      distance : the distance threshold to assign clonal groups
+      dist_mat : pandas DataFrame of pairwise nucleotide or amino acid distances
+      norm : normalization method
+      sym : symmetry method
+      linkage : type of linkage
+      seq_field : sequence field used to calculate distance between records
 
     Returns: 
-    a dictionary of lists defining {clone number: [IgRecords clonal group]}
+      dict : dictionary of lists defining {clone number: [Receptor objects clonal group]}
     """
     # Get distance matrix if not provided
     if dist_mat is None:
@@ -248,7 +248,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Define unique junction mapping
     seq_map = {}
     for ig in records:
-        seq = ig.getSeqField(seq_field)
+        seq = ig.toSeq(seq_field)
         # Check if sequence length is 0
         if len(seq) == 0:
             return None
@@ -284,10 +284,10 @@ def distChen2010(records):
     Calculate pairwise distances as defined in Chen 2010
     
     Arguments:
-    records = list of IgRecords where first is query to be compared to others in list
+      records : list of Receptor objects where first is query to be compared to others in list
     
     Returns:
-    list of distances
+      list : distances
     """
     # Pull out query sequence and V/J information
     query = records.popitem(last=False)
@@ -324,10 +324,10 @@ def distAdemokun2011(records):
     Calculate pairwise distances as defined in Ademokun 2011
     
     Arguments:
-    records = list of IgRecords where first is query to be compared to others in list
+      records : list of Receptor objects where first is query to be compared to others in list
     
     Returns:
-    list of distances
+      list : distances
     """
     # Pull out query sequence and V family information
     query = records.popitem(last=False)
@@ -387,9 +387,10 @@ def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
     """
     # Open input file and perform grouping
     try:
-        # Iterate over Ig records and assign groups
-        db_iter = readDbFile(db_file)
-        clone_dict = group_func(db_iter, **group_args)
+        # Iterate over Receptor objects and assign groups
+        with open(db_file, 'r') as db_handle:
+            db_iter = ChangeoReader(db_handle)
+            clone_dict = group_func(db_iter, **group_args)
     except:
         #sys.stderr.write('Exception in feeder grouping step\n')
         alive.value = False
@@ -439,10 +440,12 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
     try:
         # Iterate over Ig records and order by junction length
         records = {}
-        db_iter = readDbFile(db_file)
-        for rec in db_iter:
-            records[rec.id] = rec
-        records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
+        with open(db_file, 'r') as db_handle:
+            db_iter = ChangeoReader(db_handle)
+            for rec in db_iter:
+                records[rec.sequence_id] = rec
+            records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
+
         dist_dict = {}
         for __ in range(len(records)):
             k,v = records.popitem(last=False)
@@ -621,18 +624,18 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
     """
     # Open output files
     try:
-        # Count records and define output format 
-        out_type = getFileType(db_file) if out_args['out_type'] is None \
-                   else out_args['out_type']
+        # Count records and define output format
         result_count = countDbFile(db_file)
-        
+        out_fields = getDbFields(db_file, add='CLONE')
+
         # Defined successful output handle
         pass_handle = getOutputHandle(db_file, 
                                       out_label='clone-pass', 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
-                                      out_type=out_type)
-        pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
+                                      out_type='tsv')
+        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+        pass_writer.writeHeader()
         
         # Defined failed alignment output handle
         if out_args['failed']:
@@ -640,8 +643,9 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                                           out_label='clone-fail', 
                                           out_dir=out_args['out_dir'], 
                                           out_name=out_args['out_name'], 
-                                          out_type=out_type)
-            fail_writer = getDbWriter(fail_handle, db_file)
+                                          out_type='tsv')
+            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
+            fail_writer.writeHeader()
         else:
             fail_handle = None
             fail_writer = None
@@ -681,14 +685,14 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                 for clone in result.results.values():
                     clone_count += 1
                     for i, rec in enumerate(clone):
-                        rec.annotations['CLONE'] = clone_count
-                        pass_writer.writerow(rec.toDict())
+                        rec.annotations['clone'] = clone_count
+                        pass_writer.writeReceptor(rec)
                         pass_count += 1
                         result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
     
             else:
                 for i, rec in enumerate(result.data):
-                    if fail_writer is not None: fail_writer.writerow(rec.toDict())
+                    if fail_writer is not None: fail_writer.writeReceptor(rec)
                     fail_count += 1
                     result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
                     
@@ -745,39 +749,40 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
     # Open output files
     try:
                
-        # Iterate over Ig records to count and order by junction length
+        # Iterate over records to count and order by junction length
         result_count = 0
         records = {}
         # print 'Reading file...'
-        db_iter = readDbFile(db_file)
+        db_iter = ChangeoReader(db_file)
         for rec in db_iter:
-            records[rec.id] = rec
+            records[rec.sequence_id] = rec
             result_count += 1
         records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
                 
         # Define empty matrix to store assembled results
         dist_mat = np.zeros((result_count,result_count))
         
-        # Count records and define output format 
-        out_type = getFileType(db_file) if out_args['out_type'] is None \
-                   else out_args['out_type']
-                   
+        # Count records and define output format
+        out_fields = getDbFields(db_file, add='CLONE')
+
         # Defined successful output handle
         pass_handle = getOutputHandle(db_file, 
                                       out_label='clone-pass', 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
-                                      out_type=out_type)
-        pass_writer = getDbWriter(pass_handle, db_file, add_fields='CLONE')
-        
+                                      out_type='tsv')
+        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+        pass_writer.writeHeader()
+
         # Defined failed cloning output handle
         if out_args['failed']:
             fail_handle = getOutputHandle(db_file,
                                           out_label='clone-fail', 
                                           out_dir=out_args['out_dir'], 
                                           out_name=out_args['out_name'], 
-                                          out_type=out_type)
-            fail_writer = getDbWriter(fail_handle, db_file)
+                                          out_type='tsv')
+            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
+            fail_writer.writeHeader()
         else:
             fail_handle = None
             fail_writer = None
@@ -834,14 +839,14 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
             for clone in clones.values():
                 clone_count += 1
                 for i, rec in enumerate(clone):
-                    rec.annotations['CLONE'] = clone_count
-                    pass_writer.writerow(rec.toDict())
+                    rec.annotations['clone'] = clone_count
+                    pass_writer.writeReceptor(rec)
                     pass_count += 1
                     #result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
 
         else:
             for i, rec in enumerate(result.data):
-                fail_writer.writerow(rec.toDict())
+                fail_writer.writeReceptor(rec)
                 fail_count += 1
                 #result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
         
