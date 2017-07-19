@@ -126,7 +126,6 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
                 pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'], out_type='tsv')
                 pass_writer = format_writer(pass_handle, fields)
-                pass_writer.writeHeader()
                 #pass_handle = open(pass_file, 'wt')
                 #pass_writer = getDbWriter(pass_handle, add_fields=fields)
 
@@ -139,7 +138,6 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
                 fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'], out_type='tsv')
                 fail_writer = format_writer(fail_handle, fields)
-                fail_writer.writeHeader()
                 #fail_handle = open(fail_file, 'wt')
                 #fail_writer = getDbWriter(fail_handle, add_fields=fields)
 

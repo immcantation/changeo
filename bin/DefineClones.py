@@ -635,8 +635,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                                       out_name=out_args['out_name'], 
                                       out_type='tsv')
         pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
-        pass_writer.writeHeader()
-        
+
         # Defined failed alignment output handle
         if out_args['failed']:
             fail_handle = getOutputHandle(db_file,
@@ -645,7 +644,6 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                                           out_name=out_args['out_name'], 
                                           out_type='tsv')
             fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
-            fail_writer.writeHeader()
         else:
             fail_handle = None
             fail_writer = None
@@ -772,7 +770,6 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
                                       out_name=out_args['out_name'], 
                                       out_type='tsv')
         pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
-        pass_writer.writeHeader()
 
         # Defined failed cloning output handle
         if out_args['failed']:
@@ -782,7 +779,6 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
                                           out_name=out_args['out_name'], 
                                           out_type='tsv')
             fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
-            fail_writer.writeHeader()
         else:
             fail_handle = None
             fail_writer = None

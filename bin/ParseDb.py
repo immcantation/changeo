@@ -26,7 +26,8 @@ from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.IO import countDbFile, getDbFields
+from changeo.Parsers import ChangeoReader, ChangeoWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -93,9 +94,10 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     log['NUM_SPLIT'] = num_split
     printLog(log)
 
-    # Open IgRecord reader iter object
-    reader = readDbFile(db_file, ig=False)
-
+    # Open reader
+    db_handle = open(db_file, 'rt')
+    reader = ChangeoReader(db_handle, receptor=False)
+    out_fields = getDbFields(db_file)
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
 
@@ -104,29 +106,30 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     # Sort records into files based on textual field
     if num_split is None:
         # Create set of unique field tags
-        tmp_iter = readDbFile(db_file, ig=False)
-        tag_list = list(set([row[field] for row in tmp_iter]))
+        with open(db_file, 'rt') as tmp_handle:
+            tmp_iter = ChangeoReader(tmp_handle, receptor=False)
+            tag_list = list(set([row[field] for row in tmp_iter]))
 
         # Forbidden characters in filename and replacements
-        noGood = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
-                  '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
+        no_good = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
+                   '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
         # Replace forbidden characters in tag_list
         tag_dict = {}
         for tag in tag_list:
-            for c,r in noGood.items():
+            for c,r in no_good.items():
                 tag_dict[tag] = (tag_dict.get(tag, tag).replace(c,r) \
-                                     if c in tag else tag_dict.get(tag, tag))
+                                 if c in tag else tag_dict.get(tag, tag))
 
         # Create output handles
-        handles_dict = {tag:getOutputHandle(db_file,
-                                            '%s-%s' % (field, label),
-                                            out_type = out_args['out_type'],
-                                            out_name = out_args['out_name'],
-                                            out_dir = out_args['out_dir'])
+        handles_dict = {tag: getOutputHandle(db_file,
+                                             out_label='%s-%s' % (field, label),
+                                             out_name=out_args['out_name'],
+                                             out_dir=out_args['out_dir'],
+                                             out_type='tsv')
                         for tag, label in tag_dict.items()}
 
         # Create Db writer instances
-        writers_dict = {tag:getDbWriter(handles_dict[tag], db_file)
+        writers_dict = {tag: ChangeoWriter(handles_dict[tag], fields=out_fields)
                         for tag in tag_dict}
 
         # Iterate over IgRecords
@@ -135,27 +138,27 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
             count += 1
             # Write row to appropriate file
             tag = row[field]
-            writers_dict[tag].writerow(row)
+            writers_dict[tag].writeDict(row)
 
     # Sort records into files based on numeric num_split
     else:
         num_split = float(num_split)
 
         # Create output handles
-        handles_dict = {'under':getOutputHandle(db_file,
-                                                'under-%.1f' % num_split,
-                                                out_type = out_args['out_type'],
-                                                out_name = out_args['out_name'],
-                                                out_dir = out_args['out_dir']),
-                        'atleast':getOutputHandle(db_file,
-                                                  'atleast-%.1f' % num_split,
-                                                out_type = out_args['out_type'],
-                                                out_name = out_args['out_name'],
-                                                out_dir = out_args['out_dir'])}
+        handles_dict = {'under': getOutputHandle(db_file,
+                                                 out_label='under-%.1f' % num_split,
+                                                 out_name=out_args['out_name'],
+                                                 out_dir=out_args['out_dir'],
+                                                 out_type='tsv'),
+                        'atleast': getOutputHandle(db_file,
+                                                   out_label='atleast-%.1f' % num_split,
+                                                   out_name=out_args['out_name'],
+                                                   out_dir=out_args['out_dir'],
+                                                   out_type='tsv')}
 
         # Create Db writer instances
-        writers_dict = {'under':getDbWriter(handles_dict['under'], db_file),
-                        'atleast':getDbWriter(handles_dict['atleast'], db_file)}
+        writers_dict = {'under': ChangeoWriter(handles_dict['under'], fields=out_fields),
+                        'atleast': ChangeoWriter(handles_dict['atleast'], fields=out_fields)}
 
         # Iterate over IgRecords
         for row in reader:
@@ -163,7 +166,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
             count += 1
             tag = row[field]
             tag = 'under' if float(tag) < num_split else 'atleast'
-            writers_dict[tag].writerow(row)
+            writers_dict[tag].writeDict(row)
 
     # Write log
     printProgress(count, rec_count, 0.05, start_time)
@@ -176,6 +179,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     printLog(log)
 
     # Close output file handles
+    db_handle.close()
     for t in handles_dict: handles_dict[t].close()
 
     return [handles_dict[t].name for t in handles_dict]
@@ -214,7 +218,8 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     printLog(log)
     
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], out_type='clip')
     # Count records
@@ -276,7 +281,8 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
 
     # Close file handles
     pass_handle.close()
- 
+    db_handle.close()
+
     return pass_handle.name
 
 
@@ -306,7 +312,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     
     # Open file handles
     out_type = 'fasta'
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], out_type=out_type)
     # Count records
@@ -342,7 +349,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
     # Close file handles
     pass_handle.close()
- 
+    db_handle.close()
+
     return pass_handle.name
 
 
@@ -368,15 +376,17 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields=fields)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, add=fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
     # Define fields and values to append
-    add_dict = {k:v for k,v in zip(fields, values) if k not in db_iter.fieldnames}
+    add_dict = {k:v for k,v in zip(fields, values) if k not in db_iter.fields}
 
     # Iterate over records
     start_time = time()
@@ -387,7 +397,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
         rec_count += 1
         # Write updated row
         rec.update(add_dict)
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -399,6 +409,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -423,10 +434,12 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields=field)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, add=field)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -440,7 +453,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
 
         # Add count and write updated row
         rec.update({field:rec_count})
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -452,6 +465,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -476,10 +490,12 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, exclude_fields=fields)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, exclude=fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -491,7 +507,7 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
         # Write row
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -544,10 +560,12 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
     
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -558,14 +576,13 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
-
         # Check for deletion values in all fields
         delete = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
         
         # Write sequences
         if not delete:
             pass_count += 1
-            pass_writer.writerow(rec)
+            pass_writer.writeDict(rec)
         else:
             fail_count += 1
         
@@ -581,6 +598,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
  
     return pass_handle.name
 
@@ -607,20 +625,19 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
+                                  out_name=out_args['out_name'], out_type='tsv')
 
     # Get header and rename fields
-    header = (readDbFile(db_file, ig=False)).fieldnames
+    header = getDbFields(db_file)
     for f, n in zip(fields, names):
         i = header.index(f)
         header[i] = n
 
-    # Open writer and write new header
-    # TODO:  should modify getDbWriter to take a list of fields
-    pass_writer = csv.DictWriter(pass_handle, fieldnames=header, dialect='excel-tab')
-    pass_writer.writeheader()
+    # Open writer
+    pass_writer = ChangeoWriter(pass_handle, fields=header)
 
     # Count records
     result_count = countDbFile(db_file)
@@ -637,7 +654,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
         for f, n in zip(fields, names):
             rec[n] = rec.pop(f)
         # Write
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -649,6 +666,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -692,10 +710,12 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -713,7 +733,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
         # Write sequences
         if select:
             pass_count += 1
-            pass_writer.writerow(rec)
+            pass_writer.writeDict(rec)
         else:
             fail_count += 1
 
@@ -729,6 +749,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -760,11 +781,12 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
-
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
 
     # Store all records in a dictionary
     start_time = time()
@@ -787,7 +809,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
         rec_count += 1
 
         # Write records
-        pass_writer.writerow(db_dict[key])
+        pass_writer.writeDict(db_dict[key])
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -799,6 +821,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -827,10 +850,12 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -849,7 +874,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
                 pass_count += 1
 
         # Write records
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -862,6 +887,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 

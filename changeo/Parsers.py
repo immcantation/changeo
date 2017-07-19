@@ -134,6 +134,16 @@ class ChangeoReader:
                             ('GERMLINE', 'germline'),
                             ('GERMLINE_D_MASK', 'germline_d_mask')])
 
+    @property
+    def fields(self):
+        """
+        Get list fields
+
+        Returns:
+          list : field names
+        """
+        return self.reader.fieldnames
+
     @staticmethod
     def _parseFields(row):
         """
@@ -173,6 +183,8 @@ class ChangeoReader:
         # Arguments
         self.handle = handle
         self.receptor = receptor
+        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
 
     def __iter__(self):
         """
@@ -181,9 +193,6 @@ class ChangeoReader:
         Returns:
           changeo.Parsers.ChangeoReader
         """
-        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
-        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
-
         return self
 
     def __next__(self):
@@ -201,12 +210,11 @@ class ChangeoReader:
             raise StopIteration
 
         # Parse row
-        result = ChangeoReader._parseFields(row)
-
         if self.receptor:
+            result = ChangeoReader._parseFields(row)
             return Receptor(result)
         else:
-            return result
+            return row
 
 
 class ChangeoWriter:
@@ -241,13 +249,14 @@ class ChangeoWriter:
 
         return result
 
-    def __init__(self, handle, fields=list(ChangeoReader._changeo.keys())):
+    def __init__(self, handle, fields=list(ChangeoReader._changeo.keys()), header=True):
         """
         Initializer
 
         Arguments:
           handle : handle to an open output file
           fields : list of output field names
+          header : if True write the header on initialization.
 
         Returns:
           changeo.Parsers.ChangeoWriter
@@ -257,6 +266,8 @@ class ChangeoWriter:
         self.fields = [n.strip().upper() for n in fields]
         self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
                                      dialect='excel-tab', extrasaction='ignore')
+        if header:
+            self.writeHeader()
 
     def writeHeader(self):
             """
@@ -349,6 +360,13 @@ class IMGTReader:
             self._fields.extend(default_junction_fields)
         if parse_scores:
             self._fields.extend(self._score_fields)
+
+        # Open readers
+        readers = [csv.DictReader(self.summary, delimiter='\t'),
+                   csv.DictReader(self.gapped, delimiter='\t'),
+                   csv.DictReader(self.ntseq, delimiter='\t'),
+                   csv.DictReader(self.junction, delimiter='\t')]
+        self.records = zip(*readers)
 
     @staticmethod
     def _parseFunctionality(summary):
@@ -696,14 +714,8 @@ class IMGTReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.IgBLASTReader
+          changeo.Parsers.IMGTReader
         """
-        readers = [csv.DictReader(self.summary, delimiter='\t'),
-                   csv.DictReader(self.gapped, delimiter='\t'),
-                   csv.DictReader(self.ntseq, delimiter='\t'),
-                   csv.DictReader(self.junction, delimiter='\t')]
-        self.records = zip(*readers)
-
         return self
 
 
@@ -790,6 +802,8 @@ class IgBLASTReader:
         if parse_igblast_cdr3:
             self._fields.extend(self._igblast_cdr3_fields)
 
+        # Define parsing blocks
+        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
 
     @staticmethod
     def _parseQueryChunk(chunk):
@@ -1300,7 +1314,6 @@ class IgBLASTReader:
         Returns:
           changeo.Parsers.IgBLASTReader
         """
-        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
         return self
 
 
@@ -1459,6 +1472,10 @@ class IHMMuneReader:
             self._fields.extend(default_region_fields)
         if parse_scores:
             self._fields.extend(self._score_fields)
+
+        # Open reader
+        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
+                                      delimiter=';', quotechar='"')
 
 
     @staticmethod
@@ -1754,8 +1771,6 @@ class IHMMuneReader:
         Returns:
           changeo.Parsers.IHMMuneReader
         """
-        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
-                                      delimiter=';', quotechar='"')
         return self
 
 
