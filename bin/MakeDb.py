@@ -20,7 +20,7 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, getDbWriter, readRepo
+from changeo.IO import countDbFile, extractIMGT, readRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter
 
 

@@ -16,7 +16,7 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
-from changeo.Receptor import Receptor, IgRecord, parseAllele, \
+from changeo.Receptor import Receptor, parseAllele, \
                              v_allele_regex, d_allele_regex, j_allele_regex
 
 class ChangeoSchema:

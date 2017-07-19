@@ -8,7 +8,7 @@ import time
 import unittest
 
 # Presto and changeo imports
-from changeo.Receptor import IgRecord
+from changeo.Receptor import Receptor
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -24,21 +24,21 @@ class Test_DbCore(unittest.TestCase):
                'V_CALL':         'IGHV6-1*01,IGHV6-1*02',
                'D_CALL':         'IGHD6-6*01',
                'J_CALL':         'IGHJ6*02',}
-        self.ig_rec = IgRecord(row)
+        self.ig_rec = Receptor(row)
 
         row = {'SEQUENCE_ID':    'TEST2',
                'SEQUENCE_INPUT': 'TGTGCAAGGGGGCCATTGGACTACTTCTACTACGGTGTGGACGNNNNN',
                'V_CALL':         'TRAV6-1*01,TRAV6-1*02',
                'D_CALL':         'TRAD6-6*01',
                'J_CALL':         'TRAJ6*02',}
-        self.tr_rec = IgRecord(row)
+        self.tr_rec = Receptor(row)
 
         row = {'SEQUENCE_ID':    'TEST3',
                'SEQUENCE_INPUT': '',
                'V_CALL':         '',
                'D_CALL':         None,
                'J_CALL':         'princess,banana,hammock',}
-        self.bad_rec = IgRecord(row)
+        self.bad_rec = Receptor(row)
 
         self.start = time.time()
 
@@ -46,8 +46,8 @@ class Test_DbCore(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    @unittest.skip("-> IgRecord() skipped\n")
-    def test_IgRecord(self):
+    @unittest.skip("-> Receptor() skipped\n")
+    def test_Receptor(self):
         print('IG>')
         print(self.ig_rec.getAlleleCalls(['v','d','j'], action='first'))
         print(self.ig_rec.getAlleleCalls(['v','j'], action='first'))

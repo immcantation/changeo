@@ -10,7 +10,6 @@ import os
 import sys
 import time
 import unittest
-from Bio import SeqIO
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -61,7 +60,7 @@ class Test_MakeDb(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    #@unittest.skip("-> ChangeoReader() skipped\n")
+    @unittest.skip("-> ChangeoReader() skipped\n")
     def test_ChangeoReader(self):
         # Parse
         with open(self.ig_db_file, 'r') as f:

@@ -13,13 +13,14 @@ from time import time
 
 # Presto and changeo imports
 from presto.IO import getFileType, getOutputHandle, printProgress, printLog
-from changeo.IO import readDbFile, countDbFile, getDbWriter
-from changeo.Receptor import IgRecord
+from changeo.IO import countDbFile, getDbFields
+from changeo.Receptor import Receptor
+from changeo.Parsers import ChangeoReader, ChangeoWriter
 
 
 class DbData:
     """
-    A class defining IgRecord data objects for worker processes
+    A class defining Receptor data objects for worker processes
     """
     # Instantiation
     def __init__(self, key, records):
@@ -33,7 +34,7 @@ class DbData:
 
     # Length evaluation
     def __len__(self):
-        if isinstance(self.data, IgRecord):
+        if isinstance(self.data, Receptor):
             return 1
         elif self.data is None:
             return 0
@@ -43,7 +44,7 @@ class DbData:
 
 class DbResult:
     """
-    A class defining IgRecord result objects for collector processes
+    A class defining Receptor result objects for collector processes
     """
     # Instantiation
     def __init__(self, key, records):
@@ -63,7 +64,7 @@ class DbResult:
 
     # Length evaluation
     def __len__(self):
-        if isinstance(self.results, IgRecord):
+        if isinstance(self.results, Receptor):
             return 1
         elif self.results is None:
             return 0
@@ -73,7 +74,7 @@ class DbResult:
     # Set data_count to number of data records
     @property
     def data_count(self):
-        if isinstance(self.data, IgRecord):
+        if isinstance(self.data, Receptor):
             return 1
         elif self.data is None:
             return 0
@@ -99,12 +100,13 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
     # Open input file and perform grouping
     try:
         # Iterate over Ig records and assign groups
-        db_iter = readDbFile(db_file)
-        if group_func is not None:
-            group_dict = group_func(db_iter, **group_args)
-            group_iter = iter(group_dict.items())
-        else:
-            group_iter = ((r.id, r) for r in db_iter)
+        with open(db_file, 'rt') as db_handle:
+            db_iter = ChangeoReader(db_handle)
+            if group_func is not None:
+                group_dict = group_func(db_iter, **group_args)
+                group_iter = iter(group_dict.items())
+            else:
+                group_iter = ((r.sequence_id, r) for r in db_iter)
     except:
         alive.value = False
         raise
@@ -188,7 +190,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
       task_label : Task label used to tag the output files
       out_args : Common output argument dictionary from parseCommonArgs
       add_fields : List of fields added to the writer not present in the in_file;
-                 if None do not add fields
+                   if None do not add fields
 
     Returns:
       None : Adds a dictionary with key value pairs to collect_queue containing
@@ -198,25 +200,23 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
     try:
         result_count = countDbFile(db_file)
 
-        # Define output format
-        out_type = getFileType(db_file) if out_args['out_type'] is None \
-                   else out_args['out_type']
-
         # Defined valid alignment output handle
         pass_handle = getOutputHandle(db_file,
-                                      '%s-pass' % task_label,
+                                      out_label='%s-pass' % task_label,
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type=out_type)
-        pass_writer = getDbWriter(pass_handle, db_file, add_fields=add_fields)
+                                      out_type='tsv')
+        out_fields = getDbFields(db_file, add=add_fields)
+        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+
         # Defined failed alignment output handle
         if out_args['failed']:
             fail_handle = getOutputHandle(db_file,
                                           '%s-fail'  % task_label,
                                           out_dir=out_args['out_dir'],
                                           out_name=out_args['out_name'],
-                                          out_type=out_type)
-            fail_writer = getDbWriter(fail_handle, db_file)
+                                          out_type='tsv')
+            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
         else:
             fail_handle = None
 
@@ -254,12 +254,12 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             if result:
                 pass_count += result.data_count
                 for rec in result.results:
-                    pass_writer.writerow(rec.toDict())
+                    pass_writer.writeReceptor(rec)
             else:
                 fail_count += result.data_count
                 if fail_handle is not None:
                     for rec in result.data:
-                        pass_writer.writerow(rec.toDict())
+                        fail_writer.writeReceptor(rec)
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())

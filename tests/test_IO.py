@@ -38,7 +38,7 @@ class Test_MakeDb(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    #@unittest.skip("-> ChangeoReader() skipped\n")
+    @unittest.skip("-> ChangeoReader() skipped\n")
     def test_getDbFields(self):
         # Get fields
         x = getDbFields(self.ig_db_file)

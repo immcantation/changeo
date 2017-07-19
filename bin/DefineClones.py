@@ -28,7 +28,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields
 from changeo.Multiprocessing import DbData, DbResult
-from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.Parsers import ChangeoSchema, ChangeoReader, ChangeoWriter
 
 # Defaults
 default_translate = False
@@ -154,13 +154,13 @@ def indexJunctions(db_iter, fields=None, mode=default_index_mode,
         def _get_key(rec, act):
             vdj = [rec.getVAllele(act), rec.getJAllele(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.toDict().get(k, None) for k in fields]
+            ann = [rec.toDict().get(ChangeoSchema.toReceptor(k), None) for k in fields]
             return list(chain(vdj, ann))
     elif mode == 'gene' and fields is not None:
         def _get_key(rec, act):
             vdj = [rec.getVGene(act), rec.getJGene(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.toDict().get(k, None) for k in fields]
+            ann = [rec.toDict().get(ChangeoSchema.toReceptor(k), None) for k in fields]
             return list(chain(vdj, ann))
 
     # Function to flatten nested dictionary
@@ -247,8 +247,8 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
 
     # Define unique junction mapping
     seq_map = {}
-    for ig in records:
-        seq = ig.toSeq(seq_field)
+    for rec in records:
+        seq = rec.toSeq(ChangeoSchema.toReceptor(seq_field))
         # Check if sequence length is 0
         if len(seq) == 0:
             return None
@@ -256,7 +256,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         seq = re.sub('[\.-]', 'N', str(seq))
         if model == 'aa':  seq = translate(seq)
 
-        seq_map.setdefault(seq, []).append(ig)
+        seq_map.setdefault(seq, []).append(rec)
 
     # Process records
     if len(seq_map) == 1:
