@@ -19,62 +19,61 @@ from presto.IO import readSeqFile
 from changeo.Receptor import Receptor, IgRecord, parseAllele, \
                              v_allele_regex, d_allele_regex, j_allele_regex
 
-# Define core field column ordering
-default_core_fields = ['SEQUENCE_ID',
-                       'SEQUENCE_INPUT',
-                       'FUNCTIONAL',
-                       'IN_FRAME',
-                       'STOP',
-                       'MUTATED_INVARIANT',
-                       'INDELS',
-                       'V_CALL',
-                       'D_CALL',
-                       'J_CALL',
-                       'SEQUENCE_VDJ',
-                       'SEQUENCE_IMGT',
-                       'V_SEQ_START',
-                       'V_SEQ_LENGTH',
-                       'V_GERM_START_VDJ',
-                       'V_GERM_LENGTH_VDJ',
-                       'V_GERM_START_IMGT',
-                       'V_GERM_LENGTH_IMGT',
-                       'NP1_LENGTH',
-                       'D_SEQ_START',
-                       'D_SEQ_LENGTH',
-                       'D_GERM_START',
-                       'D_GERM_LENGTH',
-                       'NP2_LENGTH',
-                       'J_SEQ_START',
-                       'J_SEQ_LENGTH',
-                       'J_GERM_START',
-                       'J_GERM_LENGTH',
-                       'JUNCTION_LENGTH',
-                       'JUNCTION']
-
-# Define default FWR amd CDR field ordering
-default_region_fields = ['FWR1_IMGT',
-                         'FWR2_IMGT',
-                         'FWR3_IMGT',
-                         'FWR4_IMGT',
-                         'CDR1_IMGT',
-                         'CDR2_IMGT',
-                         'CDR3_IMGT']
-
-# Define default detailed junction field ordering
-default_junction_fields = ['N1_LENGTH',
-                           'N2_LENGTH',
-                           'P3V_LENGTH',
-                           'P5D_LENGTH',
-                           'P3D_LENGTH',
-                           'P5J_LENGTH',
-                           'D_FRAME']
-
-
-class ChangeoReader:
+class ChangeoSchema:
     """
-    An iterator to read and parse Change-O formatted data.
+    Change-O to Receptor class mappings
     """
-    # Mapping of Change-O column names to output fields
+    # Define core field column ordering
+    core_fields = ['SEQUENCE_ID',
+                   'SEQUENCE_INPUT',
+                   'FUNCTIONAL',
+                   'IN_FRAME',
+                   'STOP',
+                   'MUTATED_INVARIANT',
+                   'INDELS',
+                   'V_CALL',
+                   'D_CALL',
+                   'J_CALL',
+                   'SEQUENCE_VDJ',
+                   'SEQUENCE_IMGT',
+                   'V_SEQ_START',
+                   'V_SEQ_LENGTH',
+                   'V_GERM_START_VDJ',
+                   'V_GERM_LENGTH_VDJ',
+                   'V_GERM_START_IMGT',
+                   'V_GERM_LENGTH_IMGT',
+                   'NP1_LENGTH',
+                   'D_SEQ_START',
+                   'D_SEQ_LENGTH',
+                   'D_GERM_START',
+                   'D_GERM_LENGTH',
+                   'NP2_LENGTH',
+                   'J_SEQ_START',
+                   'J_SEQ_LENGTH',
+                   'J_GERM_START',
+                   'J_GERM_LENGTH',
+                   'JUNCTION_LENGTH',
+                   'JUNCTION']
+
+    # Define default FWR amd CDR field ordering
+    region_fields = ['FWR1_IMGT',
+                     'FWR2_IMGT',
+                     'FWR3_IMGT',
+                     'FWR4_IMGT',
+                     'CDR1_IMGT',
+                     'CDR2_IMGT',
+                     'CDR3_IMGT']
+
+    # Define default detailed junction field ordering
+    junction_fields = ['N1_LENGTH',
+                       'N2_LENGTH',
+                       'P3V_LENGTH',
+                       'P5D_LENGTH',
+                       'P3D_LENGTH',
+                       'P5J_LENGTH',
+                       'D_FRAME']
+
+    # Mapping of Change-O column names to Receptor attributes
     _changeo = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
                             ('SEQUENCE_INPUT', 'sequence_input'),
                             ('IN_FRAME', 'in_frame'),
@@ -134,6 +133,41 @@ class ChangeoReader:
                             ('GERMLINE', 'germline'),
                             ('GERMLINE_D_MASK', 'germline_d_mask')])
 
+    # Mapping of Receptor attributes to Change-O column names
+    _receptor = {v: k for k, v in _changeo.items()}
+
+    # Ordered list of known fields
+    fields = list(_changeo.keys())
+
+    @staticmethod
+    def toReceptor(field):
+        """
+        Returns a Receptor attribute name from a Change-O column name
+
+        Arguments:
+          field : Change-O column name
+        Returns:
+          str : Receptor attribute name
+        """
+        return ChangeoSchema._changeo.get(field, field.lower())
+
+    @staticmethod
+    def toChangeo(field):
+        """
+        Returns a Change-O column name from a Receptor attribute name
+
+        Arguments:
+          field : Receptor attribute name
+        Returns:
+          str : Change-O column name
+        """
+        return ChangeoSchema._receptor.get(field, field.upper())
+
+
+class ChangeoReader:
+    """
+    An iterator to read and parse Change-O formatted data.
+    """
     @property
     def fields(self):
         """
@@ -145,29 +179,23 @@ class ChangeoReader:
         return self.reader.fieldnames
 
     @staticmethod
-    def _parseFields(row):
+    def _receptor(record):
         """
-        Parses a dictionary of fields in the Change-O format
+        Parses a dictionary of fields in the Change-O to a Receptor object
 
         Arguments:
-          row : dict with fields and values in the Change-O format
+          record : dict with fields and values in the Change-O format
 
         Returns:
           dict : a parsed dict
         """
-        # Get list of known fields in input
-        keys = [k for k in row if k in ChangeoReader._changeo]
-
-        # Parse known fields
+        # Parse fields
         result = {}
-        for k, v in row.items():
-            if k in keys:
-                k = ChangeoReader._changeo[k]
-            else:
-                k = k.lower()
+        for k, v in record.items():
+            k = ChangeoSchema.toReceptor(k)
             result[k] = v
 
-        return result
+        return Receptor(result)
 
     def __init__(self, handle, receptor=True):
         """
@@ -211,8 +239,7 @@ class ChangeoReader:
 
         # Parse row
         if self.receptor:
-            result = ChangeoReader._parseFields(row)
-            return Receptor(result)
+            return ChangeoReader._receptor(row)
         else:
             return row
 
@@ -221,35 +248,27 @@ class ChangeoWriter:
     """
     Writes Change-O formatted data.
     """
-    # Mapping of Change-O column names to output fields
-    _receptor = {v: k for k, v in ChangeoReader._changeo.items()}
-
     @staticmethod
-    def _parseRow(row):
+    def _parseReceptor(record):
         """
-        Parses a dictionary of fields in Receptor format to the Change-O format
+        Parses a Receptor object to a Change-O dictionary
 
         Arguments:
-          row : dict with fields and values in the Receptor format
+          record : dict with fields and values in the Receptor format
 
         Returns:
           dict : a parsed dict
         """
-        # Get list of known fields in input
-        keys = [k for k in row if k in ChangeoWriter._receptor]
-
+        row = record.toDict()
         # Parse known fields
         result = {}
         for k, v in row.items():
-            if k in keys:
-                k = ChangeoWriter._receptor[k]
-            else:
-                k = k.upper()
+            k = ChangeoSchema.toChangeo(k)
             result[k] = v
 
         return result
 
-    def __init__(self, handle, fields=list(ChangeoReader._changeo.keys()), header=True):
+    def __init__(self, handle, fields=ChangeoSchema.fields, header=True):
         """
         Initializer
 
@@ -280,16 +299,15 @@ class ChangeoWriter:
 
     def writeDict(self, record):
             """
-            Writes a row from a dictionary
+            Writes a row from a Change-O dictionary
 
             Arguments:
-              record : dictionary of row data
+              record : Change-O dictionary of row data
 
             Returns:
               None
             """
-            row = self._parseRow(record)
-            self.writer.writerow(row)
+            self.writer.writerow(record)
 
     def writeReceptor(self, record):
             """
@@ -301,7 +319,7 @@ class ChangeoWriter:
             Returns:
               None
             """
-            row = self._parseRow(record.toDict())
+            row = ChangeoWriter._parseReceptor(record)
             self.writer.writerow(row)
 
 
@@ -353,11 +371,11 @@ class IMGTReader:
         self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_junction:
-            self._fields.extend(default_junction_fields)
+            self._fields.extend(ChangeoSchema.junction_fields)
         if parse_scores:
             self._fields.extend(self._score_fields)
 
@@ -794,9 +812,9 @@ class IgBLASTReader:
         self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
             self._fields.extend(self._score_fields)
         if parse_igblast_cdr3:
@@ -1467,9 +1485,9 @@ class IHMMuneReader:
         self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
             self._fields.extend(self._score_fields)
 
