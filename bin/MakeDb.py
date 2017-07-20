@@ -46,7 +46,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
     Writes tab-delimited database file in output directory.
     
     Arguments:
-      db : a iterator of IgRecord objects containing alignment data.
+      db : a iterator of Receptor objects containing alignment data.
       fields : a list of ordered field names to write.
       in_file : input file name.
       total_count : number of records (for progress bar).

@@ -132,7 +132,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
         writers_dict = {tag: ChangeoWriter(handles_dict[tag], fields=out_fields)
                         for tag in tag_dict}
 
-        # Iterate over IgRecords
+        # Iterate over records
         for row in reader:
             printProgress(count, rec_count, 0.05, start_time)
             count += 1
@@ -160,7 +160,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
         writers_dict = {'under': ChangeoWriter(handles_dict['under'], fields=out_fields),
                         'atleast': ChangeoWriter(handles_dict['atleast'], fields=out_fields)}
 
-        # Iterate over IgRecords
+        # Iterate over records
         for row in reader:
             printProgress(count, rec_count, 0.05, start_time)
             count += 1

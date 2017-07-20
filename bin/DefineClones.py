@@ -154,13 +154,13 @@ def indexJunctions(db_iter, fields=None, mode=default_index_mode,
         def _get_key(rec, act):
             vdj = [rec.getVAllele(act), rec.getJAllele(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.toDict().get(ChangeoSchema.toReceptor(k), None) for k in fields]
+            ann = [rec.getChangeo(k) for k in fields]
             return list(chain(vdj, ann))
     elif mode == 'gene' and fields is not None:
         def _get_key(rec, act):
             vdj = [rec.getVGene(act), rec.getJGene(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.toDict().get(ChangeoSchema.toReceptor(k), None) for k in fields]
+            ann = [rec.getChangeo(k) for k in fields]
             return list(chain(vdj, ann))
 
     # Function to flatten nested dictionary
@@ -248,7 +248,7 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     # Define unique junction mapping
     seq_map = {}
     for rec in records:
-        seq = rec.toSeq(ChangeoSchema.toReceptor(seq_field))
+        seq = rec.getChangeo(seq_field, seq=True)
         # Check if sequence length is 0
         if len(seq) == 0:
             return None

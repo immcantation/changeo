@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 # Imports
 import re
 import sys
+from collections import OrderedDict
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
@@ -25,7 +26,151 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 #gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
 #family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
 
-# TODO: Add a method to extract attribute from changeo column name
+class ChangeoSchema:
+    """
+    Change-O to Receptor class mappings
+    """
+    # Define core field column ordering
+    core_fields = ['SEQUENCE_ID',
+                   'SEQUENCE_INPUT',
+                   'FUNCTIONAL',
+                   'IN_FRAME',
+                   'STOP',
+                   'MUTATED_INVARIANT',
+                   'INDELS',
+                   'V_CALL',
+                   'D_CALL',
+                   'J_CALL',
+                   'SEQUENCE_VDJ',
+                   'SEQUENCE_IMGT',
+                   'V_SEQ_START',
+                   'V_SEQ_LENGTH',
+                   'V_GERM_START_VDJ',
+                   'V_GERM_LENGTH_VDJ',
+                   'V_GERM_START_IMGT',
+                   'V_GERM_LENGTH_IMGT',
+                   'NP1_LENGTH',
+                   'D_SEQ_START',
+                   'D_SEQ_LENGTH',
+                   'D_GERM_START',
+                   'D_GERM_LENGTH',
+                   'NP2_LENGTH',
+                   'J_SEQ_START',
+                   'J_SEQ_LENGTH',
+                   'J_GERM_START',
+                   'J_GERM_LENGTH',
+                   'JUNCTION_LENGTH',
+                   'JUNCTION']
+
+    # Define default FWR amd CDR field ordering
+    region_fields = ['FWR1_IMGT',
+                     'FWR2_IMGT',
+                     'FWR3_IMGT',
+                     'FWR4_IMGT',
+                     'CDR1_IMGT',
+                     'CDR2_IMGT',
+                     'CDR3_IMGT']
+
+    # Define default detailed junction field ordering
+    junction_fields = ['N1_LENGTH',
+                       'N2_LENGTH',
+                       'P3V_LENGTH',
+                       'P5D_LENGTH',
+                       'P3D_LENGTH',
+                       'P5J_LENGTH',
+                       'D_FRAME']
+
+    # Mapping of Change-O column names to Receptor attributes
+    _changeo = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
+                            ('SEQUENCE_INPUT', 'sequence_input'),
+                            ('IN_FRAME', 'in_frame'),
+                            ('STOP', 'stop'),
+                            ('MUTATED_INVARIANT', 'mutated_invariant'),
+                            ('INDELS', 'indels'),
+                            ('V_CALL', 'v_call'),
+                            ('V_CALL_GENOTYPED', 'v_call_genotyped'),
+                            ('D_CALL', 'd_call'),
+                            ('J_CALL', 'j_call'),
+                            ('SEQUENCE_VDJ', 'sequence_vdj'),
+                            ('SEQUENCE_IMGT', 'sequence_imgt'),
+                            ('JUNCTION', 'junction'),
+                            ('FUNCTIONAL', 'functional'),
+                            ('V_SEQ_START', 'v_seq_start'),
+                            ('V_SEQ_LENGTH', 'v_seq_length'),
+                            ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
+                            ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
+                            ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
+                            ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
+                            ('NP1_LENGTH', 'np1_length'),
+                            ('D_SEQ_START', 'd_seq_start'),
+                            ('D_SEQ_LENGTH', 'd_seq_length'),
+                            ('D_GERM_START', 'd_germ_start'),
+                            ('D_GERM_LENGTH', 'd_germ_length'),
+                            ('NP2_LENGTH', 'np2_length'),
+                            ('J_SEQ_START', 'j_seq_start'),
+                            ('J_SEQ_LENGTH', 'j_seq_length'),
+                            ('J_GERM_START', 'j_germ_start'),
+                            ('J_GERM_LENGTH', 'j_germ_length'),
+                            ('JUNCTION_LENGTH', 'junction_length'),
+                            ('V_SCORE', 'v_score'),
+                            ('V_IDENTITY', 'v_identity'),
+                            ('V_EVALUE', 'v_evalue'),
+                            ('V_BTOP', 'v_btop'),
+                            ('J_SCORE', 'j_score'),
+                            ('J_IDENTITY', 'j_identity'),
+                            ('J_EVALUE', 'j_evalue'),
+                            ('J_BTOP', 'j_btop'),
+                            ('HMM_SCORE', 'hmm_score'),
+                            ('FWR1_IMGT', 'fwr1_imgt'),
+                            ('FWR2_IMGT', 'fwr2_imgt'),
+                            ('FWR3_IMGT', 'fwr3_imgt'),
+                            ('FWR4_IMGT', 'fwr4_imgt'),
+                            ('CDR1_IMGT', 'cdr1_imgt'),
+                            ('CDR2_IMGT', 'cdr2_imgt'),
+                            ('CDR3_IMGT', 'cdr3_imgt'),
+                            ('N1_LENGTH', 'n1_length'),
+                            ('N2_LENGTH', 'n2_length'),
+                            ('P3V_LENGTH', 'p3v_length'),
+                            ('P5D_LENGTH', 'p5d_length'),
+                            ('P3D_LENGTH', 'p3d_length'),
+                            ('P5J_LENGTH', 'p5j_length'),
+                            ('D_FRAME', 'd_frame'),
+                            ('CDR3_IGBLAST_NT', 'cdr3_igblast_nt'),
+                            ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
+                            ('GERMLINE', 'germline'),
+                            ('GERMLINE_D_MASK', 'germline_d_mask')])
+
+    # Mapping of Receptor attributes to Change-O column names
+    _receptor = {v: k for k, v in _changeo.items()}
+
+    # Ordered list of known fields
+    fields = list(_changeo.keys())
+
+    @staticmethod
+    def asReceptor(field):
+        """
+        Returns a Receptor attribute name from a Change-O column name
+
+        Arguments:
+          field : Change-O column name
+        Returns:
+          str : Receptor attribute name
+        """
+        return ChangeoSchema._changeo.get(field, field.lower())
+
+    @staticmethod
+    def asChangeo(field):
+        """
+        Returns a Change-O column name from a Receptor attribute name
+
+        Arguments:
+          field : Receptor attribute name
+        Returns:
+          str : Change-O column name
+        """
+        return ChangeoSchema._receptor.get(field, field.upper())
+
+
 class Receptor:
     """
     A class defining a V(D)J germline sequence alignment
@@ -196,31 +341,62 @@ class Receptor:
         # Add remaining elements as annotations dictionary
         self.annotations = data
 
-    def toSeq(self, field):
+    def getField(self, field):
         """
-        Get a field value converted to a Seq object
+        Get an attribute value
+
+        Arguments:
+          field : attribute name as a string
+
+        Returns:
+          Value in the attribute. Returns None if the attribute cannot be found.
+        """
+        field = field.lower()
+
+        if field in Receptor._parse_map:
+            return getattr(self, field)
+        elif field in self.annotations:
+            return self.annotations[field]
+        else:
+            return None
+
+    def getSeq(self, field):
+        """
+        Get an attribute value converted to a Seq object
 
         Arguments:
           field : variable name as a string
 
         Returns:
-          Seq : Value in the field as a Seq object
+          Bio.Seq.Seq : Value in the field as a Seq object
         """
-        field = field.lower()
+        value = self.getField(field)
 
-        if field in Receptor._parse_map:
-            v = getattr(self, field)
-        elif field in self.annotations:
-            v = self.annotations[field]
+        if isinstance(value, Seq):
+            return value
+        elif isinstance(value, str):
+            return Seq(value, IUPAC.ambiguous_dna)
         else:
             return None
 
-        if isinstance(v, Seq):
-            return v
-        elif isinstance(v, str):
-            return Seq(v, IUPAC.ambiguous_dna)
+    def getChangeo(self, field, seq=False):
+        """
+        Get an attribute from a Change-O field name
+
+        Arguments:
+          field : Change-O column name as a string
+          seq : if True return the attribute as a Seq object
+
+        Returns:
+          Value in the Change-O field. Returns None if the field cannot be found.
+        """
+        # Map to Receptor attribute
+        field = ChangeoSchema.asReceptor(field)
+
+        if seq:
+            return self.getSeq(field)
         else:
-            return None
+            return self.getField(field)
 
     def toDict(self):
         """
