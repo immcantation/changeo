@@ -253,13 +253,17 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             # Write alignments
             if result:
                 pass_count += result.data_count
-                for rec in result.results:
-                    pass_writer.writerow(rec.toDict())
+                if isinstance(result.results, IgRecord):
+                    pass_writer.writerow(result.results.toDict())
+                else:
+                    for rec in result.results:  pass_writer.writerow(rec.toDict())
             else:
                 fail_count += result.data_count
                 if fail_handle is not None:
-                    for rec in result.data:
-                        pass_writer.writerow(rec.toDict())
+                    if isinstance(result.data, IgRecord):
+                        pass_writer.writerow(result.data.toDict())
+                    else:
+                        for rec in result.data:  fail_writer.writerow(rec.toDict())
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())

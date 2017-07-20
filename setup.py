@@ -36,7 +36,8 @@ if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
 # Define installation path for commandline tools
-scripts = ['CreateGermlines.py',
+scripts = ['AlignRecords.py',
+           'CreateGermlines.py',
            'DefineClones.py',
            'MakeDb.py',
            'ParseDb.py']
