@@ -76,9 +76,42 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
+def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
+    """
+    Multiple aligns blocks of sequence fields together
+
+    Arguments:
+    data = a DbData object with IgRecords to process
+    seq_fields = the sequence fields to multiple align
+    muscle_exec = the MUSCLE executable
+
+    Returns:
+    a list of modified IgRecords with multiple aligned sequence fields
+    """
+    # Define return object
+    result = DbResult(data.id, data.data)
+    result.results = data.data
+    result.valid = True
+
+    seq_list = [SeqRecord(r.getSeqField(f), id='%s_%s' % (r.id, f)) for f in seq_fields \
+                for r in data.data]
+    seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
+    if seq_aln is not None:
+        aln_map = {x.id: i for i, x in enumerate(seq_aln)}
+        for r in result.results:
+            for f in seq_fields:
+                idx = aln_map['%s_%s' % (r.id, f)]
+                r.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
+    else:
+        result.valid = False
+
+    #for r in result.results:  print r.annotations
+    return result
+
+
 def alignGroups(data, seq_fields, muscle_exec=default_muscle_exec):
     """
-    Multiple aligns sequence fields
+    Multiple aligns sequence fields column wise
 
     Arguments:
     data = a DbData object with IgRecords to process
@@ -97,8 +130,10 @@ def alignGroups(data, seq_fields, muscle_exec=default_muscle_exec):
         seq_list = [SeqRecord(r.getSeqField(f), id=r.id) for r in data.data]
         seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
         if seq_aln is not None:
-            for i, r in enumerate(result.results):
-                r.annotations['%s_ALIGN' % f] = str(seq_aln[i].seq)
+            aln_map = {x.id: i for i, x in enumerate(seq_aln)}
+            for r in result.results:
+                idx = aln_map[r.id]
+                r.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
         else:
             result.valid = False
 
@@ -124,11 +159,13 @@ def alignFields(data, seq_fields, muscle_exec=default_muscle_exec):
     result.valid = True
 
     record = data.data
-    seq_list = [SeqRecord(record.getSeqField(f), id=record.id) for f in seq_fields]
+    seq_list = [SeqRecord(record.getSeqField(f), id=f) for f in seq_fields]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
-        for i, f in enumerate(seq_fields):
-            record.annotations['%s_ALIGN' % f] = str(seq_aln[i].seq)
+        aln_map = {x.id: i for i, x in enumerate(seq_aln)}
+        for f in seq_fields:
+            idx = aln_map[f]
+            record.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
     else:
         result.valid = False
 
@@ -248,8 +285,7 @@ def getArgParser():
                                            formatter_class=CommonHelpFormatter,
                                            help='''Multiple aligns sequence columns within groups 
                                                  and across rows using MUSCLE.''')
-    parser_across.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
-                               default=['SEQUENCE_VDJ'],
+    parser_across.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each group.')
     parser_across.add_argument('--gf', nargs='+', action='store', dest='group_fields',
                                default=None,
@@ -275,12 +311,38 @@ def getArgParser():
     parser_within = subparsers.add_parser('within', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
                                           help='Multiple aligns sequence fields within rows using MUSCLE')
-    parser_within.add_argument('--sf', nargs='+', action='store', dest='seq_fields',
+    parser_within.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each record.')
     parser_within.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
     parser_within.set_defaults(group_func=None, align_func=alignFields)
+
+    # Argument parser for column-wise alignment across records
+    parser_block = subparsers.add_parser('block', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='''Multiple aligns sequence groups across both 
+                                             columns and rows using MUSCLE.''')
+    parser_block.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
+                               help='The sequence fields to multiple align within each group.')
+    parser_block.add_argument('--gf', nargs='+', action='store', dest='group_fields',
+                               default=None,
+                               help='Additional (not allele call) fields to use for grouping.')
+    parser_block.add_argument('--calls', nargs='+', action='store', dest='calls',
+                               choices=('v', 'd', 'j'), default=['v', 'j'],
+                               help='Segment calls (allele assignments) to use for grouping.')
+    parser_block.add_argument('--mode', action='store', dest='mode',
+                              choices=('allele', 'gene'), default='gene',
+                              help='''Specifies whether to use the V(D)J allele or gene when
+                                   an allele call field (--calls) is specified.''')
+    parser_block.add_argument('--act', action='store', dest='action', default='first',
+                               choices=('first', ),
+                               help='''Specifies how to handle multiple values within default
+                                     allele call fields. Currently, only \'first\' is supported.''')
+    parser_block.add_argument('--exec', action='store', dest='muscle_exec',
+                               default=default_muscle_exec,
+                               help='The location of the MUSCLE executable')
+    parser_block.set_defaults(group_func=groupRecords, align_func=alignBlocks)
 
     return parser
 
