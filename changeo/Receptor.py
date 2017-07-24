@@ -104,7 +104,7 @@ class AIRRSchema:
         return AIRRSchema._airr.get(field, field.lower())
 
     @staticmethod
-    def asChangeo(field):
+    def asAIRR(field):
         """
         Returns a Change-O column name from a Receptor attribute name
 
