@@ -20,7 +20,7 @@ sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
 from changeo.IO import extractIMGT, readRepo
 from changeo.Parsers import ChangeoReader, IgBLASTReader, IHMMuneReader, IMGTReader, \
-                            decodeBTOP, decodeCIGAR, encodeCIGAR
+                            decodeBTOP, decodeCIGAR, encodeCIGAR, padCIGAR
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -41,18 +41,29 @@ class Test_MakeDb(unittest.TestCase):
         self.ig_db_file = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
 
         # CIGAR strings
-        self.cigar_string = ['30M1I69M3D']
-        self.cigar_decoded = [[('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+        self.cigar_string = ['30M1I69M3D', '16P4D30M1I69M3D']
+        self.cigar_decoded = [[('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                              [('P', 16), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+
+        self.cigar_pos = [(0, 0), (5, 0), (0, 3), (5, 3)]
+        self.cigar_pad_1 = [[('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('D', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 3), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 3), ('D', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+        self.cigar_pad_2 = [[('P', 16), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 16), ('D', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 19), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 19), ('D', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
 
         # BTOP strings
         self.btop_string = ['7AGAC39',
                             '7A-39',
                             '6-G-A41',
                             'AG8-GC-CTCT']
-        self.btop_decoded = [[('=', 7), ('X', 2), ('=', 39)],
-                             [('=', 7), ('D', 1), ('=', 39)],
-                             [('=', 6), ('I', 2), ('=', 41)],
-                             [('X', 1), ('=', 8), ('I', 1), ('D', 1), ('X', 2)]]
+        self.btop_decoded_full = [[('=', 7), ('X', 2), ('=', 39)],
+                                  [('=', 7), ('D', 1), ('=', 39)],
+                                  [('=', 6), ('I', 2), ('=', 41)],
+                                  [('X', 1), ('=', 8), ('I', 1), ('D', 1), ('X', 2)]]
 
         self.start = time.time()
 
@@ -126,9 +137,9 @@ class Test_MakeDb(unittest.TestCase):
 
     #@unittest.skip("-> decodeBTOP() skipped\n")
     def test_decodeBTOP(self):
-        for btop, truth in zip(self.btop_string, self.btop_decoded):
+        for btop, truth in zip(self.btop_string, self.btop_decoded_full):
             result = decodeBTOP(btop)
-            print(result)
+            print('FULL> ', result)
             self.assertListEqual(truth, result)
 
     #@unittest.skip("-> encodeCIGAR() skipped\n")
@@ -138,6 +149,21 @@ class Test_MakeDb(unittest.TestCase):
             print(result)
             self.assertEqual(truth, result)
 
+    #@unittest.skip("-> padCIGAR() skipped\n")
+    def test_padCIGAR(self):
+        cigar = self.cigar_decoded[0]
+        for (s, r), truth in zip(self.cigar_pos, self.cigar_pad_1):
+            #print('POS>', s, r)
+            result = padCIGAR(cigar, s, r)
+            print('PAD>', '(%i, %i) =' % (s, r), result)
+            self.assertEqual(truth, result)
+
+        cigar = self.cigar_decoded[1]
+        for (s, r), truth in zip(self.cigar_pos, self.cigar_pad_2):
+            #print('POS>', s, r)
+            result = padCIGAR(cigar, s, r)
+            print('PAD>', '(%i, %i) =' % (s, r), result)
+            self.assertEqual(truth, result)
 
 if __name__ == '__main__':
     unittest.main()

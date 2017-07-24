@@ -1820,30 +1820,15 @@ def getIDforIMGT(seq_file):
     return ids
 
 
-def decodeCIGAR(cigar):
-    """
-    Parse a CIGAR string into a list of tuples.
-
-    Arguments:
-      cigar : CIGAR string.
-
-    Returns:
-      list : tuples of (type, length) for each operation in the CIGAR string.
-    """
-    matches = re.findall(r'(\d+)([A-Z])', cigar)
-
-    return [(m[1], int(m[0])) for m in matches]
-
-
 def decodeBTOP(btop):
     """
-    Parse a BTOP string into a list of tuples.
+    Parse a BTOP string into a list of tuples in CIGAR annotation.
 
     Arguments:
       btop : BTOP string.
 
     Returns:
-      list : tuples of (type, length) for each operation in the BTOP string.
+      list : tuples of (operation, length) for each operation in the BTOP string using CIGAR annotation.
     """
     # Determine chunk type and length
     def _recode(m):
@@ -1860,14 +1845,63 @@ def decodeBTOP(btop):
     return [_recode(m.group().replace(';', '')) for m in matches]
 
 
+def decodeCIGAR(cigar):
+    """
+    Parse a CIGAR string into a list of tuples.
+
+    Arguments:
+      cigar : CIGAR string.
+
+    Returns:
+      list : tuples of (operation, length) for each operation in the CIGAR string.
+    """
+    matches = re.findall(r'(\d+)([A-Z])', cigar)
+
+    return [(m[1], int(m[0])) for m in matches]
+
+
 def encodeCIGAR(alignment):
     """
     Encodes a list of tuple with alignment information into a CIGAR string.
 
     Arguments:
-      alignment : tuples of (type, length) for each alignment operation.
+      tuple : tuples of (type, length) for each alignment operation.
 
     Returns:
       str : CIGAR string.
     """
     return ''.join(['%i%s' % (x, s) for s, x in alignment])
+
+
+def padCIGAR(alignment, q_start, r_start):
+    """
+    Pads the ends of a CIGAR string based on alignment positions.
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+      q_start : query (input) start position
+      r_start : reference (subject) start position
+
+    Returns:
+      list : updated list of tuples of (operation, length) for the alignment.
+    """
+    # Copy list to avoid weirdness
+    result = alignment[:]
+
+    # Add reference padding if present
+    if result [0][0] == 'P':
+        result[0] = ('P', result[0][1] + r_start)
+    elif r_start > 0:
+        result.insert(0, ('P', r_start))
+
+    # Add query deletions if present
+    if result[0][0] == 'D':
+        result[0] = ('D', result[0][1] + q_start)
+    elif result [0][0] == 'P' and result[1][0] == 'D':
+        result[1] = ('D', result[1][1] + q_start)
+    elif result[0][0] == 'P' and q_start > 0:
+        result.insert(1, ('D', q_start))
+    elif q_start > 0:
+        result.insert(0, ('D', q_start))
+
+    return result
