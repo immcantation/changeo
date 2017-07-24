@@ -26,9 +26,99 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 #gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
 #family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
 
+class AIRRSchema:
+    """
+    AIRR format to Receptor mappings
+    """
+    # TODO: Extra AIRR annotation columns currently not included
+    # sample
+    # locus
+    # constant
+    # isotype
+    # rev_comp
+
+    # Mapping of AIRR column names to Receptor attributes
+    _airr = OrderedDict([('id', 'sequence_id'),
+                         ('sequence', 'sequence_input'),
+                         ('functional', 'functional'),
+                         ('v_call', 'v_call'),
+                         ('d_call', 'd_call'),
+                         ('j_call', 'j_call'),
+                         ('v_score', 'v_score'),
+                         ('v_identity', 'v_identity'),
+                         ('v_evalue', 'v_evalue'),
+                         ('v_cigar', 'v_cigar'),
+                         ('d_score', 'd_score'),
+                         ('d_identity', 'd_identity'),
+                         ('d_evalue', 'd_evalue'),
+                         ('d_cigar', 'd_cigar'),
+                         ('j_score', 'j_score'),
+                         ('j_identity', 'j_identity'),
+                         ('j_evalue', 'j_evalue'),
+                         ('j_cigar', 'j_cigar'),
+                         ('vdj_score', 'vdj_score'),
+                         ('vdj_identity', 'vdj_identity'),
+                         ('vdj_evalue', 'vdj_evalue'),
+                         ('vdj_cigar', 'vdj_cigar'),
+                         ('junction', 'junction'),
+                         ('junction_length', 'junction_length'),
+                         ('np1_length', 'np1_length'),
+                         ('np2_length', 'np2_length'),
+                         ('n1_length', 'n1_length'),
+                         ('n2_length', 'n2_length'),
+                         ('p3v_length', 'p3v_length'),
+                         ('p5d_length', 'p5d_length'),
+                         ('p3d_length', 'p3d_length'),
+                         ('p5j_length', 'p5j_length'),
+                         ('fwr1_start', 'fwr1_start'),
+                         ('fwr1_end', 'fwr1_end'),
+                         ('fwr2_start', 'fwr2_start'),
+                         ('fwr2_end', 'fwr2_end'),
+                         ('fwr3_start', 'fwr3_start'),
+                         ('fwr3_end', 'fwr3_end'),
+                         ('fwr4_start', 'fwr4_start'),
+                         ('fwr4_end', 'fwr4_end'),
+                         ('cdr1_start', 'cdr1_start'),
+                         ('cdr1_end', 'cdr1_end'),
+                         ('cdr2_start', 'cdr2_start'),
+                         ('cdr2_end', 'cdr2_end'),
+                         ('cdr3_start', 'cdr3_start'),
+                         ('cdr3_end', 'cdr3_end')])
+
+    # Mapping of Receptor attributes to Change-O column names
+    _receptor = {v: k for k, v in _airr.items()}
+
+    # Ordered list of known fields
+    fields = list(_airr.keys())
+
+    @staticmethod
+    def asReceptor(field):
+        """
+        Returns a Receptor attribute name from an AIRR column name
+
+        Arguments:
+          field : AIRR column name
+        Returns:
+          str : Receptor attribute name
+        """
+        return AIRRSchema._airr.get(field, field.lower())
+
+    @staticmethod
+    def asChangeo(field):
+        """
+        Returns a Change-O column name from a Receptor attribute name
+
+        Arguments:
+          field : Receptor attribute name
+        Returns:
+          str : AIRR column name
+        """
+        return AIRRSchema._receptor.get(field, field.lower())
+
+
 class ChangeoSchema:
     """
-    Change-O to Receptor class mappings
+    Change-O to Receptor mappings
     """
     # Define core field column ordering
     core_fields = ['SEQUENCE_ID',
@@ -59,8 +149,8 @@ class ChangeoSchema:
                    'J_SEQ_LENGTH',
                    'J_GERM_START',
                    'J_GERM_LENGTH',
-                   'JUNCTION_LENGTH',
-                   'JUNCTION']
+                   'JUNCTION',
+                   'JUNCTION_LENGTH']
 
     # Define default FWR amd CDR field ordering
     region_fields = ['FWR1_IMGT',
@@ -83,6 +173,7 @@ class ChangeoSchema:
     # Mapping of Change-O column names to Receptor attributes
     _changeo = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
                             ('SEQUENCE_INPUT', 'sequence_input'),
+                            ('FUNCTIONAL', 'functional'),
                             ('IN_FRAME', 'in_frame'),
                             ('STOP', 'stop'),
                             ('MUTATED_INVARIANT', 'mutated_invariant'),
@@ -93,8 +184,6 @@ class ChangeoSchema:
                             ('J_CALL', 'j_call'),
                             ('SEQUENCE_VDJ', 'sequence_vdj'),
                             ('SEQUENCE_IMGT', 'sequence_imgt'),
-                            ('JUNCTION', 'junction'),
-                            ('FUNCTIONAL', 'functional'),
                             ('V_SEQ_START', 'v_seq_start'),
                             ('V_SEQ_LENGTH', 'v_seq_length'),
                             ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
@@ -111,6 +200,7 @@ class ChangeoSchema:
                             ('J_SEQ_LENGTH', 'j_seq_length'),
                             ('J_GERM_START', 'j_germ_start'),
                             ('J_GERM_LENGTH', 'j_germ_length'),
+                            ('JUNCTION', 'junction'),
                             ('JUNCTION_LENGTH', 'junction_length'),
                             ('V_SCORE', 'v_score'),
                             ('V_IDENTITY', 'v_identity'),
@@ -176,67 +266,67 @@ class Receptor:
     A class defining a V(D)J germline sequence alignment
     """
     # Mapping of member variables to parsing functions
-    _parse_map = {'sequence_id': '_identity',
-                  'v_call': '_identity',
-                  'v_call_genotyped': '_identity',
-                  'd_call': '_identity',
-                  'j_call': '_identity',
-                  'sequence_input': '_sequence',
-                  'sequence_vdj': '_sequence',
-                  'sequence_imgt': '_sequence',
-                  'junction': '_sequence',
-                  'functional': '_logical',
-                  'in_frame': '_logical',
-                  'stop': '_logical',
-                  'mutated_invariant': '_logical',
-                  'indels': '_logical',
-                  'v_seq_start': '_integer',
-                  'v_seq_length': '_integer',
-                  'v_germ_start_vdj': '_integer',
-                  'v_germ_length_vdj': '_integer',
-                  'v_germ_start_imgt': '_integer',
-                  'v_germ_length_imgt': '_integer',
-                  'np1_start': '_integer',
-                  'np1_length': '_integer',
-                  'd_seq_start': '_integer',
-                  'd_seq_length': '_integer',
-                  'd_germ_start': '_integer',
-                  'd_germ_length': '_integer',
-                  'np2_start': '_integer',
-                  'np2_length': '_integer',
-                  'j_seq_start': '_integer',
-                  'j_seq_length': '_integer',
-                  'j_germ_start': '_integer',
-                  'j_germ_length': '_integer',
-                  'junction_start': '_integer',
-                  'junction_length': '_integer',
-                  'v_score': '_float',
-                  'v_identity': '_float',
-                  'v_evalue': '_float',
-                  'v_btop': '_identity',
-                  'j_score': '_float',
-                  'j_identity': '_float',
-                  'j_evalue': '_float',
-                  'j_btop': '_identity',
-                  'hmm_score': '_float',
-                  'fwr1_imgt': '_sequence',
-                  'fwr2_imgt': '_sequence',
-                  'fwr3_imgt': '_sequence',
-                  'fwr4_imgt': '_sequence',
-                  'cdr1_imgt': '_sequence',
-                  'cdr2_imgt': '_sequence',
-                  'cdr3_imgt': '_sequence',
-                  'germline': '_sequence',
-                  'germline_d_mask': '_sequence',
-                  'n1_length': '_integer',
-                  'n2_length': '_integer',
-                  'p3v_length': '_integer',
-                  'p5d_length': '_integer',
-                  'p3d_length': '_integer',
-                  'p5j_length': '_integer',
-                  'd_frame': '_integer',
-                  'cdr3_igblast_nt': '_sequence',
-                  'cdr3_igblast_aa': '_sequence'}
+    _parsers = {'sequence_id': '_identity',
+                'v_call': '_identity',
+                'v_call_genotyped': '_identity',
+                'd_call': '_identity',
+                'j_call': '_identity',
+                'sequence_input': '_sequence',
+                'sequence_vdj': '_sequence',
+                'sequence_imgt': '_sequence',
+                'junction': '_sequence',
+                'functional': '_logical',
+                'in_frame': '_logical',
+                'stop': '_logical',
+                'mutated_invariant': '_logical',
+                'indels': '_logical',
+                'v_seq_start': '_integer',
+                'v_seq_length': '_integer',
+                'v_germ_start_vdj': '_integer',
+                'v_germ_length_vdj': '_integer',
+                'v_germ_start_imgt': '_integer',
+                'v_germ_length_imgt': '_integer',
+                'np1_start': '_integer',
+                'np1_length': '_integer',
+                'd_seq_start': '_integer',
+                'd_seq_length': '_integer',
+                'd_germ_start': '_integer',
+                'd_germ_length': '_integer',
+                'np2_start': '_integer',
+                'np2_length': '_integer',
+                'j_seq_start': '_integer',
+                'j_seq_length': '_integer',
+                'j_germ_start': '_integer',
+                'j_germ_length': '_integer',
+                'junction_start': '_integer',
+                'junction_length': '_integer',
+                'v_score': '_float',
+                'v_identity': '_float',
+                'v_evalue': '_float',
+                'v_btop': '_identity',
+                'j_score': '_float',
+                'j_identity': '_float',
+                'j_evalue': '_float',
+                'j_btop': '_identity',
+                'hmm_score': '_float',
+                'fwr1_imgt': '_sequence',
+                'fwr2_imgt': '_sequence',
+                'fwr3_imgt': '_sequence',
+                'fwr4_imgt': '_sequence',
+                'cdr1_imgt': '_sequence',
+                'cdr2_imgt': '_sequence',
+                'cdr3_imgt': '_sequence',
+                'germline': '_sequence',
+                'germline_d_mask': '_sequence',
+                'n1_length': '_integer',
+                'n2_length': '_integer',
+                'p3v_length': '_integer',
+                'p5d_length': '_integer',
+                'p3d_length': '_integer',
+                'p5j_length': '_integer',
+                'd_frame': '_integer',
+                'cdr3_igblast_nt': '_sequence',
+                'cdr3_igblast_aa': '_sequence'}
 
     # Pass through type conversion
     @staticmethod
@@ -246,17 +336,17 @@ class Receptor:
     # Logical type conversion
     @staticmethod
     def _logical(v, deparse=False):
-        logical_parse = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
+        parse_map = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
                          'NA': None, 'None': None, '': None}
-        logical_deparse = {False: 'F', True: 'T', None: ''}
+        deparse_map = {False: 'F', True: 'T', None: ''}
         if not deparse:
             try:
-                return logical_parse[v]
+                return parse_map[v]
             except:
                 return None
         else:
             try:
-                return logical_deparse[v]
+                return deparse_map[v]
             except:
                 return ''
 
@@ -323,19 +413,19 @@ class Receptor:
 
         # Define known keys
         required_keys = ('sequence_id',)
-        optional_keys = (x for x in Receptor._parse_map if x not in required_keys)
+        optional_keys = (x for x in Receptor._parsers if x not in required_keys)
 
         # Parse required fields
         try:
             for k in required_keys:
-                f = getattr(Receptor, Receptor._parse_map[k])
+                f = getattr(Receptor, Receptor._parsers[k])
                 setattr(self, k, f(data.pop(k)))
         except:
             sys.exit('ERROR:  Input must contain valid %s values' % ','.join(required_keys))
 
         # Parse optional known fields
         for k in optional_keys:
-            f = getattr(Receptor, Receptor._parse_map[k])
+            f = getattr(Receptor, Receptor._parsers[k])
             setattr(self, k, f(data.pop(k, None)))
 
         # Add remaining elements as annotations dictionary
@@ -353,7 +443,7 @@ class Receptor:
         """
         field = field.lower()
 
-        if field in Receptor._parse_map:
+        if field in Receptor._parsers:
             return getattr(self, field)
         elif field in self.annotations:
             return self.annotations[field]
@@ -411,7 +501,7 @@ class Receptor:
             if k == 'annotations':
                 d.update(n['annotations'])
             else:
-                f = getattr(Receptor, Receptor._parse_map[k])
+                f = getattr(Receptor, Receptor._parsers[k])
                 d[k] = f(v, deparse=True)
 
         return d
