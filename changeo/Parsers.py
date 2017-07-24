@@ -1873,9 +1873,9 @@ def encodeCIGAR(alignment):
     return ''.join(['%i%s' % (x, s) for s, x in alignment])
 
 
-def padCIGAR(alignment, q_start, r_start):
+def padAlignment(alignment, q_start, r_start):
     """
-    Pads the ends of a CIGAR string based on alignment positions.
+    Pads the start of an alignment based on query and reference positions.
 
     Arguments:
       alignment : tuples of (operation, length) for each alignment operation.
@@ -1895,13 +1895,53 @@ def padCIGAR(alignment, q_start, r_start):
         result.insert(0, ('P', r_start))
 
     # Add query deletions if present
-    if result[0][0] == 'D':
-        result[0] = ('D', result[0][1] + q_start)
-    elif result [0][0] == 'P' and result[1][0] == 'D':
-        result[1] = ('D', result[1][1] + q_start)
+    if result[0][0] == 'H':
+        result[0] = ('H', result[0][1] + q_start)
+    elif result [0][0] == 'P' and result[1][0] == 'H':
+        result[1] = ('H', result[1][1] + q_start)
     elif result[0][0] == 'P' and q_start > 0:
-        result.insert(1, ('D', q_start))
+        result.insert(1, ('H', q_start))
     elif q_start > 0:
-        result.insert(0, ('D', q_start))
+        result.insert(0, ('H', q_start))
+
+    return result
+
+
+def alignmentPositions(alignment):
+    """
+    Extracts start position and length from an alignment
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+
+    Returns:
+      dict : query (q) and reference (r) start and length information with keys
+             {q_start, q_length, r_start, r_length}.
+    """
+    # Return object
+    result = {'q_start': 0,
+              'q_length': 0,
+              'r_start': 0,
+              'r_length': 0}
+
+    # Reference start
+    if alignment[0][0] == 'P':
+        result['r_start'] = alignment[0][1]
+
+    # Query start
+    if alignment[0][0] == 'H':
+        result['q_start'] = alignment[0][1]
+    elif alignment[0][0] == 'P' and alignment[1][0] == 'H':
+        result['q_start'] = alignment[1][1]
+
+    # Reference length
+    for x, i in alignment:
+        if x in ('M', '=', 'X'):
+            result['r_length'] += i
+            result['q_length'] += i
+        elif x == 'D':
+            result['r_length'] += i
+        elif x == 'I':
+            result['q_length'] += i
 
     return result

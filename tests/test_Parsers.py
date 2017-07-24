@@ -20,7 +20,7 @@ sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MakeDb
 from changeo.IO import extractIMGT, readRepo
 from changeo.Parsers import ChangeoReader, IgBLASTReader, IHMMuneReader, IMGTReader, \
-                            decodeBTOP, decodeCIGAR, encodeCIGAR, padCIGAR
+                            decodeBTOP, decodeCIGAR, encodeCIGAR, padAlignment, alignmentPositions
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -41,19 +41,21 @@ class Test_MakeDb(unittest.TestCase):
         self.ig_db_file = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
 
         # CIGAR strings
-        self.cigar_string = ['30M1I69M3D', '16P4D30M1I69M3D']
+        self.cigar_string = ['30M1I69M3D', '16P4H30M1I69M3D']
         self.cigar_decoded = [[('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                              [('P', 16), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+                              [('P', 16), ('H', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+        self.cigar_len = [{'q_start': 0, 'q_length': 30 + 1 + 69 + 0, 'r_start': 0, 'r_length': 30 + 0 + 69 + 3},
+                          {'q_start': 4, 'q_length': 30 + 1 + 69 + 0, 'r_start': 16, 'r_length': 30 + 0 + 69 + 3}]
 
         self.cigar_pos = [(0, 0), (5, 0), (0, 3), (5, 3)]
         self.cigar_pad_1 = [[('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                            [('D', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('H', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
                             [('P', 3), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                            [('P', 3), ('D', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
-        self.cigar_pad_2 = [[('P', 16), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                            [('P', 16), ('D', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                            [('P', 19), ('D', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
-                            [('P', 19), ('D', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+                            [('P', 3), ('H', 5), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
+        self.cigar_pad_2 = [[('P', 16), ('H', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 16), ('H', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 19), ('H', 4), ('M', 30), ('I', 1), ('M', 69), ('D', 3)],
+                            [('P', 19), ('H', 9), ('M', 30), ('I', 1), ('M', 69), ('D', 3)]]
 
         # BTOP strings
         self.btop_string = ['7AGAC39',
@@ -94,7 +96,7 @@ class Test_MakeDb(unittest.TestCase):
                 open(files['gapped'], 'r') as gapped, \
                 open(files['ntseq'], 'r') as ntseq, \
                 open(files['junction'], 'r') as junction:
-            result = IMGTReader(summary, gapped, ntseq, junction, ig=False)
+            result = IMGTReader(summary, gapped, ntseq, junction, receptor=False)
             for x in result: print(x)
 
         # Remove IMGT temporary directory
@@ -110,7 +112,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Parse
         with open(self.ig_igblast_file, 'r') as f:
-            result = IgBLASTReader(f, seq_dict, repo_dict, ig=False)
+            result = IgBLASTReader(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
         self.fail('TODO')
@@ -123,7 +125,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Parse
         with open(self.ig_ihmmune_file, 'r') as f:
-            result = IHMMuneReader(f, seq_dict, repo_dict, ig=False)
+            result = IHMMuneReader(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
         self.fail('TODO')
@@ -149,21 +151,28 @@ class Test_MakeDb(unittest.TestCase):
             print(result)
             self.assertEqual(truth, result)
 
-    #@unittest.skip("-> padCIGAR() skipped\n")
-    def test_padCIGAR(self):
+    #@unittest.skip("-> padAlignment() skipped\n")
+    def test_padAlignment(self):
         cigar = self.cigar_decoded[0]
         for (s, r), truth in zip(self.cigar_pos, self.cigar_pad_1):
             #print('POS>', s, r)
-            result = padCIGAR(cigar, s, r)
+            result = padAlignment(cigar, s, r)
             print('PAD>', '(%i, %i) =' % (s, r), result)
             self.assertEqual(truth, result)
 
         cigar = self.cigar_decoded[1]
         for (s, r), truth in zip(self.cigar_pos, self.cigar_pad_2):
             #print('POS>', s, r)
-            result = padCIGAR(cigar, s, r)
+            result = padAlignment(cigar, s, r)
             print('PAD>', '(%i, %i) =' % (s, r), result)
             self.assertEqual(truth, result)
+
+    #@unittest.skip("-> alignmentPositions() skipped\n")
+    def test_alignmentPositions(self):
+        for align, truth in zip(self.cigar_decoded, self.cigar_len):
+            result = alignmentPositions(align)
+            print('POS>', result)
+            self.assertDictEqual(truth, result)
 
 if __name__ == '__main__':
     unittest.main()
