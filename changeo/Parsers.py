@@ -1895,14 +1895,14 @@ def padAlignment(alignment, q_start, r_start):
         result.insert(0, ('P', r_start))
 
     # Add query deletions if present
-    if result[0][0] == 'H':
-        result[0] = ('H', result[0][1] + q_start)
-    elif result [0][0] == 'P' and result[1][0] == 'H':
-        result[1] = ('H', result[1][1] + q_start)
+    if result[0][0] == 'S':
+        result[0] = ('S', result[0][1] + q_start)
+    elif result [0][0] == 'P' and result[1][0] == 'S':
+        result[1] = ('S', result[1][1] + q_start)
     elif result[0][0] == 'P' and q_start > 0:
-        result.insert(1, ('H', q_start))
+        result.insert(1, ('S', q_start))
     elif q_start > 0:
-        result.insert(0, ('H', q_start))
+        result.insert(0, ('S', q_start))
 
     return result
 
@@ -1929,9 +1929,9 @@ def alignmentPositions(alignment):
         result['r_start'] = alignment[0][1]
 
     # Query start
-    if alignment[0][0] == 'H':
+    if alignment[0][0] == 'S':
         result['q_start'] = alignment[0][1]
-    elif alignment[0][0] == 'P' and alignment[1][0] == 'H':
+    elif alignment[0][0] == 'P' and alignment[1][0] == 'S':
         result['q_start'] = alignment[1][1]
 
     # Reference length
