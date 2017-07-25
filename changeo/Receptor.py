@@ -3,7 +3,7 @@ Sequence manipulation and annotation functions
 """
 
 # Info
-__author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
+__author__ = 'Jason Anthony Vander Heiden, Namita Gupta, Scott Christley'
 from changeo import __version__, __date__
 
 # Imports
@@ -38,12 +38,13 @@ class AIRRSchema:
     # rev_comp
 
     # Mapping of AIRR column names to Receptor attributes
-    _airr = OrderedDict([('id', 'sequence_id'),
+    _airr = OrderedDict([('sequence_id', 'sequence_id'),
                          ('sequence', 'sequence_input'),
                          ('functional', 'functional'),
                          ('v_call', 'v_call'),
                          ('d_call', 'd_call'),
                          ('j_call', 'j_call'),
+                         ('cdr3_na', 'cdr3_imgt'),
                          ('v_score', 'v_score'),
                          ('v_identity', 'v_identity'),
                          ('v_evalue', 'v_evalue'),
@@ -70,6 +71,18 @@ class AIRRSchema:
                          ('p5d_length', 'p5d_length'),
                          ('p3d_length', 'p3d_length'),
                          ('p5j_length', 'p5j_length'),
+                         ('v_start', 'v_seq_start'),
+                         ('v_germ_start', 'v_germ_start_imgt'),
+                         ('v_end', 'v_seq_end'),
+                         ('v_germ_end', 'v_germ_end_imgt'),
+                         ('d_start', 'd_seq_start'),
+                         ('d_germ_start', 'd_germ_start_imgt'),
+                         ('d_end', 'd_seq_end'),
+                         ('d_end_start', 'd_germ_end_imgt'),
+                         ('j_start', 'j_seq_start'),
+                         ('j_germ_start', 'j_germ_start_imgt'),
+                         ('j_end', 'j_seq_end'),
+                         ('j_germ_end', 'j_germ_end_imgt'),
                          ('fwr1_start', 'fwr1_start'),
                          ('fwr1_end', 'fwr1_end'),
                          ('fwr2_start', 'fwr2_start'),

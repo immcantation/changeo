@@ -21,7 +21,7 @@ from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, pri
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, extractIMGT, readRepo
-from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter
+from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
 
 
 def getSeqDict(seq_file):
@@ -63,9 +63,9 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
     if format == 'changeo':
         format_writer = ChangeoWriter
     elif format == 'airr':
-        format_writer = None
-        #format_writer = AIRRWriter
-        sys.exit('AIRR writer not implemented')
+        #format_writer = None
+        format_writer = AIRRWriter
+        #sys.exit('AIRR writer not implemented')
     else:
         sys.exit('Invalid output format %s' % format)
 

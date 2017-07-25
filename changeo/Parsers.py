@@ -15,7 +15,7 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
-from changeo.Receptor import ChangeoSchema, Receptor, parseAllele, \
+from changeo.Receptor import ChangeoSchema, AIRRSchema, Receptor, parseAllele, \
                              v_allele_regex, d_allele_regex, j_allele_regex
 
 
@@ -176,6 +176,86 @@ class ChangeoWriter:
             """
             row = ChangeoWriter._parseReceptor(record)
             self.writer.writerow(row)
+
+
+class AIRRWriter:
+    """
+    Writes AIRR formatted data.
+    """
+    @staticmethod
+    def _parseReceptor(record):
+        """
+        Parses a Receptor object to an AIRR dictionary
+
+        Arguments:
+          record : dict with fields and values in the Receptor format
+
+        Returns:
+          dict : a parsed dict
+        """
+        row = record.toDict()
+        # Parse known fields
+        result = {}
+        for k, v in row.items():
+            k = AIRRSchema.asAIRR(k)
+            result[k] = v
+
+        return result
+
+    def __init__(self, handle, fields=AIRRSchema.fields, header=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open output file
+          fields : list of output field names
+          header : if True write the header on initialization.
+
+        Returns:
+          changeo.Parsers.AIRRWriter
+        """
+        try:
+            # AIRR standard
+            import airr
+            from airr.specs import rearrangements
+            
+            # Arguments
+            self.handle = handle
+            self.writer = airr.create(handle=handle)
+            # provenance
+            input_fasta = 'seq.fasta'
+            germline_database = 'VDJServer GLDB 10_05_2016'
+            igblast_input = 'seq.igblast.out'
+            self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
+                                                           'IgBlast', 'alignment', 'changeo',
+                                                           igblast_input, 'MakeDb')
+        except ImportError:
+            sys.exit('AIRR standard library is not available.')
+
+    def writeDict(self, record):
+            """
+            Writes a row from a AIRR dictionary
+
+            Arguments:
+              record : AIRR dictionary of row data
+
+            Returns:
+              None
+            """
+            self.writer.write(record)
+
+    def writeReceptor(self, record):
+            """
+            Writes a row from a Receptor object
+
+            Arguments:
+              record : a changeo.Receptor object to write
+
+            Returns:
+              None
+            """
+            row = AIRRWriter._parseReceptor(record)
+            self.writer.write(row)
 
 
 class IMGTReader:
