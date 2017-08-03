@@ -107,13 +107,15 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
         # Parse sequence description into new columns
         if not no_parse:
             try:
-                record.annotations = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
-                record.sequence_id = record.annotations['ID']
-                del record.annotations['ID']
-
+                ann = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
+                record.sequence_id = ann['ID']
+                del ann['ID']
+                record.updateAnnotations(ann)
                 # TODO:  This is not the best approach. should pass in output fields.
                 # If first record, use parsed description to define extra columns
-                if i == 1:  fields.extend(list(record.annotations.keys()))
+                if i == 1:
+                    f = [x.upper() for x in record.annotations.keys() if x.upper() not in fields]
+                    fields.extend(f)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 no_parse = True

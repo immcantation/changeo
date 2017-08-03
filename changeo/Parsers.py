@@ -194,6 +194,7 @@ class AIRRWriter:
           dict : a parsed dict
         """
         row = record.toDict()
+        #print(sorted(row.keys()))
         # Parse known fields
         result = {}
         for k, v in row.items():
@@ -697,15 +698,25 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
+    # IgBLAST extra summary fields
+    _summary_fields = ['REV_COMP']
+
     # IgBLAST score fields
     _score_fields = ['V_SCORE',
                      'V_IDENTITY',
                      'V_EVALUE',
                      'V_BTOP',
+                     'V_CIGAR',
+                     'D_SCORE',
+                     'D_IDENTITY',
+                     'D_EVALUE',
+                     'D_BTOP',
+                     'D_CIGAR',
                      'J_SCORE',
                      'J_IDENTITY',
                      'J_EVALUE',
-                     'J_BTOP']
+                     'J_BTOP',
+                     'J_CIGAR']
 
     # IgBLAST CDR3 fields
     _igblast_cdr3_fields = ['CDR3_IGBLAST_NT',
@@ -748,6 +759,7 @@ class IgBLASTReader:
 
         # Define field list
         self._fields = ChangeoSchema.core_fields
+        self._fields.extend(self._summary_fields)
         if parse_regions:
             self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
@@ -900,6 +912,9 @@ class IgBLASTReader:
         if summary['strand'] == '-':
             seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
             result['SEQUENCE_INPUT'] = str(seq_rc)
+            result['REV_COMP'] = 'F'
+        else:
+            result['REV_COMP'] = 'F'
 
         return result
 
@@ -1129,6 +1144,13 @@ class IgBLASTReader:
         # BTOP
         try:  result['%s_BTOP' % segment] = s_hit['BTOP']
         except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
+        # CIGAR
+        try:
+            align = decodeBTOP(s_hit['BTOP'])
+            align = padAlignment(align, int(s_hit['q. start']), int(s_hit['s. start']))
+            result['%s_CIGAR' % segment] = encodeCIGAR(align)
+        except (TypeError, ValueError):
+            result['%s_CIGAR' % segment] = None
 
         return result
 
@@ -1229,6 +1251,8 @@ class IgBLASTReader:
                     db.update(self._parseHitScores(sections['hits'], 'V'))
             if db['D_CALL']:
                 db.update(self._parseDHits(sections['hits'], db))
+                if self.parse_scores:
+                    db.update(self._parseHitScores(sections['hits'], 'D'))
             if db['J_CALL']:
                 db.update(self._parseJHits(sections['hits'], db))
                 if self.parse_scores:

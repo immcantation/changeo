@@ -114,19 +114,19 @@ class AIRRSchema:
         Returns:
           str : Receptor attribute name
         """
-        return AIRRSchema._airr.get(field, field.lower())
+        return AIRRSchema._airr.get(field.lower(), field.lower())
 
     @staticmethod
     def asAIRR(field):
         """
-        Returns a Change-O column name from a Receptor attribute name
+        Returns an AIRR column name from a Receptor attribute name
 
         Arguments:
           field : Receptor attribute name
         Returns:
           str : AIRR column name
         """
-        return AIRRSchema._receptor.get(field, field.lower())
+        return AIRRSchema._receptor.get(field.lower(), field.lower())
 
 
 class ChangeoSchema:
@@ -421,7 +421,7 @@ class Receptor:
         Returns:
           changeo.Receptor.Receptor
         """
-        # Convert case
+        # Convert case of keys
         data = {k.lower(): v for k, v in data.items()}
 
         # Define known keys
@@ -443,6 +443,20 @@ class Receptor:
 
         # Add remaining elements as annotations dictionary
         self.annotations = data
+
+    def updateAnnotations(self, data):
+        """
+        Add entries to annotations
+
+        Arguments:
+          data : a dictionary of annotations to add
+
+        Returns:
+          None : updates the annotations attribute
+        """
+        # Convert case of keys
+        data = {k.lower(): v for k, v in data.items()}
+        self.annotations.update(data)
 
     def getField(self, field):
         """
@@ -512,11 +526,11 @@ class Receptor:
         n = self.__dict__
         for k, v in n.items():
             if k == 'annotations':
+                #d.update({j.lower(): u for j, u  in n['annotations'].items()})
                 d.update(n['annotations'])
             else:
                 f = getattr(Receptor, Receptor._parsers[k])
                 d[k] = f(v, deparse=True)
-
         return d
 
     def getAlleleCalls(self, calls, action='first'):
