@@ -63,9 +63,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
     if format == 'changeo':
         format_writer = ChangeoWriter
     elif format == 'airr':
-        #format_writer = None
         format_writer = AIRRWriter
-        #sys.exit('AIRR writer not implemented')
     else:
         sys.exit('Invalid output format %s' % format)
 

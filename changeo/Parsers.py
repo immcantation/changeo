@@ -203,33 +203,36 @@ class AIRRWriter:
 
         return result
 
-    def __init__(self, handle, fields=AIRRSchema.fields, header=True):
+    def __init__(self, handle, fields=AIRRSchema.fields):
         """
         Initializer
 
         Arguments:
           handle : handle to an open output file
           fields : list of output field names
-          header : if True write the header on initialization.
 
         Returns:
           changeo.Parsers.AIRRWriter
         """
+        # Arguments
+        self.handle = handle
+
         try:
             # AIRR standard
             import airr
             from airr.specs import rearrangements
-            
-            # Arguments
-            self.handle = handle
+
+            # Define writer
             self.writer = airr.create(handle=handle)
-            # provenance
+
+            # Provenance
             input_fasta = 'seq.fasta'
             germline_database = 'VDJServer GLDB 10_05_2016'
             igblast_input = 'seq.igblast.out'
             self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
                                                            'IgBlast', 'alignment', 'changeo',
                                                            igblast_input, 'MakeDb')
+
         except ImportError:
             sys.exit('AIRR standard library is not available.')
 
@@ -243,6 +246,12 @@ class AIRRWriter:
             Returns:
               None
             """
+            # Temporary workaround for missing constant and sample_id fields
+            if 'sample_id' not in record or record['sample_id'] is None:
+                record['sample_id'] = ''
+            if 'constant' not in record or record['constant'] is None:
+                record['constant'] = ''
+
             self.writer.write(record)
 
     def writeReceptor(self, record):
@@ -256,6 +265,13 @@ class AIRRWriter:
               None
             """
             row = AIRRWriter._parseReceptor(record)
+
+            # Temporary workaround for missing constant and sample_id fields
+            if 'sample_id' not in row or row['sample_id'] is None:
+                row['sample_id'] = ''
+            if 'constant' not in row or row['constant'] is None:
+                row['constant'] = ''
+
             self.writer.write(row)
 
 
@@ -1273,8 +1289,7 @@ class IgBLASTReader:
                 # Sequences already parsed into dict by parseBlock
                 db.update(sections['subregion'])
             else:
-                # section does not exist (i.e. older version of IgBLAST
-                # or no CDR3 sequences could be found)
+                # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
                 db.update(dict(zip(self._igblast_cdr3_fields, [None, None])))
 
         # Add FWR and CDR regions
@@ -1872,7 +1887,8 @@ def getRegions(db):
                    'FWR4_IMGT': None,
                    'CDR1_IMGT': None,
                    'CDR2_IMGT': None,
-                   'CDR3_IMGT': None}
+                   'CDR3_IMGT': None,
+                   'CDR3_IMGT_AA': None}
     try:
         seq_len = len(db['SEQUENCE_IMGT'])
         region_dict['FWR1_IMGT'] = db['SEQUENCE_IMGT'][0:min(78, seq_len)]
@@ -1893,7 +1909,13 @@ def getRegions(db):
 
     try:
         cdr3_end = 306 + db['JUNCTION_LENGTH']
+        # CDR3
         region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
+        # Translated CDR3
+        cdr3_tmp = region_dict['CDR3_IMGT'].replace('-', 'N').replace('.', 'N')
+        if len(cdr3_tmp) % 3 > 0:  cdr3_tmp = cdr3_tmp + 'N' * (3 - len(cdr3_tmp) % 3)
+        region_dict['CDR3_IMGT_AA'] = str(Seq(cdr3_tmp).translate())
+        # FWR4
         region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
     except (KeyError, IndexError, TypeError):
         return region_dict

@@ -45,6 +45,7 @@ class AIRRSchema:
                          ('d_call', 'd_call'),
                          ('j_call', 'j_call'),
                          ('cdr3_na', 'cdr3_imgt'),
+                         ('cdr3_aa', 'cdr3_imgt_aa'),
                          ('v_score', 'v_score'),
                          ('v_identity', 'v_identity'),
                          ('v_evalue', 'v_evalue'),
