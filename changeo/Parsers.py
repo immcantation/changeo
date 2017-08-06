@@ -223,7 +223,7 @@ class AIRRWriter:
             from airr.specs import rearrangements
 
             # Define writer
-            self.writer = airr.create(handle=handle)
+            self.writer = airr.create(handle=handle, debug=False)
 
             # Provenance
             input_fasta = 'seq.fasta'
@@ -246,12 +246,6 @@ class AIRRWriter:
             Returns:
               None
             """
-            # Temporary workaround for missing constant and sample_id fields
-            if 'sample_id' not in record or record['sample_id'] is None:
-                record['sample_id'] = ''
-            if 'constant' not in record or record['constant'] is None:
-                record['constant'] = ''
-
             self.writer.write(record)
 
     def writeReceptor(self, record):
@@ -265,13 +259,6 @@ class AIRRWriter:
               None
             """
             row = AIRRWriter._parseReceptor(record)
-
-            # Temporary workaround for missing constant and sample_id fields
-            if 'sample_id' not in row or row['sample_id'] is None:
-                row['sample_id'] = ''
-            if 'constant' not in row or row['constant'] is None:
-                row['constant'] = ''
-
             self.writer.write(row)
 
 
