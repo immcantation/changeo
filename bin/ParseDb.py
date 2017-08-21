@@ -1000,7 +1000,7 @@ def getArgParser():
     parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
                                         help='Deletes entire fields.',
-                                        description='Deletes specific records.')
+                                        description='Deletes entire fields.')
     parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
     parser_drop.set_defaults(func=dropDbFile)
