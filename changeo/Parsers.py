@@ -123,7 +123,7 @@ class ChangeoWriter:
 
         return result
 
-    def __init__(self, handle, fields=ChangeoSchema.fields, header=True):
+    def __init__(self, handle, fields=ChangeoSchema.fields(), header=True):
         """
         Initializer
 
@@ -194,7 +194,6 @@ class AIRRWriter:
           dict : a parsed dict
         """
         row = record.toDict()
-        #print(sorted(row.keys()))
         # Parse known fields
         result = {}
         for k, v in row.items():
@@ -203,7 +202,7 @@ class AIRRWriter:
 
         return result
 
-    def __init__(self, handle, fields=AIRRSchema.fields):
+    def __init__(self, handle, fields=AIRRSchema.fields()):
         """
         Initializer
 
@@ -266,12 +265,6 @@ class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
     """
-    # IMGT score fields
-    _score_fields = ['V_SCORE',
-                     'V_IDENTITY',
-                     'J_SCORE',
-                     'J_IDENTITY']
-
     @property
     def fields(self):
         """
@@ -316,7 +309,7 @@ class IMGTReader:
         if parse_junction:
             self._fields.extend(ChangeoSchema.junction_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.imgt_score_fields)
 
         # Open readers
         readers = [csv.DictReader(self.summary, delimiter='\t'),
@@ -704,27 +697,6 @@ class IgBLASTReader:
     # IgBLAST extra summary fields
     _summary_fields = ['REV_COMP']
 
-    # IgBLAST score fields
-    _score_fields = ['V_SCORE',
-                     'V_IDENTITY',
-                     'V_EVALUE',
-                     'V_BTOP',
-                     'V_CIGAR',
-                     'D_SCORE',
-                     'D_IDENTITY',
-                     'D_EVALUE',
-                     'D_BTOP',
-                     'D_CIGAR',
-                     'J_SCORE',
-                     'J_IDENTITY',
-                     'J_EVALUE',
-                     'J_BTOP',
-                     'J_CIGAR']
-
-    # IgBLAST CDR3 fields
-    _igblast_cdr3_fields = ['CDR3_IGBLAST_NT',
-                            'CDR3_IGBLAST_AA']
-
     @property
     def fields(self):
         """
@@ -766,9 +738,9 @@ class IgBLASTReader:
         if parse_regions:
             self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.igblast_score_fields)
         if parse_igblast_cdr3:
-            self._fields.extend(self._igblast_cdr3_fields)
+            self._fields.extend(ChangeoSchema.igblast_cdr3_fields)
 
         # Define parsing blocks
         self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
@@ -1277,7 +1249,7 @@ class IgBLASTReader:
                 db.update(sections['subregion'])
             else:
                 # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
-                db.update(dict(zip(self._igblast_cdr3_fields, [None, None])))
+                db.update(dict(zip(ChangeoSchema.igblast_cdr3_fields, [None, None])))
 
         # Add FWR and CDR regions
         if self.parse_regions:
@@ -1405,7 +1377,7 @@ class IHMMuneReader:
                       'RC',
                       'COMMON_MUT',
                       'COMMON_NX_COUNT',
-                      'V_SEQ_START2',
+                      'V_SEQ_START',
                       'V_SEQ_LENGTH',
                       'A_SCORE']
 
@@ -1450,7 +1422,7 @@ class IHMMuneReader:
         if parse_regions:
             self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.ihmm_score_fields)
 
         # Open reader
         self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
@@ -1835,7 +1807,8 @@ def inferJunction(db, repo_dict):
       dict : database entries containing junction sequence and length.
     """
     junc_dict = {'JUNCTION': None,
-                 'JUNCTION_LENGTH': None}
+                 'JUNCTION_LENGTH': None,
+                 'JUNCTION_AA': None}
 
     # Find germline J segment
     jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
@@ -1849,11 +1822,15 @@ def inferJunction(db, repo_dict):
         aa_end = len(db['SEQUENCE_IMGT'])
         #TODO: Figure out else case
         if motif:
-            # print('\n', motif.group())
             aa_end = motif.start() - len(jgerm) + 3
-        # Add fields to dict
+
+        # Extract junction
         junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
+        # Translation
+        junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
+        if len(junc_tmp) % 3 > 0:  junc_tmp = junc_tmp + 'N' * (3 - len(junc_tmp) % 3)
+        junc_dict['JUNCTION_AA'] = str(Seq(junc_tmp).translate())
 
     return junc_dict
 
@@ -1874,8 +1851,7 @@ def getRegions(db):
                    'FWR4_IMGT': None,
                    'CDR1_IMGT': None,
                    'CDR2_IMGT': None,
-                   'CDR3_IMGT': None,
-                   'CDR3_IMGT_AA': None}
+                   'CDR3_IMGT': None}
     try:
         seq_len = len(db['SEQUENCE_IMGT'])
         region_dict['FWR1_IMGT'] = db['SEQUENCE_IMGT'][0:min(78, seq_len)]
@@ -1895,13 +1871,9 @@ def getRegions(db):
     except (IndexError): return region_dict
 
     try:
-        cdr3_end = 306 + db['JUNCTION_LENGTH']
         # CDR3
+        cdr3_end = 306 + db['JUNCTION_LENGTH']
         region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
-        # Translated CDR3
-        cdr3_tmp = region_dict['CDR3_IMGT'].replace('-', 'N').replace('.', 'N')
-        if len(cdr3_tmp) % 3 > 0:  cdr3_tmp = cdr3_tmp + 'N' * (3 - len(cdr3_tmp) % 3)
-        region_dict['CDR3_IMGT_AA'] = str(Seq(cdr3_tmp).translate())
         # FWR4
         region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
     except (KeyError, IndexError, TypeError):

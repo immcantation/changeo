@@ -22,7 +22,7 @@ from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, extractIMGT, readRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
-
+from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 def getSeqDict(seq_file):
     """
@@ -204,6 +204,11 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    fields = ChangeoSchema.fields(imgt_score=parse_scores,
+                                  region=parse_regions,
+                                  junction=parse_junction)
+
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
             open(imgt_files['gapped'], 'r') as gapped_handle, \
@@ -213,7 +218,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
                                 parse_scores=parse_scores, parse_regions=parse_regions,
                                 parse_junction=parse_junction)
         #file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count, id_dict=id_dict,
+        writeDb(parse_iter, fields, aligner_output, total_count, id_dict=id_dict,
                 no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     # Cleanup temp directory
@@ -266,13 +271,17 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    fields = ChangeoSchema.fields(igblast_score=parse_scores,
+                                  region=parse_regions,
+                                  igblast_cdr3=parse_igblast_cdr3)
+
     # Parse and write output
     with open(aligner_output, 'r') as f:
         parse_iter = IgBLASTReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions,
                                    parse_igblast_cdr3=parse_igblast_cdr3)
-        #file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count,
+        writeDb(parse_iter, fields, aligner_output, total_count,
                 no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     return None
@@ -321,12 +330,16 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    fields = ChangeoSchema.fields(ihmm_score=parse_scores,
+                                  region=parse_regions)
+
     # Parse and write output
     with open(aligner_output, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions)
         #file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, aligner_output, total_count,
+        writeDb(parse_iter, fields, aligner_output, total_count,
                 no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     return None
