@@ -45,8 +45,8 @@ class AIRRSchema:
                          ('v_call', 'v_call'),
                          ('d_call', 'd_call'),
                          ('j_call', 'j_call'),
-                         ('cdr3_nt', 'cdr3_imgt'),
-                         ('cdr3_aa', 'cdr3_imgt_aa'),
+                         ('junction_nt', 'junction'),
+                         ('junction_aa', 'junction_aa'),
                          ('v_score', 'v_score'),
                          ('v_identity', 'v_identity'),
                          ('v_evalue', 'v_evalue'),
@@ -63,8 +63,6 @@ class AIRRSchema:
                          ('vdj_identity', 'vdj_identity'),
                          ('vdj_evalue', 'vdj_evalue'),
                          ('vdj_cigar', 'vdj_cigar'),
-                         ('junction_nt', 'junction_nt'),
-                         ('junction_aa', 'junction_aa'),
                          ('np1_length', 'np1_length'),
                          ('np2_length', 'np2_length'),
                          ('n1_length', 'n1_length'),
@@ -98,7 +96,9 @@ class AIRRSchema:
                          ('cdr2_start', 'cdr2_start'),
                          ('cdr2_end', 'cdr2_end'),
                          ('cdr3_start', 'cdr3_start'),
-                         ('cdr3_end', 'cdr3_end')])
+                         ('cdr3_end', 'cdr3_end'),
+                         ('duplicate_count', 'dupcount'),
+                         ('consensus_count', 'conscount')])
 
     # Mapping of Receptor attributes to Change-O column names
     _receptor = {v: k for k, v in _airr.items()}

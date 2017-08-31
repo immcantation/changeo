@@ -499,8 +499,10 @@ class IMGTReader:
 
         result = {}
         # Junction sequence
-        result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
         result['JUNCTION'] = junction['JUNCTION']
+        result['JUNCTION_AA'] = junction['JUNCTION (AA)']
+        result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
+
         # N/P and D alignment positions
         result['NP1_LENGTH'] = _np1()
         result['D_SEQ_START'] = _dstart()
