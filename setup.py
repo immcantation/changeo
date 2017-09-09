@@ -64,7 +64,7 @@ else:
 setup(name='changeo',
       version=__version__,
       author=__author__,
-      author_email='jason.vanderheiden@yale.edu',
+      author_email='immcantation@googlegroups.com',
       description='A bioinformatics toolkit for processing high-throughput lymphocyte receptor sequencing data.',
       long_description=long_description,
       zip_safe=False,

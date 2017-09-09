@@ -1,9 +1,8 @@
 Contact
 --------------------------------------------------------------------------------
 
-If you have questions you can email
-`Steven Kleinstein <mailto:steven.kleinstein@yale.edu>`__ and/or
-`Namita Gupta <mailto:namita.gupta@yale.edu>`__.
+If you have questions you can email the
+`Immcantation Group <mailto:immcantation@googlegroups.com>`__.
 
 If you've discovered a bug or have a feature request, you can create an issue
 on Bitbucket using the
