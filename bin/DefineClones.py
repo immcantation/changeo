@@ -10,7 +10,6 @@ from changeo import __version__, __date__
 import os
 import re
 import sys
-import csv
 import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -41,7 +40,41 @@ default_seq_field = 'JUNCTION'
 default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
+default_max_missing=0
 choices_bygroup_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
+
+
+def filterMissing(data, field=default_seq_field, max_missing=default_max_missing):
+    """
+    Splits a list of IgRecords into passed and failed groups based on the number
+    of missing characters in the sequence
+
+    Arguments:
+        data : list of IgRecords to partion
+        field : sequence field to filter on
+        max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record
+
+    Returns:
+        dict : a dictionary of {pass : list of passing records, fail : list of failing records}
+    """
+    # Function to validate the sequence string
+    def _pass(seq):
+        if len(seq) > 0 and len(re.findall(r'[^ACGT]', seq)) <= max_missing:
+            return True
+        else:
+            return False
+
+    # Define return object
+    result = {'pass': None, 'fail': None}
+
+    pass_list = []
+    fail_list = []
+    for ig in data:
+        seq = str(ig.getSeqField(field))
+        if _pass(seq):  pass_list.append(ig)
+        else:  fail_list.append(ig)
+
+    return {'pass': pass_list, 'fail': fail_list}
 
 
 def indexByIdentity(index, key, rec, fields=None):
@@ -217,17 +250,17 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
     Separates a set of IgRecords into clones
 
     Arguments: 
-    records = an iterator of IgRecords
-    model = substitution model used to calculate distance
-    distance = the distance threshold to assign clonal groups
-    dist_mat = pandas DataFrame of pairwise nucleotide or amino acid distances
-    norm = normalization method
-    sym = symmetry method
-    linkage = type of linkage
-    seq_field = sequence field used to calculate distance between records
+      records : an iterator of IgRecords.
+      model : substitution model used to calculate distance.
+      distance : the distance threshold to assign clonal groups.
+      dist_mat : pandas DataFrame of pairwise nucleotide or amino acid distances.
+      norm : normalization method.
+      sym : symmetry method.
+      linkage : type of linkage.
+      seq_field : sequence field used to calculate distance between records.
 
     Returns: 
-    a dictionary of lists defining {clone number: [IgRecords clonal group]}
+      dict : a dictionary of lists defining {clone number: [IgRecords clonal group]}.
     """
     # Get distance matrix if not provided
     if dist_mat is None:
@@ -479,20 +512,22 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
     return None
 
 
-def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
+def processQueue(alive, data_queue, result_queue, max_missing=default_max_missing,
+                 clone_func=distanceClones, clone_args={}):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    clone_func = the function to call for clonal assignment
-    clone_args = a dictionary of arguments to pass to clone_func
+      alive : a multiprocessing.Value boolean controlling whether processing continues
+              if False exit process
+      data_queue : a multiprocessing.Queue holding data to process
+      result_queue : a multiprocessing.Queue to hold processed results
+      max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
+      clone_func : the function to call for clonal assignment
+      clone_args : a dictionary of arguments to pass to clone_func
 
     Returns: 
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -504,14 +539,18 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             if data is None:  break
 
             # Define result object for iteration and get data records
-            records = data.data
-            # print(data.id)
-            result = DbResult(data.id, records)
+            result = DbResult(data.id, data.data)
 
             # Check for invalid data (due to failed indexing) and add failed result
             if not data:
                 result_queue.put(result)
                 continue
+
+            # Filter records based on missing content
+            seq_field = clone_args['seq_field'] if 'seq_field' in clone_args else 'JUNCTION'
+            filtered = filterMissing(data.data, field=seq_field, max_missing=max_missing)
+            records = filtered['pass']
+            result.failed = filtered['fail']
 
             # Add V(D)J to log
             result.log['ID'] = ','.join([str(x) for x in data.id])
@@ -519,7 +558,8 @@ def processQueue(alive, data_queue, result_queue, clone_func, clone_args):
             result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
             result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
             result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
-            result.log['SEQUENCES'] = len(records)
+            result.log['PASSCOUNT'] = len(records)
+            result.log['FAILCOUNT'] = len(result.failed)
              
             # Checking for preclone failure and assign clones
             clones = clone_func(records, **clone_args) if data else None
@@ -678,19 +718,26 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
             
             # Write passed and failed records
             if result:
+                # Writing passing sequences
                 for clone in result.results.values():
                     clone_count += 1
-                    for i, rec in enumerate(clone):
+                    for i, rec in enumerate(clone, start=1):
                         rec.annotations['CLONE'] = clone_count
                         pass_writer.writerow(rec.toDict())
                         pass_count += 1
-                        result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
-    
+                        result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
+                # Right failed seqeuence from passing sets
+                if result.failed:
+                    for i, rec in enumerate(result.failed, start=1):
+                        fail_count += 1
+                        if fail_writer is not None: fail_writer.writerow(rec.toDict())
+                        result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
             else:
-                for i, rec in enumerate(result.data):
-                    if fail_writer is not None: fail_writer.writerow(rec.toDict())
+                # Write failed sets
+                for i, rec in enumerate(result.data, start=1):
                     fail_count += 1
-                    result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
+                    if fail_writer is not None: fail_writer.writerow(rec.toDict())
+                    result.log['CLONE0-%i' % (i)] = str(rec.junction)
                     
             # Write log
             printLog(result.log, handle=log_handle)
@@ -869,8 +916,9 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
     return None
 
 
-def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluster_func=None,
-                 group_func=None, group_args={}, clone_args={}, cluster_args={}, 
+def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
+                 cluster_func=None, group_func=None, group_args={}, clone_args={},
+                 cluster_args={}, max_missing=default_max_missing,
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
     Define clonally related sequences
@@ -884,6 +932,7 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluste
     clone_func = the function to use for determining clones within preclonal groups
     group_args = a dictionary of arguments to pass to group_func
     clone_args = a dictionary of arguments to pass to clone_func
+    max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
     out_args = common output argument dictionary from parseCommonArgs
     nproc = the number of processQueue processes;
             if None defaults to the number of CPUs
@@ -897,6 +946,7 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluste
     log = OrderedDict()
     log['START'] = 'DefineClones'
     log['DB_FILE'] = os.path.basename(db_file)
+    log['MAX_MISSING'] = max_missing
     if group_func is not None:
         log['GROUP_FUNC'] = group_func.__name__
         log['GROUP_ARGS'] = group_args
@@ -918,18 +968,19 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func, cluste
                  'group_func': group_func, 
                  'group_args': group_args}
     # Define worker function and arguments
-    work_args = {'clone_func': clone_func, 
+    work_args = {'max_missing': max_missing,
+                 'clone_func': clone_func,
                  'clone_args': clone_args}
     # Define collector function and arguments
     collect_args = {'db_file': db_file,
                     'out_args': out_args,
                     'cluster_func': cluster_func,
                     'cluster_args': cluster_args}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
-                             nproc, queue_size)
+    result = manageProcesses(feed_func=feed_func, work_func=work_func, collect_func=collect_func,
+                             feed_args=feed_args, work_args=work_args, collect_args=collect_args,
+                             nproc=nproc, queue_size=queue_size)
         
     # Print log
     result['log']['END'] = 'DefineClones'
@@ -1028,6 +1079,13 @@ def getArgParser():
     parser_bygroup.add_argument('--link', action='store', dest='linkage',
                              choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
+    parser_bygroup.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
+                                default=default_max_missing,
+                                help='''The maximum number of non-ACGT characters (gaps or Ns) to 
+                                     permit in the junction sequence before excluding the record 
+                                     from clonal assignment. Warning, under single linkage 
+                                     non-informative positions can create artifactual links 
+                                     between unrelated sequences. Use with caution.''')
     parser_bygroup.add_argument('--sf', action='store', dest='seq_field',
                                 default=default_seq_field,
                                 help='''The name of the field to be used to calculate

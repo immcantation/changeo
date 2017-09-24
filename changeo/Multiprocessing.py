@@ -19,7 +19,12 @@ from changeo.Receptor import IgRecord
 
 class DbData:
     """
-    A class defining IgRecord data objects for worker processes
+    A class defining data objects for worker processes
+
+    Attributes:
+      id : result identifier
+      data : list of data records
+      valid : True if preprocessing was successfull and data should be processed
     """
     # Instantiation
     def __init__(self, key, records):
@@ -43,19 +48,24 @@ class DbData:
 
 class DbResult:
     """
-    A class defining IgRecord result objects for collector processes
+    A class defining result objects for collector processes
+
+    Attributes:
+      id : result identifier
+      data : list of original data records
+      results: list of successfully processed records
+      failed: list of records that failed processing for workers than may split sets
+      valid : True if processing was successfull and results should be written
+      log : OrderedDict of log items
     """
     # Instantiation
     def __init__(self, key, records):
         self.id = key
         self.data = records
         self.results = None
+        self.failed = None
         self.valid = False
         self.log = OrderedDict([('ID', key)])
-        #if isinstance(values, list):
-        #    for v in values:  setattr(self, v, None)
-        #else:
-        #    setattr(self, values, None)
 
     # Boolean evaluation
     def __bool__(self):
