@@ -892,6 +892,133 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
+def convertDbGenbank(db_file, id_field=default_id_field,
+                     v_field=None, d_field=None, j_field=None, c_field=None, inference=None, db_xref=None,
+                     out_args=default_out_args):
+    """
+    Builds a GenBank submission tbl file from records
+
+    Arguments:
+    db_file = the database file name
+    id_field = the field containing identifiers
+    seq_field = the field containing sequences
+    meta_fields = a list of fields to add to sequence annotations
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    # .tbl file format
+    #   Line 1, Column 1: Start location of feature
+    #   Line 1, Column 2: Stop location of feature
+    #   Line 1, Column 3: Feature key
+    #   Line 2, Column 4: Qualifier key
+    #   Line 2, Column 5: Qualifier value
+    #
+    # Example .tbl format
+    # >Feature Sc_16
+    # 1     7000    REFERENCE
+    #                       PubMed          8849441
+    # <1    1050    gene
+    #                       gene            ATH1
+    # <1    1009    CDS
+    #                       product         acid trehalase
+    #                       product         Ath1p
+    #                       codon_start     2
+    #
+    # AIRR Required feature keys:
+    #   V_region
+    #   V_segment
+    #       gene (gene name)
+    #       allele (allele only, without gene name, don't use if ambiguous)
+    #       db_xref (database link)
+    #       inference (reference alignment tool)
+    #   D_segment
+    #       gene
+    #       allele
+    #       db_xref
+    #       inference
+    #   J_segment
+    #       gene
+    #       allele
+    #       db_xref
+    #       inference
+    #   C_region
+    #       gene
+    #       db_xref
+    #       inference
+    #   misc_feature  (1-based closed interval positions)
+    #       function = JUNCTION
+    #       inference
+    #
+    # Changeo fields required
+    # SEQUENCE_ID
+    # SEQUENCE_VDJ
+    # V_CALL
+    # D_CALL
+    # J_CALL
+    # V_SEQ_START
+    # V_SEQ_LENGTH
+    # D_SEQ_START
+    # D_SEQ_LENGTH
+    # J_SEQ_START
+    # J_SEQ_LENGTH
+    # JUNCTION
+    # JUNCTION_START (need to add)
+    # JUNCTION_LENGTH
+    # FRAME (maybe from V_GERM_START_IMGT?)
+
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'genbank'
+    log['FILE'] = os.path.basename(db_file)
+    log['ID_FIELD'] = id_field
+    log['SEQ_FIELD'] = seq_field
+    printLog(log)
+
+    # Open file handles
+    out_type = 'tbl'
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
+    pass_handle = getOutputHandle(db_file, out_label='sequin', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type=out_type)
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = fail_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # TODO:  DO THE THING
+
+        # Write sequences
+        # if seq is not None:
+        #     pass_count += 1
+        #     SeqIO.write(seq, pass_handle, out_type)
+        # else:
+        #     fail_count += 1
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    db_handle.close()
+
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
