@@ -23,6 +23,8 @@ v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 
+allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
+
 #allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
 #gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
 #family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
@@ -333,6 +335,10 @@ class Receptor:
                 'j_germ_length': '_integer',
                 'junction_start': '_integer',
                 'junction_length': '_integer',
+                'l_seq_start': '_integer',
+                'l_seq_length': '_integer',
+                'c_seq_start': '_integer',
+                'c_seq_length': '_integer',
                 'v_score': '_float',
                 'v_identity': '_float',
                 'v_evalue': '_float',
@@ -742,6 +748,62 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         return parseAllele(self.j_call, family_regex, action)
+
+    def getAlleleNumbers(self, calls, action='first'):
+        """
+        Get multiple allele numeric identifiers
+
+        Arguments:
+          calls : iterable of calls to get; one or more of ('v','d','j')
+          actions : One of ('first','set')
+
+        Returns:
+          list : List of requested calls in order
+        """
+        vdj = {'v': self.getVAlleleNumber(action),
+               'd': self.getDAlleleNumber(action),
+               'j': self.getJAlleleNumber(action)}
+
+        return [vdj[k] for k in calls]
+
+    def getVAlleleNumber(self, action='first'):
+        """
+        V-region allele number getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele numbers for 'set' or 'list' actions.
+        """
+        return parseAllele(self.v_call, allele_number_regex, action)
+
+    def getDAlleleNumber(self, action='first'):
+        """
+        D-region allele number getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele numbers for 'set' or 'list' actions.
+        """
+        return parseAllele(self.d_call, allele_number_regex, action)
+
+    def getJAlleleNumber(self, action='first'):
+        """
+        J-region allele number getter
+
+        Arguments:
+          actions : One of ('first','set')
+
+        Returns:
+          str : String of the allele when action is 'first';
+          tuple : Tuple of allele numbers for 'set' or 'list' actions.
+        """
+        return parseAllele(self.j_call, allele_number_regex, action)
 
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()

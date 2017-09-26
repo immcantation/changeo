@@ -12,6 +12,7 @@ import os
 import re
 from argparse import ArgumentParser
 from collections import OrderedDict
+from itertools import chain
 
 from textwrap import dedent
 from time import time
@@ -892,21 +893,110 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
+def toGenbank(record, db_xref=None, inference=None):
+    """
+
+    Arguments:
+      record : Receptor record.
+      db_xref : Reference database link.
+      inference : Reference alignment tool.
+
+    Returns:
+      dict : dictionary defining GenBank features where the key is a tuple
+             (start, end, feature key) and values are a list of
+             tuples contain (qualifier key, qualifier value).
+    """
+    result = OrderedDict()
+
+    #   CDS
+    #       codon_start (must indicate codon offset)
+
+    #   V_region
+    v_region = []
+    result[(record.v_seq_start,
+            record.j_seq_start + record.j_seq_length,
+            'V_region')] = v_region
+
+    #   C_region
+    #       gene
+    #       db_xref
+    #       inference
+    c_region = []
+    result[(record.c_seq_start,
+            record.c_seq_start + record.c_seq_length,
+            'C_region')] = c_region
+
+    #   V_segment
+    #       gene (gene name)
+    #       allele (allele only, without gene name, don't use if ambiguous)
+    #       db_xref (database link)
+    #       inference (reference alignment tool)
+    v_segment = [('gene', record.getVGene()),
+                 ('allele', record.getVAlleleNumber()),
+                 ('db_xref', db_xref),
+                 ('inferrence', inference)]
+    result[(record.v_seq_start,
+            record.v_seq_start + record.v_seq_length,
+            'V_segment')] = v_segment
+
+    #   D_segment
+    #       gene
+    #       allele
+    #       db_xref
+    #       inference
+    d_segment = [('gene', record.getDGene()),
+                 ('allele', record.getDAlleleNumber()),
+                 ('db_xref', db_xref),
+                 ('inferrence', inference)]
+    result[(record.d_seq_start,
+            record.d_seq_start + record.d_seq_length,
+            'D_segment')] = d_segment
+
+    #   J_segment
+    #       gene
+    #       allele
+    #       db_xref
+    #       inference
+    j_segment = [('gene', record.getVGene()),
+                 ('allele', record.getVAlleleNumber()),
+                 ('db_xref', db_xref),
+                 ('inferrence', inference)]
+    result[(record.j_seq_start,
+            record.j_seq_start + record.j_seq_length,
+            'J_segment')] = j_segment
+
+    #   misc_feature  (1-based closed interval positions)
+    #       function = JUNCTION
+    #       inference
+    junction = [('function', 'JUNCTION'),
+                ('inferrence', inference)]
+    # result[(record.junction_start,
+    #         record.junction_start + record.junction_length,
+    #         'misc_feature')] = junction
+    # TODO: fix this
+    junction_start = 312
+    result[(junction_start,
+            junction_start + record.junction_length,
+            'misc_feature')] = junction
+
+    return result
+
+
 def convertDbGenbank(db_file, id_field=default_id_field,
-                     v_field=None, d_field=None, j_field=None, c_field=None, inference=None, db_xref=None,
+                     inference=None, db_xref=None,
                      out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
     Arguments:
-    db_file = the database file name
-    id_field = the field containing identifiers
-    seq_field = the field containing sequences
-    meta_fields = a list of fields to add to sequence annotations
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      id_field : the field containing identifiers.
+      db_xref : reference database link.
+      inference : reference alignment tool.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : the output file name.
     """
     # .tbl file format
     #   Line 1, Column 1: Start location of feature
@@ -926,7 +1016,9 @@ def convertDbGenbank(db_file, id_field=default_id_field,
     #                       product         Ath1p
     #                       codon_start     2
     #
-    # AIRR Required feature keys:
+    # Required feature keys:
+    #   CDS
+    #       codon_start (must indicate codon offset)
     #   V_region
     #   V_segment
     #       gene (gene name)
@@ -966,49 +1058,51 @@ def convertDbGenbank(db_file, id_field=default_id_field,
     # JUNCTION
     # JUNCTION_START (need to add)
     # JUNCTION_LENGTH
-    # FRAME (maybe from V_GERM_START_IMGT?)
+    # TRANSLATION_START (maybe from V_GERM_START_IMGT?)
 
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'genbank'
     log['FILE'] = os.path.basename(db_file)
     log['ID_FIELD'] = id_field
-    log['SEQ_FIELD'] = seq_field
     printLog(log)
 
     # Open file handles
     out_type = 'tbl'
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle, receptor=False)
+    db_iter = ChangeoReader(db_handle)
     pass_handle = getOutputHandle(db_file, out_label='sequin', out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'], out_type=out_type)
     # Count records
     result_count = countDbFile(db_file)
 
+    # Define writer
+    writer = csv.writer(pass_handle, delimiter='\t', quoting=csv.QUOTE_NONE)
+
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
 
-        # TODO:  DO THE THING
+        # Extract table dictionary
+        tbl = toGenbank(rec, db_xref=db_xref, inference=inference)
 
-        # Write sequences
-        # if seq is not None:
-        #     pass_count += 1
-        #     SeqIO.write(seq, pass_handle, out_type)
-        # else:
-        #     fail_count += 1
+        # Write table
+        writer.writerow(['>Features', rec.sequence_id])
+        for feature, qualifiers in tbl.items():
+            writer.writerow(feature)
+            if qualifiers:
+                for x in qualifiers:
+                    writer.writerow(list(chain(['', '', ''], x)))
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
     log['END'] = 'ParseDb'
     printLog(log)
 
@@ -1225,6 +1319,20 @@ def getArgParser():
     parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
                                help='''The new value to assign to each selected row.''')
     parser_update.set_defaults(func=updateDbFile)
+
+    # Subparser to convert database entries to a GenBank tbl file
+    parser_tbl = subparsers.add_parser('tbl', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Creates a fasta file from database records.',
+                                       description='Creates a fasta file from database records.')
+    parser_tbl.add_argument('--if', action='store', dest='id_field',
+                            default=default_id_field,
+                            help='The name of the field containing identifiers')
+    parser_tbl.add_argument('--xref', action='store', dest='db_xref', default=None,
+                            help='Link to the reference database used for alignment.')
+    parser_tbl.add_argument('--inf', action='store', dest='inference', default=None,
+                            help='Name and version of the inference tool used for reference alignment.')
+    parser_tbl.set_defaults(func=convertDbGenbank)
 
     return parser
 
