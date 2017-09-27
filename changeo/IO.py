@@ -56,7 +56,7 @@ def readRepo(repo):
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
-                germ_key = parseAllele(g.description, allele_regex, 'list')
+                germ_key = parseAllele(g.description, allele_regex, 'first')
                 repo_dict[germ_key] = str(g.seq).upper()
 
     return repo_dict

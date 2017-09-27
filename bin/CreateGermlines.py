@@ -22,39 +22,39 @@ from changeo.IO import getDbWriter, readDbFile, countDbFile, readRepo
 from changeo.Receptor import allele_regex, parseAllele
 
 # Defaults
-default_germ_types = 'dmask'
-default_v_field = 'V_CALL'
 default_seq_field = 'SEQUENCE_IMGT'
+default_v_field = 'V_CALL'
+default_d_field = 'D_CALL'
+default_j_field = 'J_CALL'
+default_germ_types = 'dmask'
 
-    
-def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
+
+def joinGermline(align, references, seq_field=default_seq_field, v_field=default_v_field,
+                 d_field=default_d_field, j_field=default_j_field,
+                 germ_types=default_germ_types):
     """
     Join gapped germline sequences aligned with sample sequences
     
     Arguments:
     align = iterable yielding dictionaries of sample sequence data
-    repo_dict = dictionary of IMGT gapped germline sequences
-    germ_types = types of germline sequences to be output
-                     (full germline, D-region masked, only V-region germline)
-    v_field = field in which to look for V call
+    references = dictionary of IMGT gapped germline sequences
     seq_field = field in which to look for sequence
-    
+    v_field = field in which to look for V call
+    d_field = field in which to look for V call
+    j_field = field in which to look for V call
+    germ_types = types of germline sequences to be output
+                 (full germline, D-region masked, only V-region germline)
+
     Returns:
     dictionary of germline_type: germline_sequence
     """
-    j_field = 'J_CALL'
     germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
+
+    # Define log
     result_log = OrderedDict()
     result_log['ID'] = align['SEQUENCE_ID']
 
-    # Find germline V-region gene
-    if v_field == 'V_CALL_GENOTYPED':
-        vgene = parseAllele(align[v_field], allele_regex, 'list')
-        vkey = vgene
-    else:
-        vgene = parseAllele(align[v_field], allele_regex, 'first')
-        vkey = (vgene, )
-
+    # Set mode for region definitions
     try:
         int(align['P3V_LENGTH'])
         int(align['N1_LENGTH'])
@@ -67,11 +67,14 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     else:
         regions_style = 'IMGT'
 
+    # Find germline V-region gene
+    vgene = parseAllele(align[v_field], allele_regex, 'first')
+
     # Build V-region germline
     if vgene is not None:
-        result_log['V_CALL'] = ','.join(vkey)
-        if vkey in repo_dict:
-            vseq = repo_dict[vkey]
+        result_log['V_CALL'] = vgene
+        if vgene in references:
+            vseq = references[vgene]
             # Germline start
             try: vstart = int(align['V_GERM_START_IMGT']) - 1
             except (TypeError, ValueError): vstart = 0
@@ -83,7 +86,7 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
             if vpad < 0: vpad = 0
             germ_vseq = vseq[vstart:(vstart + vlen)] + ('N' * vpad)
         else:
-            result_log['ERROR'] = 'Germline %s not in repertoire' % ','.join(vkey)
+            result_log['ERROR'] = 'Germline %s not in repertoire' % vgene
             return result_log, germlines
     else:
         result_log['V_CALL'] = None
@@ -92,21 +95,20 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
         germ_vseq = 'N' * vlen
 
     # Find germline D-region gene
-    dgene = parseAllele(align['D_CALL'], allele_regex, 'first')
+    dgene = parseAllele(align[d_field], allele_regex, 'first')
 
     # Build D-region germline
     if dgene is not None:
         result_log['D_CALL'] = dgene
-        dkey = (dgene, )
-        if dkey in repo_dict:
-            dseq = repo_dict[dkey]
+        if dgene in references:
+            dseq = references[dgene]
             # Germline start
             try: dstart = int(align['D_GERM_START']) - 1
             except (TypeError, ValueError): dstart = 0
             # Germline length
             try: dlen = int(align['D_GERM_LENGTH'])
             except (TypeError, ValueError): dlen = 0
-            germ_dseq = repo_dict[dkey][dstart:(dstart + dlen)]
+            germ_dseq = dseq[dstart:(dstart + dlen)]
         else:
             result_log['ERROR'] = 'Germline %s not in repertoire' % dgene
             return result_log, germlines
@@ -120,9 +122,8 @@ def joinGermline(align, repo_dict, germ_types, v_field, seq_field):
     # Build D-region germline
     if jgene is not None:
         result_log['J_CALL'] = jgene
-        jkey = (jgene, )
-        if jkey in repo_dict:
-            jseq = repo_dict[jkey]
+        if jgene in references:
+            jseq = references[jgene]
             # Germline start
             try: jstart = int(align['J_GERM_START']) - 1
             except (TypeError, ValueError): jstart = 0
@@ -307,7 +308,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     printLog(log)
 
     # Get repertoire and open Db reader
-    repo_dict = readRepo(repo)
+    references = readRepo(repo)
     reader = readDbFile(db_file, ig=False)
 
     # Exit if V call field does not exist in reader
@@ -353,7 +354,8 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
 
-        result_log, germlines = joinGermline(row, repo_dict, germ_types, v_field, seq_field)
+        result_log, germlines = joinGermline(row, references, seq_field=seq_field, v_field=v_field,
+                                             germ_types=germ_types)
 
         # Add germline field(s) to dictionary
         if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
@@ -390,7 +392,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     if log_handle is not None:  log_handle.close()
 
 
-def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
+def makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
                       seq_field, counts, writers, out_args):
     """
     Determine consensus clone sequence and create germline for clone
@@ -398,7 +400,7 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
     Arguments:
     clone = clone ID
     clone_dict = iterable yielding dictionaries of sequence data from clone
-    repo_dict = dictionary of IMGT gapped germline sequences
+    references = dictionary of IMGT gapped germline sequences
     germ_types = types of germline sequences to be output
                      (full germline, D-region masked, only V-region germline)
     v_field = field in which to look for V call
@@ -455,12 +457,14 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
             cons = cons[0]
             cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
             cons[seq_field] += '.' * (max_length - len(cons[seq_field]))
-            result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
+            result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                                 germ_types=germ_types)
             result_log['ID'] = clone
             result_log['CONSENSUS'] = cons['SEQUENCE_ID']
     else:
         cons = cons[0]
-        result_log, germlines = joinGermline(cons, repo_dict, germ_types, v_field, seq_field)
+        result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                             germ_types=germ_types)
         result_log['ID'] = clone
         result_log['CONSENSUS'] = cons['SEQUENCE_ID']
 
@@ -498,7 +502,8 @@ def makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
     return result_log
 
 
-def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
+def assembleCloneGermline(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
+                          germ_types=default_germ_types, out_args=default_out_args):
     """
     Assemble one germline sequence for each clone in a tab-delimited database file
 
@@ -525,7 +530,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
     printLog(log)
 
     # Get repertoire and open Db reader
-    repo_dict = readRepo(repo)
+    references = readRepo(repo)
     reader = readDbFile(db_file, ig=False)
 
     # Exit if V call field does not exist in reader
@@ -557,7 +562,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
 
     if out_args['failed']:
         fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                     out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
         writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields)
     else:
         fail_handle = None
@@ -581,7 +586,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
         # Clone just finished
         elif clone_dict:
             clone_count += 1
-            result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types,
+            result_log = makeCloneGermline(clone, clone_dict, references, germ_types,
                                            v_field, seq_field, counts, writers, out_args)
             printLog(result_log, handle=log_handle)
             # Now deal with current row (first of next clone)
@@ -593,7 +598,7 @@ def assembleCloneGermline(db_file, repo, germ_types, v_field, seq_field, out_arg
             clone_dict = OrderedDict([(i, row)])
 
     clone_count += 1
-    result_log = makeCloneGermline(clone, clone_dict, repo_dict, germ_types, v_field,
+    result_log = makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
                                    seq_field, counts, writers, out_args)
     printLog(result_log, handle=log_handle)
 
