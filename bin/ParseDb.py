@@ -908,29 +908,40 @@ def toGenbank(record, db_xref=None, inference=None):
     """
     result = OrderedDict()
 
-    #   CDS
-    #       codon_start (must indicate codon offset)
+    # TODO: verify this
+    junction_start = record.v_seq_start + record.v_seq_length - (record.v_germ_length_imgt - 309)
+    codon_start = junction_start % 3 + 1
 
-    #   V_region
-    v_region = []
+    # CDS
+    #     codon_start (must indicate codon offset)
+    cds = [('codon_start', codon_start)]
     result[(record.v_seq_start,
-            record.j_seq_start + record.j_seq_length,
-            'V_region')] = v_region
+            '%i<' % len(record.sequence_input),
+            'CDS')] = cds
 
-    #   C_region
-    #       gene
-    #       db_xref
-    #       inference
+    # V_region
+    variable_region = []
+    variable_end = record.v_seq_start + record.v_seq_length + \
+                   record.np1_length + record.d_seq_length + record.np2_length + \
+                   record.j_seq_length
+    result[(record.v_seq_start,
+            variable_end,
+            'V_region')] = variable_region
+
+    # C_region
+    #     gene
+    #     db_xref
+    #     inference
     c_region = []
-    result[(record.c_seq_start,
-            record.c_seq_start + record.c_seq_length,
+    result[(variable_end + 1,
+            '%i<' % len(record.sequence_input),
             'C_region')] = c_region
 
-    #   V_segment
-    #       gene (gene name)
-    #       allele (allele only, without gene name, don't use if ambiguous)
-    #       db_xref (database link)
-    #       inference (reference alignment tool)
+    # V_segment
+    #     gene (gene name)
+    #     allele (allele only, without gene name, don't use if ambiguous)
+    #     db_xref (database link)
+    #     inference (reference alignment tool)
     v_segment = [('gene', record.getVGene()),
                  ('allele', record.getVAlleleNumber()),
                  ('db_xref', db_xref),
@@ -939,11 +950,11 @@ def toGenbank(record, db_xref=None, inference=None):
             record.v_seq_start + record.v_seq_length,
             'V_segment')] = v_segment
 
-    #   D_segment
-    #       gene
-    #       allele
-    #       db_xref
-    #       inference
+    # D_segment
+    #     gene
+    #     allele
+    #     db_xref
+    #     inference
     d_segment = [('gene', record.getDGene()),
                  ('allele', record.getDAlleleNumber()),
                  ('db_xref', db_xref),
@@ -952,11 +963,11 @@ def toGenbank(record, db_xref=None, inference=None):
             record.d_seq_start + record.d_seq_length,
             'D_segment')] = d_segment
 
-    #   J_segment
-    #       gene
-    #       allele
-    #       db_xref
-    #       inference
+    # J_segment
+    #     gene
+    #     allele
+    #     db_xref
+    #     inference
     j_segment = [('gene', record.getVGene()),
                  ('allele', record.getVAlleleNumber()),
                  ('db_xref', db_xref),
@@ -965,16 +976,11 @@ def toGenbank(record, db_xref=None, inference=None):
             record.j_seq_start + record.j_seq_length,
             'J_segment')] = j_segment
 
-    #   misc_feature  (1-based closed interval positions)
-    #       function = JUNCTION
-    #       inference
-    junction = [('function', 'JUNCTION'),
+    # misc_feature  (1-based closed interval positions)
+    #     function = junction
+    #     inference
+    junction = [('function', 'junction'),
                 ('inferrence', inference)]
-    # result[(record.junction_start,
-    #         record.junction_start + record.junction_length,
-    #         'misc_feature')] = junction
-    # TODO: fix this
-    junction_start = 312
     result[(junction_start,
             junction_start + record.junction_length,
             'misc_feature')] = junction
@@ -1328,7 +1334,7 @@ def getArgParser():
     parser_tbl.add_argument('--if', action='store', dest='id_field',
                             default=default_id_field,
                             help='The name of the field containing identifiers')
-    parser_tbl.add_argument('--xref', action='store', dest='db_xref', default=None,
+    parser_tbl.add_argument('--db', action='store', dest='db_xref', default=None,
                             help='Link to the reference database used for alignment.')
     parser_tbl.add_argument('--inf', action='store', dest='inference', default=None,
                             help='Name and version of the inference tool used for reference alignment.')

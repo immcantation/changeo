@@ -396,7 +396,7 @@ class Receptor:
             try:
                 return int(v)
             except:
-                return ''
+                return 0
         else:
             try:
                 return str(v)
@@ -410,7 +410,7 @@ class Receptor:
             try:
                 return float(v)
             except:
-                return ''
+                return 0.0
         else:
             try:
                 return str(v)
