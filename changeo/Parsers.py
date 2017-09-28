@@ -225,12 +225,12 @@ class AIRRWriter:
             self.writer = airr.create(handle=handle, debug=False)
 
             # Provenance
-            input_fasta = 'seq.fasta'
-            germline_database = 'VDJServer GLDB 10_05_2016'
-            igblast_input = 'seq.igblast.out'
-            self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
-                                                           'IgBlast', 'alignment', 'changeo',
-                                                           igblast_input, 'MakeDb')
+            #input_fasta = 'seq.fasta'
+            #germline_database = 'VDJServer GLDB 10_05_2016'
+            #igblast_input = 'seq.igblast.out'
+            #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
+            #                                               'IgBlast', 'alignment', 'changeo',
+            #                                               igblast_input, 'MakeDb')
 
         except ImportError:
             sys.exit('AIRR standard library is not available.')
