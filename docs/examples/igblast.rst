@@ -29,7 +29,7 @@ These FASTA files must then be converted into IgBLAST databases. The
 following example demonstrates how to make the IgBLAST database for the
 included reference fasta files (Human B cell receptor heavy chains)
 that should be placed in the IgBLAST directory
-(eg, ``/home/user/apps/igblast-1.4.0/bin``).
+(eg, ``/home/user/apps/igblast-1.7.0/bin``).
 
 .. literalinclude:: scripts/IgBLAST_Commands.sh
    :language: none
@@ -39,12 +39,12 @@ that should be placed in the IgBLAST directory
 Once these databases are built for each segment of the receptor, they can be
 referenced when running IgBLAST.
 
-Running IgBLAST
+Running IgBLAST Standalone
 --------------------------------------------------------------------------------
 
 To run standalone `IgBLAST <http://www.ncbi.nlm.nih.gov/projects/igblast/faq.html#standalone>`__
 with the example code below, place the example input FASTA
-file into the IgBLAST directory (eg, ``/home/user/apps/igblast-1.4.0/bin``).
+file into the IgBLAST directory (eg, ``/home/user/apps/igblast-1.7.0/bin``).
 The example data is human B cell receptor heavy chains, but the parameters
 can be changed according to analyze other types of receptors.
 To ensure the requisite information is generated you must specify the special
@@ -62,7 +62,27 @@ output format shown below using the ``-outfmt '7 std qseq sseq btop'`` argument:
     `IgBLAST documentation <http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/scripts/projects/igblast/README>`__
     regarding use of the ``IGDATA`` environment variable to control where IgBLAST
     looks for its internal database files. This will allow you run IgBLAST from any location.
-    For a more complex example see `this script <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/run_igblast.sh>`__.
+
+Configuring and Running IgBLAST Using the Wrapper Scripts
+--------------------------------------------------------------------------------
+
+A collection of scripts for setting up and running IgBLAST are available in the
+`Immcantation repository <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts>`__.
+To use the IgBLAST wrapper, ``run_igblast.sh``, copy all the tools in the ``/scripts`` folder
+to a location in your ``PATH``. Download and configure the IgBLAST and IMGT reference databases
+as follows:
+
+.. literalinclude:: scripts/IgBLAST_Wrapper.sh
+   :language: none
+   :linenos:
+   :lines: 2-6
+
+Then run IgBLAST as follows:
+
+.. literalinclude:: scripts/IgBLAST_Wrapper.sh
+   :language: none
+   :linenos:
+   :lines: 7-8
 
 Processing the output of IgBLAST
 --------------------------------------------------------------------------------
@@ -91,5 +111,3 @@ database containing IMGT-gapped CDR/FWR regions and alignment metrics, respectiv
     and/or they are not identical to those provided to :ref:`MakeDb`, sequences assigned
     missing germlines will fail the parsing operation and the CDR3/junction sequences
     will not be correct.
-
-
