@@ -910,13 +910,13 @@ def toGenbank(record, db_xref=None, inference=None):
 
     # TODO: verify this
     junction_start = record.v_seq_start + record.v_seq_length - (record.v_germ_length_imgt - 309)
-    codon_start = junction_start % 3 + 1
+    frame = junction_start % 3 + 1
 
     # CDS
     #     codon_start (must indicate codon offset)
-    cds = [('codon_start', codon_start)]
+    cds = [('codon_start', record.v_seq_start + frame)]
     result[(record.v_seq_start,
-            '%i<' % len(record.sequence_input),
+            '%i>' % len(record.sequence_input),
             'CDS')] = cds
 
     # V_region
@@ -945,7 +945,7 @@ def toGenbank(record, db_xref=None, inference=None):
     v_segment = [('gene', record.getVGene()),
                  ('allele', record.getVAlleleNumber()),
                  ('db_xref', db_xref),
-                 ('inferrence', inference)]
+                 ('inference', inference)]
     result[(record.v_seq_start,
             record.v_seq_start + record.v_seq_length,
             'V_segment')] = v_segment
@@ -958,7 +958,7 @@ def toGenbank(record, db_xref=None, inference=None):
     d_segment = [('gene', record.getDGene()),
                  ('allele', record.getDAlleleNumber()),
                  ('db_xref', db_xref),
-                 ('inferrence', inference)]
+                 ('inference', inference)]
     result[(record.d_seq_start,
             record.d_seq_start + record.d_seq_length,
             'D_segment')] = d_segment
@@ -980,7 +980,7 @@ def toGenbank(record, db_xref=None, inference=None):
     #     function = junction
     #     inference
     junction = [('function', 'junction'),
-                ('inferrence', inference)]
+                ('inference', inference)]
     result[(junction_start,
             junction_start + record.junction_length,
             'misc_feature')] = junction
