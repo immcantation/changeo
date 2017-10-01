@@ -1,5 +1,29 @@
 Release Notes
-================================================================================
+===============================================================================
+
+Version 0.3.7.999:  October 1, 2017
+-------------------------------------------------------------------------------
+
+AlignRecords:
+
++ Ressurrected the AlignRecords which performs multiple alignment of sequence
+  fields.
++ Added new subcommands ``across`` (multiple aligns within columns),
+  ``within`` (multiple aligns columns within each row), and ``block``
+  (multiple aligns across both coluumns and rows).
+
+CreateGermlines:
+
++ Fixed a bug causing CreateGermlines to incorrectly fail records when using
+  the argument ``--vf V_CALL_GENOTYPED``.
+
+DefineClones:
+
++ Added the ``--maxmiss`` argument to the bygroup subcommand of DefineClones
+  which set exclusion criteria for junction sequence with ambiguous and
+  missing characters. By default, bygroup will now fail all sequences
+  with any missing characters in the junction (``--maxmiss 0``).
+
 
 Version 0.3.7:  June 30, 2017
 -------------------------------------------------------------------------------

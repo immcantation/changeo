@@ -23,10 +23,6 @@ from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
 
-# Globals
-# TODO:  not convinced this is the best way to deal with fails in grouping. a class may be better.
-FAIL_GROUP_KEY = 'FAIL_GROUP_KEY'
-
 
 # TODO:  maybe not bothering with 'set' is best. can just work off field identity
 def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='first'):
@@ -34,14 +30,13 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     Groups IgRecords based on gene or annotation
 
     Arguments:
-    records = an iterator of IgRecord objects to group
-    fields = gene field to group by
-    calls = allele calls to use for grouping;
-            one or more of ('v', 'd', 'j')
-    mode = specificity of alignment call to use for allele call fields;
-           one of ('allele', 'gene')
-    action = how to handle multiple calls in alleles fields;
-             one of ('first', 'set')
+      records : an iterator of IgRecord objects to group.
+      fields : gene field to group by.
+      calls : allele calls to use for grouping.
+              one or more of ('v', 'd', 'j').
+      mode : specificity of alignment call to use for allele call fields.
+             one of ('allele', 'gene').
+      action : only 'first' is currently supported.
 
     Returns:
     dictionary of grouped records
@@ -71,7 +66,7 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
         if all([k is not None for k in key]):
             rec_index.setdefault(key, []).append(rec)
         else:
-            rec_index.setdefault(FAIL_GROUP_KEY, []).append(rec)
+            rec_index.setdefault(None, []).append(rec)
 
     return rec_index
 
@@ -81,27 +76,36 @@ def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
     Multiple aligns blocks of sequence fields together
 
     Arguments:
-    data = a DbData object with IgRecords to process
-    seq_fields = the sequence fields to multiple align
-    muscle_exec = the MUSCLE executable
+      data : a DbData object with IgRecords to process.
+      seq_fields : the sequence fields to multiple align.
+      muscle_exec : the MUSCLE executable.
 
     Returns:
-    a list of modified IgRecords with multiple aligned sequence fields
+      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
 
+    # Fail invalid groups
+    if result.id is None:
+        result.log = None
+        result.valid = False
+        return result
+
     seq_list = [SeqRecord(r.getSeqField(f), id='%s_%s' % (r.id, f)) for f in seq_fields \
                 for r in data.data]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
         aln_map = {x.id: i for i, x in enumerate(seq_aln)}
-        for r in result.results:
+        for i, r in enumerate(result.results, start=1):
             for f in seq_fields:
                 idx = aln_map['%s_%s' % (r.id, f)]
-                r.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
+                seq = str(seq_aln[idx].seq)
+                r.annotations['%s_ALIGN' % f] = seq
+                result.log['%s-%s' % (f, r.id)] = seq
+
     else:
         result.valid = False
 
@@ -114,26 +118,34 @@ def alignGroups(data, seq_fields, muscle_exec=default_muscle_exec):
     Multiple aligns sequence fields column wise
 
     Arguments:
-    data = a DbData object with IgRecords to process
-    seq_fields = the sequence fields to multiple align
-    muscle_exec = the MUSCLE executable
+      data : a DbData object with IgRecords to process.
+      seq_fields : the sequence fields to multiple align.
+      muscle_exec : the MUSCLE executable.
 
     Returns:
-    a list of modified IgRecords with multiple aligned sequence fields
+      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
 
+    # Fail invalid groups
+    if result.id is None:
+        result.log = None
+        result.valid = False
+        return result
+
     for f in seq_fields:
         seq_list = [SeqRecord(r.getSeqField(f), id=r.id) for r in data.data]
         seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
         if seq_aln is not None:
             aln_map = {x.id: i for i, x in enumerate(seq_aln)}
-            for r in result.results:
+            for i, r in enumerate(result.results, start=1):
                 idx = aln_map[r.id]
-                r.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
+                seq = str(seq_aln[idx].seq)
+                r.annotations['%s_ALIGN' % f] = seq
+                result.log['%s-%s' % (f, r.id)] = seq
         else:
             result.valid = False
 
@@ -146,17 +158,23 @@ def alignFields(data, seq_fields, muscle_exec=default_muscle_exec):
     Multiple aligns sequence fields within a row
 
     Arguments:
-    data = a DbData object with an IgRecords to process
-    seq_fields = the sequence fields to multiple align
-    muscle_exec = the MUSCLE executable
+      data : a DbData object with an IgRecords to process.
+      seq_fields : the sequence fields to multiple align.
+      muscle_exec : the MUSCLE executable.
 
     Returns:
-    a DbResult object with an IgRecords that contained multiple aligned sequence fields
+      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
+
+    # Fail invalid groups
+    if result.id is None:
+        result.log = None
+        result.valid = False
+        return result
 
     record = data.data
     seq_list = [SeqRecord(record.getSeqField(f), id=f) for f in seq_fields]
@@ -165,11 +183,14 @@ def alignFields(data, seq_fields, muscle_exec=default_muscle_exec):
         aln_map = {x.id: i for i, x in enumerate(seq_aln)}
         for f in seq_fields:
             idx = aln_map[f]
-            record.annotations['%s_ALIGN' % f] = str(seq_aln[idx].seq)
+            seq = str(seq_aln[idx].seq)
+            record.annotations['%s_ALIGN' % f] = seq
+            result.log[f] = seq
     else:
         result.valid = False
 
     return result
+
 
 def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
                  out_args=default_out_args, nproc=None, queue_size=None):
@@ -177,20 +198,20 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
     Performs a multiple alignment on sets of sequences
 
     Arguments: 
-    db_file = filename of the input database
-    seq_fields = the sequence fields to multiple align
-    group_func = function to use to group records
-    align_func = function to use to multiple align sequence groups
-    group_args = dictionary of arguments to pass to group_func
-    align_args = dictionary of arguments to pass to align_func
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
+      db_file : filename of the input database.
+      seq_fields : the sequence fields to multiple align.
+      group_func : function to use to group records.
+      align_func : function to use to multiple align sequence groups.
+      group_args : dictionary of arguments to pass to group_func.
+      align_args : dictionary of arguments to pass to align_func.
+      out_args : common output argument dictionary from parseCommonArgs.
+      nproc : the number of processQueue processes.
+              if None defaults to the number of CPUs.
+      queue_size : maximum size of the argument queue.
+                   if None defaults to 2*nproc.
                       
     Returns: 
-    a tuple of (align-pass, align-fail) filenames
+      tuple : a tuple of (align-pass, align-fail) filenames.
     """
     # Define subcommand label dictionary
     cmd_dict = {alignGroups: 'across', alignFields: 'within'}
@@ -258,8 +279,7 @@ def getArgParser():
              required fields:
                  SEQUENCE_ID, V_CALL, J_CALL
                  <field>
-                     user specified sequence fields to align, which defaults
-                     to alignment of both SEQUENCE_VDJ and GERMLINE_VDJ.
+                     user specified sequence fields to align.
 
 
              output fields:
@@ -287,8 +307,7 @@ def getArgParser():
                                                  and across rows using MUSCLE.''')
     parser_across.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each group.')
-    parser_across.add_argument('--gf', nargs='+', action='store', dest='group_fields',
-                               default=None,
+    parser_across.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                                help='Additional (not allele call) fields to use for grouping.')
     parser_across.add_argument('--calls', nargs='+', action='store', dest='calls',
                                choices=('v', 'd', 'j'), default=['v', 'j'],
@@ -300,7 +319,7 @@ def getArgParser():
     parser_across.add_argument('--act', action='store', dest='action', default='first',
                                choices=('first', ),
                                help='''Specifies how to handle multiple values within default
-                                     allele call fields. Currently, only \'first\' is supported.''')
+                                     allele call fields. Currently, only "first" is supported.''')
     parser_across.add_argument('--exec', action='store', dest='muscle_exec',
                                default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
@@ -325,8 +344,7 @@ def getArgParser():
                                              columns and rows using MUSCLE.''')
     parser_block.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each group.')
-    parser_block.add_argument('--gf', nargs='+', action='store', dest='group_fields',
-                               default=None,
+    parser_block.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                                help='Additional (not allele call) fields to use for grouping.')
     parser_block.add_argument('--calls', nargs='+', action='store', dest='calls',
                                choices=('v', 'd', 'j'), default=['v', 'j'],
@@ -338,7 +356,7 @@ def getArgParser():
     parser_block.add_argument('--act', action='store', dest='action', default='first',
                                choices=('first', ),
                                help='''Specifies how to handle multiple values within default
-                                     allele call fields. Currently, only \'first\' is supported.''')
+                                     allele call fields. Currently, only "first" is supported.''')
     parser_block.add_argument('--exec', action='store', dest='muscle_exec',
                                default=default_muscle_exec,
                                help='The location of the MUSCLE executable')

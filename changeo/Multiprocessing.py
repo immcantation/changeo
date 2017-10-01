@@ -258,7 +258,8 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             rec_count += result.data_count
 
             # Write log
-            printLog(result.log, handle=log_handle)
+            if result.log is not None:
+                printLog(result.log, handle=log_handle)
 
             # Write alignments
             if result:
