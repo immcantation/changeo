@@ -38,6 +38,7 @@ default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_index_field = 'INDEX'
+default_db_xref = 'IMGT/GENE-DB'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -893,38 +894,38 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
-def toGenbank(record, db_xref=None, inference=None):
+def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     """
+    Creates a feature table for GenBank submissions
 
     Arguments:
       record : Receptor record.
-      db_xref : Reference database link.
       inference : Reference alignment tool.
+      db_xref : Reference database name.
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
              (start, end, feature key) and values are a list of
              tuples contain (qualifier key, qualifier value).
     """
-    result = OrderedDict()
+    if inference is not None:
+        inference = 'similar to DNA sequence:%s' % inference
 
-    # TODO: verify this
-    junction_start = record.v_seq_start + record.v_seq_length - (record.v_germ_length_imgt - 309)
-    frame = junction_start % 3 + 1
+    result = OrderedDict()
 
     # CDS
     #     codon_start (must indicate codon offset)
-    cds = [('codon_start', record.v_seq_start + frame)]
-    result[(record.v_seq_start,
-            '%i>' % len(record.sequence_input),
+    variable_end = record.v_germ_end_imgt + \
+                   record.np1_length + record.d_germ_length + record.np2_length + \
+                   record.j_germ_length
+    cds = [('codon_start', 1)]
+    result[(1,
+            variable_end,
             'CDS')] = cds
 
     # V_region
     variable_region = []
-    variable_end = record.v_seq_start + record.v_seq_length + \
-                   record.np1_length + record.d_seq_length + record.np2_length + \
-                   record.j_seq_length
-    result[(record.v_seq_start,
+    result[(1,
             variable_end,
             'V_region')] = variable_region
 
@@ -934,7 +935,7 @@ def toGenbank(record, db_xref=None, inference=None):
     #     inference
     c_region = []
     result[(variable_end + 1,
-            '%i<' % len(record.sequence_input),
+            '%i>' % (variable_end + len(record.sequence_input[record.j_seq_end:])),
             'C_region')] = c_region
 
     # V_segment
@@ -942,38 +943,47 @@ def toGenbank(record, db_xref=None, inference=None):
     #     allele (allele only, without gene name, don't use if ambiguous)
     #     db_xref (database link)
     #     inference (reference alignment tool)
-    v_segment = [('gene', record.getVGene()),
+    v_gene = record.getVGene()
+    v_segment = [('gene', v_gene),
                  ('allele', record.getVAlleleNumber()),
-                 ('db_xref', db_xref),
+                 ('db_xref', '%s:%s' % (db_xref, v_gene)),
                  ('inference', inference)]
-    result[(record.v_seq_start,
-            record.v_seq_start + record.v_seq_length,
-            'V_segment')] = v_segment
+    result[(1, record.v_germ_end_imgt, 'V_segment')] = v_segment
 
     # D_segment
     #     gene
     #     allele
     #     db_xref
     #     inference
-    d_segment = [('gene', record.getDGene()),
-                 ('allele', record.getDAlleleNumber()),
-                 ('db_xref', db_xref),
-                 ('inference', inference)]
-    result[(record.d_seq_start,
-            record.d_seq_start + record.d_seq_length,
-            'D_segment')] = d_segment
+    d_gene = record.getDGene()
+    if d_gene:
+        # Define D and J start
+        d_start = record.v_germ_end_imgt + record.np1_length
+        j_start = d_start + record.np2_length + 1
+
+        # D feature
+        d_segment = [('gene', d_gene),
+                     ('allele', record.getDAlleleNumber()),
+                     ('db_xref', '%s:%s' % (db_xref, d_gene)),
+                     ('inference', inference)]
+        result[(d_start,
+                d_start + record.d_germ_length,
+                'D_segment')] = d_segment
+    else:
+        j_start = record.v_germ_end_imgt + record.np1_length + record.np2_length + 1
 
     # J_segment
     #     gene
     #     allele
     #     db_xref
     #     inference
-    j_segment = [('gene', record.getVGene()),
+    j_gene = record.getJGene()
+    j_segment = [('gene', j_gene),
                  ('allele', record.getVAlleleNumber()),
-                 ('db_xref', db_xref),
-                 ('inferrence', inference)]
-    result[(record.j_seq_start,
-            record.j_seq_start + record.j_seq_length,
+                 ('db_xref', '%s:%s' % (db_xref, j_gene)),
+                 ('inference', inference)]
+    result[(j_start,
+            j_start + record.j_germ_length,
             'J_segment')] = j_segment
 
     # misc_feature  (1-based closed interval positions)
@@ -981,28 +991,53 @@ def toGenbank(record, db_xref=None, inference=None):
     #     inference
     junction = [('function', 'junction'),
                 ('inference', inference)]
-    result[(junction_start,
-            junction_start + record.junction_length,
+    result[(309,
+            309 + record.junction_length,
             'misc_feature')] = junction
 
     return result
 
+def makeGenbankSequence(record, organism=None):
+    """
+    Creates a sequence for GenBank submissions
 
-def convertDbGenbank(db_file, id_field=default_id_field,
-                     inference=None, db_xref=None,
+    Arguments:
+      record : Receptor record.
+      organism : scientific name of the organism.
+
+    Returns:
+      SeqRecord : Object containing the output sequence
+    """
+    # seq = ''.join([str(record.sequence_input[:record.v_seq_start]),
+    #                str(record.sequence_imgt),
+    #                str(record.sequence_input[record.j_seq_end:])])
+    seq = ''.join([str(record.sequence_imgt),
+                   str(record.sequence_input[record.j_seq_end:])])
+    seq = seq.replace('-', 'N')
+    seq = seq.replace('.', '-')
+    seq_id = record.sequence_id.replace(' ', '_')
+    if organism is not None:
+        seq_id = '%s [organism=%s]' % (seq_id, organism)
+
+    # Return SeqRecord
+    return SeqRecord(Seq(seq, IUPAC.ambiguous_dna), id=seq_id,
+                     name=seq_id, description='')
+
+
+def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                      out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
     Arguments:
       db_file : the database file name.
-      id_field : the field containing identifiers.
-      db_xref : reference database link.
       inference : reference alignment tool.
+      db_xref : reference database link.
+      organism : scientific name of the organism.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-      str : the output file name.
+      tuple : the output (feature table, fasta) file names.
     """
     # .tbl file format
     #   Line 1, Column 1: Start location of feature
@@ -1070,20 +1105,21 @@ def convertDbGenbank(db_file, id_field=default_id_field,
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'genbank'
     log['FILE'] = os.path.basename(db_file)
-    log['ID_FIELD'] = id_field
     printLog(log)
 
     # Open file handles
-    out_type = 'tbl'
     db_handle = open(db_file, 'rt')
     db_iter = ChangeoReader(db_handle)
-    pass_handle = getOutputHandle(db_file, out_label='sequin', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_type)
+    tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type='tbl')
+    fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type='fsa')
+
     # Count records
     result_count = countDbFile(db_file)
 
     # Define writer
-    writer = csv.writer(pass_handle, delimiter='\t', quoting=csv.QUOTE_NONE)
+    writer = csv.writer(tbl_handle, delimiter='\t', quoting=csv.QUOTE_NONE)
 
     # Iterate over records
     start_time = time()
@@ -1094,29 +1130,36 @@ def convertDbGenbank(db_file, id_field=default_id_field,
         rec_count += 1
 
         # Extract table dictionary
-        tbl = toGenbank(rec, db_xref=db_xref, inference=inference)
+        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference)
+        seq = makeGenbankSequence(rec, organism=organism)
 
         # Write table
-        writer.writerow(['>Features', rec.sequence_id])
+        tbl_id = rec.sequence_id.replace(' ', '_')
+        writer.writerow(['>Features', tbl_id])
         for feature, qualifiers in tbl.items():
             writer.writerow(feature)
             if qualifiers:
                 for x in qualifiers:
                     writer.writerow(list(chain(['', '', ''], x)))
 
+        # Write sequence
+        SeqIO.write(seq, fsa_handle, 'fasta')
+
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['OUTPUT_TBL'] = os.path.basename(tbl_handle.name)
+    log['OUTPUT_FSA'] = os.path.basename(fsa_handle.name)
     log['RECORDS'] = rec_count
     log['END'] = 'ParseDb'
     printLog(log)
 
     # Close file handles
-    pass_handle.close()
+    tbl_handle.close()
+    fsa_handle.close()
     db_handle.close()
 
-    return pass_handle.name
+    return (tbl_handle.name, fsa_handle.name)
 
 
 def getArgParser():
@@ -1327,18 +1370,17 @@ def getArgParser():
     parser_update.set_defaults(func=updateDbFile)
 
     # Subparser to convert database entries to a GenBank tbl file
-    parser_tbl = subparsers.add_parser('tbl', parents=[parser_parent],
+    parser_gb = subparsers.add_parser('genbank', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='Creates a fasta file from database records.',
-                                       description='Creates a fasta file from database records.')
-    parser_tbl.add_argument('--if', action='store', dest='id_field',
-                            default=default_id_field,
-                            help='The name of the field containing identifiers')
-    parser_tbl.add_argument('--db', action='store', dest='db_xref', default=None,
-                            help='Link to the reference database used for alignment.')
-    parser_tbl.add_argument('--inf', action='store', dest='inference', default=None,
+                                       help='Creates a fasta and feature table file for GenBank submissions.',
+                                       description='Creates a fasta and feature table file for GenBank submissions.')
+    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
+                            help='The scientific name of the organism.')
+    parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
                             help='Name and version of the inference tool used for reference alignment.')
-    parser_tbl.set_defaults(func=convertDbGenbank)
+    parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
+                            help='Link to the reference database used for alignment.')
+    parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
 

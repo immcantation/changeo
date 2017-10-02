@@ -805,6 +805,34 @@ class Receptor:
         """
         return parseAllele(self.j_call, allele_number_regex, action)
 
+    @property
+    def v_seq_end(self):
+        return self.v_seq_start + self.v_seq_length
+
+    @property
+    def v_germ_end_vdj(self):
+        return self.v_germ_start_vdj + self.v_germ_length_vdj
+
+    @property
+    def v_germ_end_imgt(self):
+        return self.v_germ_start_imgt + self.v_germ_length_imgt
+
+    @property
+    def d_seq_end(self):
+        return self.d_seq_start + self.d_seq_length
+
+    @property
+    def d_germ_end(self):
+        return self.d_germ_start + self.d_germ_length
+
+    @property
+    def j_seq_end(self):
+        return self.j_seq_start + self.j_seq_length
+
+    @property
+    def j_germ_end(self):
+        return self.j_germ_start + self.j_germ_length
+
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()
 def parseAllele(alleles, regex, action='first'):
