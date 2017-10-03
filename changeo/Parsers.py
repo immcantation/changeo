@@ -1577,9 +1577,8 @@ def gapV(db, repo_dict):
 
     # Find gapped germline V segment
     vgene = parseAllele(db['V_CALL'], v_allele_regex, 'first')
-    vkey = (vgene, )
-    if vkey in repo_dict:
-        vgap = repo_dict[vkey]
+    if vgene in repo_dict:
+        vgap = repo_dict[vgene]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
         gapcount = int(db['V_GERM_START_VDJ']) - 1
