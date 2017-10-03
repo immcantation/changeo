@@ -908,35 +908,39 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
              (start, end, feature key) and values are a list of
              tuples contain (qualifier key, qualifier value).
     """
+    # Define return object
+    result = OrderedDict()
+
+    # Set inference type
     if inference is not None:
         inference = 'similar to DNA sequence:%s' % inference
 
-    result = OrderedDict()
+    # Calculate variable and constant boundaries
+    variable_end = (record.v_germ_end_imgt - 1) + \
+                    record.np1_length + record.d_germ_length + record.np2_length + \
+                    record.j_germ_length
+    c_region_start = variable_end + 1
+    c_region_end = variable_end + len(record.sequence_input[(record.j_seq_end - 1):])
 
     # CDS
     #     codon_start (must indicate codon offset)
-    variable_end = record.v_germ_end_imgt + \
-                   record.np1_length + record.d_germ_length + record.np2_length + \
-                   record.j_germ_length
-    cds = [('codon_start', 1)]
+    cds = [('product', 'B cell receptor'),
+           ('codon_start', 1)]
     result[(1,
             variable_end,
             'CDS')] = cds
 
     # V_region
     variable_region = []
-    result[(1,
-            variable_end,
-            'V_region')] = variable_region
+    result[(1, variable_end, 'V_region')] = variable_region
 
     # C_region
     #     gene
     #     db_xref
     #     inference
-    c_region = []
-    result[(variable_end + 1,
-            '%i>' % (variable_end + len(record.sequence_input[record.j_seq_end:])),
-            'C_region')] = c_region
+    if c_region_start < c_region_end:
+        c_region = []
+        result[(c_region_start, '%i>' % c_region_end, 'C_region')] = c_region
 
     # V_segment
     #     gene (gene name)
@@ -959,7 +963,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     if d_gene:
         # Define D and J start
         d_start = record.v_germ_end_imgt + record.np1_length
-        j_start = d_start + record.np2_length + 1
+        j_start = d_start + record.d_germ_length + record.np2_length
 
         # D feature
         d_segment = [('gene', d_gene),
@@ -970,7 +974,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
                 d_start + record.d_germ_length,
                 'D_segment')] = d_segment
     else:
-        j_start = record.v_germ_end_imgt + record.np1_length + record.np2_length + 1
+        j_start = record.v_germ_end_imgt + record.np1_length + record.np2_length
 
     # J_segment
     #     gene
@@ -983,7 +987,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
                  ('db_xref', '%s:%s' % (db_xref, j_gene)),
                  ('inference', inference)]
     result[(j_start,
-            j_start + record.j_germ_length,
+            j_start + record.j_germ_length - 1,
             'J_segment')] = j_segment
 
     # misc_feature  (1-based closed interval positions)
@@ -1012,7 +1016,7 @@ def makeGenbankSequence(record, organism=None):
     #                str(record.sequence_imgt),
     #                str(record.sequence_input[record.j_seq_end:])])
     seq = ''.join([str(record.sequence_imgt),
-                   str(record.sequence_input[record.j_seq_end:])])
+                   str(record.sequence_input[(record.j_seq_end - 1):])])
     seq = seq.replace('-', 'N')
     seq = seq.replace('.', '-')
     seq_id = record.sequence_id.replace(' ', '_')
