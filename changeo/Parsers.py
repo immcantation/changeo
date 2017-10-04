@@ -1618,10 +1618,9 @@ def inferJunction(db, repo_dict):
 
     # Find germline J segment
     jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
-    jkey = (jgene, )
-    if jkey in repo_dict:
+    if jgene in repo_dict:
         # Get germline J sequence
-        jgerm = repo_dict[jkey]
+        jgerm = repo_dict[jgene]
         jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
