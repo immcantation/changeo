@@ -1,16 +1,16 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.7.999:  October 1, 2017
+Version 0.3.8:  October 5, 2017
 -------------------------------------------------------------------------------
 
 AlignRecords:
 
-+ Ressurrected the AlignRecords which performs multiple alignment of sequence
++ Ressurrected AlignRecords which performs multiple alignment of sequence
   fields.
 + Added new subcommands ``across`` (multiple aligns within columns),
   ``within`` (multiple aligns columns within each row), and ``block``
-  (multiple aligns across both coluumns and rows).
+  (multiple aligns across both columns and rows).
 
 CreateGermlines:
 

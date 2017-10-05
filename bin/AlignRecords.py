@@ -113,7 +113,7 @@ def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-def alignGroups(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignAcross(data, seq_fields, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields column wise
 
@@ -153,7 +153,7 @@ def alignGroups(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-def alignFields(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields within a row
 
@@ -214,7 +214,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
       tuple : a tuple of (align-pass, align-fail) filenames.
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignGroups: 'across', alignFields: 'within'}
+    cmd_dict = {alignAcross: 'across', alignWithin: 'within', alignBlocks: 'block'}
     
     # Print parameter info
     log = OrderedDict()
@@ -323,7 +323,7 @@ def getArgParser():
     parser_across.add_argument('--exec', action='store', dest='muscle_exec',
                                default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
-    parser_across.set_defaults(group_func=groupRecords, align_func=alignGroups)
+    parser_across.set_defaults(group_func=groupRecords, align_func=alignAcross)
 
 
     # Argument parser for alignment of fields within records
@@ -335,7 +335,7 @@ def getArgParser():
     parser_within.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
-    parser_within.set_defaults(group_func=None, align_func=alignFields)
+    parser_within.set_defaults(group_func=None, align_func=alignWithin)
 
     # Argument parser for column-wise alignment across records
     parser_block = subparsers.add_parser('block', parents=[parser_parent],
