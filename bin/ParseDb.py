@@ -894,7 +894,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
-def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
+def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref, ungap=False):
     """
     Creates a feature table for GenBank submissions
 
@@ -902,6 +902,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
       record : Receptor record.
       inference : Reference alignment tool.
       db_xref : Reference database name.
+      ungap : if True remove IMGT gaps from feature positions
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -915,19 +916,27 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     if inference is not None:
         inference = 'similar to DNA sequence:%s' % inference
 
-    # Calculate variable and constant boundaries
-    variable_end = (record.v_germ_end_imgt - 1) + \
-                    record.np1_length + record.d_germ_length + record.np2_length + \
-                    record.j_germ_length
-    c_region_start = variable_end + 1
+    # Define position offset for removal of IMGT gaps
+    gaps = str(record.sequence_imgt)[:312].count('.') if ungap else 0
+
+    # Calculate variable, constant and junction boundaries
+    v_end = record.v_germ_end_imgt - gaps - 1
+    variable_end = v_end + \
+                   record.np1_length + record.d_germ_length + record.np2_length + \
+                   record.j_germ_length
+    c_region_start = 1 + variable_end
     c_region_end = variable_end + len(record.sequence_input[(record.j_seq_end - 1):])
+    junction_start = 310 - gaps
 
     # CDS
     #     codon_start (must indicate codon offset)
+    codon_start = 1 + (junction_start - 1) % 3
+    cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
+    cds_end = '>%i' % c_region_end if c_region_start < c_region_end else '>%i' % variable_end
     cds = [('product', 'B cell receptor'),
-           ('codon_start', 1)]
-    result[(1,
-            variable_end,
+           ('codon_start', codon_start)]
+    result[(cds_start,
+            cds_end,
             'CDS')] = cds
 
     # V_region
@@ -940,7 +949,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     #     inference
     if c_region_start < c_region_end:
         c_region = []
-        result[(c_region_start, '%i>' % c_region_end, 'C_region')] = c_region
+        result[(c_region_start, '>%i' % c_region_end, 'C_region')] = c_region
 
     # V_segment
     #     gene (gene name)
@@ -952,7 +961,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
                  ('allele', record.getVAlleleNumber()),
                  ('db_xref', '%s:%s' % (db_xref, v_gene)),
                  ('inference', inference)]
-    result[(1, record.v_germ_end_imgt, 'V_segment')] = v_segment
+    result[(1, v_end, 'V_segment')] = v_segment
 
     # D_segment
     #     gene
@@ -962,7 +971,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     d_gene = record.getDGene()
     if d_gene:
         # Define D and J start
-        d_start = record.v_germ_end_imgt + record.np1_length
+        d_start = 1 + v_end + record.np1_length
         j_start = d_start + record.d_germ_length + record.np2_length
 
         # D feature
@@ -971,10 +980,10 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
                      ('db_xref', '%s:%s' % (db_xref, d_gene)),
                      ('inference', inference)]
         result[(d_start,
-                d_start + record.d_germ_length,
+                d_start + record.d_germ_length - 1,
                 'D_segment')] = d_segment
     else:
-        j_start = record.v_germ_end_imgt + record.np1_length + record.np2_length
+        j_start = 1 + v_end + record.np1_length + record.np2_length
 
     # J_segment
     #     gene
@@ -995,30 +1004,34 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref):
     #     inference
     junction = [('function', 'junction'),
                 ('inference', inference)]
-    result[(309,
-            309 + record.junction_length,
+    result[(junction_start,
+            junction_start + record.junction_length - 1,
             'misc_feature')] = junction
 
     return result
 
-def makeGenbankSequence(record, organism=None):
+def makeGenbankSequence(record, organism=None, ungap=False):
     """
     Creates a sequence for GenBank submissions
 
     Arguments:
       record : Receptor record.
       organism : scientific name of the organism.
+      ungap : if True remove IMGT gaps from feature positions
 
     Returns:
       SeqRecord : Object containing the output sequence
     """
-    # seq = ''.join([str(record.sequence_input[:record.v_seq_start]),
-    #                str(record.sequence_imgt),
-    #                str(record.sequence_input[record.j_seq_end:])])
     seq = ''.join([str(record.sequence_imgt),
                    str(record.sequence_input[(record.j_seq_end - 1):])])
     seq = seq.replace('-', 'N')
-    seq = seq.replace('.', '-')
+
+    # Deal with IMGT gaps
+    if ungap:
+        seq = seq.replace('.', '')
+    else:
+        seq = seq.replace('.', '-')
+
     seq_id = record.sequence_id.replace(' ', '_')
     if organism is not None:
         seq_id = '%s [organism=%s]' % (seq_id, organism)
@@ -1029,7 +1042,7 @@ def makeGenbankSequence(record, organism=None):
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     out_args=default_out_args):
+                     ungap=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -1038,6 +1051,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       inference : reference alignment tool.
       db_xref : reference database link.
       organism : scientific name of the organism.
+      ungap : if True remove IMGT gaps from feature positions and output sequence.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -1134,8 +1148,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         rec_count += 1
 
         # Extract table dictionary
-        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference)
-        seq = makeGenbankSequence(rec, organism=organism)
+        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference, ungap=ungap)
+        seq = makeGenbankSequence(rec, organism=organism, ungap=ungap)
 
         # Write table
         tbl_id = rec.sequence_id.replace(' ', '_')
@@ -1384,6 +1398,10 @@ def getArgParser():
                             help='Name and version of the inference tool used for reference alignment.')
     parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Link to the reference database used for alignment.')
+    parser_gb.add_argument('--ungap', action='store_true', dest='ungap',
+                            help='''If specified, remove IMGT gaps, denoted by dots, from the feature 
+                                 positions and output sequence. By default, IMGT gaps will be retained and
+                                 converted to dashes.''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
