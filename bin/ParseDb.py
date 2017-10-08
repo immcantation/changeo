@@ -894,7 +894,8 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
-def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref, ungap=False):
+def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
+                        ungap=False, cds=False):
     """
     Creates a feature table for GenBank submissions
 
@@ -903,6 +904,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref, ungap=F
       inference : Reference alignment tool.
       db_xref : Reference database name.
       ungap : if True remove IMGT gaps from feature positions
+      cds : if True include the CDS feature
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -930,14 +932,13 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref, ungap=F
 
     # CDS
     #     codon_start (must indicate codon offset)
-    codon_start = 1 + (junction_start - 1) % 3
-    cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
-    cds_end = '>%i' % c_region_end if c_region_start < c_region_end else '>%i' % variable_end
-    cds = [('product', 'B cell receptor'),
-           ('codon_start', codon_start)]
-    result[(cds_start,
-            cds_end,
-            'CDS')] = cds
+    if cds:
+        codon_start = 1 + (junction_start - 1) % 3
+        cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
+        #cds_end = '>%i' % c_region_end if c_region_start < c_region_end else '>%i' % variable_end
+        cds_end = '>%i' % variable_end
+        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+                                               ('codon_start', codon_start)]
 
     # V_region
     variable_region = []
@@ -1042,7 +1043,7 @@ def makeGenbankSequence(record, organism=None, ungap=False):
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     ungap=False, out_args=default_out_args):
+                     ungap=False, cds=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -1052,6 +1053,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       db_xref : reference database link.
       organism : scientific name of the organism.
       ungap : if True remove IMGT gaps from feature positions and output sequence.
+      cds : if True include the CDS feature
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -1148,7 +1150,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         rec_count += 1
 
         # Extract table dictionary
-        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference, ungap=ungap)
+        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference, ungap=ungap, cds=cds)
         seq = makeGenbankSequence(rec, organism=organism, ungap=ungap)
 
         # Write table
@@ -1402,6 +1404,8 @@ def getArgParser():
                             help='''If specified, remove IMGT gaps, denoted by dots, from the feature 
                                  positions and output sequence. By default, IMGT gaps will be retained and
                                  converted to dashes.''')
+    parser_gb.add_argument('--cds', action='store_true', dest='cds',
+                            help='''If specified, include the CDS in the feature table output.''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
