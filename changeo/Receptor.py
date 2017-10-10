@@ -333,7 +333,6 @@ class Receptor:
                 'j_seq_length': '_integer',
                 'j_germ_start': '_integer',
                 'j_germ_length': '_integer',
-                'junction_start': '_integer',
                 'junction_length': '_integer',
                 'l_seq_start': '_integer',
                 'l_seq_length': '_integer',
@@ -807,31 +806,41 @@ class Receptor:
 
     @property
     def v_seq_end(self):
-        return self.v_seq_start + self.v_seq_length
+        return self.v_seq_start + self.v_seq_length - 1
 
     @property
     def v_germ_end_vdj(self):
-        return self.v_germ_start_vdj + self.v_germ_length_vdj
+        return self.v_germ_start_vdj + self.v_germ_length_vdj - 1
 
     @property
     def v_germ_end_imgt(self):
-        return self.v_germ_start_imgt + self.v_germ_length_imgt
+        return self.v_germ_start_imgt + self.v_germ_length_imgt - 1
 
     @property
     def d_seq_end(self):
-        return self.d_seq_start + self.d_seq_length
+        return self.d_seq_start + self.d_seq_length - 1
 
     @property
     def d_germ_end(self):
-        return self.d_germ_start + self.d_germ_length
+        return self.d_germ_start + self.d_germ_length - 1
 
     @property
     def j_seq_end(self):
-        return self.j_seq_start + self.j_seq_length
+        return self.j_seq_start + self.j_seq_length - 1
 
     @property
     def j_germ_end(self):
-        return self.j_germ_start + self.j_germ_length
+        return self.j_germ_start + self.j_germ_length - 1
+
+    @property
+    def junction_start(self):
+        x = self.v_germ_end_imgt - 310
+        return self.v_seq_end - x if x >= 0 else None
+
+    @property
+    def junction_end(self):
+        gaps = self.junction.count('.')
+        return self.junction_start + self.junction_length - gaps - 1
 
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()

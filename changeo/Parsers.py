@@ -1774,6 +1774,7 @@ def gapV(db, repo_dict):
     vkey = (vgene, )
     if vkey in repo_dict:
         vgap = repo_dict[vkey]
+
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
         gapcount = int(db['V_GERM_START_VDJ']) - 1
@@ -1786,6 +1787,7 @@ def gapV(db, repo_dict):
             seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
             # Update gap counter
             gapcount += 1
+
         imgt_dict['SEQUENCE_IMGT'] = seq_imgt
         # Update IMGT positioning information for V
         imgt_dict['V_GERM_START_IMGT'] = 1
@@ -1802,15 +1804,15 @@ def inferJunction(db, repo_dict):
     Identify junction region by IMGT definition.
 
     Arguments:
-      db : database dictionary of parsed IgBLAST.
+      db : database dictionary of changeo data.
       repo_dict : dictionary of IMGT-gapped reference sequences.
 
     Returns:
       dict : database entries containing junction sequence and length.
     """
     junc_dict = {'JUNCTION': None,
-                 'JUNCTION_LENGTH': None,
-                 'JUNCTION_AA': None}
+                 'JUNCTION_AA': None,
+                 'JUNCTION_LENGTH': None}
 
     # Find germline J segment
     jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
@@ -1819,16 +1821,18 @@ def inferJunction(db, repo_dict):
         # Get germline J sequence
         jgerm = repo_dict[jkey]
         jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
+
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
-        aa_end = len(db['SEQUENCE_IMGT'])
-        #TODO: Figure out else case
         if motif:
             aa_end = motif.start() - len(jgerm) + 3
+        else:
+            aa_end = len(db['SEQUENCE_IMGT'])
 
         # Extract junction
         junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
+
         # Translation
         junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
         if len(junc_tmp) % 3 > 0:  junc_tmp = junc_tmp + 'N' * (3 - len(junc_tmp) % 3)
