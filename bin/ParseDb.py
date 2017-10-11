@@ -29,6 +29,7 @@ from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, getDbFields
 from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.Receptor import c_gene_regex, parseAllele
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -895,7 +896,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
 
 
 def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
-                        cds=False):
+                        cregion_field=None, cds=False):
     """
     Creates a feature table for GenBank submissions
 
@@ -903,6 +904,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
       record : Receptor record.
       inference : Reference alignment tool.
       db_xref : Reference database name.
+      cregion_field : column containing the C region gene call.
       cds : if True include the CDS feature
 
     Returns:
@@ -910,6 +912,13 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
              (start, end, feature key) and values are a list of
              tuples contain (qualifier key, qualifier value).
     """
+    # .tbl file format
+    #   Line 1, Column 1: Start location of feature
+    #   Line 1, Column 2: Stop location of feature
+    #   Line 1, Column 3: Feature key
+    #   Line 2, Column 4: Qualifier key
+    #   Line 2, Column 5: Qualifier value
+
     # Define return object
     result = OrderedDict()
 
@@ -927,8 +936,15 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
     #     inference
     c_region_start = record.j_seq_end + 1
     c_region_end = c_region_start + len(record.sequence_input[c_region_start:])
-    if c_region_start < c_region_end:
+    if cregion_field is not None:
+        c_call = record.getField(cregion_field)
+        c_gene = parseAllele(c_call, c_gene_regex, action='first')
+        c_region = [('gene', c_gene),
+                    ('db_xref', '%s:%s' % (db_xref, c_gene))]
+    else:
         c_region = []
+    # Assign C_region feature if sequence exists
+    if c_region_start < c_region_end:
         result[(c_region_start, '>%i' % c_region_end, 'C_region')] = c_region
 
     # V_segment
@@ -973,13 +989,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
     # misc_feature  (1-based closed interval positions)
     #     function = junction
     #     inference
-    # Translate junction
     if record.junction:
-        # junction_nt = str(record.junction).replace('-', 'N').replace('.', 'N')
-        # x = len(junction_nt) % 3
-        # if x > 0:  junction_nt = junction_nt + 'N' * (3 - x)
-        # junction_aa = str(Seq(junction_nt).translate())
-
         # Junction feature
         junction = [('function', 'junction'),
                     ('inference', inference)]
@@ -998,14 +1008,13 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
     else:
         cds_start = '<%i' % record.junction_start
         cds_end = '>%i' % record.junction_end
-        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
-                                               ('product', 'junction'),
+        result[(cds_start, cds_end, 'CDS')] = [('function', 'junction'),
                                                ('codon_start', 1)]
 
     return result
 
 
-def makeGenbankSequence(record, name=None, organism=None):
+def makeGenbankSequence(record, name=None, organism=None, moltype='mRNA'):
     """
     Creates a sequence for GenBank submissions
 
@@ -1013,6 +1022,7 @@ def makeGenbankSequence(record, name=None, organism=None):
       record : Receptor record.
       name : sequence identifier for the output sequence.
       organism : scientific name of the organism.
+      moltype : source molecule (eg, "mRNA", "genomic DNA")
 
     Returns:
       SeqRecord : Object containing the output sequence
@@ -1027,6 +1037,7 @@ def makeGenbankSequence(record, name=None, organism=None):
         seq_id = '%s [sequence_id=%s]' % (name, seq_id)
     if organism is not None:
         seq_id = '%s [organism=%s]' % (seq_id, organism)
+    seq_id = '%s [moltype=%s]' % (seq_id, moltype)
 
     # Return SeqRecord
     return SeqRecord(Seq(seq, IUPAC.ambiguous_dna), id=seq_id,
@@ -1034,7 +1045,7 @@ def makeGenbankSequence(record, name=None, organism=None):
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     cds=False, out_args=default_out_args):
+                     cregion_field=None, cds=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -1043,74 +1054,13 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       inference : reference alignment tool.
       db_xref : reference database link.
       organism : scientific name of the organism.
+      cregion_field : column containing the C region gene call.
       cds : if True include the CDS feature
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       tuple : the output (feature table, fasta) file names.
     """
-    # .tbl file format
-    #   Line 1, Column 1: Start location of feature
-    #   Line 1, Column 2: Stop location of feature
-    #   Line 1, Column 3: Feature key
-    #   Line 2, Column 4: Qualifier key
-    #   Line 2, Column 5: Qualifier value
-    #
-    # Example .tbl format
-    # >Feature Sc_16
-    # 1     7000    REFERENCE
-    #                       PubMed          8849441
-    # <1    1050    gene
-    #                       gene            ATH1
-    # <1    1009    CDS
-    #                       product         acid trehalase
-    #                       product         Ath1p
-    #                       codon_start     2
-    #
-    # Required feature keys:
-    #   CDS
-    #       codon_start (must indicate codon offset)
-    #   V_region
-    #   V_segment
-    #       gene (gene name)
-    #       allele (allele only, without gene name, don't use if ambiguous)
-    #       db_xref (database link)
-    #       inference (reference alignment tool)
-    #   D_segment
-    #       gene
-    #       allele
-    #       db_xref
-    #       inference
-    #   J_segment
-    #       gene
-    #       allele
-    #       db_xref
-    #       inference
-    #   C_region
-    #       gene
-    #       db_xref
-    #       inference
-    #   misc_feature  (1-based closed interval positions)
-    #       function = JUNCTION
-    #       inference
-    #
-    # Changeo fields required
-    # SEQUENCE_ID
-    # SEQUENCE_VDJ
-    # V_CALL
-    # D_CALL
-    # J_CALL
-    # V_SEQ_START
-    # V_SEQ_LENGTH
-    # D_SEQ_START
-    # D_SEQ_LENGTH
-    # J_SEQ_START
-    # J_SEQ_LENGTH
-    # JUNCTION
-    # JUNCTION_START (need to add)
-    # JUNCTION_LENGTH
-    # TRANSLATION_START (maybe from V_GERM_START_IMGT?)
-
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'genbank'
@@ -1140,7 +1090,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         rec_count += 1
 
         # Extract table dictionary
-        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference, cds=cds)
+        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference,
+                                  cregion_field=cregion_field, cds=cds)
         seq = makeGenbankSequence(rec, name=rec_count, organism=organism)
 
         # Write table
@@ -1389,6 +1340,9 @@ def getArgParser():
                             help='Name and version of the inference tool used for reference alignment.')
     parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Link to the reference database used for alignment.')
+    parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
+                            help='''Field containing the C region call. If unspecified, the C region gene 
+                                 call will be excluded from the feature table.''')
     parser_gb.add_argument('--cds', action='store_true', dest='cds',
                             help='''If specified, include the full CDS in the feature table output.
                                  Otherwise, restrict the CDS to the junction region.''')

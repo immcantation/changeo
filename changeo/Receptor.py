@@ -24,10 +24,8 @@ d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 
 allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
+c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
-#allele_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*[-\*][\.\w]+)')
-#gene_regex = re.compile(r'(IG[HLK][VDJ]\d+[-/\w]*)')
-#family_regex = re.compile(r'(IG[HLK][VDJ]\d+)')
 
 class AIRRSchema:
     """
