@@ -554,10 +554,10 @@ def processQueue(alive, data_queue, result_queue, max_missing=default_max_missin
 
             # Add V(D)J to log
             result.log['ID'] = ','.join([str(x) for x in data.id])
-            result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in records]))
-            result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in records]))
-            result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in records]))
-            result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in records]))
+            result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in data.data]))
+            result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in data.data]))
+            result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in data.data]))
+            result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in data.data]))
             result.log['PASSCOUNT'] = len(records)
             result.log['FAILCOUNT'] = len(result.failed)
              
