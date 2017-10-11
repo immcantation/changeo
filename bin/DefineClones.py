@@ -562,7 +562,7 @@ def processQueue(alive, data_queue, result_queue, max_missing=default_max_missin
             result.log['FAILCOUNT'] = len(result.failed)
              
             # Checking for preclone failure and assign clones
-            clones = clone_func(records, **clone_args) if data else None
+            clones = clone_func(records, **clone_args) if records else None
 
             # import cProfile
             # prof = cProfile.Profile()
