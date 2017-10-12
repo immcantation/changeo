@@ -1028,7 +1028,8 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     else:
         cds_start = '<%i' % (record.junction_start - start_trim)
         cds_end = '>%i' % (record.junction_end - start_trim)
-        result[(cds_start, cds_end, 'CDS')] = [('function', 'junction'),
+        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+                                               ('function', 'junction'),
                                                ('codon_start', 1)]
 
     return result
