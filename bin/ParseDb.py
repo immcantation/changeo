@@ -896,13 +896,16 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
-def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
+def makeGenbankFeatures(record, start=None, end=None, inference=None,
+                        db_xref=default_db_xref,
                         cregion_field=None, cds=False):
     """
     Creates a feature table for GenBank submissions
 
     Arguments:
       record : Receptor record.
+      start : start position of the modified seqeuence in the input sequence. Used for feature position offsets.
+      end : end position of the modified seqeuence in the input sequence. Used for feature position offsets.
       inference : Reference alignment tool.
       db_xref : Reference database name.
       cregion_field : column containing the C region gene call.
@@ -925,18 +928,26 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
 
     # Set inference type
     if inference is not None:
-        inference = 'similar to DNA sequence:%s' % inference
+        inference = 'alignment:%s' % inference
+
+    # Set position offsets if required
+    start_trim = 0 if start is None else start
+    end_trim = 0 if end is None else len(record.sequence_input) - end + 1
 
     # V_region
     variable_region = []
-    result[(record.v_seq_start, record.j_seq_end, 'V_region')] = variable_region
+    #result[(record.v_seq_start, record.j_seq_end, 'V_region')] = variable_region
+    result[(record.v_seq_start - start_trim,
+            record.j_seq_end - start_trim,
+            'V_region')] = variable_region
 
     # C_region
     #     gene
     #     db_xref
     #     inference
-    c_region_start = record.j_seq_end + 1
-    c_region_end = c_region_start + len(record.sequence_input[c_region_start:])
+    c_region_start = record.j_seq_end + 1 - start_trim
+    c_region_length = len(record.sequence_input[(c_region_start + start_trim):])
+    c_region_end = c_region_start + c_region_length
     if cregion_field is not None:
         c_call = record.getField(cregion_field)
         c_gene = parseAllele(c_call, c_gene_regex, action='first')
@@ -946,7 +957,9 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
         c_region = []
     # Assign C_region feature if sequence exists
     if c_region_start < c_region_end:
-        result[(c_region_start, '>%i' % c_region_end, 'C_region')] = c_region
+        result[(c_region_start,
+                '>%i' % c_region_end,
+                'C_region')] = c_region
 
     # V_segment
     #     gene (gene name)
@@ -959,7 +972,9 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
                      ('allele', record.getVAlleleNumber()),
                      ('db_xref', '%s:%s' % (db_xref, v_gene)),
                      ('inference', inference)]
-        result[(record.v_seq_start, record.v_seq_end, 'V_segment')] = v_segment
+        result[(record.v_seq_start - start_trim,
+                record.v_seq_end - start_trim,
+                'V_segment')] = v_segment
 
     # D_segment
     #     gene
@@ -972,7 +987,9 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
                      ('allele', record.getDAlleleNumber()),
                      ('db_xref', '%s:%s' % (db_xref, d_gene)),
                      ('inference', inference)]
-        result[(record.d_seq_start, record.d_seq_end, 'D_segment')] = d_segment
+        result[(record.d_seq_start - start_trim,
+                record.d_seq_end - start_trim,
+                'D_segment')] = d_segment
 
     # J_segment
     #     gene
@@ -985,7 +1002,9 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
                      ('allele', record.getVAlleleNumber()),
                      ('db_xref', '%s:%s' % (db_xref, j_gene)),
                      ('inference', inference)]
-        result[(record.j_seq_start, record.j_seq_end, 'J_segment')] = j_segment
+        result[(record.j_seq_start - start_trim,
+                record.j_seq_end - start_trim,
+                'J_segment')] = j_segment
 
     # misc_feature  (1-based closed interval positions)
     #     function = junction
@@ -994,21 +1013,21 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
         # Junction feature
         junction = [('function', 'junction'),
                     ('inference', inference)]
-        result[(record.junction_start,
-                record.junction_end,
+        result[(record.junction_start - start_trim,
+                record.junction_end - start_trim,
                 'misc_feature')] = junction
 
     # CDS
     #     codon_start (must indicate codon offset)
     if cds:
-        codon_start = 1 + (record.junction_start - 1) % 3
+        codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
         cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
-        cds_end = '>%i' % record.j_seq_end
+        cds_end = '>%i' % record.j_seq_end  - start_trim
         result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
                                                ('codon_start', codon_start)]
     else:
-        cds_start = '<%i' % record.junction_start
-        cds_end = '>%i' % record.junction_end
+        cds_start = '<%i' % (record.junction_start - start_trim)
+        cds_end = '>%i' % (record.junction_end - start_trim)
         result[(cds_start, cds_end, 'CDS')] = [('function', 'junction'),
                                                ('codon_start', 1)]
 
@@ -1026,23 +1045,34 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
       moltype : source molecule (eg, "mRNA", "genomic DNA")
 
     Returns:
-      SeqRecord : Object containing the output sequence
+      dict : dictionary with {'record': SeqRecord,
+                              'start': start position in raw sequence,
+                              'end': end position in raw sequence}
     """
     # Replace gaps with N
     seq = str(record.sequence_input)
     seq = seq.replace('-', 'N').replace('.', 'N')
 
+    # Strip leading and trailing Ns
+    head_match = re.search('^N+', seq)
+    tail_match = re.search('N+$', seq)
+    seq_start = head_match.end() if head_match else 0
+    seq_end = tail_match.start() if tail_match else len(seq)
+
     # Define ID
-    seq_id = record.sequence_id.replace(' ', '_')
+    seq_id = record.sequence_id.split(' ')[0]
     if name is not None:
-        seq_id = '%s [sequence_id=%s]' % (name, seq_id)
+        seq_id = '%s %s' % (name, seq_id)
     if organism is not None:
         seq_id = '%s [organism=%s]' % (seq_id, organism)
     seq_id = '%s [moltype=%s]' % (seq_id, moltype)
 
-    # Return SeqRecord
-    return SeqRecord(Seq(seq, IUPAC.ambiguous_dna), id=seq_id,
-                     name=seq_id, description='')
+    # Return SeqRecord and positions
+    record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=seq_id,
+                       name=seq_id, description='')
+    result = {'record': record, 'start': seq_start, 'end': seq_end}
+
+    return result
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
@@ -1073,10 +1103,10 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
     # Open file handles
     db_handle = open(db_file, 'rt')
     db_iter = ChangeoReader(db_handle)
-    tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type='tbl')
     fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type='fsa')
+    tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type='tbl')
 
     # Count records
     result_count = countDbFile(db_file)
@@ -1093,13 +1123,14 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         rec_count += 1
 
         # Extract table dictionary
-        tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference,
-                                  cregion_field=cregion_field, cds=cds)
         seq = makeGenbankSequence(rec, name=rec_count, organism=organism,
                                   moltype=moltype)
+        tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
+                                  db_xref=db_xref, inference=inference,
+                                  cregion_field=cregion_field, cds=cds)
 
         # Write table
-        writer.writerow(['>Features', seq.id])
+        writer.writerow(['>Features', seq['record'].id])
         for feature, qualifiers in tbl.items():
             writer.writerow(feature)
             if qualifiers:
@@ -1107,7 +1138,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                     writer.writerow(list(chain(['', '', ''], x)))
 
         # Write sequence
-        SeqIO.write(seq, fsa_handle, 'fasta')
+        SeqIO.write(seq['record'], fsa_handle, 'fasta')
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
