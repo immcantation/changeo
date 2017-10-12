@@ -40,6 +40,7 @@ default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_index_field = 'INDEX'
 default_db_xref = 'IMGT/GENE-DB'
+default_moltype='mRNA'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -1014,7 +1015,7 @@ def makeGenbankFeatures(record, inference=None, db_xref=default_db_xref,
     return result
 
 
-def makeGenbankSequence(record, name=None, organism=None, moltype='mRNA'):
+def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltype):
     """
     Creates a sequence for GenBank submissions
 
@@ -1045,7 +1046,8 @@ def makeGenbankSequence(record, name=None, organism=None, moltype='mRNA'):
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     cregion_field=None, cds=False, out_args=default_out_args):
+                     moltype=default_moltype, cregion_field=None, cds=False,
+                     out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -1054,6 +1056,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       inference : reference alignment tool.
       db_xref : reference database link.
       organism : scientific name of the organism.
+      moltype : source molecule (eg, "mRNA", "genomic DNA")
       cregion_field : column containing the C region gene call.
       cds : if True include the CDS feature
       out_args : common output argument dictionary from parseCommonArgs.
@@ -1092,7 +1095,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         # Extract table dictionary
         tbl = makeGenbankFeatures(rec, db_xref=db_xref, inference=inference,
                                   cregion_field=cregion_field, cds=cds)
-        seq = makeGenbankSequence(rec, name=rec_count, organism=organism)
+        seq = makeGenbankSequence(rec, name=rec_count, organism=organism,
+                                  moltype=moltype)
 
         # Write table
         writer.writerow(['>Features', seq.id])
@@ -1340,6 +1344,8 @@ def getArgParser():
                             help='Name and version of the inference tool used for reference alignment.')
     parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Link to the reference database used for alignment.')
+    parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
+                            help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
     parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
                             help='''Field containing the C region call. If unspecified, the C region gene 
                                  call will be excluded from the feature table.''')
