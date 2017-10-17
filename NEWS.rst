@@ -1,13 +1,13 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.9:  October 16, 2017
+Version 0.3.9:  October 17, 2017
 -------------------------------------------------------------------------------
 
 DefineClones:
 
-+ Fixed a bug causing DefineClones to fail when all sequences removed from a
-  group due to missing characters.
++ Fixed a bug causing DefineClones to fail when all are sequences removed from
+  a group due to missing characters.
 
 
 Version 0.3.8:  October 5, 2017
