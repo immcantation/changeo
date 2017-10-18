@@ -940,7 +940,9 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     inference
     c_region_start = record.j_seq_end + 1 - start_trim
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
-    print("\n", record.sequence_id.split()[0], 'END>', end, 'TRIM>', end_trim, 'CSTART>', c_region_start, 'CLEN>', c_region_length)
+    #print('\nID>', record.sequence_id.split()[0],
+    # 'END>', end, 'TRIM>', end_trim,
+    # 'CSTART>', c_region_start, 'CLEN>', c_region_length)
 
     if c_region_length > 0:
         if cregion_field is None:
