@@ -932,34 +932,41 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
 
     # Set position offsets if required
     start_trim = 0 if start is None else start
-    end_trim = 0 if end is None else len(record.sequence_input) - end + 1
-
-    # V_region
-    variable_region = []
-    #result[(record.v_seq_start, record.j_seq_end, 'V_region')] = variable_region
-    result[(record.v_seq_start - start_trim,
-            record.j_seq_end - start_trim,
-            'V_region')] = variable_region
+    end_trim = 0 if end is None else len(record.sequence_input) - end
 
     # C_region
     #     gene
     #     db_xref
     #     inference
     c_region_start = record.j_seq_end + 1 - start_trim
-    c_region_length = len(record.sequence_input[(c_region_start + start_trim):])
-    c_region_end = c_region_start + c_region_length
-    if cregion_field is not None:
-        c_call = record.getField(cregion_field)
-        c_gene = parseAllele(c_call, c_gene_regex, action='first')
-        c_region = [('gene', c_gene),
-                    ('db_xref', '%s:%s' % (db_xref, c_gene))]
-    else:
-        c_region = []
-    # Assign C_region feature if sequence exists
-    if c_region_start < c_region_end:
+    c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
+    print("\n", record.sequence_id.split()[0], 'END>', end, 'TRIM>', end_trim, 'CSTART>', c_region_start, 'CLEN>', c_region_length)
+
+    if c_region_length > 0:
+        if cregion_field is None:
+            c_region = []
+        else:
+            c_call = record.getField(cregion_field)
+            c_gene = parseAllele(c_call, c_gene_regex, action='first')
+            c_region = [('gene', c_gene),
+                        ('db_xref', '%s:%s' % (db_xref, c_gene))]
+
+        # Assign C_region feature
         result[(c_region_start,
-                '>%i' % c_region_end,
+                '>%i' % (c_region_start + c_region_length - 1),
                 'C_region')] = c_region
+
+        # Preserve J segment end position
+        j_end = record.j_seq_end
+    else:
+        # Trim J segment end position
+        j_end = record.j_seq_end + c_region_length
+
+    # V_region
+    variable_region = []
+    result[(record.v_seq_start - start_trim,
+            j_end - start_trim,
+            'V_region')] = variable_region
 
     # V_segment
     #     gene (gene name)
@@ -1003,7 +1010,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
                      ('db_xref', '%s:%s' % (db_xref, j_gene)),
                      ('inference', inference)]
         result[(record.j_seq_start - start_trim,
-                record.j_seq_end - start_trim,
+                j_end - start_trim,
                 'J_segment')] = j_segment
 
     # misc_feature  (1-based closed interval positions)
@@ -1022,7 +1029,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     if cds:
         codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
         cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
-        cds_end = '>%i' % record.j_seq_end  - start_trim
+        cds_end = '>%i' % j_end  - start_trim
         result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
                                                ('codon_start', codon_start)]
     else:
@@ -1066,7 +1073,7 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
         seq_id = '%s %s' % (name, seq_id)
     if organism is not None:
         seq_id = '%s [organism=%s]' % (seq_id, organism)
-    seq_id = '%s [moltype=%s]' % (seq_id, moltype)
+    seq_id = '%s [moltype=%s] [keyword=AIRR]' % (seq_id, moltype)
 
     # Return SeqRecord and positions
     record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=seq_id,
