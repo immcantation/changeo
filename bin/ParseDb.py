@@ -898,7 +898,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
 
 def makeGenbankFeatures(record, start=None, end=None, inference=None,
                         db_xref=default_db_xref,
-                        cregion_field=None, cds=False):
+                        cregion_field=None, full_cds=False):
     """
     Creates a feature table for GenBank submissions
 
@@ -909,7 +909,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
       inference : Reference alignment tool.
       db_xref : Reference database name.
       cregion_field : column containing the C region gene call.
-      cds : if True include the CDS feature
+      full_cds : if True include the CDS feature
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -940,10 +940,6 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     inference
     c_region_start = record.j_seq_end + 1 - start_trim
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
-    #print('\nID>', record.sequence_id.split()[0],
-    # 'END>', end, 'TRIM>', end_trim,
-    # 'CSTART>', c_region_start, 'CLEN>', c_region_length)
-
     if c_region_length > 0:
         if cregion_field is None:
             c_region = []
@@ -965,9 +961,11 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
         j_end = record.j_seq_end + c_region_length
 
     # V_region
+    variable_start = max(record.v_seq_start - start_trim, 1)
+    variable_end = j_end - start_trim
     variable_region = []
-    result[(record.v_seq_start - start_trim,
-            j_end - start_trim,
+    result[(variable_start,
+            variable_end,
             'V_region')] = variable_region
 
     # V_segment
@@ -981,7 +979,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
                      ('allele', record.getVAlleleNumber()),
                      ('db_xref', '%s:%s' % (db_xref, v_gene)),
                      ('inference', inference)]
-        result[(record.v_seq_start - start_trim,
+        result[(variable_start,
                 record.v_seq_end - start_trim,
                 'V_segment')] = v_segment
 
@@ -1028,7 +1026,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
 
     # CDS
     #     codon_start (must indicate codon offset)
-    if cds:
+    if full_cds:
         codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
         cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
         cds_end = '>%i' % j_end  - start_trim
@@ -1050,7 +1048,8 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
 
     Arguments:
       record : Receptor record.
-      name : sequence identifier for the output sequence.
+      name : sequence identifier for the output sequence. If None,
+             use the original sequence identifier.
       organism : scientific name of the organism.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
 
@@ -1070,24 +1069,23 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
     seq_end = tail_match.start() if tail_match else len(seq)
 
     # Define ID
-    seq_id = record.sequence_id.split(' ')[0]
-    if name is not None:
-        seq_id = '%s %s' % (name, seq_id)
+    if name is None:
+        name = record.sequence_id.split(' ')[0]
     if organism is not None:
-        seq_id = '%s [organism=%s]' % (seq_id, organism)
-    seq_id = '%s [moltype=%s] [keyword=AIRR]' % (seq_id, moltype)
+        name = '%s [organism=%s]' % (name, organism)
+    name = '%s [moltype=%s] [keyword=AIRR]' % (name, moltype)
 
     # Return SeqRecord and positions
-    record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=seq_id,
-                       name=seq_id, description='')
+    record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=name,
+                       name=name, description='')
     result = {'record': record, 'start': seq_start, 'end': seq_end}
 
     return result
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     moltype=default_moltype, cregion_field=None, cds=False,
-                     out_args=default_out_args):
+                     moltype=default_moltype, cregion_field=None, keep_id=False,
+                     full_cds=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -1098,7 +1096,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       organism : scientific name of the organism.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
       cregion_field : column containing the C region gene call.
-      cds : if True include the CDS feature
+      keep_id : if True use the original sequence ID for the output IDs
+      full_cds : if True include the CDS feature
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -1133,11 +1132,12 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         rec_count += 1
 
         # Extract table dictionary
-        seq = makeGenbankSequence(rec, name=rec_count, organism=organism,
+        name = None if keep_id else rec_count
+        seq = makeGenbankSequence(rec, name=name, organism=organism,
                                   moltype=moltype)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
                                   db_xref=db_xref, inference=inference,
-                                  cregion_field=cregion_field, cds=cds)
+                                  cregion_field=cregion_field, full_cds=full_cds)
 
         # Write table
         writer.writerow(['>Features', seq['record'].id])
@@ -1390,9 +1390,13 @@ def getArgParser():
     parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
                             help='''Field containing the C region call. If unspecified, the C region gene 
                                  call will be excluded from the feature table.''')
-    parser_gb.add_argument('--cds', action='store_true', dest='cds',
+    parser_gb.add_argument('--cds', action='store_true', dest='full_cds',
                             help='''If specified, include the full CDS in the feature table output.
                                  Otherwise, restrict the CDS to the junction region.''')
+    parser_gb.add_argument('--id', action='store_true', dest='keep_id',
+                            help='''If specified, use the existing sequence identifier for the output identifier. 
+                                 By default, only the row number will be used as the identifier to avoid
+                                 the 50 character limit.''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
