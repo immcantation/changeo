@@ -258,6 +258,8 @@ class AIRRWriter:
               None
             """
             row = AIRRWriter._parseReceptor(record)
+            #print('\n===== RECORD START =====\n')
+            #for k, v in row.items(): print(k, v)
             self.writer.write(row)
 
 

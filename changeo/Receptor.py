@@ -31,13 +31,6 @@ class AIRRSchema:
     """
     AIRR format to Receptor mappings
     """
-    # TODO: Extra AIRR annotation columns currently not included
-    # sample
-    # locus
-    # constant
-    # isotype
-    # rev_comp
-
     # Mapping of AIRR column names to Receptor attributes
     _airr = OrderedDict([('sequence_id', 'sequence_id'),
                          ('sequence', 'sequence_input'),
@@ -72,17 +65,17 @@ class AIRRSchema:
                          ('p3d_length', 'p3d_length'),
                          ('p5j_length', 'p5j_length'),
                          ('v_start', 'v_seq_start'),
-                         ('v_germ_start', 'v_germ_start_imgt'),
                          ('v_end', 'v_seq_end'),
+                         ('v_germ_start', 'v_germ_start_imgt'),
                          ('v_germ_end', 'v_germ_end_imgt'),
                          ('d_start', 'd_seq_start'),
-                         ('d_germ_start', 'd_germ_start_imgt'),
                          ('d_end', 'd_seq_end'),
-                         ('d_end_start', 'd_germ_end_imgt'),
+                         ('d_germ_start', 'd_germ_start'),
+                         ('d_germ_end', 'd_germ_end'),
                          ('j_start', 'j_seq_start'),
-                         ('j_germ_start', 'j_germ_start_imgt'),
                          ('j_end', 'j_seq_end'),
-                         ('j_germ_end', 'j_germ_end_imgt'),
+                         ('j_germ_start', 'j_germ_start'),
+                         ('j_germ_end', 'j_germ_end'),
                          ('fwr1_start', 'fwr1_start'),
                          ('fwr1_end', 'fwr1_end'),
                          ('fwr2_start', 'fwr2_start'),
@@ -332,10 +325,6 @@ class Receptor:
                 'j_germ_start': '_integer',
                 'j_germ_length': '_integer',
                 'junction_length': '_integer',
-                'l_seq_start': '_integer',
-                'l_seq_length': '_integer',
-                'c_seq_start': '_integer',
-                'c_seq_length': '_integer',
                 'v_score': '_float',
                 'v_identity': '_float',
                 'v_evalue': '_float',
@@ -364,7 +353,15 @@ class Receptor:
                 'cdr3_igblast_nt': '_nucleotide',
                 'cdr3_igblast_aa': '_aminoacid'}
 
-    # Pass through type conversion
+    # Mapping of derived properties to parsing functions
+    _derived = {'v_seq_end': '_integer',
+                'v_germ_end_vdj': '_integer',
+                'v_germ_end_imgt': '_integer',
+                'j_seq_end': '_integer',
+                'j_germ_end': '_integer',
+                'd_seq_end': '_integer',
+                'd_germ_end': '_integer'}
+
     @staticmethod
     def _identity(v, deparse=False):
         return v
@@ -373,7 +370,7 @@ class Receptor:
     @staticmethod
     def _logical(v, deparse=False):
         parse_map = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
-                         'NA': None, 'None': None, '': None}
+                     'NA': None, 'None': None, '': None}
         deparse_map = {False: 'F', True: 'T', None: ''}
         if not deparse:
             try:
@@ -567,13 +564,18 @@ class Receptor:
         """
         d = {}
         n = self.__dict__
+        # Parse attributes
         for k, v in n.items():
             if k == 'annotations':
-                #d.update({j.lower(): u for j, u  in n['annotations'].items()})
                 d.update(n['annotations'])
             else:
                 f = getattr(Receptor, Receptor._parsers[k])
                 d[k] = f(v, deparse=True)
+        # Parse properties
+        for k in Receptor._derived:
+            f = getattr(Receptor, Receptor._derived[k])
+            v = getattr(self, k)
+            d[k] = f(v, deparse=True)
         return d
 
     def getAlleleCalls(self, calls, action='first'):
