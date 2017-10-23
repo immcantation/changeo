@@ -373,83 +373,47 @@ class Receptor:
                      'NA': None, 'None': None, '': None}
         deparse_map = {False: 'F', True: 'T', None: ''}
         if not deparse:
-            try:
-                return parse_map[v]
-            except:
-                return None
+            try:  return parse_map[v]
+            except:  return None
         else:
-            try:
-                return deparse_map[v]
-            except:
-                return ''
+            try:  return deparse_map[v]
+            except:  return ''
 
     # Integer type conversion
     @staticmethod
     def _integer(v, deparse=False):
         if not deparse:
-            try:
-                return int(v)
-            except:
-                return 0
+            try:  return int(v)
+            except:  return None
         else:
-            try:
-                return str(v)
-            except:
-                return ''
+            return '' if v is None else str(v)
 
     # Float type conversion
     @staticmethod
     def _float(v, deparse=False):
         if not deparse:
-            try:
-                return float(v)
-            except:
-                return 0.0
+            try:  return float(v)
+            except:  return None
         else:
-            try:
-                return str(v)
-            except:
-                return ''
+            return '' if v is None else str(v)
 
     # Nucleotide sequence type conversion
     @staticmethod
     def _nucleotide(v, deparse=False):
         if not deparse:
-            try:
-                if v in ('NA', 'None'):
-                    return ''
-                else:
-                    return Seq(v, IUPAC.ambiguous_dna).upper()
-            except:
-                return ''
+            try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.ambiguous_dna).upper()
+            except:  return ''
         else:
-            try:
-                if v in ('NA', 'None'):
-                    return ''
-                else:
-                    return str(v)
-            except:
-                return ''
+            return '' if v in ('NA', 'None') else str(v)
 
     # Sequence type conversion
     @staticmethod
     def _aminoacid(v, deparse=False):
         if not deparse:
-            try:
-                if v in ('NA', 'None'):
-                    return ''
-                else:
-                    return Seq(v, IUPAC.extended_protein).upper()
-            except:
-                return ''
+            try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.extended_protein).upper()
+            except:  return ''
         else:
-            try:
-                if v in ('NA', 'None'):
-                    return ''
-                else:
-                    return str(v)
-            except:
-                return ''
+            return '' if v in ('NA', 'None') else str(v)
 
     def __init__(self, data):
         """
@@ -806,41 +770,54 @@ class Receptor:
 
     @property
     def v_seq_end(self):
-        return self.v_seq_start + self.v_seq_length - 1
+        try:  return self.v_seq_start + self.v_seq_length - 1
+        except TypeError:  return None
 
     @property
     def v_germ_end_vdj(self):
-        return self.v_germ_start_vdj + self.v_germ_length_vdj - 1
+        try:  return self.v_germ_start_vdj + self.v_germ_length_vdj - 1
+        except TypeError:  return None
 
     @property
     def v_germ_end_imgt(self):
-        return self.v_germ_start_imgt + self.v_germ_length_imgt - 1
+        try:  return self.v_germ_start_imgt + self.v_germ_length_imgt - 1
+        except TypeError:  return None
 
     @property
     def d_seq_end(self):
-        return self.d_seq_start + self.d_seq_length - 1
+        try:  return self.d_seq_start + self.d_seq_length - 1
+        except TypeError:  return None
 
     @property
     def d_germ_end(self):
-        return self.d_germ_start + self.d_germ_length - 1
+        try:  self.d_germ_start + self.d_germ_length - 1
+        except TypeError:  return None
 
     @property
     def j_seq_end(self):
-        return self.j_seq_start + self.j_seq_length - 1
+        try:  return self.j_seq_start + self.j_seq_length - 1
+        except TypeError:  return None
 
     @property
     def j_germ_end(self):
-        return self.j_germ_start + self.j_germ_length - 1
+        try:  return self.j_germ_start + self.j_germ_length - 1
+        except TypeError:  return None
 
     @property
     def junction_start(self):
-        x = self.v_germ_end_imgt - 310
-        return self.v_seq_end - x if x >= 0 else None
+        try:
+            x = self.v_germ_end_imgt - 310
+            return self.v_seq_end - x if x >= 0 else None
+        except TypeError:
+            return None
 
     @property
     def junction_end(self):
-        gaps = self.junction.count('.')
-        return self.junction_start + self.junction_length - gaps - 1
+        try:
+            gaps = self.junction.count('.')
+            return self.junction_start + self.junction_length - gaps - 1
+        except TypeError:
+            return None
 
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()
