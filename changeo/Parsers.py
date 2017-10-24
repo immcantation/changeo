@@ -193,11 +193,14 @@ class AIRRWriter:
         Returns:
           dict : a parsed dict
         """
-        row = record.toDict()
-        # Parse known fields
         result = {}
+        row = record.toDict()
         for k, v in row.items():
+            # Convert field names
             k = AIRRSchema.asAIRR(k)
+            # Convert start positions to 0-based
+            if v and k in AIRRSchema._start:
+                v = str(int(v) - 1)
             result[k] = v
 
         return result

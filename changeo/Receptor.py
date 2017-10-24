@@ -96,6 +96,20 @@ class AIRRSchema:
     # Mapping of Receptor attributes to Change-O column names
     _receptor = {v: k for k, v in _airr.items()}
 
+    # Set of starting positional fields
+    _start = ['v_start', 'v_germ_start',
+              'd_start', 'd_germ_start',
+              'j_start', 'j_germ_start',
+              'fwr1_start', 'fwr2_start', 'fwr3_start', 'fwr4_start',
+              'cdr1_start', 'cdr2_start', 'cdr3_start']
+
+    # Set of ending positional fields
+    _end = ['v_end', 'v_germ_end',
+            'd_end', 'd_germ_end',
+            'j_end', 'j_germ_end',
+            'fwr1_end', 'fwr2_end', 'fwr3_end', 'fwr4_end',
+            'cdr1_end', 'cdr2_end', 'cdr3_end']
+
     # Ordered list of known fields
     @staticmethod
     def fields():
