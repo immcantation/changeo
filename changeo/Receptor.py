@@ -32,13 +32,15 @@ class AIRRSchema:
     AIRR format to Receptor mappings
     """
     # Mapping of AIRR column names to Receptor attributes
-    _airr = OrderedDict([('sequence_id', 'sequence_id'),
+    _airr = OrderedDict([('rearrangement_id', 'sequence_id'),
                          ('sequence', 'sequence_input'),
                          ('functional', 'functional'),
+                         ('rev_comp', 'rev_comp'),
                          ('v_call', 'v_call'),
                          ('d_call', 'd_call'),
                          ('j_call', 'j_call'),
                          ('junction_nt', 'junction'),
+                         ('junction_nt_length', 'junction_length'),
                          ('junction_aa', 'junction_aa'),
                          ('v_score', 'v_score'),
                          ('v_identity', 'v_identity'),
@@ -93,7 +95,7 @@ class AIRRSchema:
                          ('duplicate_count', 'dupcount'),
                          ('consensus_count', 'conscount')])
 
-    # Mapping of Receptor attributes to Change-O column names
+    # Mapping of Receptor attributes to AIRR column names
     _receptor = {v: k for k, v in _airr.items()}
 
     # Set of starting positional fields
@@ -134,7 +136,7 @@ class AIRRSchema:
         return AIRRSchema._airr.get(field.lower(), field.lower())
 
     @staticmethod
-    def asAIRR(field):
+    def asAIRR(field, strict=False):
         """
         Returns an AIRR column name from a Receptor attribute name
 
@@ -143,7 +145,10 @@ class AIRRSchema:
         Returns:
           str : AIRR column name
         """
-        return AIRRSchema._receptor.get(field.lower(), field.lower())
+        if strict:
+            return AIRRSchema._receptor.get(field.lower())
+        else:
+            return AIRRSchema._receptor.get(field.lower(), field.lower())
 
 
 class ChangeoSchema:
@@ -316,6 +321,7 @@ class Receptor:
                 'junction': '_nucleotide',
                 'junction_aa': '_aminoacid',
                 'functional': '_logical',
+                'rev_comp': '_logical',
                 'in_frame': '_logical',
                 'stop': '_logical',
                 'mutated_invariant': '_logical',
@@ -804,7 +810,7 @@ class Receptor:
 
     @property
     def d_germ_end(self):
-        try:  self.d_germ_start + self.d_germ_length - 1
+        try:  return self.d_germ_start + self.d_germ_length - 1
         except TypeError:  return None
 
     @property

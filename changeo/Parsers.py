@@ -197,11 +197,12 @@ class AIRRWriter:
         row = record.toDict()
         for k, v in row.items():
             # Convert field names
-            k = AIRRSchema.asAIRR(k)
-            # Convert start positions to 0-based
-            if v and k in AIRRSchema._start:
-                v = str(int(v) - 1)
-            result[k] = v
+            k = AIRRSchema.asAIRR(k, True)
+            if k:
+                # Convert start positions to 0-based
+                if v and k in AIRRSchema._start:
+                    v = str(int(v) - 1)
+                result[k] = v
 
         return result
 
@@ -226,6 +227,7 @@ class AIRRWriter:
 
             # Define writer
             self.writer = airr.create(handle=handle, debug=False)
+            # TODO: we really want to tell AIRR about all the fields here
 
             # Provenance
             #input_fasta = 'seq.fasta'
@@ -238,18 +240,6 @@ class AIRRWriter:
         except ImportError:
             sys.exit('AIRR standard library is not available.')
 
-    def writeDict(self, record):
-            """
-            Writes a row from a AIRR dictionary
-
-            Arguments:
-              record : AIRR dictionary of row data
-
-            Returns:
-              None
-            """
-            self.writer.write(record)
-
     def writeReceptor(self, record):
             """
             Writes a row from a Receptor object
@@ -261,10 +251,12 @@ class AIRRWriter:
               None
             """
             row = AIRRWriter._parseReceptor(record)
+            # TODO: define any additional fields before writing first row
+            if not self.writer.wroteMetadata:
+                self.writer.addFields("changeo", row.keys())
             #print('\n===== RECORD START =====\n')
             #for k, v in row.items(): print(k, v)
             self.writer.write(row)
-
 
 class IMGTReader:
     """
@@ -894,7 +886,7 @@ class IgBLASTReader:
         if summary['strand'] == '-':
             seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
             result['SEQUENCE_INPUT'] = str(seq_rc)
-            result['REV_COMP'] = 'F'
+            result['REV_COMP'] = 'T'
         else:
             result['REV_COMP'] = 'F'
 
