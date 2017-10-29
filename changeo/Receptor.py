@@ -142,11 +142,13 @@ class AIRRSchema:
 
         Arguments:
           field : Receptor attribute name
+          strict : if True return None if the field is not in the AIRR definition;
+                   otherwise return the input field name if it is undefined.
         Returns:
           str : AIRR column name
         """
         if strict:
-            return AIRRSchema._receptor.get(field.lower())
+            return AIRRSchema._receptor.get(field.lower(), None)
         else:
             return AIRRSchema._receptor.get(field.lower(), field.lower())
 

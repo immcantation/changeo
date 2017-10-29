@@ -198,10 +198,9 @@ class AIRRWriter:
         for k, v in row.items():
             # Convert field names
             k = AIRRSchema.asAIRR(k, True)
-            if k:
+            if k is not None:
                 # Convert start positions to 0-based
-                if v and k in AIRRSchema._start:
-                    v = str(int(v) - 1)
+                if v and k in AIRRSchema._start:  v = str(int(v) - 1)
                 result[k] = v
 
         return result
@@ -228,6 +227,7 @@ class AIRRWriter:
             # Define writer
             self.writer = airr.create(handle=handle, debug=False)
             # TODO: we really want to tell AIRR about all the fields here
+            # writer.optionalSpecFieldNames.extend(fields)
 
             # Provenance
             #input_fasta = 'seq.fasta'
