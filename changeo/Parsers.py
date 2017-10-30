@@ -229,11 +229,8 @@ class AIRRWriter:
         # Define writer
         self.writer = airr.create(handle=handle, debug=False)
         # TODO: we really want to tell AIRR about all the fields here
-
-        # Trim optional fields to only those specified
-        # fields = [f.lower() for f in fields]
-        # self.writer.optionalSpecFieldNames = [f for f in self.writer.optionalSpecFieldNames \
-        #                                       if f in fields]
+        fields = [f.lower() for f in fields if f.lower() in AIRRSchema._airr.keys()]
+        self.writer.addFields('changeo', fields)
 
         # Provenance
         #input_fasta = 'seq.fasta'
@@ -242,8 +239,6 @@ class AIRRWriter:
         #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
         #                                               'IgBlast', 'alignment', 'changeo',
         #                                               igblast_input, 'MakeDb')
-
-
 
     def writeReceptor(self, record):
             """
@@ -257,8 +252,8 @@ class AIRRWriter:
             """
             row = AIRRWriter._parseReceptor(record)
             # TODO: define any additional fields before writing first row
-            if not self.writer.wroteMetadata:
-                self.writer.addFields("changeo", row.keys())
+            # if not self.writer.wroteMetadata:
+            #     self.writer.addFields("changeo", row.keys())
             #print('\n===== RECORD START =====\n')
             #for k, v in row.items(): print(k, v)
             self.writer.write(row)

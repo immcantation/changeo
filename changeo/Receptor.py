@@ -42,7 +42,6 @@ class AIRRSchema:
                         ('junction_nt', 'junction'),
                         ('junction_nt_length', 'junction_length'),
                         ('junction_aa', 'junction_aa'),
-                        ('junction_aa_length', 'junction_aa_length'),
                         ('np1_length', 'np1_length'),
                         ('np2_length', 'np2_length'),
                         ('v_start', 'v_seq_start'),
@@ -249,7 +248,9 @@ class ChangeoSchema:
                         ('J_GERM_START', 'j_germ_start'),
                         ('J_GERM_LENGTH', 'j_germ_length'),
                         ('JUNCTION', 'junction'),
-                        ('JUNCTION_LENGTH', 'junction_length')])
+                        ('JUNCTION_LENGTH', 'junction_length'),
+                        ('CONSCOUNT', 'conscount'),
+                        ('DUPCOUNT', 'dupcount')])
     core_fields = list(core.keys())
 
     # Alignment scoring fields
@@ -415,10 +416,17 @@ class Receptor:
                 'v_identity': '_float',
                 'v_evalue': '_float',
                 'v_btop': '_identity',
+                'v_cigar': '_identity',
+                'd_score': '_float',
+                'd_identity': '_float',
+                'd_evalue': '_float',
+                'd_btop': '_identity',
+                'd_cigar': '_identity',
                 'j_score': '_float',
                 'j_identity': '_float',
                 'j_evalue': '_float',
                 'j_btop': '_identity',
+                'j_cigar': '_identity',
                 'hmm_score': '_float',
                 'fwr1_imgt': '_nucleotide',
                 'fwr2_imgt': '_nucleotide',
@@ -437,7 +445,9 @@ class Receptor:
                 'p5j_length': '_integer',
                 'd_frame': '_integer',
                 'cdr3_igblast_nt': '_nucleotide',
-                'cdr3_igblast_aa': '_aminoacid'}
+                'cdr3_igblast_aa': '_aminoacid',
+                'conscount': '_integer',
+                'dupcount': '_integer'}
 
     # Mapping of derived properties to parsing functions
     _derived = {'v_seq_end': '_integer',
