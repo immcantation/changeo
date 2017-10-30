@@ -1042,7 +1042,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     return result
 
 
-def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltype):
+def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype=None, moltype=default_moltype):
     """
     Creates a sequence for GenBank submissions
 
@@ -1051,6 +1051,8 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
       name : sequence identifier for the output sequence. If None,
              use the original sequence identifier.
       organism : scientific name of the organism.
+      isolate : sample identifier.
+      celltype : cell type.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
 
     Returns:
@@ -1073,6 +1075,10 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
         name = record.sequence_id.split(' ')[0]
     if organism is not None:
         name = '%s [organism=%s]' % (name, organism)
+    if isolate is not None:
+        name = '%s [isolate=%s]' % (name, isolate)
+    if celltype is not None:
+        name = '%s [cell-type=%s]' % (name, celltype)
     name = '%s [moltype=%s] [keyword=AIRR]' % (name, moltype)
 
     # Return SeqRecord and positions
@@ -1084,7 +1090,8 @@ def makeGenbankSequence(record, name=None, organism=None, moltype=default_moltyp
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
-                     moltype=default_moltype, cregion_field=None, keep_id=False,
+                     isolate=None, celltype=None, moltype=default_moltype,
+                     cregion_field=None, keep_id=False,
                      full_cds=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
@@ -1094,6 +1101,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       inference : reference alignment tool.
       db_xref : reference database link.
       organism : scientific name of the organism.
+      isolate : sample identifier.
+      celltype : cell type.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
       cregion_field : column containing the C region gene call.
       keep_id : if True use the original sequence ID for the output IDs
@@ -1133,8 +1142,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
 
         # Extract table dictionary
         name = None if keep_id else rec_count
-        seq = makeGenbankSequence(rec, name=name, organism=organism,
-                                  moltype=moltype)
+        seq = makeGenbankSequence(rec, name=name, organism=organism, isolate=isolate,
+                                  celltype=celltype, moltype=moltype)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
                                   db_xref=db_xref, inference=inference,
                                   cregion_field=cregion_field, full_cds=full_cds)
@@ -1379,14 +1388,20 @@ def getArgParser():
                                        formatter_class=CommonHelpFormatter,
                                        help='Creates a fasta and feature table file for GenBank submissions.',
                                        description='Creates a fasta and feature table file for GenBank submissions.')
-    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
-                            help='The scientific name of the organism.')
     parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
                             help='Name and version of the inference tool used for reference alignment.')
     parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Link to the reference database used for alignment.')
     parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
                             help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
+                            help='The scientific name of the organism.')
+    parser_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
+                            help='''If specified, adds the given isolate annotation 
+                                 (sample label) to the fasta headers.''')
+    parser_gb.add_argument('--celltype', action='store', dest='celltype', default=None,
+                            help='''If specified, adds the given cell-type annotation 
+                                 to the fasta headers.''')
     parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
                             help='''Field containing the C region call. If unspecified, the C region gene 
                                  call will be excluded from the feature table.''')

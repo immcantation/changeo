@@ -205,9 +205,14 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Define output fields
-    fields = ChangeoSchema.fields(imgt_score=parse_scores,
-                                  region=parse_regions,
-                                  junction=parse_junction)
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(imgt_score=parse_scores,
+                                      region=parse_regions,
+                                      junction=parse_junction)
+    elif format == 'airr':
+        fields = AIRRSchema.fields(imgt_score=parse_scores,
+                                   region=parse_regions,
+                                   junction=parse_junction)
 
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
@@ -272,9 +277,14 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Define output fields
-    fields = ChangeoSchema.fields(igblast_score=parse_scores,
-                                  region=parse_regions,
-                                  igblast_cdr3=parse_igblast_cdr3)
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(igblast_score=parse_scores,
+                                      region=parse_regions,
+                                      igblast_cdr3=parse_igblast_cdr3)
+    elif format == 'airr':
+        fields = AIRRSchema.fields(igblast_score=parse_scores,
+                                   region=parse_regions,
+                                   igblast_cdr3=parse_igblast_cdr3)
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
@@ -331,8 +341,12 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Define output fields
-    fields = ChangeoSchema.fields(ihmm_score=parse_scores,
-                                  region=parse_regions)
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(ihmm_score=parse_scores,
+                                      region=parse_regions)
+    if format == 'airr':
+        fields = AIRRSchema.fields(ihmm_score=parse_scores,
+                                   region=parse_regions)
 
     # Parse and write output
     with open(aligner_output, 'r') as f:

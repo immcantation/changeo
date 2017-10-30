@@ -31,69 +31,114 @@ class AIRRSchema:
     """
     AIRR format to Receptor mappings
     """
+    # Core fields
+    core = OrderedDict([('rearrangement_id', 'sequence_id'),
+                        ('sequence', 'sequence_input'),
+                        ('functional', 'functional'),
+                        ('rev_comp', 'rev_comp'),
+                        ('v_call', 'v_call'),
+                        ('d_call', 'd_call'),
+                        ('j_call', 'j_call'),
+                        ('junction_nt', 'junction'),
+                        ('junction_nt_length', 'junction_length'),
+                        ('junction_aa', 'junction_aa'),
+                        ('junction_aa_length', 'junction_aa_length'),
+                        ('np1_length', 'np1_length'),
+                        ('np2_length', 'np2_length'),
+                        ('v_start', 'v_seq_start'),
+                        ('v_end', 'v_seq_end'),
+                        ('v_germ_start', 'v_germ_start_imgt'),
+                        ('v_germ_end', 'v_germ_end_imgt'),
+                        ('d_start', 'd_seq_start'),
+                        ('d_end', 'd_seq_end'),
+                        ('d_germ_start', 'd_germ_start'),
+                        ('d_germ_end', 'd_germ_end'),
+                        ('j_start', 'j_seq_start'),
+                        ('j_end', 'j_seq_end'),
+                        ('j_germ_start', 'j_germ_start'),
+                        ('j_germ_end', 'j_germ_end'),
+                        ('duplicate_count', 'dupcount'),
+                        ('consensus_count', 'conscount')])
+    core_fields = list(core.keys())
+
+    # Alignment scoring fields
+    imgt_score = OrderedDict([('v_score', 'v_score'),
+                              ('v_identity', 'v_identity'),
+                              ('d_score', 'd_score'),
+                              ('d_identity', 'd_identity'),
+                              ('j_score', 'j_score'),
+                              ('j_identity', 'j_identity')])
+    imgt_score_fields = list(imgt_score.keys())
+
+    igblast_score = OrderedDict([('v_score', 'v_score'),
+                                 ('v_identity', 'v_identity'),
+                                 ('v_evalue', 'v_evalue'),
+                                 ('v_cigar', 'v_cigar'),
+                                 ('d_score', 'd_score'),
+                                 ('d_identity', 'd_identity'),
+                                 ('d_evalue', 'd_evalue'),
+                                 ('d_cigar', 'd_cigar'),
+                                 ('j_score', 'j_score'),
+                                 ('j_identity', 'j_identity'),
+                                 ('j_evalue', 'j_evalue'),
+                                 ('j_cigar', 'j_cigar')])
+    igblast_score_fields = list(igblast_score.keys())
+
+    ihmm_score = OrderedDict([('vdj_score', 'hmm_score')])
+    ihmm_score_fields = list(ihmm_score.keys())
+
+    # FWR andd CDR fields
+    region = OrderedDict([('fwr1_nt', 'fwr1_imgt'),
+                          ('fwr2_nt', 'fwr2_imgt'),
+                          ('fwr3_nt', 'fwr3_imgt'),
+                          ('fwr4_nt', 'fwr4_imgt'),
+                          ('cdr1_nt', 'cdr1_imgt'),
+                          ('cdr2_nt', 'cdr2_imgt'),
+                          ('cdr3_nt', 'cdr3_imgt')])
+    region_fields = list(region.keys())
+
+    # CDR and FWR position fields
+    region_position = OrderedDict([('fwr1_start', 'fwr1_start'),
+                                   ('fwr1_end', 'fwr1_end'),
+                                   ('fwr2_start', 'fwr2_start'),
+                                   ('fwr2_end', 'fwr2_end'),
+                                   ('fwr3_start', 'fwr3_start'),
+                                   ('fwr3_end', 'fwr3_end'),
+                                   ('fwr4_start', 'fwr4_start'),
+                                   ('fwr4_end', 'fwr4_end'),
+                                   ('cdr1_start', 'cdr1_start'),
+                                   ('cdr1_end', 'cdr1_end'),
+                                   ('cdr2_start', 'cdr2_start'),
+                                   ('cdr2_end', 'cdr2_end'),
+                                   ('cdr3_start', 'cdr3_start'),
+                                   ('cdr3_end', 'cdr3_end')])
+    region_position_fields = list(region_position.keys())
+
+    # Detailed junction fields
+    junction = OrderedDict([('n1_length', 'n1_length'),
+                            ('n2_length', 'n2_length'),
+                            ('p3v_length', 'p3v_length'),
+                            ('p5d_length', 'p5d_length'),
+                            ('p3d_length', 'p3d_length'),
+                            ('p5j_length', 'p5j_length'),
+                            ('d_frame', 'd_frame')])
+    junction_fields = list(junction.keys())
+
+    # IgBLAST CDR3 fields
+    igblast_cdr3 = OrderedDict([('cdr3_igblast_nt', 'cdr3_igblast_nt'),
+                                ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
+                                ('cdr3_igblast_start', 'cdr3_igblast_start'),
+                                ('cdr3_igblast_end', 'cdr3_igblast_end')])
+    igblast_cdr3_fields = list(igblast_cdr3.keys())
+
     # Mapping of AIRR column names to Receptor attributes
-    _airr = OrderedDict([('rearrangement_id', 'sequence_id'),
-                         ('sequence', 'sequence_input'),
-                         ('functional', 'functional'),
-                         ('rev_comp', 'rev_comp'),
-                         ('v_call', 'v_call'),
-                         ('d_call', 'd_call'),
-                         ('j_call', 'j_call'),
-                         ('junction_nt', 'junction'),
-                         ('junction_nt_length', 'junction_length'),
-                         ('junction_aa', 'junction_aa'),
-                         ('v_score', 'v_score'),
-                         ('v_identity', 'v_identity'),
-                         ('v_evalue', 'v_evalue'),
-                         ('v_cigar', 'v_cigar'),
-                         ('d_score', 'd_score'),
-                         ('d_identity', 'd_identity'),
-                         ('d_evalue', 'd_evalue'),
-                         ('d_cigar', 'd_cigar'),
-                         ('j_score', 'j_score'),
-                         ('j_identity', 'j_identity'),
-                         ('j_evalue', 'j_evalue'),
-                         ('j_cigar', 'j_cigar'),
-                         ('vdj_score', 'vdj_score'),
-                         ('vdj_identity', 'vdj_identity'),
-                         ('vdj_evalue', 'vdj_evalue'),
-                         ('vdj_cigar', 'vdj_cigar'),
-                         ('np1_length', 'np1_length'),
-                         ('np2_length', 'np2_length'),
-                         ('n1_length', 'n1_length'),
-                         ('n2_length', 'n2_length'),
-                         ('p3v_length', 'p3v_length'),
-                         ('p5d_length', 'p5d_length'),
-                         ('p3d_length', 'p3d_length'),
-                         ('p5j_length', 'p5j_length'),
-                         ('v_start', 'v_seq_start'),
-                         ('v_end', 'v_seq_end'),
-                         ('v_germ_start', 'v_germ_start_imgt'),
-                         ('v_germ_end', 'v_germ_end_imgt'),
-                         ('d_start', 'd_seq_start'),
-                         ('d_end', 'd_seq_end'),
-                         ('d_germ_start', 'd_germ_start'),
-                         ('d_germ_end', 'd_germ_end'),
-                         ('j_start', 'j_seq_start'),
-                         ('j_end', 'j_seq_end'),
-                         ('j_germ_start', 'j_germ_start'),
-                         ('j_germ_end', 'j_germ_end'),
-                         ('fwr1_start', 'fwr1_start'),
-                         ('fwr1_end', 'fwr1_end'),
-                         ('fwr2_start', 'fwr2_start'),
-                         ('fwr2_end', 'fwr2_end'),
-                         ('fwr3_start', 'fwr3_start'),
-                         ('fwr3_end', 'fwr3_end'),
-                         ('fwr4_start', 'fwr4_start'),
-                         ('fwr4_end', 'fwr4_end'),
-                         ('cdr1_start', 'cdr1_start'),
-                         ('cdr1_end', 'cdr1_end'),
-                         ('cdr2_start', 'cdr2_start'),
-                         ('cdr2_end', 'cdr2_end'),
-                         ('cdr3_start', 'cdr3_start'),
-                         ('cdr3_end', 'cdr3_end'),
-                         ('duplicate_count', 'dupcount'),
-                         ('consensus_count', 'conscount')])
+    _airr = OrderedDict(chain(core.items(),
+                              igblast_score.items(),
+                              imgt_score.items(),
+                              ihmm_score.items(),
+                              region.items(),
+                              junction.items(),
+                              igblast_cdr3.items()))
 
     # Mapping of Receptor attributes to AIRR column names
     _receptor = {v: k for k, v in _airr.items()}
@@ -114,14 +159,31 @@ class AIRRSchema:
 
     # Ordered list of known fields
     @staticmethod
-    def fields():
+    def fields(igblast_score=False, imgt_score=False, ihmm_score=False,
+               region=False, junction=False, igblast_cdr3=False):
         """
         Returns a list of column names
+
+        Arguments:
+          igblast_score : if True include IgBLAST alignment scoring fields
+          imgt_score : if True include IMGT alignment scoring fields
+          ihmm_score : if True include iHMMune-Align alignment scoring fields
+          region : if True include CDR and FWR region fields
+          junction : if True include detailed junction fields
+          igblast_cdr3 : if True include IgBLAST CDR3 assignment fields
 
         Returns:
           list : ordered column names
         """
-        return list(AIRRSchema._airr.keys())
+        f = AIRRSchema.core_fields[:]
+        if igblast_score:  f.extend(AIRRSchema.igblast_score_fields)
+        if imgt_score:  f.extend(AIRRSchema.imgt_score_fields)
+        if ihmm_score:  f.extend(AIRRSchema.ihmm_score_fields)
+        if region:  f.extend(AIRRSchema.region_fields)
+        if junction:  f.extend(AIRRSchema.junction_fields)
+        if igblast_cdr3:  f.extend(AIRRSchema.igblast_cdr3_fields)
+
+        return f
 
     @staticmethod
     def asReceptor(field):
@@ -239,7 +301,9 @@ class ChangeoSchema:
 
     # IgBLAST CDR3 field ordering
     igblast_cdr3 = OrderedDict([('CDR3_IGBLAST_NT', 'cdr3_igblast_nt'),
-                                ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa')])
+                                ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
+                                ('CDR3_IGBLAST_START', 'cdr3_igblast_start'),
+                                ('CDR3_IGBLAST_END', 'cdr3_igblast_end')])
     igblast_cdr3_fields = list(igblast_cdr3.keys())
 
     # Mapping of Change-O column names to Receptor attributes

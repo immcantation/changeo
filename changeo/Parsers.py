@@ -219,26 +219,31 @@ class AIRRWriter:
         # Arguments
         self.handle = handle
 
+        # Import AIRR standard library
         try:
-            # AIRR standard
             import airr
-            from airr.specs import rearrangements
-
-            # Define writer
-            self.writer = airr.create(handle=handle, debug=False)
-            # TODO: we really want to tell AIRR about all the fields here
-            # writer.optionalSpecFieldNames.extend(fields)
-
-            # Provenance
-            #input_fasta = 'seq.fasta'
-            #germline_database = 'VDJServer GLDB 10_05_2016'
-            #igblast_input = 'seq.igblast.out'
-            #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
-            #                                               'IgBlast', 'alignment', 'changeo',
-            #                                               igblast_input, 'MakeDb')
-
+            #from airr.specs import rearrangements
         except ImportError:
             sys.exit('AIRR standard library is not available.')
+
+        # Define writer
+        self.writer = airr.create(handle=handle, debug=False)
+        # TODO: we really want to tell AIRR about all the fields here
+
+        # Trim optional fields to only those specified
+        # fields = [f.lower() for f in fields]
+        # self.writer.optionalSpecFieldNames = [f for f in self.writer.optionalSpecFieldNames \
+        #                                       if f in fields]
+
+        # Provenance
+        #input_fasta = 'seq.fasta'
+        #germline_database = 'VDJServer GLDB 10_05_2016'
+        #igblast_input = 'seq.igblast.out'
+        #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
+        #                                               'IgBlast', 'alignment', 'changeo',
+        #                                               igblast_input, 'MakeDb')
+
+
 
     def writeReceptor(self, record):
             """
