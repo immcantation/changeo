@@ -55,9 +55,7 @@ class AIRRSchema:
                         ('j_start', 'j_seq_start'),
                         ('j_end', 'j_seq_end'),
                         ('j_germ_start', 'j_germ_start'),
-                        ('j_germ_end', 'j_germ_end'),
-                        ('duplicate_count', 'dupcount'),
-                        ('consensus_count', 'conscount')])
+                        ('j_germ_end', 'j_germ_end')])
     core_fields = list(core.keys())
 
     # Alignment scoring fields
@@ -130,6 +128,11 @@ class AIRRSchema:
                                 ('cdr3_igblast_end', 'cdr3_igblast_end')])
     igblast_cdr3_fields = list(igblast_cdr3.keys())
 
+    # Count fields
+    count = OrderedDict([('duplicate_count', 'dupcount'),
+                          ('consensus_count', 'conscount')])
+    count_fields = list(count.keys())
+
     # Mapping of AIRR column names to Receptor attributes
     _airr = OrderedDict(chain(core.items(),
                               igblast_score.items(),
@@ -137,7 +140,8 @@ class AIRRSchema:
                               ihmm_score.items(),
                               region.items(),
                               junction.items(),
-                              igblast_cdr3.items()))
+                              igblast_cdr3.items(),
+                              count.items()))
 
     # Mapping of Receptor attributes to AIRR column names
     _receptor = {v: k for k, v in _airr.items()}
@@ -159,7 +163,8 @@ class AIRRSchema:
     # Ordered list of known fields
     @staticmethod
     def fields(igblast_score=False, imgt_score=False, ihmm_score=False,
-               region=False, junction=False, igblast_cdr3=False):
+               region=False, junction=False, igblast_cdr3=False,
+               count=False):
         """
         Returns a list of column names
 
@@ -170,19 +175,21 @@ class AIRRSchema:
           region : if True include CDR and FWR region fields
           junction : if True include detailed junction fields
           igblast_cdr3 : if True include IgBLAST CDR3 assignment fields
+          count : if True include count fields
 
         Returns:
           list : ordered column names
         """
-        f = AIRRSchema.core_fields[:]
-        if igblast_score:  f.extend(AIRRSchema.igblast_score_fields)
-        if imgt_score:  f.extend(AIRRSchema.imgt_score_fields)
-        if ihmm_score:  f.extend(AIRRSchema.ihmm_score_fields)
-        if region:  f.extend(AIRRSchema.region_fields)
-        if junction:  f.extend(AIRRSchema.junction_fields)
-        if igblast_cdr3:  f.extend(AIRRSchema.igblast_cdr3_fields)
+        fields = AIRRSchema.core_fields[:]
+        if igblast_score:  fields.extend(AIRRSchema.igblast_score_fields)
+        if imgt_score:  fields.extend(AIRRSchema.imgt_score_fields)
+        if ihmm_score:  fields.extend(AIRRSchema.ihmm_score_fields)
+        if region:  fields.extend(AIRRSchema.region_fields)
+        if junction:  fields.extend(AIRRSchema.junction_fields)
+        if igblast_cdr3:  fields.extend(AIRRSchema.igblast_cdr3_fields)
+        if count:  fields.extend(AIRRSchema.count_fields)
 
-        return f
+        return fields
 
     @staticmethod
     def asReceptor(field):
@@ -194,7 +201,8 @@ class AIRRSchema:
         Returns:
           str : Receptor attribute name
         """
-        return AIRRSchema._airr.get(field.lower(), field.lower())
+        field = field.lower()
+        return AIRRSchema._airr.get(field, field)
 
     @staticmethod
     def asAIRR(field, strict=False):
@@ -208,10 +216,23 @@ class AIRRSchema:
         Returns:
           str : AIRR column name
         """
+        field = field.lower()
         if strict:
-            return AIRRSchema._receptor.get(field.lower(), None)
+            return AIRRSchema._receptor.get(field, None)
         else:
-            return AIRRSchema._receptor.get(field.lower(), field.lower())
+            return AIRRSchema._receptor.get(field, field)
+
+    @staticmethod
+    def asChangeo(field):
+        """
+        Returns a Change-O column name from an AIRR column name
+
+        Arguments:
+          field : AIRR column name
+        Returns:
+          str : Change-O column name
+        """
+        return ChangeoSchema.asChangeo(AIRRSchema.asReceptor(field))
 
 
 class ChangeoSchema:
@@ -248,9 +269,7 @@ class ChangeoSchema:
                         ('J_GERM_START', 'j_germ_start'),
                         ('J_GERM_LENGTH', 'j_germ_length'),
                         ('JUNCTION', 'junction'),
-                        ('JUNCTION_LENGTH', 'junction_length'),
-                        ('CONSCOUNT', 'conscount'),
-                        ('DUPCOUNT', 'dupcount')])
+                        ('JUNCTION_LENGTH', 'junction_length')])
     core_fields = list(core.keys())
 
     # Alignment scoring fields
@@ -307,6 +326,11 @@ class ChangeoSchema:
                                 ('CDR3_IGBLAST_END', 'cdr3_igblast_end')])
     igblast_cdr3_fields = list(igblast_cdr3.keys())
 
+    # Count fields
+    count = OrderedDict([('CONSCOUNT', 'conscount'),
+                         ('DUPCOUNT', 'dupcount')])
+    count_fields = list(count.keys())
+
     # Mapping of Change-O column names to Receptor attributes
     _changeo = OrderedDict(chain(core.items(),
                                  igblast_score.items(),
@@ -314,7 +338,8 @@ class ChangeoSchema:
                                  ihmm_score.items(),
                                  region.items(),
                                  junction.items(),
-                                 igblast_cdr3.items()))
+                                 igblast_cdr3.items(),
+                                 count.items()))
 
     # Mapping of Receptor attributes to Change-O column names
     _receptor = {v: k for k, v in _changeo.items()}
@@ -322,7 +347,7 @@ class ChangeoSchema:
     # Ordered list of known fields
     @staticmethod
     def fields(igblast_score=False, imgt_score=False, ihmm_score=False,
-               region=False, junction=False, igblast_cdr3=False):
+               region=False, junction=False, igblast_cdr3=False, count=False):
         """
         Returns a list of column names
 
@@ -333,19 +358,21 @@ class ChangeoSchema:
           region : if True include CDR and FWR region fields
           junction : if True include detailed junction fields
           igblast_cdr3 : if True include IgBLAST CDR3 assignment fields
+          count : if True include count fields
 
         Returns:
           list : ordered column names
         """
-        f = ChangeoSchema.core_fields[:]
-        if igblast_score:  f.extend(ChangeoSchema.igblast_score_fields)
-        if imgt_score:  f.extend(ChangeoSchema.imgt_score_fields)
-        if ihmm_score:  f.extend(ChangeoSchema.ihmm_score_fields)
-        if region:  f.extend(ChangeoSchema.region_fields)
-        if junction:  f.extend(ChangeoSchema.junction_fields)
-        if igblast_cdr3:  f.extend(ChangeoSchema.igblast_cdr3_fields)
+        fields = ChangeoSchema.core_fields[:]
+        if igblast_score:  fields.extend(ChangeoSchema.igblast_score_fields)
+        if imgt_score:  fields.extend(ChangeoSchema.imgt_score_fields)
+        if ihmm_score:  fields.extend(ChangeoSchema.ihmm_score_fields)
+        if region:  fields.extend(ChangeoSchema.region_fields)
+        if junction:  fields.extend(ChangeoSchema.junction_fields)
+        if igblast_cdr3:  fields.extend(ChangeoSchema.igblast_cdr3_fields)
+        if count:  fields.extend(ChangeoSchema.count_fields)
 
-        return f
+        return fields
 
     @staticmethod
     def asReceptor(field):
@@ -370,6 +397,18 @@ class ChangeoSchema:
           str : Change-O column name
         """
         return ChangeoSchema._receptor.get(field, field.upper())
+
+    @staticmethod
+    def asAIRR(field):
+        """
+        Returns an AIRR column name from a Change-O column name
+
+        Arguments:
+          field : Change-O column name
+        Returns:
+          str : AIRR column name
+        """
+        return AIRRSchema.asAIRR(ChangeoSchema.asReceptor(field))
 
 
 class Receptor:
@@ -546,17 +585,25 @@ class Receptor:
 
     def updateAnnotations(self, data):
         """
-        Add entries to annotations
+        Adds and updates annotations
 
         Arguments:
-          data : a dictionary of annotations to add
+          data : a dictionary of annotations to add or update
 
         Returns:
-          None : updates the annotations attribute
+          None : updates attribute values and the annotations attribute
         """
-        # Convert case of keys
-        data = {k.lower(): v for k, v in data.items()}
-        self.annotations.update(data)
+        # Partition data
+        attributes = {k.lower(): data.pop(k) for k in data if k.lower() in Receptor._parsers}
+        annotations = {k.lower(): v for k, v in data.items()}
+
+        # Update attributes
+        for k, v in attributes.items():
+            f = getattr(Receptor, Receptor._parsers[k])
+            setattr(self, k, f(v))
+
+        # Update annotations
+        self.annotations.update(annotations)
 
     def getField(self, field):
         """

@@ -59,16 +59,19 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
     Returns:
       None
     """
-    # Set writer class
-    if format == 'changeo':
-        format_writer = ChangeoWriter
-    elif format == 'airr':
-        format_writer = AIRRWriter
-    else:
-        sys.exit('Invalid output format %s' % format)
+    # Function to convert fasta header annotations to changeo columns
+    def _changeo(fields, header):
+        f = [ChangeoSchema.asChangeo(x) for x in header if x.upper() not in fields]
+        fields.extend(f)
+        return fields
+
+    def _airr(fields, header):
+        f = [ChangeoSchema.asAIRR(x) for x in header if x.lower() not in fields]
+        fields.extend(f)
+        return fields
 
     # Function to check for valid records strictly
-    def _pass_strict(rec):
+    def _strict(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.j_call and rec.j_call != 'None',
                  rec.functional is not None,
@@ -77,14 +80,24 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
         return all(valid)
 
     # Function to check for valid records loosely
-    def _pass_gentle(rec):
+    def _gentle(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.d_call and rec.d_call != 'None',
                  rec.j_call and rec.j_call != 'None']
         return any(valid)
 
+    # Set writer class and annotation conversion function
+    if format == 'changeo':
+        format_writer = ChangeoWriter
+        _annotate = _changeo
+    elif format == 'airr':
+        format_writer = AIRRWriter
+        _annotate = _airr
+    else:
+        sys.exit('Invalid output format %s' % format)
+
     # Set pass criteria
-    _pass = _pass_gentle if partial else _pass_strict
+    _pass = _gentle if partial else _strict
 
     # Initiate handles, writers and counters
     pass_handle = None
@@ -105,15 +118,19 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
         # Parse sequence description into new columns
         if not no_parse:
             try:
-                ann = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
-                record.sequence_id = ann['ID']
-                del ann['ID']
-                record.updateAnnotations(ann)
-                # TODO:  This is not the best approach. should pass in output fields.
+                ann_raw = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
+                record.sequence_id = ann_raw.pop('ID')
+
+                # Convert to Receptor fields
+                ann_parsed = OrderedDict()
+                for k, v in ann_raw.items():
+                    ann_parsed[ChangeoSchema.asReceptor(k)] = v
+
                 # If first record, use parsed description to define extra columns
-                if i == 1:
-                    f = [x.upper() for x in record.annotations.keys() if x.upper() not in fields]
-                    fields.extend(f)
+                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
+
+                # Update Receptor record
+                record.updateAnnotations(ann_parsed)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 no_parse = True
@@ -210,7 +227,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
                                       region=parse_regions,
                                       junction=parse_junction)
     elif format == 'airr':
-        fields = AIRRSchema.fields(imgt_score=parse_scores,
+        fields = AIRRSchema.fields(imgt_score=True,
                                    region=parse_regions,
                                    junction=parse_junction)
 
@@ -282,7 +299,7 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
                                       region=parse_regions,
                                       igblast_cdr3=parse_igblast_cdr3)
     elif format == 'airr':
-        fields = AIRRSchema.fields(igblast_score=parse_scores,
+        fields = AIRRSchema.fields(igblast_score=True,
                                    region=parse_regions,
                                    igblast_cdr3=parse_igblast_cdr3)
 
@@ -345,7 +362,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
         fields = ChangeoSchema.fields(ihmm_score=parse_scores,
                                       region=parse_regions)
     if format == 'airr':
-        fields = AIRRSchema.fields(ihmm_score=parse_scores,
+        fields = AIRRSchema.fields(ihmm_score=True,
                                    region=parse_regions)
 
     # Parse and write output

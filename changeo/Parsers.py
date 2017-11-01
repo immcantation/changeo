@@ -197,7 +197,7 @@ class AIRRWriter:
         row = record.toDict()
         for k, v in row.items():
             # Convert field names
-            k = AIRRSchema.asAIRR(k, True)
+            k = AIRRSchema.asAIRR(k, False)
             if k is not None:
                 # Convert start positions to 0-based
                 if v and k in AIRRSchema._start:  v = str(int(v) - 1)
@@ -229,7 +229,8 @@ class AIRRWriter:
         # Define writer
         self.writer = airr.create(handle=handle, debug=False)
         # TODO: we really want to tell AIRR about all the fields here
-        fields = [f.lower() for f in fields if f.lower() in AIRRSchema._airr.keys()]
+        #fields = [f.lower() for f in fields if f.lower() in AIRRSchema._airr.keys()]
+        fields = [f.lower() for f in fields]
         self.writer.addFields('changeo', fields)
 
         # Provenance
