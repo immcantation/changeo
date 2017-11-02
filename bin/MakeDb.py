@@ -66,7 +66,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
         return fields
 
     def _airr(fields, header):
-        f = [ChangeoSchema.asAIRR(x) for x in header if x.lower() not in fields]
+        f = [AIRRSchema.asAIRR(x) for x in header if x.lower() not in fields]
         fields.extend(f)
         return fields
 
