@@ -12,6 +12,7 @@ import os
 import re
 from argparse import ArgumentParser
 from collections import OrderedDict
+from itertools import chain
 
 from textwrap import dedent
 from time import time
@@ -26,7 +27,9 @@ from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.IO import countDbFile, getDbFields
+from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.Receptor import c_gene_regex, parseAllele
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -36,6 +39,8 @@ default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_index_field = 'INDEX'
+default_db_xref = 'IMGT/GENE-DB'
+default_moltype='mRNA'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -93,9 +98,10 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     log['NUM_SPLIT'] = num_split
     printLog(log)
 
-    # Open IgRecord reader iter object
-    reader = readDbFile(db_file, ig=False)
-
+    # Open reader
+    db_handle = open(db_file, 'rt')
+    reader = ChangeoReader(db_handle, receptor=False)
+    out_fields = getDbFields(db_file)
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
 
@@ -104,66 +110,67 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     # Sort records into files based on textual field
     if num_split is None:
         # Create set of unique field tags
-        tmp_iter = readDbFile(db_file, ig=False)
-        tag_list = list(set([row[field] for row in tmp_iter]))
+        with open(db_file, 'rt') as tmp_handle:
+            tmp_iter = ChangeoReader(tmp_handle, receptor=False)
+            tag_list = list(set([row[field] for row in tmp_iter]))
 
         # Forbidden characters in filename and replacements
-        noGood = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
-                  '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
+        no_good = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
+                   '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
         # Replace forbidden characters in tag_list
         tag_dict = {}
         for tag in tag_list:
-            for c,r in noGood.items():
+            for c,r in no_good.items():
                 tag_dict[tag] = (tag_dict.get(tag, tag).replace(c,r) \
-                                     if c in tag else tag_dict.get(tag, tag))
+                                 if c in tag else tag_dict.get(tag, tag))
 
         # Create output handles
-        handles_dict = {tag:getOutputHandle(db_file,
-                                            '%s-%s' % (field, label),
-                                            out_type = out_args['out_type'],
-                                            out_name = out_args['out_name'],
-                                            out_dir = out_args['out_dir'])
+        handles_dict = {tag: getOutputHandle(db_file,
+                                             out_label='%s-%s' % (field, label),
+                                             out_name=out_args['out_name'],
+                                             out_dir=out_args['out_dir'],
+                                             out_type='tsv')
                         for tag, label in tag_dict.items()}
 
         # Create Db writer instances
-        writers_dict = {tag:getDbWriter(handles_dict[tag], db_file)
+        writers_dict = {tag: ChangeoWriter(handles_dict[tag], fields=out_fields)
                         for tag in tag_dict}
 
-        # Iterate over IgRecords
+        # Iterate over records
         for row in reader:
             printProgress(count, rec_count, 0.05, start_time)
             count += 1
             # Write row to appropriate file
             tag = row[field]
-            writers_dict[tag].writerow(row)
+            writers_dict[tag].writeDict(row)
 
     # Sort records into files based on numeric num_split
     else:
         num_split = float(num_split)
 
         # Create output handles
-        handles_dict = {'under':getOutputHandle(db_file,
-                                                'under-%.1f' % num_split,
-                                                out_type = out_args['out_type'],
-                                                out_name = out_args['out_name'],
-                                                out_dir = out_args['out_dir']),
-                        'atleast':getOutputHandle(db_file,
-                                                  'atleast-%.1f' % num_split,
-                                                out_type = out_args['out_type'],
-                                                out_name = out_args['out_name'],
-                                                out_dir = out_args['out_dir'])}
+        handles_dict = {'under': getOutputHandle(db_file,
+                                                 out_label='under-%.1f' % num_split,
+                                                 out_name=out_args['out_name'],
+                                                 out_dir=out_args['out_dir'],
+                                                 out_type='tsv'),
+                        'atleast': getOutputHandle(db_file,
+                                                   out_label='atleast-%.1f' % num_split,
+                                                   out_name=out_args['out_name'],
+                                                   out_dir=out_args['out_dir'],
+                                                   out_type='tsv')}
 
         # Create Db writer instances
-        writers_dict = {'under':getDbWriter(handles_dict['under'], db_file),
-                        'atleast':getDbWriter(handles_dict['atleast'], db_file)}
+        writers_dict = {'under': ChangeoWriter(handles_dict['under'], fields=out_fields),
+                        'atleast': ChangeoWriter(handles_dict['atleast'], fields=out_fields)}
 
-        # Iterate over IgRecords
+        # Iterate over records
         for row in reader:
             printProgress(count, rec_count, 0.05, start_time)
             count += 1
             tag = row[field]
             tag = 'under' if float(tag) < num_split else 'atleast'
-            writers_dict[tag].writerow(row)
+            writers_dict[tag].writeDict(row)
 
     # Write log
     printProgress(count, rec_count, 0.05, start_time)
@@ -176,6 +183,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     printLog(log)
 
     # Close output file handles
+    db_handle.close()
     for t in handles_dict: handles_dict[t].close()
 
     return [handles_dict[t].name for t in handles_dict]
@@ -214,7 +222,8 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     printLog(log)
     
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], out_type='clip')
     # Count records
@@ -276,7 +285,8 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
 
     # Close file handles
     pass_handle.close()
- 
+    db_handle.close()
+
     return pass_handle.name
 
 
@@ -306,7 +316,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     
     # Open file handles
     out_type = 'fasta'
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], out_type=out_type)
     # Count records
@@ -342,7 +353,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
     # Close file handles
     pass_handle.close()
- 
+    db_handle.close()
+
     return pass_handle.name
 
 
@@ -368,15 +380,17 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields=fields)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, add=fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
     # Define fields and values to append
-    add_dict = {k:v for k,v in zip(fields, values) if k not in db_iter.fieldnames}
+    add_dict = {k:v for k,v in zip(fields, values) if k not in db_iter.fields}
 
     # Iterate over records
     start_time = time()
@@ -387,7 +401,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
         rec_count += 1
         # Write updated row
         rec.update(add_dict)
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -399,6 +413,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -423,10 +438,12 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields=field)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, add=field)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -440,7 +457,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
 
         # Add count and write updated row
         rec.update({field:rec_count})
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -452,6 +469,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -476,10 +494,12 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file, exclude_fields=fields)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file, exclude=fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -491,7 +511,7 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
         # Write row
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -544,10 +564,12 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
     
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -558,14 +580,13 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
-
         # Check for deletion values in all fields
         delete = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
         
         # Write sequences
         if not delete:
             pass_count += 1
-            pass_writer.writerow(rec)
+            pass_writer.writeDict(rec)
         else:
             fail_count += 1
         
@@ -581,6 +602,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
  
     return pass_handle.name
 
@@ -607,20 +629,19 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
+                                  out_name=out_args['out_name'], out_type='tsv')
 
     # Get header and rename fields
-    header = (readDbFile(db_file, ig=False)).fieldnames
+    header = getDbFields(db_file)
     for f, n in zip(fields, names):
         i = header.index(f)
         header[i] = n
 
-    # Open writer and write new header
-    # TODO:  should modify getDbWriter to take a list of fields
-    pass_writer = csv.DictWriter(pass_handle, fieldnames=header, dialect='excel-tab')
-    pass_writer.writeheader()
+    # Open writer
+    pass_writer = ChangeoWriter(pass_handle, fields=header)
 
     # Count records
     result_count = countDbFile(db_file)
@@ -637,7 +658,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
         for f, n in zip(fields, names):
             rec[n] = rec.pop(f)
         # Write
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -649,6 +670,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -692,10 +714,12 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -713,7 +737,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
         # Write sequences
         if select:
             pass_count += 1
-            pass_writer.writerow(rec)
+            pass_writer.writeDict(rec)
         else:
             fail_count += 1
 
@@ -729,6 +753,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -760,11 +785,12 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
-
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
 
     # Store all records in a dictionary
     start_time = time()
@@ -787,7 +813,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
         rec_count += 1
 
         # Write records
-        pass_writer.writerow(db_dict[key])
+        pass_writer.writeDict(db_dict[key])
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -799,6 +825,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
 
@@ -827,10 +854,12 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     printLog(log)
 
     # Open file handles
-    db_iter = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=False)
     pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
-    pass_writer = getDbWriter(pass_handle, db_file)
+                                  out_name=out_args['out_name'], out_type='tsv')
+    out_fields = getDbFields(db_file)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
     # Count records
     result_count = countDbFile(db_file)
 
@@ -849,7 +878,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
                 pass_count += 1
 
         # Write records
-        pass_writer.writerow(rec)
+        pass_writer.writeDict(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -862,8 +891,289 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
 
     # Close file handles
     pass_handle.close()
+    db_handle.close()
 
     return pass_handle.name
+
+
+def makeGenbankFeatures(record, start=None, end=None, inference=None,
+                        db_xref=default_db_xref,
+                        cregion_field=None, full_cds=False):
+    """
+    Creates a feature table for GenBank submissions
+
+    Arguments:
+      record : Receptor record.
+      start : start position of the modified seqeuence in the input sequence. Used for feature position offsets.
+      end : end position of the modified seqeuence in the input sequence. Used for feature position offsets.
+      inference : Reference alignment tool.
+      db_xref : Reference database name.
+      cregion_field : column containing the C region gene call.
+      full_cds : if True include the CDS feature
+
+    Returns:
+      dict : dictionary defining GenBank features where the key is a tuple
+             (start, end, feature key) and values are a list of
+             tuples contain (qualifier key, qualifier value).
+    """
+    # .tbl file format
+    #   Line 1, Column 1: Start location of feature
+    #   Line 1, Column 2: Stop location of feature
+    #   Line 1, Column 3: Feature key
+    #   Line 2, Column 4: Qualifier key
+    #   Line 2, Column 5: Qualifier value
+
+    # Define return object
+    result = OrderedDict()
+
+    # Set inference type
+    if inference is not None:
+        inference = 'alignment:%s' % inference
+
+    # Set position offsets if required
+    start_trim = 0 if start is None else start
+    end_trim = 0 if end is None else len(record.sequence_input) - end
+
+    # C_region
+    #     gene
+    #     db_xref
+    #     inference
+    c_region_start = record.j_seq_end + 1 - start_trim
+    c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
+    if c_region_length > 0:
+        if cregion_field is None:
+            c_region = []
+        else:
+            c_call = record.getField(cregion_field)
+            c_gene = parseAllele(c_call, c_gene_regex, action='first')
+            c_region = [('gene', c_gene),
+                        ('db_xref', '%s:%s' % (db_xref, c_gene))]
+
+        # Assign C_region feature
+        result[(c_region_start,
+                '>%i' % (c_region_start + c_region_length - 1),
+                'C_region')] = c_region
+
+        # Preserve J segment end position
+        j_end = record.j_seq_end
+    else:
+        # Trim J segment end position
+        j_end = record.j_seq_end + c_region_length
+
+    # V_region
+    variable_start = max(record.v_seq_start - start_trim, 1)
+    variable_end = j_end - start_trim
+    variable_region = []
+    result[(variable_start,
+            variable_end,
+            'V_region')] = variable_region
+
+    # V_segment
+    #     gene (gene name)
+    #     allele (allele only, without gene name, don't use if ambiguous)
+    #     db_xref (database link)
+    #     inference (reference alignment tool)
+    v_gene = record.getVGene()
+    if v_gene:
+        v_segment = [('gene', v_gene),
+                     ('allele', record.getVAlleleNumber()),
+                     ('db_xref', '%s:%s' % (db_xref, v_gene)),
+                     ('inference', inference)]
+        result[(variable_start,
+                record.v_seq_end - start_trim,
+                'V_segment')] = v_segment
+
+    # D_segment
+    #     gene
+    #     allele
+    #     db_xref
+    #     inference
+    d_gene = record.getDGene()
+    if d_gene:
+        d_segment = [('gene', d_gene),
+                     ('allele', record.getDAlleleNumber()),
+                     ('db_xref', '%s:%s' % (db_xref, d_gene)),
+                     ('inference', inference)]
+        result[(record.d_seq_start - start_trim,
+                record.d_seq_end - start_trim,
+                'D_segment')] = d_segment
+
+    # J_segment
+    #     gene
+    #     allele
+    #     db_xref
+    #     inference
+    j_gene = record.getJGene()
+    if j_gene:
+        j_segment = [('gene', j_gene),
+                     ('allele', record.getVAlleleNumber()),
+                     ('db_xref', '%s:%s' % (db_xref, j_gene)),
+                     ('inference', inference)]
+        result[(record.j_seq_start - start_trim,
+                j_end - start_trim,
+                'J_segment')] = j_segment
+
+    # misc_feature  (1-based closed interval positions)
+    #     function = junction
+    #     inference
+    if record.junction:
+        # Junction feature
+        junction = [('function', 'junction'),
+                    ('inference', inference)]
+        result[(record.junction_start - start_trim,
+                record.junction_end - start_trim,
+                'misc_feature')] = junction
+
+    # CDS
+    #     codon_start (must indicate codon offset)
+    if full_cds:
+        codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
+        cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
+        cds_end = '>%i' % j_end  - start_trim
+        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+                                               ('codon_start', codon_start)]
+    else:
+        cds_start = '<%i' % (record.junction_start - start_trim)
+        cds_end = '>%i' % (record.junction_end - start_trim)
+        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+                                               ('function', 'junction'),
+                                               ('codon_start', 1)]
+
+    return result
+
+
+def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype=None, moltype=default_moltype):
+    """
+    Creates a sequence for GenBank submissions
+
+    Arguments:
+      record : Receptor record.
+      name : sequence identifier for the output sequence. If None,
+             use the original sequence identifier.
+      organism : scientific name of the organism.
+      isolate : sample identifier.
+      celltype : cell type.
+      moltype : source molecule (eg, "mRNA", "genomic DNA")
+
+    Returns:
+      dict : dictionary with {'record': SeqRecord,
+                              'start': start position in raw sequence,
+                              'end': end position in raw sequence}
+    """
+    # Replace gaps with N
+    seq = str(record.sequence_input)
+    seq = seq.replace('-', 'N').replace('.', 'N')
+
+    # Strip leading and trailing Ns
+    head_match = re.search('^N+', seq)
+    tail_match = re.search('N+$', seq)
+    seq_start = head_match.end() if head_match else 0
+    seq_end = tail_match.start() if tail_match else len(seq)
+
+    # Define ID
+    if name is None:
+        name = record.sequence_id.split(' ')[0]
+    if organism is not None:
+        name = '%s [organism=%s]' % (name, organism)
+    if isolate is not None:
+        name = '%s [isolate=%s]' % (name, isolate)
+    if celltype is not None:
+        name = '%s [cell-type=%s]' % (name, celltype)
+    name = '%s [moltype=%s] [keyword=AIRR]' % (name, moltype)
+
+    # Return SeqRecord and positions
+    record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=name,
+                       name=name, description='')
+    result = {'record': record, 'start': seq_start, 'end': seq_end}
+
+    return result
+
+
+def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
+                     isolate=None, celltype=None, moltype=default_moltype,
+                     cregion_field=None, keep_id=False,
+                     full_cds=False, out_args=default_out_args):
+    """
+    Builds a GenBank submission tbl file from records
+
+    Arguments:
+      db_file : the database file name.
+      inference : reference alignment tool.
+      db_xref : reference database link.
+      organism : scientific name of the organism.
+      isolate : sample identifier.
+      celltype : cell type.
+      moltype : source molecule (eg, "mRNA", "genomic DNA")
+      cregion_field : column containing the C region gene call.
+      keep_id : if True use the original sequence ID for the output IDs
+      full_cds : if True include the CDS feature
+      out_args : common output argument dictionary from parseCommonArgs.
+
+    Returns:
+      tuple : the output (feature table, fasta) file names.
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'genbank'
+    log['FILE'] = os.path.basename(db_file)
+    printLog(log)
+
+    # Open file handles
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle)
+    fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type='fsa')
+    tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type='tbl')
+
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Define writer
+    writer = csv.writer(tbl_handle, delimiter='\t', quoting=csv.QUOTE_NONE)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Extract table dictionary
+        name = None if keep_id else rec_count
+        seq = makeGenbankSequence(rec, name=name, organism=organism, isolate=isolate,
+                                  celltype=celltype, moltype=moltype)
+        tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
+                                  db_xref=db_xref, inference=inference,
+                                  cregion_field=cregion_field, full_cds=full_cds)
+
+        # Write table
+        writer.writerow(['>Features', seq['record'].id])
+        for feature, qualifiers in tbl.items():
+            writer.writerow(feature)
+            if qualifiers:
+                for x in qualifiers:
+                    writer.writerow(list(chain(['', '', ''], x)))
+
+        # Write sequence
+        SeqIO.write(seq['record'], fsa_handle, 'fasta')
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT_TBL'] = os.path.basename(tbl_handle.name)
+    log['OUTPUT_FSA'] = os.path.basename(fsa_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    tbl_handle.close()
+    fsa_handle.close()
+    db_handle.close()
+
+    return (tbl_handle.name, fsa_handle.name)
 
 
 def getArgParser():
@@ -1072,6 +1382,37 @@ def getArgParser():
     parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
                                help='''The new value to assign to each selected row.''')
     parser_update.set_defaults(func=updateDbFile)
+
+    # Subparser to convert database entries to a GenBank tbl file
+    parser_gb = subparsers.add_parser('genbank', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Creates a fasta and feature table file for GenBank submissions.',
+                                       description='Creates a fasta and feature table file for GenBank submissions.')
+    parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
+                            help='Name and version of the inference tool used for reference alignment.')
+    parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
+                            help='Link to the reference database used for alignment.')
+    parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
+                            help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
+                            help='The scientific name of the organism.')
+    parser_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
+                            help='''If specified, adds the given isolate annotation 
+                                 (sample label) to the fasta headers.''')
+    parser_gb.add_argument('--celltype', action='store', dest='celltype', default=None,
+                            help='''If specified, adds the given cell-type annotation 
+                                 to the fasta headers.''')
+    parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
+                            help='''Field containing the C region call. If unspecified, the C region gene 
+                                 call will be excluded from the feature table.''')
+    parser_gb.add_argument('--cds', action='store_true', dest='full_cds',
+                            help='''If specified, include the full CDS in the feature table output.
+                                 Otherwise, restrict the CDS to the junction region.''')
+    parser_gb.add_argument('--id', action='store_true', dest='keep_id',
+                            help='''If specified, use the existing sequence identifier for the output identifier. 
+                                 By default, only the row number will be used as the identifier to avoid
+                                 the 50 character limit.''')
+    parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
 

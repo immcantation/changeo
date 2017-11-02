@@ -11,12 +11,11 @@ import sys
 import time
 import unittest
 import cProfile
-from collections import OrderedDict
 from copy import deepcopy
 from itertools import chain
 
 # Presto and changeo imports
-from changeo.Receptor import IgRecord
+from changeo.Receptor import Receptor
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -109,10 +108,10 @@ class Test_DefineClones(unittest.TestCase):
                      'SEQUENCE_INPUT': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG',
                      'JUNCTION': 'TGTGNAAGATNTAGCAGCAGCTACTACTACTACGGTATNGACGTCTGG'}]
 
-        # Build preclone IgRecord list with unambiguous gene calls
+        # Build preclone Receptor list with unambiguous gene calls
         seq_copy = deepcopy(seq_list)
         for x in seq_copy:  x.update(deepcopy(group_list[1]))
-        self.unambig_records = [IgRecord(x) for x in seq_copy]
+        self.unambig_records = [Receptor(x) for x in seq_copy]
         self.unambig_clones = {('A1', 'A2', 'A3', 'A4'),
                                ('B1', 'B2', 'B3', 'B4')}
 
@@ -120,7 +119,7 @@ class Test_DefineClones(unittest.TestCase):
         group_copy = deepcopy(group_list)
         seq_copy = deepcopy(seq_list)
         for i, x in enumerate(group_copy):  x.update(seq_copy[i])
-        self.ambig_records = [IgRecord(x) for x in group_copy]
+        self.ambig_records = [Receptor(x) for x in group_copy]
         self.first_nofields = {('IGHV1-1', 'IGHJ6', '48'): ['A1','A4'],
                                ('IGHV2-1', 'IGHJ6', '48'): ['A2','B2'],
                                ('IGHV3-1', 'IGHJ6', '48'): ['A3'],
@@ -186,7 +185,7 @@ class Test_DefineClones(unittest.TestCase):
         print('FIRST>')
         for k, v in results.items():
             nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k])
-            results_dict[nest_key] = sorted([x.id for x in v])
+            results_dict[nest_key] = sorted([x.sequence_id for x in v])
             print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
         self.assertDictEqual(self.first_nofields, results_dict)
@@ -198,7 +197,7 @@ class Test_DefineClones(unittest.TestCase):
         print('SET>')
         for k, v in results.items():
             nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k])
-            results_dict[nest_key] = sorted([x.id for x in v])
+            results_dict[nest_key] = sorted([x.sequence_id for x in v])
             print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
         self.assertDictEqual(self.set_nofields, results_dict)
@@ -211,9 +210,12 @@ class Test_DefineClones(unittest.TestCase):
         print('FIRST>')
         for k, v in results.items():
             nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k]) if k is not None else None
-            results_dict[nest_key] = sorted([x.id for x in v])
+            results_dict[nest_key] = sorted([x.sequence_id for x in v])
             print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
+        print('RRRR>', self.first_fields)
+        print('QQQQ>', results_dict)
+
         self.assertDictEqual(self.first_fields, results_dict)
 
         # Test ambiguous grouping with fields
@@ -224,7 +226,7 @@ class Test_DefineClones(unittest.TestCase):
         print('SET>')
         for k, v in results.items():
             nest_key = tuple([tuple(sorted(chain(x))) if isinstance(x, tuple) else str(x) for x in k]) if k is not None else None
-            results_dict[nest_key] = sorted([x.id for x in v])
+            results_dict[nest_key] = sorted([x.sequence_id for x in v])
             print('  GROUP>', nest_key, ':', results_dict[nest_key])
         print('')
         self.assertDictEqual(self.set_fields, results_dict)
@@ -239,35 +241,35 @@ class Test_DefineClones(unittest.TestCase):
 
         # ham model
         results = DefineClones.distanceClones(self.unambig_records, model='ham', distance=9.0, norm='none')
-        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
         print('MODEL> ham')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # m1n_compat model
         results = DefineClones.distanceClones(self.unambig_records, model='m1n_compat', distance=10.0, norm='none')
-        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
         print('MODEL> m1n_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # hs1f_compat model
         results = DefineClones.distanceClones(self.unambig_records, model='hs1f_compat', distance=0.25)
-        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
         print('MODEL> hs1f_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # hh_s5f model
         results = DefineClones.distanceClones(self.unambig_records, model='hh_s5f', distance=0.1)
-        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
         print('MODEL> hh_s5f')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # aa model
         results = DefineClones.distanceClones(self.unambig_records, model='aa', distance=3.0, norm='none')
-        results_set = set([tuple(sorted([x.id for x in v])) for v in results.values()])
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
         print('MODEL> aa')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)

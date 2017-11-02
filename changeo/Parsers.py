@@ -15,69 +15,254 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
-from changeo.Receptor import IgRecord, parseAllele, v_allele_regex, d_allele_regex, \
-                             j_allele_regex
+from changeo.Receptor import ChangeoSchema, AIRRSchema, Receptor, parseAllele, \
+                             v_allele_regex, d_allele_regex, j_allele_regex
 
-# Define core field column ordering
-default_core_fields = ['SEQUENCE_ID',
-                       'SEQUENCE_INPUT',
-                       'FUNCTIONAL',
-                       'IN_FRAME',
-                       'STOP',
-                       'MUTATED_INVARIANT',
-                       'INDELS',
-                       'V_CALL',
-                       'D_CALL',
-                       'J_CALL',
-                       'SEQUENCE_VDJ',
-                       'SEQUENCE_IMGT',
-                       'V_SEQ_START',
-                       'V_SEQ_LENGTH',
-                       'V_GERM_START_VDJ',
-                       'V_GERM_LENGTH_VDJ',
-                       'V_GERM_START_IMGT',
-                       'V_GERM_LENGTH_IMGT',
-                       'NP1_LENGTH',
-                       'D_SEQ_START',
-                       'D_SEQ_LENGTH',
-                       'D_GERM_START',
-                       'D_GERM_LENGTH',
-                       'NP2_LENGTH',
-                       'J_SEQ_START',
-                       'J_SEQ_LENGTH',
-                       'J_GERM_START',
-                       'J_GERM_LENGTH',
-                       'JUNCTION_LENGTH',
-                       'JUNCTION']
 
-# Define default FWR amd CDR field ordering
-default_region_fields = ['FWR1_IMGT',
-                         'FWR2_IMGT',
-                         'FWR3_IMGT',
-                         'FWR4_IMGT',
-                         'CDR1_IMGT',
-                         'CDR2_IMGT',
-                         'CDR3_IMGT']
+class ChangeoReader:
+    """
+    An iterator to read and parse Change-O formatted data.
+    """
+    @property
+    def fields(self):
+        """
+        Get list fields
 
-# Define default detailed junction field ordering
-default_junction_fields = ['N1_LENGTH',
-                           'N2_LENGTH',
-                           'P3V_LENGTH',
-                           'P5D_LENGTH',
-                           'P3D_LENGTH',
-                           'P5J_LENGTH',
-                           'D_FRAME']
+        Returns:
+          list : field names
+        """
+        return self.reader.fieldnames
+
+    @staticmethod
+    def _receptor(record):
+        """
+        Parses a dictionary of fields in the Change-O to a Receptor object
+
+        Arguments:
+          record : dict with fields and values in the Change-O format
+
+        Returns:
+          dict : a parsed dict
+        """
+        # Parse fields
+        result = {}
+        for k, v in record.items():
+            k = ChangeoSchema.asReceptor(k)
+            result[k] = v
+
+        return Receptor(result)
+
+    def __init__(self, handle, receptor=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open Change-O formatted file
+          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
+
+        Returns:
+          changeo.Parsers.ChangeoReader
+        """
+        # Arguments
+        self.handle = handle
+        self.receptor = receptor
+        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
+
+    def __iter__(self):
+        """
+        Iterator initializer.
+
+        Returns:
+          changeo.Parsers.ChangeoReader
+        """
+        return self
+
+    def __next__(self):
+        """
+        Next method.
+
+        Returns:
+          changeo.Receptor.Receptor : Parsed Change-O data
+        """
+        # Get next row from reader iterator
+        try:
+            row = next(self.reader)
+        except StopIteration:
+            self.handle.close()
+            raise StopIteration
+
+        # Parse row
+        if self.receptor:
+            return ChangeoReader._receptor(row)
+        else:
+            return row
+
+
+class ChangeoWriter:
+    """
+    Writes Change-O formatted data.
+    """
+    @staticmethod
+    def _parseReceptor(record):
+        """
+        Parses a Receptor object to a Change-O dictionary
+
+        Arguments:
+          record : dict with fields and values in the Receptor format
+
+        Returns:
+          dict : a parsed dict
+        """
+        row = record.toDict()
+        # Parse known fields
+        result = {}
+        for k, v in row.items():
+            k = ChangeoSchema.asChangeo(k)
+            result[k] = v
+
+        return result
+
+    def __init__(self, handle, fields=ChangeoSchema.fields(), header=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open output file
+          fields : list of output field names
+          header : if True write the header on initialization.
+
+        Returns:
+          changeo.Parsers.ChangeoWriter
+        """
+        # Arguments
+        self.handle = handle
+        self.fields = [n.strip().upper() for n in fields]
+        self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
+                                     dialect='excel-tab', extrasaction='ignore')
+        if header:
+            self.writeHeader()
+
+    def writeHeader(self):
+            """
+            Writes the header
+
+            Returns:
+              None
+            """
+            self.writer.writeheader()
+
+    def writeDict(self, record):
+            """
+            Writes a row from a Change-O dictionary
+
+            Arguments:
+              record : Change-O dictionary of row data
+
+            Returns:
+              None
+            """
+            self.writer.writerow(record)
+
+    def writeReceptor(self, record):
+            """
+            Writes a row from a Receptor object
+
+            Arguments:
+              record : a changeo.Receptor.Receptor object to write
+
+            Returns:
+              None
+            """
+            row = ChangeoWriter._parseReceptor(record)
+            self.writer.writerow(row)
+
+
+class AIRRWriter:
+    """
+    Writes AIRR formatted data.
+    """
+    @staticmethod
+    def _parseReceptor(record):
+        """
+        Parses a Receptor object to an AIRR dictionary
+
+        Arguments:
+          record : dict with fields and values in the Receptor format
+
+        Returns:
+          dict : a parsed dict
+        """
+        result = {}
+        row = record.toDict()
+        for k, v in row.items():
+            # Convert field names
+            k = AIRRSchema.asAIRR(k, False)
+            if k is not None:
+                # Convert start positions to 0-based
+                if v and k in AIRRSchema._start:  v = str(int(v) - 1)
+                result[k] = v
+
+        return result
+
+    def __init__(self, handle, fields=AIRRSchema.fields()):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open output file
+          fields : list of output field names
+
+        Returns:
+          changeo.Parsers.AIRRWriter
+        """
+        # Arguments
+        self.handle = handle
+
+        # Import AIRR standard library
+        try:
+            import airr
+            #from airr.specs import rearrangements
+        except ImportError:
+            sys.exit('AIRR standard library is not available.')
+
+        # Define writer
+        self.writer = airr.create(handle=handle, debug=False)
+        # TODO: we really want to tell AIRR about all the fields here
+        #fields = [f.lower() for f in fields if f.lower() in AIRRSchema._airr.keys()]
+        fields = [f.lower() for f in fields]
+        self.writer.addFields('changeo', fields)
+
+        # Provenance
+        #input_fasta = 'seq.fasta'
+        #germline_database = 'VDJServer GLDB 10_05_2016'
+        #igblast_input = 'seq.igblast.out'
+        #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
+        #                                               'IgBlast', 'alignment', 'changeo',
+        #                                               igblast_input, 'MakeDb')
+
+    def writeReceptor(self, record):
+            """
+            Writes a row from a Receptor object
+
+            Arguments:
+              record : a changeo.Receptor object to write
+
+            Returns:
+              None
+            """
+            row = AIRRWriter._parseReceptor(record)
+            # TODO: define any additional fields before writing first row
+            # if not self.writer.wroteMetadata:
+            #     self.writer.addFields("changeo", row.keys())
+            #print('\n===== RECORD START =====\n')
+            #for k, v in row.items(): print(k, v)
+            self.writer.write(row)
 
 class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
     """
-    # IMGT score fields
-    _score_fields = ['V_SCORE',
-                     'V_IDENTITY',
-                     'J_SCORE',
-                     'J_IDENTITY']
-
     @property
     def fields(self):
         """
@@ -87,7 +272,7 @@ class IMGTReader:
 
 
     def __init__(self, summary, gapped, ntseq, junction, parse_scores=False,
-                 parse_regions=False, parse_junction=False, ig=True):
+                 parse_regions=False, parse_junction=False, receptor=True):
         """
         Initializer
 
@@ -100,7 +285,7 @@ class IMGTReader:
           parse_regions : if True add FWR and CDR region fields.
           parse_junction : if True add N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH,
                            P3D_LENGTH, P5J_LENGTH and D_FRAME junction fields.
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
           change.Parsers.IMGTReader
@@ -113,16 +298,23 @@ class IMGTReader:
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.parse_junction = parse_junction
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_junction:
-            self._fields.extend(default_junction_fields)
+            self._fields.extend(ChangeoSchema.junction_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.imgt_score_fields)
+
+        # Open readers
+        readers = [csv.DictReader(self.summary, delimiter='\t'),
+                   csv.DictReader(self.gapped, delimiter='\t'),
+                   csv.DictReader(self.ntseq, delimiter='\t'),
+                   csv.DictReader(self.junction, delimiter='\t')]
+        self.records = zip(*readers)
 
     @staticmethod
     def _parseFunctionality(summary):
@@ -305,8 +497,10 @@ class IMGTReader:
 
         result = {}
         # Junction sequence
-        result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
         result['JUNCTION'] = junction['JUNCTION']
+        result['JUNCTION_AA'] = junction['JUNCTION (AA)']
+        result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
+
         # N/P and D alignment positions
         result['NP1_LENGTH'] = _np1()
         result['D_SEQ_START'] = _dstart()
@@ -470,14 +664,8 @@ class IMGTReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.IgBLASTReader
+          changeo.Parsers.IMGTReader
         """
-        readers = [csv.DictReader(self.summary, delimiter='\t'),
-                   csv.DictReader(self.gapped, delimiter='\t'),
-                   csv.DictReader(self.ntseq, delimiter='\t'),
-                   csv.DictReader(self.junction, delimiter='\t')]
-        self.records = zip(*readers)
-
         return self
 
 
@@ -486,7 +674,7 @@ class IMGTReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -496,8 +684,8 @@ class IMGTReader:
 
         db = self.parseRecord(summary, gapped, ntseq, junction)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
@@ -506,19 +694,8 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
-    # IgBLAST score fields
-    _score_fields = ['V_SCORE',
-                     'V_IDENTITY',
-                     'V_EVALUE',
-                     'V_BTOP',
-                     'J_SCORE',
-                     'J_IDENTITY',
-                     'J_EVALUE',
-                     'J_BTOP']
-
-    # IgBLAST CDR3 fields
-    _igblast_cdr3_fields = ['CDR3_IGBLAST_NT',
-                            'CDR3_IGBLAST_AA']
+    # IgBLAST extra summary fields
+    _summary_fields = ['REV_COMP']
 
     @property
     def fields(self):
@@ -529,7 +706,7 @@ class IgBLASTReader:
 
 
     def __init__(self, igblast, seq_dict, repo_dict, parse_scores=False,
-                 parse_regions=False, parse_igblast_cdr3=False, ig=True):
+                 parse_regions=False, parse_igblast_cdr3=False, receptor=True):
         """
         Initializer.
 
@@ -541,7 +718,7 @@ class IgBLASTReader:
           parse_scores : if True parse alignment scores.
           parse_regions : if True add FWR and CDR region fields.
           parse_igblast_cdr3 : if True, parse CDR3 sequences generated by IgBLAST
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary.
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
           changeo.Parsers.IgBLASTReader
@@ -553,17 +730,20 @@ class IgBLASTReader:
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
         self.parse_igblast_cdr3 = parse_igblast_cdr3
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
+        self._fields.extend(self._summary_fields)
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.igblast_score_fields)
         if parse_igblast_cdr3:
-            self._fields.extend(self._igblast_cdr3_fields)
+            self._fields.extend(ChangeoSchema.igblast_cdr3_fields)
 
+        # Define parsing blocks
+        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
 
     @staticmethod
     def _parseQueryChunk(chunk):
@@ -707,6 +887,9 @@ class IgBLASTReader:
         if summary['strand'] == '-':
             seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
             result['SEQUENCE_INPUT'] = str(seq_rc)
+            result['REV_COMP'] = 'T'
+        else:
+            result['REV_COMP'] = 'F'
 
         return result
 
@@ -936,6 +1119,13 @@ class IgBLASTReader:
         # BTOP
         try:  result['%s_BTOP' % segment] = s_hit['BTOP']
         except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
+        # CIGAR
+        try:
+            align = decodeBTOP(s_hit['BTOP'])
+            align = padAlignment(align, int(s_hit['q. start']), int(s_hit['s. start']))
+            result['%s_CIGAR' % segment] = encodeCIGAR(align)
+        except (TypeError, ValueError):
+            result['%s_CIGAR' % segment] = None
 
         return result
 
@@ -1036,6 +1226,8 @@ class IgBLASTReader:
                     db.update(self._parseHitScores(sections['hits'], 'V'))
             if db['D_CALL']:
                 db.update(self._parseDHits(sections['hits'], db))
+                if self.parse_scores:
+                    db.update(self._parseHitScores(sections['hits'], 'D'))
             if db['J_CALL']:
                 db.update(self._parseJHits(sections['hits'], db))
                 if self.parse_scores:
@@ -1056,9 +1248,8 @@ class IgBLASTReader:
                 # Sequences already parsed into dict by parseBlock
                 db.update(sections['subregion'])
             else:
-                # section does not exist (i.e. older version of IgBLAST
-                # or no CDR3 sequences could be found)
-                db.update(dict(zip(self._igblast_cdr3_fields, [None, None])))
+                # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
+                db.update(dict(zip(ChangeoSchema.igblast_cdr3_fields, [None, None])))
 
         # Add FWR and CDR regions
         if self.parse_regions:
@@ -1074,7 +1265,6 @@ class IgBLASTReader:
         Returns:
           changeo.Parsers.IgBLASTReader
         """
-        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
         return self
 
 
@@ -1083,7 +1273,7 @@ class IgBLASTReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next block from groups iterator
         try:
@@ -1098,8 +1288,8 @@ class IgBLASTReader:
         sections = self.parseBlock(block)
         db = self.parseSections(sections)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
@@ -1187,7 +1377,7 @@ class IHMMuneReader:
                       'RC',
                       'COMMON_MUT',
                       'COMMON_NX_COUNT',
-                      'V_SEQ_START2',
+                      'V_SEQ_START',
                       'V_SEQ_LENGTH',
                       'A_SCORE']
 
@@ -1203,7 +1393,7 @@ class IHMMuneReader:
 
 
     def __init__(self, ihmmune, seq_dict, repo_dict, parse_scores=False,
-                 parse_regions=False, ig=True):
+                 parse_regions=False, receptor=True):
         """
         Initializer
 
@@ -1214,7 +1404,7 @@ class IHMMuneReader:
           repo_dict : dictionary of IMGT gapped germline sequences.
           parse_scores : if True parse alignment scores.
           parse_regions : if True add FWR and CDR region fields.
-          ig : if True (default) iteration returns an IgRecord object, otherwise it returns a dictionary
+          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary
 
         Returns:
           changeo.Parsers.IHMMuneReader
@@ -1225,14 +1415,18 @@ class IHMMuneReader:
         self.repo_dict = repo_dict
         self.parse_scores = parse_scores
         self.parse_regions = parse_regions
-        self.ig = ig
+        self.receptor = receptor
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = ChangeoSchema.core_fields
         if parse_regions:
-            self._fields.extend(default_region_fields)
+            self._fields.extend(ChangeoSchema.region_fields)
         if parse_scores:
-            self._fields.extend(self._score_fields)
+            self._fields.extend(ChangeoSchema.ihmm_score_fields)
+
+        # Open reader
+        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
+                                      delimiter=';', quotechar='"')
 
 
     @staticmethod
@@ -1528,8 +1722,6 @@ class IHMMuneReader:
         Returns:
           changeo.Parsers.IHMMuneReader
         """
-        self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
-                                      delimiter=';', quotechar='"')
         return self
 
 
@@ -1538,7 +1730,7 @@ class IHMMuneReader:
         Next method.
 
         Returns:
-          changeo.Receptor.IgRecord : parsed IMGT/HighV-QUEST result as an IgRecord (ig=True) or dictionary (ig=False).
+          changeo.Receptor.Receptor : parsed IMGT/HighV-QUEST result as an Receptor (receptor=True) or dictionary (receptor=False).
         """
         # Get next set of records from dictionary readers
         try:
@@ -1550,8 +1742,8 @@ class IHMMuneReader:
 
         db = self.parseRecord(record)
 
-        if self.ig:
-            return IgRecord(db)
+        if self.receptor:
+            return Receptor(db)
         else:
             return db
 
@@ -1591,6 +1783,7 @@ def gapV(db, repo_dict):
             seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
             # Update gap counter
             gapcount += 1
+
         imgt_dict['SEQUENCE_IMGT'] = seq_imgt
         # Update IMGT positioning information for V
         imgt_dict['V_GERM_START_IMGT'] = 1
@@ -1607,13 +1800,14 @@ def inferJunction(db, repo_dict):
     Identify junction region by IMGT definition.
 
     Arguments:
-      db : database dictionary of parsed IgBLAST.
+      db : database dictionary of changeo data.
       repo_dict : dictionary of IMGT-gapped reference sequences.
 
     Returns:
       dict : database entries containing junction sequence and length.
     """
     junc_dict = {'JUNCTION': None,
+                 'JUNCTION_AA': None,
                  'JUNCTION_LENGTH': None}
 
     # Find germline J segment
@@ -1622,16 +1816,22 @@ def inferJunction(db, repo_dict):
         # Get germline J sequence
         jgerm = repo_dict[jgene]
         jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
+
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
-        aa_end = len(db['SEQUENCE_IMGT'])
-        #TODO: Figure out else case
         if motif:
-            # print('\n', motif.group())
             aa_end = motif.start() - len(jgerm) + 3
-        # Add fields to dict
+        else:
+            aa_end = len(db['SEQUENCE_IMGT'])
+
+        # Extract junction
         junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
+
+        # Translation
+        junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
+        if len(junc_tmp) % 3 > 0:  junc_tmp = junc_tmp + 'N' * (3 - len(junc_tmp) % 3)
+        junc_dict['JUNCTION_AA'] = str(Seq(junc_tmp).translate())
 
     return junc_dict
 
@@ -1672,8 +1872,10 @@ def getRegions(db):
     except (IndexError): return region_dict
 
     try:
+        # CDR3
         cdr3_end = 306 + db['JUNCTION_LENGTH']
         region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
+        # FWR4
         region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
     except (KeyError, IndexError, TypeError):
         return region_dict
@@ -1704,30 +1906,15 @@ def getIDforIMGT(seq_file):
     return ids
 
 
-def decodeCIGAR(cigar):
-    """
-    Parse a CIGAR string into a list of tuples.
-
-    Arguments:
-      cigar : CIGAR string.
-
-    Returns:
-      list : tuples of (type, length) for each operation in the CIGAR string.
-    """
-    matches = re.findall(r'(\d+)([A-Z])', cigar)
-
-    return [(m[1], int(m[0])) for m in matches]
-
-
 def decodeBTOP(btop):
     """
-    Parse a BTOP string into a list of tuples.
+    Parse a BTOP string into a list of tuples in CIGAR annotation.
 
     Arguments:
       btop : BTOP string.
 
     Returns:
-      list : tuples of (type, length) for each operation in the BTOP string.
+      list : tuples of (operation, length) for each operation in the BTOP string using CIGAR annotation.
     """
     # Determine chunk type and length
     def _recode(m):
@@ -1744,14 +1931,103 @@ def decodeBTOP(btop):
     return [_recode(m.group().replace(';', '')) for m in matches]
 
 
+def decodeCIGAR(cigar):
+    """
+    Parse a CIGAR string into a list of tuples.
+
+    Arguments:
+      cigar : CIGAR string.
+
+    Returns:
+      list : tuples of (operation, length) for each operation in the CIGAR string.
+    """
+    matches = re.findall(r'(\d+)([A-Z])', cigar)
+
+    return [(m[1], int(m[0])) for m in matches]
+
+
 def encodeCIGAR(alignment):
     """
     Encodes a list of tuple with alignment information into a CIGAR string.
 
     Arguments:
-      alignment : tuples of (type, length) for each alignment operation.
+      tuple : tuples of (type, length) for each alignment operation.
 
     Returns:
       str : CIGAR string.
     """
     return ''.join(['%i%s' % (x, s) for s, x in alignment])
+
+
+def padAlignment(alignment, q_start, r_start):
+    """
+    Pads the start of an alignment based on query and reference positions.
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+      q_start : query (input) start position
+      r_start : reference (subject) start position
+
+    Returns:
+      list : updated list of tuples of (operation, length) for the alignment.
+    """
+    # Copy list to avoid weirdness
+    result = alignment[:]
+
+    # Add reference padding if present
+    if result [0][0] == 'N':
+        result[0] = ('N', result[0][1] + r_start)
+    elif r_start > 0:
+        result.insert(0, ('N', r_start))
+
+    # Add query deletions if present
+    if result[0][0] == 'S':
+        result[0] = ('S', result[0][1] + q_start)
+    elif result [0][0] == 'N' and result[1][0] == 'S':
+        result[1] = ('S', result[1][1] + q_start)
+    elif result[0][0] == 'N' and q_start > 0:
+        result.insert(1, ('S', q_start))
+    elif q_start > 0:
+        result.insert(0, ('S', q_start))
+
+    return result
+
+
+def alignmentPositions(alignment):
+    """
+    Extracts start position and length from an alignment
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+
+    Returns:
+      dict : query (q) and reference (r) start and length information with keys
+             {q_start, q_length, r_start, r_length}.
+    """
+    # Return object
+    result = {'q_start': 0,
+              'q_length': 0,
+              'r_start': 0,
+              'r_length': 0}
+
+    # Reference start
+    if alignment[0][0] == 'N':
+        result['r_start'] = alignment[0][1]
+
+    # Query start
+    if alignment[0][0] == 'S':
+        result['q_start'] = alignment[0][1]
+    elif alignment[0][0] == 'N' and alignment[1][0] == 'S':
+        result['q_start'] = alignment[1][1]
+
+    # Reference length
+    for x, i in alignment:
+        if x in ('M', '=', 'X'):
+            result['r_length'] += i
+            result['q_length'] += i
+        elif x == 'D':
+            result['r_length'] += i
+        elif x == 'I':
+            result['q_length'] += i
+
+    return result

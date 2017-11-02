@@ -16,41 +16,13 @@ from time import time
 from Bio import SeqIO
 
 # Presto and changeo imports
-from presto.Defaults import default_out_args
 from presto.Annotation import parseAnnotation
-from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
+from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
+from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, getDbWriter, readRepo
-from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT
-
-
-def getFilePrefix(aligner_output, out_args):
-    """
-    Get file name prefix and create output directory
-
-    Arguments:
-      aligner_output : aligner output file or directory.
-      out_args : dictionary of output arguments.
-
-    Returns:
-        str : file name prefix.
-    """
-    # Determine output directory
-    if not out_args['out_dir']:
-        out_dir = os.path.dirname(os.path.abspath(aligner_output))
-    else:
-        out_dir = os.path.abspath(out_args['out_dir'])
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-
-    # Determine file prefix
-    if out_args['out_name']:
-        file_prefix = out_args['out_name']
-    else:
-        file_prefix = os.path.splitext(os.path.split(os.path.abspath(aligner_output))[1])[0]
-
-    return os.path.join(out_dir, file_prefix)
-
+from changeo.IO import countDbFile, extractIMGT, readRepo
+from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
+from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 def getSeqDict(seq_file):
     """
@@ -68,46 +40,64 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, partial=False,
-            out_args=default_out_args):
+def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, partial=False,
+            format='changeo', out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory.
     
     Arguments:
-      db : a iterator of IgRecord objects containing alignment data.
+      db : a iterator of Receptor objects containing alignment data.
       fields : a list of ordered field names to write.
-      file_prefix : directory and prefix for CLIP tab-delim file.
+      in_file : input file name.
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
       no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : if True put incomplete alignments in the pass file.
+      format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       None
     """
+    # Function to convert fasta header annotations to changeo columns
+    def _changeo(fields, header):
+        f = [ChangeoSchema.asChangeo(x) for x in header if x.upper() not in fields]
+        fields.extend(f)
+        return fields
+
+    def _airr(fields, header):
+        f = [AIRRSchema.asAIRR(x) for x in header if x.lower() not in fields]
+        fields.extend(f)
+        return fields
+
     # Function to check for valid records strictly
-    def _pass_strict(rec):
+    def _strict(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.j_call and rec.j_call != 'None',
                  rec.functional is not None,
-                 rec.seq_vdj,
+                 rec.sequence_vdj,
                  rec.junction]
         return all(valid)
 
     # Function to check for valid records loosely
-    def _pass_gentle(rec):
+    def _gentle(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.d_call and rec.d_call != 'None',
                  rec.j_call and rec.j_call != 'None']
         return any(valid)
 
-    # Set pass criteria
-    _pass = _pass_gentle if partial else _pass_strict
+    # Set writer class and annotation conversion function
+    if format == 'changeo':
+        format_writer = ChangeoWriter
+        _annotate = _changeo
+    elif format == 'airr':
+        format_writer = AIRRWriter
+        _annotate = _airr
+    else:
+        sys.exit('Invalid output format %s' % format)
 
-    # Define output file names
-    pass_file = '%s_db-pass.tab' % file_prefix
-    fail_file = '%s_db-fail.tab' % file_prefix
+    # Set pass criteria
+    _pass = _gentle if partial else _strict
 
     # Initiate handles, writers and counters
     pass_handle = None
@@ -115,26 +105,32 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
     pass_writer = None
     fail_writer = None
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    pass_count = fail_count = 0
 
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time)
     for i, record in enumerate(db, start=1):
 
         # Replace sequence description with full string, if required
-        if id_dict is not None and record.id in id_dict:
-            record.id = id_dict[record.id]
+        if id_dict is not None and record.sequence_id in id_dict:
+            record.sequence_id = id_dict[record.sequence_id]
 
         # Parse sequence description into new columns
         if not no_parse:
             try:
-                record.annotations = parseAnnotation(record.id, delimiter=out_args['delimiter'])
-                record.id = record.annotations['ID']
-                del record.annotations['ID']
+                ann_raw = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
+                record.sequence_id = ann_raw.pop('ID')
 
-                # TODO:  This is not the best approach. should pass in output fields.
+                # Convert to Receptor fields
+                ann_parsed = OrderedDict()
+                for k, v in ann_raw.items():
+                    ann_parsed[ChangeoSchema.asReceptor(k)] = v
+
                 # If first record, use parsed description to define extra columns
-                if i == 1:  fields.extend(list(record.annotations.keys()))
+                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
+
+                # Update Receptor record
+                record.updateAnnotations(ann_parsed)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 no_parse = True
@@ -144,29 +140,35 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
         if _pass(record):
             # Open pass file
             if pass_writer is None:
-                pass_handle = open(pass_file, 'wt')
-                pass_writer = getDbWriter(pass_handle, add_fields=fields)
+                pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'], out_type='tsv')
+                pass_writer = format_writer(pass_handle, fields)
+                #pass_handle = open(pass_file, 'wt')
+                #pass_writer = getDbWriter(pass_handle, add_fields=fields)
 
             # Write row to pass file
             pass_count += 1
-            pass_writer.writerow(record.toDict())
+            pass_writer.writeReceptor(record)
         else:
             # Open failed file
             if out_args['failed'] and fail_writer is None:
-                fail_handle = open(fail_file, 'wt')
-                fail_writer = getDbWriter(fail_handle, add_fields=fields)
+                fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'], out_type='tsv')
+                fail_writer = format_writer(fail_handle, fields)
+                #fail_handle = open(fail_file, 'wt')
+                #fail_writer = getDbWriter(fail_handle, add_fields=fields)
 
             # Write row to fail file if specified
             fail_count += 1
             if fail_writer is not None:
-                fail_writer.writerow(record.toDict())
+                fail_writer.writeReceptor(record)
 
         # Print progress
         printProgress(i, total_count, 0.05, start_time)
 
     # Print consol log
     log = OrderedDict()
-    log['OUTPUT'] = pass_file
+    log['OUTPUT'] = pass_handle.name
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     log['END'] = 'MakeDb'
@@ -179,7 +181,7 @@ def writeDb(db, fields, file_prefix, total_count, id_dict=None, no_parse=True, p
 # TODO:  may be able to merge with other mains
 def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
               parse_scores=False, parse_regions=False, parse_junction=False,
-              out_args=default_out_args):
+              format='changeo', out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences.
 
@@ -190,6 +192,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
       partial : If True put incomplete alignments in the pass file.
       parse_scores : if True add alignment score fields to output file.
       parse_regions : if True add FWR and CDR region fields to output file.
+      format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -218,6 +221,16 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(imgt_score=parse_scores,
+                                      region=parse_regions,
+                                      junction=parse_junction)
+    elif format == 'airr':
+        fields = AIRRSchema.fields(imgt_score=True,
+                                   region=parse_regions,
+                                   junction=parse_junction)
+
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
             open(imgt_files['gapped'], 'r') as gapped_handle, \
@@ -226,9 +239,9 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
                                 parse_scores=parse_scores, parse_regions=parse_regions,
                                 parse_junction=parse_junction)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count, id_dict=id_dict,
-                no_parse=no_parse, partial=partial, out_args=out_args)
+        #file_prefix = getFilePrefix(aligner_output, out_args)
+        writeDb(parse_iter, fields, aligner_output, total_count, id_dict=id_dict,
+                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     # Cleanup temp directory
     temp_dir.cleanup()
@@ -239,7 +252,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
 # TODO:  may be able to merge with other mains
 def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
                  parse_regions=False, parse_scores=False, parse_igblast_cdr3=False,
-                 out_args=default_out_args):
+                 format='changeo', out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
 
@@ -251,7 +264,8 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
       partial : If True put incomplete alignments in the pass file.
       parse_regions : if True add FWR and CDR fields to output file.
       parse_scores : if True add alignment score fields to output file.
-      parse_igblast_cdr3 : if True parse CDR3 sequences generated by IgBLAST
+      parse_igblast_cdr3 : if True parse CDR3 sequences generated by IgBLAST.
+      format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -279,21 +293,31 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(igblast_score=parse_scores,
+                                      region=parse_regions,
+                                      igblast_cdr3=parse_igblast_cdr3)
+    elif format == 'airr':
+        fields = AIRRSchema.fields(igblast_score=True,
+                                   region=parse_regions,
+                                   igblast_cdr3=parse_igblast_cdr3)
+
     # Parse and write output
     with open(aligner_output, 'r') as f:
         parse_iter = IgBLASTReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions,
                                    parse_igblast_cdr3=parse_igblast_cdr3)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
-                no_parse=no_parse, partial=partial, out_args=out_args)
+        writeDb(parse_iter, fields, aligner_output, total_count,
+                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     return None
 
 
 # TODO:  may be able to merge with other mains
 def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
-              parse_scores=False, parse_regions=False, out_args=default_out_args):
+              parse_scores=False, parse_regions=False,
+              format='changeo', out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
@@ -305,6 +329,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
       partial : If True put incomplete alignments in the pass file.
       parse_scores : if True parse alignment scores.
       parse_regions : if True add FWR and CDR region fields.
+      format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -332,13 +357,21 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     repo_dict = readRepo(repo)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
+    # Define output fields
+    if format == 'changeo':
+        fields = ChangeoSchema.fields(ihmm_score=parse_scores,
+                                      region=parse_regions)
+    if format == 'airr':
+        fields = AIRRSchema.fields(ihmm_score=True,
+                                   region=parse_regions)
+
     # Parse and write output
     with open(aligner_output, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict,
                                    parse_scores=parse_scores, parse_regions=parse_regions)
-        file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, parse_iter.fields, file_prefix, total_count,
-                no_parse=no_parse, partial=partial, out_args=out_args)
+        #file_prefix = getFilePrefix(aligner_output, out_args)
+        writeDb(parse_iter, fields, aligner_output, total_count,
+                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
 
     return None
 
@@ -442,6 +475,9 @@ def getArgParser():
                                      should be included in the output. Adds the columns
                                      CDR3_IGBLAST_NT and CDR3_IGBLAST_AA. Requires IgBLAST
                                      version 1.5 or greater.''')
+    parser_igblast.add_argument('--format', action='store', dest='format', default=default_format,
+                                choices=('changeo', 'airr'),
+                                help='''Specify output format.''')
     parser_igblast.set_defaults(func=parseIgBLAST)
 
     # IMGT aligner
@@ -483,6 +519,9 @@ def getArgParser():
                                   included in the output. Adds the columns 
                                   N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
                                   P5J_LENGTH, D_FRAME.''')
+    parser_imgt.add_argument('--format', action='store', dest='format', default=default_format,
+                             choices=('changeo', 'airr'),
+                             help='''Specify output format.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
@@ -519,6 +558,9 @@ def getArgParser():
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
+    parser_ihmm.add_argument('--format', action='store', dest='format', default=default_format,
+                             choices=('changeo', 'airr'),
+                             help='''Specify output format.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser

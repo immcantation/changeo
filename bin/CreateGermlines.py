@@ -20,6 +20,7 @@ from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbWriter, readDbFile, countDbFile, readRepo
 from changeo.Receptor import allele_regex, parseAllele
+from changeo.Parsers import ChangeoReader, ChangeoWriter
 
 # Defaults
 default_seq_field = 'SEQUENCE_IMGT'
@@ -48,6 +49,7 @@ def joinGermline(align, references, seq_field=default_seq_field, v_field=default
     Returns:
     dictionary of germline_type: germline_sequence
     """
+    j_field = 'J_CALL'
     germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
 
     # Define log
@@ -309,10 +311,11 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
 
     # Get repertoire and open Db reader
     references = readRepo(repo)
-    reader = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    reader = ChangeoReader(db_handle, receptor=False)
 
     # Exit if V call field does not exist in reader
-    if v_field not in reader.fieldnames:
+    if v_field not in reader.fields:
         sys.exit('Error: V field does not exist in input database file.')
 
     # Define log handle
@@ -329,18 +332,21 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     if 'regions' in germ_types: add_fields += ['GERMLINE_REGIONS']
 
     # Create output file handle and Db writer
-    pass_handle = getOutputHandle(db_file, 'germ-pass',
+    pass_handle = getOutputHandle(db_file,
+                                  out_label='germ-pass',
                                   out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'],
-                                  out_type=out_args['out_type'])
-    pass_writer = getDbWriter(pass_handle, db_file, add_fields=add_fields)
+                                  out_type='tsv')
+    out_fields=getDbFields(db_file, add=add_fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
 
     if out_args['failed']:
-        fail_handle = getOutputHandle(db_file, 'germ-fail',
+        fail_handle = getOutputHandle(db_file,
+                                      out_label='germ-fail',
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type=out_args['out_type'])
-        fail_writer = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+                                      out_type='tsv')
+        fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
     else:
         fail_handle = None
         fail_writer = None
@@ -366,14 +372,14 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
         # Write row to pass or fail file
         if 'ERROR' in result_log:
             fail_count += 1
-            if fail_writer is not None: fail_writer.writerow(row)
+            if fail_writer is not None: fail_writer.writeDict(row)
         else:
             result_log['SEQUENCE'] = row[seq_field]
             result_log['GERMLINE'] = germlines['full']
             result_log['REGIONS'] = germlines['regions']
 
             pass_count += 1
-            pass_writer.writerow(row)
+            pass_writer.writeDict(row)
         printLog(result_log, handle=log_handle)
 
     # Print log
@@ -387,6 +393,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     printLog(log)
 
     # Close file handles
+    db_handle.close()
     pass_handle.close()
     if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()
@@ -492,12 +499,12 @@ def makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
 
             # Write to pass file
             counts['pass'] += 1
-            writers['pass'].writerow(val)
+            writers['pass'].writeDict(val)
         else:
             # Write to fail file
             counts['fail'] += 1
             if writers['fail'] is not None:
-                writers['fail'].writerow(val)
+                writers['fail'].writeDict(val)
     # Return log
     return result_log
 
@@ -531,10 +538,11 @@ def assembleCloneGermline(db_file, repo, seq_field=default_seq_field, v_field=de
 
     # Get repertoire and open Db reader
     references = readRepo(repo)
-    reader = readDbFile(db_file, ig=False)
+    db_handle = open(db_file, 'rt')
+    reader = ChangeoReader(db_handle, receptor=False)
 
     # Exit if V call field does not exist in reader
-    if v_field not in reader.fieldnames:
+    if v_field not in reader.fields:
         sys.exit('Error: V field does not exist in input database file.')
 
     # Define log handle
@@ -556,14 +564,21 @@ def assembleCloneGermline(db_file, repo, seq_field=default_seq_field, v_field=de
     
     # Create output file handle and Db writer
     writers = {}
-    pass_handle = getOutputHandle(db_file, 'germ-pass', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
-    writers['pass'] = getDbWriter(pass_handle, db_file, add_fields=add_fields)
+    pass_handle = getOutputHandle(db_file,
+                                  out_label='germ-pass',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type='tsv')
+    out_fields = getDbFields(db_file, add=add_fields)
+    writers['pass'] = ChangeoWriter(pass_handle, fields=out_fields)
 
     if out_args['failed']:
-        fail_handle = getOutputHandle(db_file, 'germ-fail', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
-        writers['fail'] = getDbWriter(fail_handle, db_file, add_fields=add_fields)
+        fail_handle = getOutputHandle(db_file,
+                                      out_label='germ-fail',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type='tsv')
+        writers['fail'] = ChangeoWriter(fail_handle, fields=out_fields)
     else:
         fail_handle = None
         writers['fail'] = None
@@ -614,6 +629,7 @@ def assembleCloneGermline(db_file, repo, seq_field=default_seq_field, v_field=de
     printLog(log)
 
     # Close file handles
+    db_handle.close()
     pass_handle.close()
     if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()

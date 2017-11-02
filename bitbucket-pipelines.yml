@@ -2,8 +2,9 @@ image:
   name: javh/immcantation:test
 
 pipelines:
-  default:
-    - step:
-        script:
-          - python3 setup.py install
-          - python3 -m unittest
+  branches:
+    default:
+      - step:
+          script:
+            - python3 setup.py install
+            - python3 -m unittest
