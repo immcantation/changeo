@@ -18,7 +18,7 @@ from time import time
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, readRepo
+from changeo.IO import countDbFile, getDbFields, readRepo
 from changeo.Receptor import allele_regex, parseAllele
 from changeo.Parsers import ChangeoReader, ChangeoWriter
 

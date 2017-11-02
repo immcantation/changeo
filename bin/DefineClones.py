@@ -71,10 +71,10 @@ def filterMissing(data, field=default_seq_field, max_missing=default_max_missing
 
     pass_list = []
     fail_list = []
-    for ig in data:
-        seq = str(ig.getSeqField(field))
-        if _pass(seq):  pass_list.append(ig)
-        else:  fail_list.append(ig)
+    for rec in data:
+        seq = str(rec.getSeq(field))
+        if _pass(seq):  pass_list.append(rec)
+        else:  fail_list.append(rec)
 
     return {'pass': pass_list, 'fail': fail_list}
 
@@ -725,7 +725,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                 # Writing passing sequences
                 for clone in result.results.values():
                     clone_count += 1
-                    for i, rec in enumerate(clone):
+                    for i, rec in enumerate(clone, start=1):
                         rec.annotations['clone'] = clone_count
                         pass_writer.writeReceptor(rec)
                         pass_count += 1
@@ -734,13 +734,12 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                 if result.failed:
                     for i, rec in enumerate(result.failed, start=1):
                         fail_count += 1
-                        if fail_writer is not None: fail_writer.writerow(rec.toDict())
+                        if fail_writer is not None: fail_writer.writeReceptor(rec)
                         result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
             else:
                 for i, rec in enumerate(result.data, start=1):
                     if fail_writer is not None: fail_writer.writeReceptor(rec)
                     fail_count += 1
-                    if fail_writer is not None: fail_writer.writerow(rec.toDict())
                     result.log['CLONE0-%i' % (i)] = str(rec.junction)
                     
             # Write log

@@ -27,10 +27,10 @@ from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, colle
 # TODO:  maybe not bothering with 'set' is best. can just work off field identity
 def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='first'):
     """
-    Groups IgRecords based on gene or annotation
+    Groups Receptor objects based on gene or annotation
 
     Arguments:
-      records : an iterator of IgRecord objects to group.
+      records : an iterator of Receptor objects to group.
       fields : gene field to group by.
       calls : allele calls to use for grouping.
               one or more of ('v', 'd', 'j').
@@ -51,12 +51,12 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     elif mode == 'allele' and fields is not None:
         def _get_key(rec, calls, action):
             vdj = rec.getAlleleCalls(calls, action)
-            ann = [rec.toDict().get(k, None) for k in fields]
+            ann = [rec.getChangeo(k) for k in fields]
             return tuple(chain(vdj, ann))
     elif mode == 'gene' and fields is not None:
         def _get_key(rec, calls, action):
             vdj = rec.getGeneCalls(calls, action)
-            ann = [rec.toDict().get(k, None) for k in fields]
+            ann = [rec.getChangeo(k) for k in fields]
             return tuple(chain(vdj, ann))
 
     rec_index = {}
@@ -94,17 +94,17 @@ def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
         result.valid = False
         return result
 
-    seq_list = [SeqRecord(r.getSeqField(f), id='%s_%s' % (r.id, f)) for f in seq_fields \
+    seq_list = [SeqRecord(r.getSeq(f), id='%s_%s' % (r.sequence_id, f)) for f in seq_fields \
                 for r in data.data]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
         aln_map = {x.id: i for i, x in enumerate(seq_aln)}
         for i, r in enumerate(result.results, start=1):
             for f in seq_fields:
-                idx = aln_map['%s_%s' % (r.id, f)]
+                idx = aln_map['%s_%s' % (r.sequence_id, f)]
                 seq = str(seq_aln[idx].seq)
                 r.annotations['%s_ALIGN' % f] = seq
-                result.log['%s-%s' % (f, r.id)] = seq
+                result.log['%s-%s' % (f, r.sequence_id)] = seq
 
     else:
         result.valid = False
@@ -137,15 +137,15 @@ def alignAcross(data, seq_fields, muscle_exec=default_muscle_exec):
         return result
 
     for f in seq_fields:
-        seq_list = [SeqRecord(r.getSeqField(f), id=r.id) for r in data.data]
+        seq_list = [SeqRecord(r.getSeq(f), id=r.sequence_id) for r in data.data]
         seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
         if seq_aln is not None:
             aln_map = {x.id: i for i, x in enumerate(seq_aln)}
             for i, r in enumerate(result.results, start=1):
-                idx = aln_map[r.id]
+                idx = aln_map[r.sequence_id]
                 seq = str(seq_aln[idx].seq)
                 r.annotations['%s_ALIGN' % f] = seq
-                result.log['%s-%s' % (f, r.id)] = seq
+                result.log['%s-%s' % (f, r.sequence_id)] = seq
         else:
             result.valid = False
 
@@ -177,7 +177,7 @@ def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
         return result
 
     record = data.data
-    seq_list = [SeqRecord(record.getSeqField(f), id=f) for f in seq_fields]
+    seq_list = [SeqRecord(record.getSeq(f), id=f) for f in seq_fields]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
         aln_map = {x.id: i for i, x in enumerate(seq_aln)}

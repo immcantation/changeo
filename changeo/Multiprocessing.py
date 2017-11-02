@@ -13,8 +13,9 @@ from time import time
 
 # Presto and changeo imports
 from presto.IO import getOutputHandle, printProgress, printLog
-from changeo.IO import countDbFile
+from changeo.IO import countDbFile, getDbFields
 from changeo.Receptor import Receptor
+from changeo.Parsers import ChangeoReader, ChangeoWriter
 
 
 class DbData:
@@ -109,13 +110,13 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
     # Open input file and perform grouping
     try:
         # Iterate over Ig records and assign groups
-        with open(db_file, 'rt') as db_handle:
-            db_iter = ChangeoReader(db_handle)
-            if group_func is not None:
-                group_dict = group_func(db_iter, **group_args)
-                group_iter = iter(group_dict.items())
-            else:
-                group_iter = ((r.sequence_id, r) for r in db_iter)
+        db_handle = open(db_file, 'rt')
+        db_iter = ChangeoReader(db_handle)
+        if group_func is not None:
+            group_dict = group_func(db_iter, **group_args)
+            group_iter = iter(group_dict.items())
+        else:
+            group_iter = ((r.sequence_id, r) for r in db_iter)
     except:
         alive.value = False
         raise
