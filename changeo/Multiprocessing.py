@@ -12,9 +12,9 @@ from collections import OrderedDict
 from time import time
 
 # Presto and changeo imports
-from presto.IO import getFileType, getOutputHandle, printProgress, printLog
-from changeo.IO import readDbFile, countDbFile, getDbWriter
-from changeo.Receptor import IgRecord
+from presto.IO import getOutputHandle, printProgress, printLog
+from changeo.IO import countDbFile
+from changeo.Receptor import Receptor
 
 
 class DbData:

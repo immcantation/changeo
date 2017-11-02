@@ -150,34 +150,6 @@ class Test_DefineClones(unittest.TestCase):
 
     # @unittest.skip("-> indexJunctions() skipped\n")
     def test_indexJunctions(self):
-        # db_iter = DefineClones.readDbFile(self.mg_ig_file)
-        #
-        # # Original version of 'set'
-        # prof_old = cProfile.Profile()
-        # prof_old.enable()
-        # results_old = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='setold')
-        # prof_old.disable()
-        # prof_old.print_stats()
-        #
-        # db_iter = DefineClones.readDbFile(self.mg_ig_file)
-        #
-        # # New nested dict version of 'set'
-        # prof_new = cProfile.Profile()
-        # prof_new.enable()
-        # results_new = DefineClones.indexJunctions(db_iter, fields=['CREGION'], mode='gene', action='set')
-        # prof_new.disable()
-        # prof_new.print_stats()
-
-        # results = {}
-        # for k,v in results_new.items():
-        #     k_sorted = (k[3], k[2], k[0], k[1])
-        #     results[k_sorted] = v
-        #
-        # results_old = OrderedDict(sorted(results_old.items(), key=lambda x:x[0]))
-        # results = OrderedDict(sorted(results.items(), key=lambda x:x[0]))
-        # print(results)
-        # print(results_old)
-
         # Test first grouping without fields
         results = DefineClones.indexJunctions(self.ambig_records, mode='gene', action='first')
         # Extract nested keys and group lengths for comparison
