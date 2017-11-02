@@ -730,7 +730,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
                         pass_writer.writeReceptor(rec)
                         pass_count += 1
                         result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
-                # Right failed seqeuence from passing sets
+                # Write failed sequences from passing sets
                 if result.failed:
                     for i, rec in enumerate(result.failed, start=1):
                         fail_count += 1

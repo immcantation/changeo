@@ -41,6 +41,7 @@ default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_index_field = 'INDEX'
 default_db_xref = 'IMGT/GENE-DB'
 default_moltype='mRNA'
+default_product='immunoglobulin'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -897,7 +898,7 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
 
 
 def makeGenbankFeatures(record, start=None, end=None, inference=None,
-                        db_xref=default_db_xref,
+                        db_xref=default_db_xref, product=default_product,
                         cregion_field=None, full_cds=False):
     """
     Creates a feature table for GenBank submissions
@@ -908,6 +909,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
       end : end position of the modified seqeuence in the input sequence. Used for feature position offsets.
       inference : Reference alignment tool.
       db_xref : Reference database name.
+      product : CDS product (protein) name.
       cregion_field : column containing the C region gene call.
       full_cds : if True include the CDS feature
 
@@ -1030,12 +1032,12 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
         codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
         cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
         cds_end = '>%i' % j_end  - start_trim
-        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+        result[(cds_start, cds_end, 'CDS')] = [('product', product),
                                                ('codon_start', codon_start)]
     else:
         cds_start = '<%i' % (record.junction_start - start_trim)
         cds_end = '>%i' % (record.junction_end - start_trim)
-        result[(cds_start, cds_end, 'CDS')] = [('product', 'B cell receptor'),
+        result[(cds_start, cds_end, 'CDS')] = [('product', product),
                                                ('function', 'junction'),
                                                ('codon_start', 1)]
 
@@ -1091,7 +1093,7 @@ def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                      isolate=None, celltype=None, moltype=default_moltype,
-                     cregion_field=None, keep_id=False,
+                     product=default_product, cregion_field=None, keep_id=False,
                      full_cds=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
@@ -1104,6 +1106,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       isolate : sample identifier.
       celltype : cell type.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
+      product : CDS product (protein) name.
       cregion_field : column containing the C region gene call.
       keep_id : if True use the original sequence ID for the output IDs
       full_cds : if True include the CDS feature
@@ -1145,7 +1148,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         seq = makeGenbankSequence(rec, name=name, organism=organism, isolate=isolate,
                                   celltype=celltype, moltype=moltype)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
-                                  db_xref=db_xref, inference=inference,
+                                  db_xref=db_xref, inference=inference, product=product,
                                   cregion_field=cregion_field, full_cds=full_cds)
 
         # Write table
@@ -1263,18 +1266,38 @@ def getArgParser():
                                help='List of annotation fields to add to the sequence description')
     parser_baseln.set_defaults(func=convertDbBaseline)
 
-    # Subparser to partition files by annotation values
-    parser_split = subparsers.add_parser('split', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
-                                         help='Splits database files by field values.',
-                                         description='Splits database files by field values')
-    parser_split.add_argument('-f', action='store', dest='field', type=str, required=True,
-                              help='Annotation field by which to split database files.')
-    parser_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
-                              help='''Specify to define the field as numeric and group
-                                   records by whether they are less than or at least
-                                   (greater than or equal to) the specified value.''')
-    parser_split.set_defaults(func=splitDbFile)
+    # Subparser to convert database entries to a GenBank fasta and feature table file
+    parser_gb = subparsers.add_parser('genbank', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Creates a fasta and feature table file for GenBank submissions.',
+                                       description='Creates a fasta and feature table file for GenBank submissions.')
+    parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
+                            help='Name and version of the inference tool used for reference alignment.')
+    parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
+                            help='Link to the reference database used for alignment.')
+    parser_gb.add_argument('--product', action='store', dest='product', default=default_product,
+                            help='''The product (protein) name for the CDS.''')
+    parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
+                            help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
+                            help='The scientific name of the organism.')
+    parser_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
+                            help='''If specified, adds the given isolate annotation 
+                                 (sample label) to the fasta headers.''')
+    parser_gb.add_argument('--celltype', action='store', dest='celltype', default=None,
+                            help='''If specified, adds the given cell-type annotation 
+                                 to the fasta headers.''')
+    parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
+                            help='''Field containing the C region call. If unspecified, the C region gene 
+                                 call will be excluded from the feature table.''')
+    parser_gb.add_argument('--cds', action='store_true', dest='full_cds',
+                            help='''If specified, include the full CDS in the feature table output.
+                                 Otherwise, restrict the CDS to the junction region.''')
+    parser_gb.add_argument('--id', action='store_true', dest='keep_id',
+                            help='''If specified, use the existing sequence identifier for the output identifier. 
+                                 By default, only the row number will be used as the identifier to avoid
+                                 the 50 character limit.''')
+    parser_gb.set_defaults(func=convertDbGenbank)
 
     # Subparser to add records
     parser_add = subparsers.add_parser('add', parents=[parser_parent],
@@ -1370,6 +1393,19 @@ def getArgParser():
                              than ascending, order by values in the target field.''')
     parser_sort.set_defaults(func=sortDbFile)
 
+    # Subparser to partition files by annotation values
+    parser_split = subparsers.add_parser('split', parents=[parser_parent],
+                                         formatter_class=CommonHelpFormatter,
+                                         help='Splits database files by field values.',
+                                         description='Splits database files by field values')
+    parser_split.add_argument('-f', action='store', dest='field', type=str, required=True,
+                              help='Annotation field by which to split database files.')
+    parser_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
+                              help='''Specify to define the field as numeric and group
+                                   records by whether they are less than or at least
+                                   (greater than or equal to) the specified value.''')
+    parser_split.set_defaults(func=splitDbFile)
+
     # Subparser to update records
     parser_update = subparsers.add_parser('update', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
@@ -1382,37 +1418,6 @@ def getArgParser():
     parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
                                help='''The new value to assign to each selected row.''')
     parser_update.set_defaults(func=updateDbFile)
-
-    # Subparser to convert database entries to a GenBank tbl file
-    parser_gb = subparsers.add_parser('genbank', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
-                                       help='Creates a fasta and feature table file for GenBank submissions.',
-                                       description='Creates a fasta and feature table file for GenBank submissions.')
-    parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
-                            help='Name and version of the inference tool used for reference alignment.')
-    parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
-                            help='Link to the reference database used for alignment.')
-    parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
-                            help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
-    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
-                            help='The scientific name of the organism.')
-    parser_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
-                            help='''If specified, adds the given isolate annotation 
-                                 (sample label) to the fasta headers.''')
-    parser_gb.add_argument('--celltype', action='store', dest='celltype', default=None,
-                            help='''If specified, adds the given cell-type annotation 
-                                 to the fasta headers.''')
-    parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
-                            help='''Field containing the C region call. If unspecified, the C region gene 
-                                 call will be excluded from the feature table.''')
-    parser_gb.add_argument('--cds', action='store_true', dest='full_cds',
-                            help='''If specified, include the full CDS in the feature table output.
-                                 Otherwise, restrict the CDS to the junction region.''')
-    parser_gb.add_argument('--id', action='store_true', dest='keep_id',
-                            help='''If specified, use the existing sequence identifier for the output identifier. 
-                                 By default, only the row number will be used as the identifier to avoid
-                                 the 50 character limit.''')
-    parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
 
