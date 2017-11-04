@@ -63,7 +63,7 @@ Exporting records to FASTA files
 --------------------------------------------------------------------------------
 
 You may want to use external tools, or tools from `pRESTO <presto.readthedocs.io>`__,
-on your Change-O result files. The :ref:`ParseDb` tool provides two options for
+on your Change-O result files. The :ref:`ConvertDb` tool provides two options for
 exporting data from tab-delimited files to FASTA format.
 
 Standard FASTA
@@ -73,13 +73,13 @@ The :program:`fasta`
 subcommand allows you to export sequences and annotations to FASTA formatted files in the
 `pRESTO annototation scheme <http://presto.readthedocs.io/en/latest/overview.html#annotation-scheme>`__::
 
-    ParseDb.py fasta -d S43_atleast-2_db-pass.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
+    ConvertDb.py fasta -d S43_atleast-2_db-pass.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
 
 Where the column containing the sequence identifier is specified by
-:option:`--if SEQUENCE_ID <ParseDb fasta --if>`, the nucleotide sequence column is
-specified by :option:`--sf SEQUENCE_ID <ParseDb fasta --sf>`, and additional annotations
+:option:`--if SEQUENCE_ID <ConvertDb fasta --if>`, the nucleotide sequence column is
+specified by :option:`--sf SEQUENCE_ID <ConvertDb fasta --sf>`, and additional annotations
 to be added to the sequence header are specified by
-:option:`--mf V_CALL DUPCOUNT <ParseDb fasta --mf>`.
+:option:`--mf V_CALL DUPCOUNT <ConvertDb fasta --mf>`.
 
 BASELINe FASTA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -89,12 +89,12 @@ The :program:`baseline` subcommand generates a FASTA derivative format required 
 files is similar to building standard FASTA files, but requires a few more options.
 An example function call using an imaginary file ``db.tab`` is provided below::
 
-    ParseDb.py baseline -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT \
+    ConvertDb.py baseline -d db.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT \
         --cf CLONE --gf GERMLINE_IMGT_D_MASK
 
 The additional arguments required by the :program:`baseline` subcommand include the
-clonal grouping (:option:`--cf CLONE <ParseDb baseline --cf>`) and germline sequence
-(:option:`--gf GERMLINE_IMGT_D_MASK <ParseDb baseline --gf>`) columns added by
+clonal grouping (:option:`--cf CLONE <ConvertDb baseline --cf>`) and germline sequence
+(:option:`--gf GERMLINE_IMGT_D_MASK <ConvertDb baseline --gf>`) columns added by
 the :ref:`DefineClones <Cloning>` and :ref:`CreateGermlines <Germlines>` tasks,
 respectively.
 

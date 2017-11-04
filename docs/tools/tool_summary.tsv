@@ -12,10 +12,11 @@ Tool	Subcommand	Description
 	chen2010	Assigns clones using the method in Chen, 2010
 	ademokun2011	Assigns clones using the method in Ademokun, 2011
 :ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
-:ref:`ParseDb`		Parses tab delimited database files
+:ref:`ConvertDb`		Converts tab delimited database files
 	fasta	Creates a fasta file from database records
 	baseline	Creates a special BASELINe formatted fasta file from a database
 	genbank	Creates fasta and feature table files for input to tbl2asn
+:ref:`ParseDb`		Parses annotations in tab delimited database files
 	add	Adds fields to the database
 	delete	Deletes specific records
 	drop	Deletes entire fields
@@ -25,4 +26,3 @@ Tool	Subcommand	Description
 	sort	Sorts records by a field
 	split	Splits database files by field values
 	update	Updates field and value pairs
-

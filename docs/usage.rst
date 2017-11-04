@@ -7,6 +7,7 @@ Commandline Usage
    :maxdepth: 2
 
    tools/AlignRecords
+   tools/ConvertDb
    tools/CreateGermlines
    tools/DefineClones
    tools/MakeDb
