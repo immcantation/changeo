@@ -493,7 +493,6 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
         # Translate
         junction_seq = record.sequence_input[(junction_start - 1):junction_end]
         junction_aa = junction_seq.translate()
-        print(junction_aa)
 
         # Add CDS if translation doesn't include stop codon
         if '*' not in junction_aa:
