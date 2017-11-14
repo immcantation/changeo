@@ -360,7 +360,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
 def makeGenbankFeatures(record, start=None, end=None, inference=None,
                         db_xref=default_db_xref, product=default_product,
-                        cregion_field=None, full_cds=False):
+                        cregion_field=None):
     """
     Creates a feature table for GenBank submissions
 
@@ -372,7 +372,6 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
       db_xref : Reference database name.
       product : CDS product (protein) name.
       cregion_field : column containing the C region gene call.
-      full_cds : if True include the CDS feature
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -385,7 +384,6 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #   Line 1, Column 3: Feature key
     #   Line 2, Column 4: Qualifier key
     #   Line 2, Column 5: Qualifier value
-
     # Define return object
     result = OrderedDict()
 
@@ -480,27 +478,32 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     function = junction
     #     inference
     if record.junction:
+        # Positions
+        junction_start = record.junction_start - start_trim
+        junction_end = record.junction_end - start_trim
+
         # Junction feature
-        junction = [('function', 'junction'),
+        junction = [('note', product),
+                    ('function', 'junction'),
                     ('inference', inference)]
-        result[(record.junction_start - start_trim,
-                record.junction_end - start_trim,
+        result[(junction_start,
+                junction_end,
                 'misc_feature')] = junction
 
-    # CDS
-    #     codon_start (must indicate codon offset)
-    if full_cds:
-        codon_start = 1 + (record.junction_start  - start_trim - 1) % 3
-        cds_start = '<%i' % 1 if record.v_germ_start_vdj > 1 else 1
-        cds_end = '>%i' % j_end  - start_trim
-        result[(cds_start, cds_end, 'CDS')] = [('product', product),
-                                               ('codon_start', codon_start)]
-    else:
-        cds_start = '<%i' % (record.junction_start - start_trim)
-        cds_end = '>%i' % (record.junction_end - start_trim)
-        result[(cds_start, cds_end, 'CDS')] = [('product', product),
-                                               ('function', 'junction'),
-                                               ('codon_start', 1)]
+        # Translate
+        junction_seq = record.sequence_input[(junction_start - 1):junction_end]
+        junction_aa = junction_seq.translate()
+        print(junction_aa)
+
+        # Add CDS if translation doesn't include stop codon
+        if '*' not in junction_aa:
+            # CDS
+            #     codon_start (must indicate codon offset)
+            cds_start = '<%i' % junction_start
+            cds_end = '>%i' % junction_end
+            result[(cds_start, cds_end, 'CDS')] = [('product', product),
+                                                   ('function', 'junction'),
+                                                   ('codon_start', 1)]
 
     return result
 
@@ -555,7 +558,7 @@ def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                      isolate=None, celltype=None, moltype=default_moltype,
                      product=default_product, cregion_field=None, keep_id=False,
-                     full_cds=False, out_args=default_out_args):
+                     out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -570,7 +573,6 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       product : CDS product (protein) name.
       cregion_field : column containing the C region gene call.
       keep_id : if True use the original sequence ID for the output IDs
-      full_cds : if True include the CDS feature
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -610,7 +612,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                                   celltype=celltype, moltype=moltype)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
                                   db_xref=db_xref, inference=inference, product=product,
-                                  cregion_field=cregion_field, full_cds=full_cds)
+                                  cregion_field=cregion_field)
 
         # Write table
         writer.writerow(['>Features', seq['record'].id])
@@ -751,9 +753,6 @@ def getArgParser():
     parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
                             help='''Field containing the C region call. If unspecified, the C region gene 
                                  call will be excluded from the feature table.''')
-    parser_gb.add_argument('--cds', action='store_true', dest='full_cds',
-                            help='''If specified, include the full CDS in the feature table output.
-                                 Otherwise, restrict the CDS to the junction region.''')
     parser_gb.add_argument('--id', action='store_true', dest='keep_id',
                             help='''If specified, use the existing sequence identifier for the output identifier. 
                                  By default, only the row number will be used as the identifier to avoid
