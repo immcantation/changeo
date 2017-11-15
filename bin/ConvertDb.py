@@ -75,120 +75,6 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
         
     return seq_record
 
-
-def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
-    """
-    Divides a tab-delimited database file into segments by description tags
-
-    Arguments:
-    db_file = filename of the tab-delimited database file to split
-    field = the field name by which to split db_file
-    num_split = the numerical threshold by which to group sequences;
-                if None treat field as textual
-    out_args = common output argument dictionary from parseCommonArgs
-
-    Returns:
-    a list of output file names
-    """
-    log = OrderedDict()
-    log['START'] = 'ParseDb'
-    log['COMMAND'] = 'split'
-    log['FILE'] = os.path.basename(db_file)
-    log['FIELD'] = field
-    log['NUM_SPLIT'] = num_split
-    printLog(log)
-
-    # Open reader
-    db_handle = open(db_file, 'rt')
-    reader = ChangeoReader(db_handle, receptor=False)
-    out_fields = getDbFields(db_file)
-    # Determine total numbers of records
-    rec_count = countDbFile(db_file)
-
-    start_time = time()
-    count = 0
-    # Sort records into files based on textual field
-    if num_split is None:
-        # Create set of unique field tags
-        with open(db_file, 'rt') as tmp_handle:
-            tmp_iter = ChangeoReader(tmp_handle, receptor=False)
-            tag_list = list(set([row[field] for row in tmp_iter]))
-
-        # Forbidden characters in filename and replacements
-        no_good = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
-                   '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
-        # Replace forbidden characters in tag_list
-        tag_dict = {}
-        for tag in tag_list:
-            for c,r in no_good.items():
-                tag_dict[tag] = (tag_dict.get(tag, tag).replace(c,r) \
-                                 if c in tag else tag_dict.get(tag, tag))
-
-        # Create output handles
-        handles_dict = {tag: getOutputHandle(db_file,
-                                             out_label='%s-%s' % (field, label),
-                                             out_name=out_args['out_name'],
-                                             out_dir=out_args['out_dir'],
-                                             out_type='tsv')
-                        for tag, label in tag_dict.items()}
-
-        # Create Db writer instances
-        writers_dict = {tag: ChangeoWriter(handles_dict[tag], fields=out_fields)
-                        for tag in tag_dict}
-
-        # Iterate over records
-        for row in reader:
-            printProgress(count, rec_count, 0.05, start_time)
-            count += 1
-            # Write row to appropriate file
-            tag = row[field]
-            writers_dict[tag].writeDict(row)
-
-    # Sort records into files based on numeric num_split
-    else:
-        num_split = float(num_split)
-
-        # Create output handles
-        handles_dict = {'under': getOutputHandle(db_file,
-                                                 out_label='under-%.1f' % num_split,
-                                                 out_name=out_args['out_name'],
-                                                 out_dir=out_args['out_dir'],
-                                                 out_type='tsv'),
-                        'atleast': getOutputHandle(db_file,
-                                                   out_label='atleast-%.1f' % num_split,
-                                                   out_name=out_args['out_name'],
-                                                   out_dir=out_args['out_dir'],
-                                                   out_type='tsv')}
-
-        # Create Db writer instances
-        writers_dict = {'under': ChangeoWriter(handles_dict['under'], fields=out_fields),
-                        'atleast': ChangeoWriter(handles_dict['atleast'], fields=out_fields)}
-
-        # Iterate over records
-        for row in reader:
-            printProgress(count, rec_count, 0.05, start_time)
-            count += 1
-            tag = row[field]
-            tag = 'under' if float(tag) < num_split else 'atleast'
-            writers_dict[tag].writeDict(row)
-
-    # Write log
-    printProgress(count, rec_count, 0.05, start_time)
-    log = OrderedDict()
-    for i, k in enumerate(handles_dict):
-        log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
-    log['RECORDS'] = rec_count
-    log['PARTS'] = len(handles_dict)
-    log['END'] = 'ParseDb'
-    printLog(log)
-
-    # Close output file handles
-    db_handle.close()
-    for t in handles_dict: handles_dict[t].close()
-
-    return [handles_dict[t].name for t in handles_dict]
-
-
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
 def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
@@ -211,7 +97,7 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     the output file name
     """
     log = OrderedDict()
-    log['START'] = 'ParseDb'
+    log['START'] = 'ConvertDb'
     log['COMMAND'] = 'fasta'
     log['FILE'] = os.path.basename(db_file)
     log['ID_FIELD'] = id_field
@@ -280,7 +166,7 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     log['GERMLINES'] = germ_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['END'] = 'ParseDb'
+    log['END'] = 'ConvertDb'
     printLog(log)
 
     # Close file handles
@@ -306,7 +192,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     the output file name
     """
     log = OrderedDict()
-    log['START'] = 'ParseDb'
+    log['START'] = 'ConvertDb'
     log['COMMAND'] = 'fasta'
     log['FILE'] = os.path.basename(db_file)
     log['ID_FIELD'] = id_field
@@ -348,7 +234,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     log['RECORDS'] = rec_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['END'] = 'ParseDb'
+    log['END'] = 'ConvertDb'
     printLog(log)
 
     # Close file handles
@@ -384,16 +270,35 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #   Line 1, Column 3: Feature key
     #   Line 2, Column 4: Qualifier key
     #   Line 2, Column 5: Qualifier value
-    # Define return object
-    result = OrderedDict()
 
     # Set inference type
     if inference is not None:
         inference = 'alignment:%s' % inference
 
+    # Get genes and check for valid record
+    v_gene = record.getVGene()
+    d_gene = record.getDGene()
+    j_gene = record.getJGene()
+    if v_gene is None or j_gene is None:
+        return None
+
     # Set position offsets if required
     start_trim = 0 if start is None else start
     end_trim = 0 if end is None else len(record.sequence_input) - end
+
+    # Define junction boundaries and check for valid translation
+    junction_start = record.junction_start - start_trim
+    junction_end = record.junction_end - start_trim
+
+    junction_seq = record.sequence_input[(junction_start - 1):junction_end]
+    if len(junction_seq) % 3 > 0:  junction_seq = junction_seq + 'N' * (3 - len(junction_seq) % 3)
+    junction_aa = junction_seq.translate()
+
+    if '*' in junction_aa:
+        return None
+
+    # Define return object
+    result = OrderedDict()
 
     # C_region
     #     gene
@@ -411,9 +316,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
                         ('db_xref', '%s:%s' % (db_xref, c_gene))]
 
         # Assign C_region feature
-        result[(c_region_start,
-                '>%i' % (c_region_start + c_region_length - 1),
-                'C_region')] = c_region
+        result[(c_region_start, '>%i' % (c_region_start + c_region_length - 1), 'C_region')] = c_region
 
         # Preserve J segment end position
         j_end = record.j_seq_end
@@ -425,84 +328,55 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     variable_start = max(record.v_seq_start - start_trim, 1)
     variable_end = j_end - start_trim
     variable_region = []
-    result[(variable_start,
-            variable_end,
-            'V_region')] = variable_region
+    result[(variable_start, variable_end, 'V_region')] = variable_region
+
+    # Product feature
+    result[(variable_start, variable_end, 'misc_feature')] = [('note', product)]
 
     # V_segment
     #     gene (gene name)
     #     allele (allele only, without gene name, don't use if ambiguous)
     #     db_xref (database link)
     #     inference (reference alignment tool)
-    v_gene = record.getVGene()
-    if v_gene:
-        v_segment = [('gene', v_gene),
-                     ('allele', record.getVAlleleNumber()),
-                     ('db_xref', '%s:%s' % (db_xref, v_gene)),
-                     ('inference', inference)]
-        result[(variable_start,
-                record.v_seq_end - start_trim,
-                'V_segment')] = v_segment
+    v_segment = [('gene', v_gene),
+                 ('allele', record.getVAlleleNumber()),
+                 ('db_xref', '%s:%s' % (db_xref, v_gene)),
+                 ('inference', inference)]
+    result[(variable_start, record.v_seq_end - start_trim, 'V_segment')] = v_segment
 
     # D_segment
     #     gene
     #     allele
     #     db_xref
     #     inference
-    d_gene = record.getDGene()
     if d_gene:
         d_segment = [('gene', d_gene),
                      ('allele', record.getDAlleleNumber()),
                      ('db_xref', '%s:%s' % (db_xref, d_gene)),
                      ('inference', inference)]
-        result[(record.d_seq_start - start_trim,
-                record.d_seq_end - start_trim,
-                'D_segment')] = d_segment
+        result[(record.d_seq_start - start_trim, record.d_seq_end - start_trim, 'D_segment')] = d_segment
 
     # J_segment
     #     gene
     #     allele
     #     db_xref
     #     inference
-    j_gene = record.getJGene()
-    if j_gene:
-        j_segment = [('gene', j_gene),
-                     ('allele', record.getVAlleleNumber()),
-                     ('db_xref', '%s:%s' % (db_xref, j_gene)),
-                     ('inference', inference)]
-        result[(record.j_seq_start - start_trim,
-                j_end - start_trim,
-                'J_segment')] = j_segment
+    j_segment = [('gene', j_gene),
+                 ('allele', record.getVAlleleNumber()),
+                 ('db_xref', '%s:%s' % (db_xref, j_gene)),
+                 ('inference', inference)]
+    result[(record.j_seq_start - start_trim, j_end - start_trim, 'J_segment')] = j_segment
 
-    # misc_feature  (1-based closed interval positions)
-    #     function = junction
+    # CDS
+    #     codon_start (must indicate codon offset)
+    #     function = JUNCTION
     #     inference
-    if record.junction:
-        # Positions
-        junction_start = record.junction_start - start_trim
-        junction_end = record.junction_end - start_trim
-
-        # Junction feature
-        junction = [('note', product),
-                    ('function', 'junction'),
-                    ('inference', inference)]
-        result[(junction_start,
-                junction_end,
-                'misc_feature')] = junction
-
-        # Translate
-        junction_seq = record.sequence_input[(junction_start - 1):junction_end]
-        junction_aa = junction_seq.translate()
-
-        # Add CDS if translation doesn't include stop codon
-        if '*' not in junction_aa:
-            # CDS
-            #     codon_start (must indicate codon offset)
-            cds_start = '<%i' % junction_start
-            cds_end = '>%i' % junction_end
-            result[(cds_start, cds_end, 'CDS')] = [('product', product),
-                                                   ('function', 'junction'),
-                                                   ('codon_start', 1)]
+    cds_start = '<%i' % junction_start
+    cds_end = '>%i' % junction_end
+    result[(cds_start, cds_end, 'CDS')] = [('codon_start', 1),
+                                           ('product', product),
+                                           ('function', 'JUNCTION'),
+                                           ('inference', inference)]
 
     return result
 
@@ -578,7 +452,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       tuple : the output (feature table, fasta) file names.
     """
     log = OrderedDict()
-    log['START'] = 'ParseDb'
+    log['START'] = 'ConvertDb'
     log['COMMAND'] = 'genbank'
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
@@ -599,7 +473,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
 
     # Iterate over records
     start_time = time()
-    rec_count = 0
+    rec_count = pass_count = fail_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -612,17 +486,20 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
                                   db_xref=db_xref, inference=inference, product=product,
                                   cregion_field=cregion_field)
+        if tbl is not None:
+            pass_count +=1
+            # Write table
+            writer.writerow(['>Features', seq['record'].id])
+            for feature, qualifiers in tbl.items():
+                writer.writerow(feature)
+                if qualifiers:
+                    for x in qualifiers:
+                        writer.writerow(list(chain(['', '', ''], x)))
 
-        # Write table
-        writer.writerow(['>Features', seq['record'].id])
-        for feature, qualifiers in tbl.items():
-            writer.writerow(feature)
-            if qualifiers:
-                for x in qualifiers:
-                    writer.writerow(list(chain(['', '', ''], x)))
-
-        # Write sequence
-        SeqIO.write(seq['record'], fsa_handle, 'fasta')
+            # Write sequence
+            SeqIO.write(seq['record'], fsa_handle, 'fasta')
+        else:
+            fail_count += 1
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time)
@@ -630,7 +507,9 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
     log['OUTPUT_TBL'] = os.path.basename(tbl_handle.name)
     log['OUTPUT_FSA'] = os.path.basename(fsa_handle.name)
     log['RECORDS'] = rec_count
-    log['END'] = 'ParseDb'
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['END'] = 'ConvertDb'
     printLog(log)
 
     # Close file handles
