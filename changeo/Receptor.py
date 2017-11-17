@@ -594,8 +594,8 @@ class Receptor:
           None : updates attribute values and the annotations attribute
         """
         # Partition data
-        attributes = {k.lower(): data.pop(k) for k in data if k.lower() in Receptor._parsers}
-        annotations = {k.lower(): v for k, v in data.items()}
+        attributes = {k.lower(): v for k, v in data.items() if k.lower() in Receptor._parsers}
+        annotations = {k.lower(): v for k, v in data.items() if k.lower() not in attributes}
 
         # Update attributes
         for k, v in attributes.items():
