@@ -40,7 +40,7 @@ default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_db_xref = 'IMGT/GENE-DB'
 default_moltype='mRNA'
-default_product='immunoglobulin'
+default_product='immunoglobulin heavy chain'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
@@ -256,7 +256,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
       end : end position of the modified seqeuence in the input sequence. Used for feature position offsets.
       inference : Reference alignment tool.
       db_xref : Reference database name.
-      product : CDS product (protein) name.
+      product : Product (protein) name.
       cregion_field : column containing the C region gene call.
 
     Returns:
@@ -331,7 +331,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     result[(variable_start, variable_end, 'V_region')] = variable_region
 
     # Product feature
-    result[(variable_start, variable_end, 'misc_feature')] = [('note', product)]
+    result[(variable_start, variable_end, 'misc_feature')] = [('note', '%s variable region' % product)]
 
     # V_segment
     #     gene (gene name)
@@ -374,7 +374,7 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     cds_start = '<%i' % junction_start
     cds_end = '>%i' % junction_end
     result[(cds_start, cds_end, 'CDS')] = [('codon_start', 1),
-                                           ('product', product),
+                                           ('product', '%s junction region' % product),
                                            ('function', 'JUNCTION'),
                                            ('inference', inference)]
 
@@ -443,7 +443,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       isolate : sample identifier.
       celltype : cell type.
       moltype : source molecule (eg, "mRNA", "genomic DNA")
-      product : CDS product (protein) name.
+      product : Product (protein) name.
       cregion_field : column containing the C region gene call.
       keep_id : if True use the original sequence ID for the output IDs
       out_args : common output argument dictionary from parseCommonArgs.
@@ -617,7 +617,7 @@ def getArgParser():
     parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Link to the reference database used for alignment.')
     parser_gb.add_argument('--product', action='store', dest='product', default=default_product,
-                            help='''The product (protein) name for the CDS.''')
+                            help='''The product name, such as "immunoglobulin heavy chain".''')
     parser_gb.add_argument('--moltype', action='store', dest='moltype', default=default_moltype,
                             help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
     parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
