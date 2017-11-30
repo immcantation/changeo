@@ -24,11 +24,11 @@ from Bio.Alphabet import IUPAC
 # Presto and changeo imports
 from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import flattenAnnotation
-from presto.IO import getOutputHandle, printLog, printProgress, printMessage
+from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields
-from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.IO import countDbFile
+from changeo.Parsers import ChangeoReader
 from changeo.Receptor import c_gene_regex, parseAllele
 
 # System settings

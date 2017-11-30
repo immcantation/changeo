@@ -1812,20 +1812,23 @@ def inferJunction(db, repo_dict):
 
     # Find germline J segment
     jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
-    if jgene in repo_dict:
-        # Get germline J sequence
-        jgerm = repo_dict[jgene]
-        jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
+    jgerm = repo_dict.get(jgene, None)
 
-        # Look for (F|W)GXG aa motif in nt sequence
+    if jgerm is not None:
+        # Look for (F|W)GXG amino acid motif in germline nucleotide sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
+
+        # Define junction end position
+        seq_len = len(db['SEQUENCE_IMGT'])
         if motif:
-            aa_end = motif.start() - len(jgerm) + 3
+            j_start = seq_len - db['J_GERM_LENGTH']
+            motif_pos = max(motif.start() - db['J_GERM_START'] + 1, -1)
+            junc_end = j_start + motif_pos + 3
         else:
-            aa_end = len(db['SEQUENCE_IMGT'])
+            junc_end = seq_len
 
         # Extract junction
-        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
+        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:junc_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
 
         # Translation
