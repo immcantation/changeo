@@ -178,6 +178,84 @@ class ChangeoWriter:
             self.writer.writerow(row)
 
 
+class AIRRReader:
+    """
+    An iterator to read and parse AIRR formatted data.
+    """
+    @staticmethod
+    def _receptor(record):
+        """
+        Parses a dictionary of fields in the AIRR to a Receptor object
+
+        Arguments:
+          record : dict with fields and values in the AIRR format
+
+        Returns:
+          dict : a parsed dict
+        """
+        # Parse fields
+        result = {}
+        for k, v in record.items():
+            k = AIRRSchema.asReceptor(k)
+            result[k] = v
+
+        return Receptor(result)
+
+    def __init__(self, handle, receptor=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open AIRR formatted file
+          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
+
+        Returns:
+          changeo.Parsers.AIRRReader
+        """
+        # Arguments
+        self.handle = handle
+        self.receptor = receptor
+
+        # Import AIRR standard library
+        try:
+            import airr
+            #from airr.specs import rearrangements
+        except ImportError:
+            sys.exit('AIRR standard library is not available.')
+
+        # Define reader
+        self.reader = airr.read(handle=handle, debug=False)
+
+    def __iter__(self):
+        """
+        Iterator initializer.
+
+        Returns:
+          changeo.Parsers.AIRRReader
+        """
+        return self
+
+    def __next__(self):
+        """
+        Next method.
+
+        Returns:
+          changeo.Receptor.Receptor : Parsed Change-O data
+        """
+        # Get next row from reader iterator
+        try:
+            row = next(self.reader)
+        except StopIteration:
+            self.handle.close()
+            raise StopIteration
+
+        # Parse row
+        if self.receptor:
+            return AIRRReader._receptor(row)
+        else:
+            return row
+
+
 class AIRRWriter:
     """
     Writes AIRR formatted data.
@@ -229,17 +307,8 @@ class AIRRWriter:
         # Define writer
         self.writer = airr.create(handle=handle, debug=False)
         # TODO: we really want to tell AIRR about all the fields here
-        #fields = [f.lower() for f in fields if f.lower() in AIRRSchema._airr.keys()]
         fields = [f.lower() for f in fields]
         self.writer.addFields('changeo', fields)
-
-        # Provenance
-        #input_fasta = 'seq.fasta'
-        #germline_database = 'VDJServer GLDB 10_05_2016'
-        #igblast_input = 'seq.igblast.out'
-        #self.writer.addRearrangementActivityWithParser(input_fasta, germline_database, handle.name,
-        #                                               'IgBlast', 'alignment', 'changeo',
-        #                                               igblast_input, 'MakeDb')
 
     def writeReceptor(self, record):
             """
@@ -258,6 +327,7 @@ class AIRRWriter:
             #print('\n===== RECORD START =====\n')
             #for k, v in row.items(): print(k, v)
             self.writer.write(row)
+
 
 class IMGTReader:
     """

@@ -28,7 +28,7 @@ from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile
-from changeo.Parsers import ChangeoReader
+from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Receptor import c_gene_regex, parseAllele
 
 # System settings
@@ -74,6 +74,61 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
                            id=desc_str, name=desc_str, description='')
         
     return seq_record
+
+
+def convertDbAIRR(db_file, out_args=default_out_args):
+    """
+    Converts a Change-O formatted file into an AIRR formatted file
+
+    Arguments:
+    db_file = the database file name
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ConvertDb'
+    log['COMMAND'] = 'airr'
+    log['FILE'] = os.path.basename(db_file)
+    printLog(log)
+
+    # Open file handles
+    db_handle = open(db_file, 'rt')
+    db_iter = ChangeoReader(db_handle, receptor=True)
+    pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tsv')
+    # TODO: Need to handle extra/optional fields
+    pass_writer = AIRRWriter(pass_handle)
+
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = fail_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Write records
+        pass_writer.writeReceptor(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ConvertDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    db_handle.close()
+
+    return pass_handle.name
+
 
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
@@ -381,7 +436,8 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     return result
 
 
-def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype=None, moltype=default_moltype):
+def makeGenbankSequence(record, name=None, label=None, organism=None, isolate=None, celltype=None,
+                        moltype=default_moltype):
     """
     Creates a sequence for GenBank submissions
 
@@ -389,6 +445,7 @@ def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype
       record : Receptor record.
       name : sequence identifier for the output sequence. If None,
              use the original sequence identifier.
+      label : a string to use as a label for the ID. if None do not add a field label.
       organism : scientific name of the organism.
       isolate : sample identifier.
       celltype : cell type.
@@ -412,6 +469,8 @@ def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype
     # Define ID
     if name is None:
         name = record.sequence_id.split(' ')[0]
+    if label is not None:
+        name = '%s=%s' % (label, name)
     if organism is not None:
         name = '%s [organism=%s]' % (name, organism)
     if isolate is not None:
@@ -430,8 +489,8 @@ def makeGenbankSequence(record, name=None, organism=None, isolate=None, celltype
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
                      isolate=None, celltype=None, moltype=default_moltype,
-                     product=default_product, cregion_field=None, keep_id=False,
-                     out_args=default_out_args):
+                     product=default_product, cregion_field=None, label=None,
+                     keep_id=False, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -445,6 +504,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
       moltype : source molecule (eg, "mRNA", "genomic DNA")
       product : Product (protein) name.
       cregion_field : column containing the C region gene call.
+      label : a string to use as a label for the ID. if None do not add a field label.
       keep_id : if True use the original sequence ID for the output IDs
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -481,7 +541,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None,
 
         # Extract table dictionary
         name = None if keep_id else rec_count
-        seq = makeGenbankSequence(rec, name=name, organism=organism, isolate=isolate,
+        seq = makeGenbankSequence(rec, name=name, label=label, organism=organism, isolate=isolate,
                                   celltype=celltype, moltype=moltype)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'],
                                   db_xref=db_xref, inference=inference, product=product,
@@ -568,6 +628,13 @@ def getArgParser():
     parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
                                        failed=False, log=False)
 
+    # Subparser to convert changeo to AIRR files
+    parser_airr = subparsers.add_parser('airr', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Converts a Change-O database to an AIRR database.',
+                                       description='Converts a Change-O database to an AIRR database.')
+    parser_airr.set_defaults(func=convertDbAIRR)
+
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
@@ -635,6 +702,9 @@ def getArgParser():
                             help='''If specified, use the existing sequence identifier for the output identifier. 
                                  By default, only the row number will be used as the identifier to avoid
                                  the 50 character limit.''')
+    parser_gb.add_argument('--label', action='store', dest='label', default=None,
+                            help='''If specified, add a field name to the sequence identifier. 
+                                 Sequence identifiers will be output in the form <label>=<id>.''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
