@@ -648,21 +648,21 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
+                 airr
+                     AIRR formatted database files.
+                 changeo
+                     Change-O formatted database files.
                  sequences
                      FASTA formatted sequences output from the subcommands fasta and clip.
-                 <field>-<value>
-                     database files partitioned by annotation <field> and <value>.
-                 parse-<command>
-                     output of the database modification functions where <command> is one of
-                     the subcommands add, index, drop, delete, rename, select, sort or update.
+                 genbank
+                     feature tables and fasta files containing MiAIRR compliant input for tbl2asn.
 
              required fields:
-                 SEQUENCE_ID
+                 SEQUENCE_ID, SEQUENCE_INPUT, JUNCTION, V_CALL, D_CALL, J_CALL, 
+                 V_SEQ_START, V_SEQ_LENGTH, D_SEQ_START, D_SEQ_LENGTH, J_SEQ_START, J_SEQ_LENGTH
                  
              optional fields:
-                 JUNCTION, SEQUENCE_IMGT, SEQUENCE_VDJ, GERMLINE_IMGT, GERMLINE_VDJ,
-                 GERMLINE_IMGT_D_MASK, GERMLINE_VDJ_D_MASK,
-                 GERMLINE_IMGT_V_REGION, GERMLINE_VDJ_V_REGION
+                 SEQUENCE_IMGT, GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, CREGION
                 
              output fields:
                  None
