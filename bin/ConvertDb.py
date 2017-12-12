@@ -130,6 +130,60 @@ def convertDbAIRR(db_file, out_args=default_out_args):
     return pass_handle.name
 
 
+def convertDbChangeo(db_file, out_args=default_out_args):
+    """
+    Converts a AIRR formatted file into an Change-O formatted file
+
+    Arguments:
+    db_file = the database file name
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ConvertDb'
+    log['COMMAND'] = 'changeo'
+    log['FILE'] = os.path.basename(db_file)
+    printLog(log)
+
+    # Open file handles
+    db_handle = open(db_file, 'rt')
+    db_iter = AIRRReader(db_handle, receptor=True)
+    pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tsv')
+    # TODO: Need to handle extra/optional fields
+    pass_writer = ChangeoWriter(pass_handle)
+
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = fail_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += 1
+
+        # Write records
+        pass_writer.writeReceptor(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ConvertDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    db_handle.close()
+
+    return pass_handle.name
+
+
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
 def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
@@ -634,6 +688,13 @@ def getArgParser():
                                        help='Converts a Change-O database to an AIRR database.',
                                        description='Converts a Change-O database to an AIRR database.')
     parser_airr.set_defaults(func=convertDbAIRR)
+
+    # Subparser to convert AIRR to changeo files
+    parser_airr = subparsers.add_parser('changeo', parents=[parser_parent],
+                                       formatter_class=CommonHelpFormatter,
+                                       help='Converts an AIRR database to a Change-O database.',
+                                       description='Converts an AIRR database to a Change-O database.')
+    parser_airr.set_defaults(func=convertDbChangeo)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[parser_parent],
