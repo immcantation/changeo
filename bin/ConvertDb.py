@@ -29,7 +29,7 @@ from changeo.Defaults import default_csv_size
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile
 from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
-from changeo.Receptor import c_gene_regex, parseAllele
+from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -93,13 +93,28 @@ def convertDbAIRR(db_file, out_args=default_out_args):
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = ChangeoReader(db_handle, receptor=True)
+
+    # Set fields
+    fields_delete = ['v_seq_length', 'v_germ_length_vdj',
+                     'd_seq_length', 'd_germ_length',
+                     'j_seq_length', 'j_germ_length']
+    fields_add = ['v_start', 'v_germ_start',
+                  'd_start', 'd_germ_start',
+                  'j_start', 'j_germ_start',
+                  'v_end', 'v_germ_end',
+                  'd_end', 'd_germ_end',
+                  'j_end', 'j_germ_end']
+    fields = [ChangeoSchema.asAIRR(x) for x in db_iter.fields]
+    fields = [x for x in fields if x not in fields_delete]
+    fields.extend([x for x in fields_add if x not in fields])
+
+    # Open output writer
     pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'], out_type='tsv')
-    # TODO: Need to handle extra/optional fields
-    pass_writer = AIRRWriter(pass_handle)
+    pass_writer = AIRRWriter(pass_handle, fields=fields)
 
     # Count records
     result_count = countDbFile(db_file)
@@ -111,7 +126,6 @@ def convertDbAIRR(db_file, out_args=default_out_args):
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
-
         # Write records
         pass_writer.writeReceptor(rec)
 
@@ -147,13 +161,28 @@ def convertDbChangeo(db_file, out_args=default_out_args):
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = AIRRReader(db_handle, receptor=True)
+
+    # Set fields
+    fields_delete = ['V_SEQ_END', 'V_GERM_END_VDJ',
+                     'D_SEQ_END', 'D_GERM_END',
+                     'J_SEQ_END', 'J_GERM_END']
+    fields_add = ['V_SEQ_START', 'V_GERM_START_VDJ',
+                  'D_SEQ_START', 'D_GERM_START',
+                  'J_SEQ_START', 'J_GERM_START',
+                  'V_SEQ_LENGTH', 'V_GERM_LENGTH_VDJ',
+                  'D_SEQ_LENGTH', 'D_GERM_LENGTH',
+                  'J_SEQ_LENGTH', 'J_GERM_LENGTH']
+    fields = [AIRRSchema.asChangeo(x) for x in db_iter.fields]
+    fields = [x for x in fields if x not in fields_delete]
+    fields.extend([x for x in fields_add if x not in fields])
+
+    # Open output writer
     pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'], out_type='tsv')
-    # TODO: Need to handle extra/optional fields
-    pass_writer = ChangeoWriter(pass_handle)
+    pass_writer = ChangeoWriter(pass_handle, fields=fields)
 
     # Count records
     result_count = countDbFile(db_file)
@@ -165,7 +194,6 @@ def convertDbChangeo(db_file, out_args=default_out_args):
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
-
         # Write records
         pass_writer.writeReceptor(rec)
 

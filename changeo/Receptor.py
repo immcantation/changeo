@@ -46,8 +46,8 @@ class AIRRSchema:
                         ('np2_length', 'np2_length'),
                         ('v_start', 'v_seq_start'),
                         ('v_end', 'v_seq_end'),
-                        ('v_germ_start', 'v_germ_start_imgt'),
-                        ('v_germ_end', 'v_germ_end_imgt'),
+                        ('v_germ_start', 'v_germ_start_vdj'),
+                        ('v_germ_end', 'v_germ_end_vdj'),
                         ('d_start', 'd_seq_start'),
                         ('d_end', 'd_seq_end'),
                         ('d_germ_start', 'd_germ_start'),
@@ -146,19 +146,35 @@ class AIRRSchema:
     # Mapping of Receptor attributes to AIRR column names
     _receptor = {v: k for k, v in _airr.items()}
 
-    # Set of starting positional fields
-    _start = ['v_start', 'v_germ_start',
-              'd_start', 'd_germ_start',
-              'j_start', 'j_germ_start',
-              'fwr1_start', 'fwr2_start', 'fwr3_start', 'fwr4_start',
-              'cdr1_start', 'cdr2_start', 'cdr3_start']
+    # Set of starting Receptor positional fields
+    _start = ['v_seq_start',
+              'v_germ_start_vdj',
+              'd_seq_start',
+              'd_germ_start',
+              'j_seq_start',
+              'j_germ_start',
+              'fwr1_start',
+              'fwr2_start',
+              'fwr3_start',
+              'fwr4_start',
+              'cdr1_start',
+              'cdr2_start',
+              'cdr3_start']
 
-    # Set of ending positional fields
-    _end = ['v_end', 'v_germ_end',
-            'd_end', 'd_germ_end',
-            'j_end', 'j_germ_end',
-            'fwr1_end', 'fwr2_end', 'fwr3_end', 'fwr4_end',
-            'cdr1_end', 'cdr2_end', 'cdr3_end']
+    # Positional fields in the form <Receptor end field>: (<Receptor start field>, <Receptor length field>)
+    _end = {'v_seq_end': ('v_seq_start', 'v_seq_length'),
+            'v_germ_end_vdj': ('v_germ_start_vdj', 'v_germ_length_vdj'),
+            'd_seq_end': ('d_seq_start', 'd_seq_length'),
+            'd_germ_end': ('d_germ_start', 'd_germ_length'),
+            'j_seq_end': ('j_seq_start', 'j_seq_length'),
+            'j_germ_end': ('j_germ_start', 'j_germ_length'),
+            'fwr1_end': ('fwr1_start', 'fwr1_length'),
+            'fwr2_end': ('fwr2_start', 'fwr2_length'),
+            'fwr3_end': ('fwr3_start', 'fwr3_length'),
+            'fwr4_end': ('fwr4_start', 'fwr4_length'),
+            'cdr1_end': ('cdr1_start', 'cdr1_length'),
+            'cdr2_end': ('cdr2_start', 'cdr2_length'),
+            'cdr3_end': ('cdr3_start', 'cdr3_length')}
 
     # Ordered list of known fields
     @staticmethod
@@ -504,7 +520,8 @@ class Receptor:
     # Logical type conversion
     @staticmethod
     def _logical(v, deparse=False):
-        parse_map = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
+        parse_map = {True: True, 'T': True, 'TRUE': True,
+                     False: False, 'F': False, 'FALSE': False,
                      'NA': None, 'None': None, '': None}
         deparse_map = {False: 'F', True: 'T', None: ''}
         if not deparse:

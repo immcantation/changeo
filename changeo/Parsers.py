@@ -182,6 +182,16 @@ class AIRRReader:
     """
     An iterator to read and parse AIRR formatted data.
     """
+    @property
+    def fields(self):
+        """
+        Get list fields
+
+        Returns:
+          list : field names
+        """
+        return self.reader._inputFieldNames
+
     @staticmethod
     def _receptor(record):
         """
@@ -196,8 +206,16 @@ class AIRRReader:
         # Parse fields
         result = {}
         for k, v in record.items():
+            # Convert start positions to 0-based
             k = AIRRSchema.asReceptor(k)
+            if v is not None and v != '' and k in AIRRSchema._start:
+                v = str(int(v) + 1)
             result[k] = v
+
+        for k in AIRRSchema._end:
+            if k in result and result[k] is not None:
+                start, length = AIRRSchema._end[k]
+                result[length] = int(result[k]) - int(result[start]) + 1
 
         return Receptor(result)
 
@@ -274,12 +292,12 @@ class AIRRWriter:
         result = {}
         row = record.toDict()
         for k, v in row.items():
+            # Convert start positions to 0-based
+            if v is not None and v != '' and k in AIRRSchema._start:
+                v = str(int(v) - 1)
             # Convert field names
             k = AIRRSchema.asAIRR(k, False)
-            if k is not None:
-                # Convert start positions to 0-based
-                if v and k in AIRRSchema._start:  v = str(int(v) - 1)
-                result[k] = v
+            result[k] = v
 
         return result
 
