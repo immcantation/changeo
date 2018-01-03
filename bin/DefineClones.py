@@ -926,23 +926,23 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
     Define clonally related sequences
     
     Arguments:
-    db_file = filename of input database
-    feed_func = the function that feeds the queue
-    work_func = the worker function that will run on each CPU
-    collect_func = the function that collects results from the workers
-    group_func = the function to use for assigning preclones
-    clone_func = the function to use for determining clones within preclonal groups
-    group_args = a dictionary of arguments to pass to group_func
-    clone_args = a dictionary of arguments to pass to clone_func
-    max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc    
+      db_file : filename of input database
+      feed_func : the function that feeds the queue
+      work_func : the worker function that will run on each CPU
+      collect_func : the function that collects results from the workers
+      group_func : the function to use for assigning preclones
+      clone_func : the function to use for determining clones within preclonal groups
+      group_args : a dictionary of arguments to pass to group_func
+      clone_args : a dictionary of arguments to pass to clone_func
+      max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
+      out_args : common output argument dictionary from parseCommonArgs
+      nproc : the number of processQueue processes;
+              if None defaults to the number of CPUs
+      queue_size : maximum size of the argument queue;
+                   if None defaults to 2*nproc
     
     Returns:
-    a list of successful output file names
+      list : successful output file names
     """
     # Print parameter info
     log = OrderedDict()

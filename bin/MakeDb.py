@@ -24,6 +24,7 @@ from changeo.IO import countDbFile, extractIMGT, readRepo
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
+
 def getSeqDict(seq_file):
     """
     Create a dictionary from a sequence file.
@@ -34,8 +35,7 @@ def getSeqDict(seq_file):
     Returns:
         dict : sequence description as keys with Bio.SeqRecords as values.
     """
-    seq_dict = SeqIO.to_dict(readSeqFile(seq_file),
-                             key_function=lambda x: x.description)
+    seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
 
     return seq_dict
 
