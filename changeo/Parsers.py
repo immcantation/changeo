@@ -1917,11 +1917,12 @@ def inferJunction(db, repo_dict):
 
         # Extract junction
         junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:junc_end]
-        junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
+        junc_len = len(junc_dict['JUNCTION'])
+        junc_dict['JUNCTION_LENGTH'] = junc_len
 
         # Translation
         junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
-        if len(junc_tmp) % 3 > 0:  junc_tmp = junc_tmp + 'N' * (3 - len(junc_tmp) % 3)
+        if junc_len % 3 > 0:  junc_tmp = junc_tmp[:junc_len - junc_len % 3]
         junc_dict['JUNCTION_AA'] = str(Seq(junc_tmp).translate())
 
     return junc_dict
