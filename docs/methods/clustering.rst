@@ -9,11 +9,10 @@ Ig sequences into clonal groups.
 Clustering by V-gene, J-gene and junction length
 --------------------------------------------------------------------------------
 
-All methods provided by the :program:`bygroup` subcommand of :ref:`DefineClones`
-first partition sequences based on common IGHV gene, IGHJ gene, and
-junction region length. These groups are then further subdivided into
-clonally related groups based on the following distance metrics on the
-junction region. The specified distance metric
+All methods provided by :ref:`DefineClones` first partition sequences based on
+common IGHV gene, IGHJ gene, and junction region length. These groups are then
+further subdivided into clonally related groups based on the following distance
+metrics on the junction region. The specified distance metric
 (:option:`--model <DefineClones bygroup --model>`) is then
 used to perform hierarchical clustering under the specified linkage
 (:option:`--link <DefineClones bygroup --link>`) clustering. Clonal groups are
@@ -93,46 +92,5 @@ The distances defined by :math:`D` for each nucleotide difference are
 summed for all 5-mers in the junction to yield the distance between the
 two junction sequences.
 
-
-Clustering by the full sequence
----------------------------------------------------------------------------------
-
-The :program:`chen2010` and :program:`ademokun2011` methods provided by
-:ref:`DefineClones` cluster sequences based on the full length sequence, with
-imposed penalties for V-gene and/or J-gene mismatches.
-
-Chen et al, 2010 method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :program:`chen2010` method of :ref:`DefineClones` is directly from
-:cite:`Chen2010`, with additional flexibility in
-selecting the threshold for determining clonally related groups. The
-distance metric is a normalized edit distance (:math:`NED_VJ`)
-calculated as:
-
-.. math:: NED\_VJ = \frac{LD+S_V+S_J}{L}
-
-where :math:`LD` is the un-normalized Levenshtein distance, :math:`S_V`
-is the mismatch penalty for the V-gene (0 if same gene,
-1 if allele differs, 3 if gene differs, and 5 if family differs),
-:math:`S_J` is the mismatch penalty for J-gene (0 if same
-gene, 1 if allele differs, 3 if gene differs). :math:`L` is the CDR3
-alignment length. Given this distance metric, sequences are clustered
-using hierarchical clustering with average linkage. The
-resulting dendrogram is trimmed at the specified threshold.
-
-Ademokun et al, 2011 method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :program:`ademokun2011` method of :ref:`DefineClones` is directly
-from :cite:`Ademokun2011`, with additional flexibility in
-selecting the threshold for determining clonally related groups. The
-distance metric is a minimum edit distance normalized to the length of
-the shorter sequence up to a maximum of 1 in 5 (or a total of 10)
-mismatches or indels. Distance is set to 1 for sequences with more than
-the maximum number of mismatches or sequences with different
-V-gene families. This metric is then used to do complete
-linkage hierarchical clustering. The resulting dendrogram is trimmed at
-the specified threshold.
 
 .. bibliography:: ../references.bib

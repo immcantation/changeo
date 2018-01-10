@@ -54,15 +54,15 @@ Assigning clones
 --------------------------------------------------------------------------------
 
 There are several parameter choices when grouping Ig sequences into B cell
-clones. The argument :option:`--act set <DefineClones bygroup --act>`
+clones. The argument :option:`--act set <DefineClones --act>`
 accounts for ambiguous V-gene and J-gene calls when grouping similar sequences. The
-distance metric :option:`--model ham <DefineClones bygroup --model>`
+distance metric :option:`--model ham <DefineClones --model>`
 is nucleotide Hamming distance. Because
-the :option:`ham <DefineClones bygroup --model>` distance model is symmetric,
-the :option:`--sym min <DefineClones bygroup --sym>` argument can be left as default.
+the :option:`ham <DefineClones --model>` distance model is symmetric,
+the :option:`--sym min <DefineClones --sym>` argument can be left as default.
 Because the threshold was generated using length normalized distances, the
-:option:`--norm len <DefineClones bygroup --norm>` argument is selected with the
-resultant threshold :option:`--dist 0.16 <DefineClones bygroup --dist>`::
+:option:`--norm len <DefineClones --norm>` argument is selected with the
+resultant threshold :option:`--dist 0.16 <DefineClones --dist>`::
 
-    DefineClones.py bygroup -d S43_db-pass_parse-select.tab --act set --model ham \
+    DefineClones.py -d S43_db-pass_parse-select.tab --act set --model ham \
     --sym min --norm len --dist 0.16

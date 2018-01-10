@@ -7,10 +7,7 @@ Tool	Subcommand	Description
 	across	Aligns sequence columns within groups and across rows
 	within	Aligns sequence fields within rows
 	block	Aligns sequence groups across both columns and rows
-:ref:`DefineClones`		Groups Ig sequences into clonal clusters
-	bygroup	Assigns clones by V-gene, J-gene and junction distance
-	chen2010	Assigns clones using the method in Chen, 2010
-	ademokun2011	Assigns clones using the method in Ademokun, 2011
+:ref:`DefineClones`		Assigns clones by V gene, J gene and junction distance
 :ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
 :ref:`ConvertDb`		Converts tab delimited database files
 	fasta	Creates a fasta file from database records
