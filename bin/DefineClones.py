@@ -24,11 +24,10 @@ from Bio.Seq import translate
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
-from presto.Sequence import getDNAScoreDict
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields
-from changeo.Multiprocessing import DbData, DbResult
+from changeo.Multiprocessing import DbData, DbResult, feedDbQueue
 from changeo.Parsers import ChangeoSchema, ChangeoReader, ChangeoWriter
 
 # Defaults
@@ -36,23 +35,22 @@ default_translate = False
 default_distance = 0.0
 default_index_mode = 'gene'
 default_index_action = 'set'
-default_bygroup_model = 'ham'
-default_hclust_model = 'chen2010'
+default_distance_model = 'ham'
 default_seq_field = 'JUNCTION'
 default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
 default_max_missing=0
-choices_bygroup_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
+choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
 
 
 def filterMissing(data, field=default_seq_field, max_missing=default_max_missing):
     """
-    Splits a list of IgRecords into passed and failed groups based on the number
+    Splits a list of Receptor into passed and failed groups based on the number
     of missing characters in the sequence
 
     Arguments:
-        data : list of IgRecords to partion
+        data : list of Receptor records
         field : sequence field to filter on
         max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record
 
@@ -84,7 +82,7 @@ def indexByIdentity(index, key, rec, fields=None):
     Updates a preclone index with a simple key
 
     Arguments:
-      index : preclone index from indexJunctions
+      index : preclone index from groupByGene
       key : index key
       rec : Receptor to add to the index
       fields : additional annotation fields to use to group preclones;
@@ -101,7 +99,7 @@ def indexByUnion(index, key, rec, fields=None):
     Updates a preclone index with the union of nested keys
 
     Arguments:
-      index : preclone index from indexJunctions
+      index : preclone index from groupByGene
       key : index key
       rec : Receptor to add to the index
       fields : additional annotation fields to use to group preclones;
@@ -158,7 +156,7 @@ def indexByUnion(index, key, rec, fields=None):
         outer_dict[key[1]] = {key[0]: val}
 
 
-def indexJunctions(db_iter, fields=None, mode=default_index_mode,
+def groupByGene(db_iter, fields=None, mode=default_index_mode,
                    action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
@@ -245,7 +243,7 @@ def indexJunctions(db_iter, fields=None, mode=default_index_mode,
     return clone_index
 
 
-def distanceClones(records, model=default_bygroup_model, distance=default_distance,
+def distanceClones(records, model=default_distance_model, distance=default_distance,
                    dist_mat=None, norm=default_norm, sym=default_sym,
                    linkage=default_linkage, seq_field=default_seq_field):
     """
@@ -312,209 +310,6 @@ def distanceClones(records, model=default_bygroup_model, distance=default_distan
         clone_dict.setdefault(c, []).extend(seq_map[seqs[i]])
 
     return clone_dict
-
-
-def distChen2010(records):
-    """
-    Calculate pairwise distances as defined in Chen 2010
-    
-    Arguments:
-      records : list of Receptor objects where first is query to be compared to others in list
-    
-    Returns:
-      list : distances
-    """
-    # Pull out query sequence and V/J information
-    query = records.popitem(last=False)
-    query_cdr3 = query.junction[3:-3]
-    query_v_allele = query.getVAllele()
-    query_v_gene = query.getVGene()
-    query_v_family = query.getVFamily()
-    query_j_allele = query.getJAllele()
-    query_j_gene = query.getJGene()
-    # Create alignment scoring dictionary
-    score_dict = getDNAScoreDict()
-    
-    scores = [0]*len(records)    
-    for i in range(len(records)):
-        ld = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
-                                      score_dict, -1, -1, one_alignment_only=True)
-        # Check V similarity
-        if records[i].getVAllele() == query_v_allele: ld += 0
-        elif records[i].getVGene() == query_v_gene: ld += 1
-        elif records[i].getVFamily() == query_v_family: ld += 3
-        else: ld += 5
-        # Check J similarity
-        if records[i].getJAllele() == query_j_allele: ld += 0
-        elif records[i].getJGene() == query_j_gene: ld += 1
-        else: ld += 3
-        # Divide by length
-        scores[i] = ld/max(len(records[i].junction[3:-3]), query_cdr3)
-        
-    return scores
-
-
-def distAdemokun2011(records):
-    """
-    Calculate pairwise distances as defined in Ademokun 2011
-    
-    Arguments:
-      records : list of Receptor objects where first is query to be compared to others in list
-    
-    Returns:
-      list : distances
-    """
-    # Pull out query sequence and V family information
-    query = records.popitem(last=False)
-    query_cdr3 = query.junction[3:-3]
-    query_v_family = query.getVFamily()
-    # Create alignment scoring dictionary
-    score_dict = getDNAScoreDict()
-    
-    scores = [0]*len(records)    
-    for i in range(len(records)):
-        
-        if abs(len(query_cdr3) - len(records[i].junction[3:-3])) > 10:
-            scores[i] = 1
-        elif query_v_family != records[i].getVFamily(): 
-            scores[i] = 1
-        else: 
-            ld = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3], 
-                                          score_dict, -1, -1, one_alignment_only=True)
-            scores[i] = ld/min(len(records[i].junction[3:-3]), query_cdr3)
-    
-    return scores
-
-
-def hierClust(dist_mat, method='chen2010'):
-    """
-    Calculate hierarchical clustering
-    
-    Arguments:
-    dist_mat = square-formed distance matrix of pairwise CDR3 comparisons
-    
-    Returns:
-    list of cluster ids
-    """
-    if method == 'chen2010':
-        clusters = formClusters(dist_mat, 'average', 0.32)
-    elif method == 'ademokun2011':
-        clusters = formClusters(dist_mat, 'complete', 0.25)
-    else: clusters = np.ones(dist_mat.shape[0])
-        
-    return clusters
-
-# TODO:  Merge duplicate feed, process and collect functions.
-def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
-    """
-    Feeds the data queue with Ig records
-
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    data_queue = a multiprocessing.Queue to hold data for processing
-    db_file = the Ig record database file
-    group_func = the function to use for assigning preclones
-    group_args = a dictionary of arguments to pass to group_func
-    
-    Returns: 
-    None
-    """
-    # Open input file and perform grouping
-    try:
-        # Iterate over Receptor objects and assign groups
-        with open(db_file, 'r') as db_handle:
-            db_iter = ChangeoReader(db_handle)
-            clone_dict = group_func(db_iter, **group_args)
-    except:
-        #sys.stderr.write('Exception in feeder grouping step\n')
-        alive.value = False
-        raise
-    
-    # Add groups to data queue
-    try:
-        #print 'START FEED', alive.value
-        # Iterate over groups and feed data queue
-        clone_iter = iter(clone_dict.items())
-        while alive.value:
-            # Get data from queue
-            if data_queue.full():  continue
-            else:  data = next(clone_iter, None)
-            # Exit upon reaching end of iterator
-            if data is None:  break
-            #print "FEED", alive.value, k
-            
-            # Feed queue
-            data_queue.put(DbData(*data))
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        #sys.stderr.write('Exception in feeder queue feeding step\n')
-        alive.value = False
-        raise
-
-    return None
-
-
-def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
-    """
-    Feeds the data queue with Ig records
-
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    data_queue = a multiprocessing.Queue to hold data for processing
-    db_file = the Ig record database file
-    
-    Returns: 
-    None
-    """
-    # Open input file and perform grouping
-    try:
-        # Iterate over Ig records and order by junction length
-        records = {}
-        with open(db_file, 'r') as db_handle:
-            db_iter = ChangeoReader(db_handle)
-            for rec in db_iter:
-                records[rec.sequence_id] = rec
-            records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
-
-        dist_dict = {}
-        for __ in range(len(records)):
-            k,v = records.popitem(last=False)
-            dist_dict[k] = [v].append(list(records.values()))
-    except:
-        #sys.stderr.write('Exception in feeder grouping step\n')
-        alive.value = False
-        raise
-    
-    # Add groups to data queue
-    try:
-        # print 'START FEED', alive.value
-        # Iterate over groups and feed data queue
-        dist_iter = iter(dist_dict.items())
-        while alive.value:
-            # Get data from queue
-            if data_queue.full():  continue
-            else:  data = next(dist_iter, None)
-            # Exit upon reaching end of iterator
-            if data is None:  break
-            #print "FEED", alive.value, k
-            
-            # Feed queue
-            data_queue.put(DbData(*data))
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        #sys.stderr.write('Exception in feeder queue feeding step\n')
-        alive.value = False
-        raise
-
-    return None
 
 
 def processQueue(alive, data_queue, result_queue, max_missing=default_max_missing,
@@ -595,74 +390,20 @@ def processQueue(alive, data_queue, result_queue, max_missing=default_max_missin
     return None
 
 
-def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
-    """
-    Pulls from data queue, performs calculations, and feeds results queue
-
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    clone_func = the function to call for calculating pairwise distances between sequences
-    clone_args = a dictionary of arguments to pass to clone_func
-
-    Returns: 
-    None
-    """
-    
-    try:
-        # print 'START WORK', alive.value
-        # Iterator over data queue until sentinel object reached
-        while alive.value:
-            # Get data from queue
-            if data_queue.empty():  continue
-            else:  data = data_queue.get()
-            # Exit upon reaching sentinel
-            if data is None:  break
-            # print "WORK", alive.value, data['id']
-
-            # Define result object for iteration and get data records
-            records = data.data
-            result = DbResult(data.id, records)
-             
-            # Create row of distance matrix and check for error
-            dist_row = clone_func(records, **clone_args) if data else None
-            if dist_row is not None:
-                result.results = dist_row
-                result.valid = True
-  
-            # Feed results to result queue
-            result_queue.put(result)
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        #sys.stderr.write('Exception in worker\n')
-        alive.value = False
-        raise
-    
-    return None
-
-
-def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_func=None, cluster_args={}):
+def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
     Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    result_queue = a multiprocessing.Queue holding processQueue results
-    collect_queue = a multiprocessing.Queue to store collector return values
-    db_file = the input database file name
-    out_args = common output argument dictionary from parseCommonArgs
-    cluster_func = the function to call for carrying out clustering on distance matrix
-    cluster_args = a dictionary of arguments to pass to cluster_func
+      alive = a multiprocessing.Value boolean controlling whether processing continues
+              if False exit process
+      result_queue : a multiprocessing.Queue holding processQueue results
+      collect_queue : a multiprocessing.Queue to store collector return values
+      db_file : the input database file name
+      out_args : common output argument dictionary from parseCommonArgs
     
-    Returns: 
-    None
-    (adds 'log' and 'out_files' to collect_dict)
+    Returns:
+      None
     """
     # Open output files
     try:
@@ -774,165 +515,18 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args, cluster_
     return None
 
 
-def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, cluster_func, cluster_args):
-    """
-    Assembles results from a queue of individual sequence results and manages log/file I/O
-
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing continues
-            if False exit process
-    result_queue = a multiprocessing.Queue holding processQueue results
-    collect_queue = a multiprocessing.Queue to store collector return values
-    db_file = the input database file name
-    out_args = common output argument dictionary from parseCommonArgs
-    cluster_func = the function to call for carrying out clustering on distance matrix
-    cluster_args = a dictionary of arguments to pass to cluster_func
-    
-    Returns: 
-    None
-    (adds 'log' and 'out_files' to collect_dict)
-    """
-    # Open output files
-    try:
-               
-        # Iterate over records to count and order by junction length
-        result_count = 0
-        records = {}
-        # print 'Reading file...'
-        db_iter = ChangeoReader(db_file)
-        for rec in db_iter:
-            records[rec.sequence_id] = rec
-            result_count += 1
-        records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
-                
-        # Define empty matrix to store assembled results
-        dist_mat = np.zeros((result_count,result_count))
-        
-        # Count records and define output format
-        out_fields = getDbFields(db_file, add='CLONE')
-
-        # Defined successful output handle
-        pass_handle = getOutputHandle(db_file, 
-                                      out_label='clone-pass', 
-                                      out_dir=out_args['out_dir'], 
-                                      out_name=out_args['out_name'], 
-                                      out_type='tsv')
-        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
-
-        # Defined failed cloning output handle
-        if out_args['failed']:
-            fail_handle = getOutputHandle(db_file,
-                                          out_label='clone-fail', 
-                                          out_dir=out_args['out_dir'], 
-                                          out_name=out_args['out_name'], 
-                                          out_type='tsv')
-            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
-        else:
-            fail_handle = None
-            fail_writer = None
-
-        # Open log file
-        if out_args['log_file'] is None:
-            log_handle = None
-        else:
-            log_handle = open(out_args['log_file'], 'w')
-    except:
-        alive.value = False
-        raise
-    
-    try:
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
-        row_count = rec_count = 0
-        while alive.value:
-            # Get result from queue
-            if result_queue.empty():  continue
-            else:  result = result_queue.get()
-            # Exit upon reaching sentinel
-            if result is None:  break
-
-            # Print progress for previous iteration
-            if row_count == 0:
-                print('PROGRESS> Assigning clones')
-            printProgress(row_count, result_count, 0.05, start_time)
-            
-            # Update counts for iteration
-            row_count += 1
-            rec_count += len(result)
-            
-            # Add result row to distance matrix
-            if result:
-                dist_mat[list(range(result_count-len(result),result_count)),result_count-len(result)] = result.results
-                
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None    
-        
-        # Calculate linkage and carry out clustering
-        # print dist_mat
-        clusters = cluster_func(dist_mat, **cluster_args) if dist_mat is not None else None
-        clones = {}
-        # print clusters
-        for i, c in enumerate(clusters):
-            clones.setdefault(c, []).append(records[list(records.keys())[i]])
-        
-        # Write passed and failed records
-        clone_count = pass_count = fail_count = 0
-        if clones:
-            for clone in clones.values():
-                clone_count += 1
-                for i, rec in enumerate(clone):
-                    rec.annotations['clone'] = clone_count
-                    pass_writer.writeReceptor(rec)
-                    pass_count += 1
-                    #result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
-
-        else:
-            for i, rec in enumerate(result.data):
-                fail_writer.writeReceptor(rec)
-                fail_count += 1
-                #result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
-        
-        # Print final progress
-        printProgress(row_count, result_count, 0.05, start_time)
-    
-        # Close file handles
-        pass_handle.close()
-        if fail_handle is not None:  fail_handle.close()
-        if log_handle is not None:  log_handle.close()
-                
-        # Update return list
-        log = OrderedDict()
-        log['OUTPUT'] = os.path.basename(pass_handle.name)
-        log['CLONES'] = clone_count
-        log['RECORDS'] = rec_count
-        log['PASS'] = pass_count
-        log['FAIL'] = fail_count
-        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
-        collect_queue.put(collect_dict)
-    except:
-        alive.value = False
-        raise
-    
-    return None
-
-
-def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
-                 cluster_func=None, group_func=None, group_args={}, clone_args={},
-                 cluster_args={}, max_missing=default_max_missing,
+def defineClones(db_file, group_func=groupByGene, group_args={},
+                 clone_func=distanceClones, clone_args={},
+                 max_missing=default_max_missing,
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
     Define clonally related sequences
     
     Arguments:
       db_file : filename of input database
-      feed_func : the function that feeds the queue
-      work_func : the worker function that will run on each CPU
-      collect_func : the function that collects results from the workers
       group_func : the function to use for assigning preclones
-      clone_func : the function to use for determining clones within preclonal groups
       group_args : a dictionary of arguments to pass to group_func
+      clone_func : the function to use for determining clones within preclonal groups
       clone_args : a dictionary of arguments to pass to clone_func
       max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
       out_args : common output argument dictionary from parseCommonArgs
@@ -949,9 +543,8 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
     log['START'] = 'DefineClones'
     log['DB_FILE'] = os.path.basename(db_file)
     log['MAX_MISSING'] = max_missing
-    if group_func is not None:
-        log['GROUP_FUNC'] = group_func.__name__
-        log['GROUP_ARGS'] = group_args
+    log['GROUP_FUNC'] = group_func.__name__
+    log['GROUP_ARGS'] = group_args
     log['CLONE_FUNC'] = clone_func.__name__
 
     # TODO:  this is yucky, but can be fixed by using a model class
@@ -959,9 +552,6 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
     if 'dist_mat' in clone_log:  del clone_log['dist_mat']
     log['CLONE_ARGS'] = clone_log
 
-    if cluster_func is not None:
-        log['CLUSTER_FUNC'] = cluster_func.__name__
-        log['CLUSTER_ARGS'] = cluster_args
     log['NPROC'] = nproc
     printLog(log)
     
@@ -975,12 +565,10 @@ def defineClones(db_file, feed_func, work_func, collect_func, clone_func,
                  'clone_args': clone_args}
     # Define collector function and arguments
     collect_args = {'db_file': db_file,
-                    'out_args': out_args,
-                    'cluster_func': cluster_func,
-                    'cluster_args': cluster_args}
+                    'out_args': out_args}
 
     # Call process manager
-    result = manageProcesses(feed_func=feed_func, work_func=work_func, collect_func=collect_func,
+    result = manageProcesses(feed_func=feedDbQueue, work_func=processQueue, collect_func=collectQueue,
                              feed_args=feed_args, work_args=work_args, collect_args=collect_args,
                              nproc=nproc, queue_size=queue_size)
         
@@ -1020,42 +608,30 @@ def getArgParser():
                  CLONE
               ''')
 
-    # Define ArgumentParser
+    # Parent parser
+    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
+                                       multiproc=True)
+    # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
+                            parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
     parser.add_argument('--version', action='version',
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
-                                       help='Cloning method')
-    # TODO:  This is a temporary fix for Python issue 9253
-    subparsers.required = True
-    
-    # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True, 
-                                       multiproc=True)
-    
+
     # Distance cloning method
-    parser_bygroup = subparsers.add_parser('bygroup', parents=[parser_parent],
-                                           formatter_class=CommonHelpFormatter,
-                                           help='''Defines clones as having same V assignment,
-                                                J assignment, and junction length with
-                                                specified substitution distance model.''',
-                                           description='''Defines clones as having same V assignment,
-                                                       J assignment, and junction length with
-                                                       specified substitution distance model.''')
-    parser_bygroup.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
+    parser.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
                              help='Additional fields to use for grouping clones (non VDJ)')
-    parser_bygroup.add_argument('--mode', action='store', dest='mode', 
+    parser.add_argument('--mode', action='store', dest='mode',
                              choices=('allele', 'gene'), default=default_index_mode,
                              help='''Specifies whether to use the V(D)J allele or gene for
                                   initial grouping.''')
-    parser_bygroup.add_argument('--act', action='store', dest='action',
+    parser.add_argument('--act', action='store', dest='action',
                              choices=('first', 'set'), default=default_index_action,
                              help='''Specifies how to handle multiple V(D)J assignments
                                   for initial grouping.''')
-    parser_bygroup.add_argument('--model', action='store', dest='model', 
-                             choices=choices_bygroup_model,
-                             default=default_bygroup_model,
+    parser.add_argument('--model', action='store', dest='model',
+                             choices=choices_distance_model,
+                             default=default_distance_model,
                              help='''Specifies which substitution model to use for calculating distance
                                   between sequences. The "ham" model is nucleotide Hamming distance and
                                   "aa" is amino acid Hamming distance. The "hh_s1f" and "hh_s5f" models are
@@ -1066,57 +642,34 @@ def getArgParser():
                                   deprecated models provided backwards compatibility with the "m1n" and
                                   "hs1f" models in Change-O v0.3.3 and SHazaM v0.1.4. Both
                                   5-mer models should be considered experimental.''')
-    parser_bygroup.add_argument('--dist', action='store', dest='distance', type=float, 
+    parser.add_argument('--dist', action='store', dest='distance', type=float,
                              default=default_distance,
                              help='The distance threshold for clonal grouping')
-    parser_bygroup.add_argument('--norm', action='store', dest='norm',
+    parser.add_argument('--norm', action='store', dest='norm',
                              choices=('len', 'mut', 'none'), default=default_norm,
                              help='''Specifies how to normalize distances. One of none
                                   (do not normalize), len (normalize by length),
                                   or mut (normalize by number of mutations between sequences).''')
-    parser_bygroup.add_argument('--sym', action='store', dest='sym',
+    parser.add_argument('--sym', action='store', dest='sym',
                              choices=('avg', 'min'), default=default_sym,
                              help='''Specifies how to combine asymmetric distances. One of avg
                                   (average of A->B and B->A) or min (minimum of A->B and B->A).''')
-    parser_bygroup.add_argument('--link', action='store', dest='linkage',
+    parser.add_argument('--link', action='store', dest='linkage',
                              choices=('single', 'average', 'complete'), default=default_linkage,
                              help='''Type of linkage to use for hierarchical clustering.''')
-    parser_bygroup.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
+    parser.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
                                 default=default_max_missing,
                                 help='''The maximum number of non-ACGT characters (gaps or Ns) to 
                                      permit in the junction sequence before excluding the record 
                                      from clonal assignment. Warning, under single linkage 
                                      non-informative positions can create artifactual links 
                                      between unrelated sequences. Use with caution.''')
-    parser_bygroup.add_argument('--sf', action='store', dest='seq_field',
+    parser.add_argument('--sf', action='store', dest='seq_field',
                                 default=default_seq_field,
                                 help='''The name of the field to be used to calculate
                                      distance between records''')
-    parser_bygroup.set_defaults(feed_func=feedQueue)
-    parser_bygroup.set_defaults(work_func=processQueue)
-    parser_bygroup.set_defaults(collect_func=collectQueue)  
-    parser_bygroup.set_defaults(group_func=indexJunctions)  
-    parser_bygroup.set_defaults(clone_func=distanceClones)
-    
-    # Chen2010
-    parser_chen = subparsers.add_parser('chen2010', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
-                                        help='''Defines clones by method specified in Chen, 2010.''',
-                                        description='''Defines clones by method specified in Chen, 2010.''')
-    parser_chen.set_defaults(feed_func=feedQueueClust)
-    parser_chen.set_defaults(work_func=processQueueClust)
-    parser_chen.set_defaults(collect_func=collectQueueClust)
-    parser_chen.set_defaults(cluster_func=hierClust)
-
-    # Ademokun2011
-    parser_ade = subparsers.add_parser('ademokun2011', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
-                                        help='''Defines clones by method specified in Ademokun, 2011.''',
-                                        description='''Defines clones by method specified in Ademokun, 2011.''')
-    parser_ade.set_defaults(feed_func=feedQueueClust)
-    parser_ade.set_defaults(work_func=processQueueClust)
-    parser_ade.set_defaults(collect_func=collectQueueClust)
-    parser_ade.set_defaults(cluster_func=hierClust)
+    parser.set_defaults(group_func=groupByGene)
+    parser.set_defaults(clone_func=distanceClones)
         
     return parser
 
@@ -1130,51 +683,42 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+
     # Convert case of fields
     if 'seq_field' in args_dict:
         args_dict['seq_field'] = args_dict['seq_field'].upper()
     if 'fields' in args_dict and args_dict['fields'] is not None:  
         args_dict['fields'] = [f.upper() for f in args_dict['fields']]
     
-    # Define clone_args
-    if args.command == 'bygroup':
-        args_dict['group_args'] = {'fields': args_dict['fields'],
-                                   'action': args_dict['action'], 
-                                   'mode':args_dict['mode']}
-        args_dict['clone_args'] = {'model':  args_dict['model'],
-                                   'distance':  args_dict['distance'],
-                                   'norm': args_dict['norm'],
-                                   'sym': args_dict['sym'],
-                                   'linkage': args_dict['linkage'],
-                                   'seq_field': args_dict['seq_field']}
+    # Define grouping and cloning function arguments
+    args_dict['group_args'] = {'fields': args_dict['fields'],
+                               'action': args_dict['action'],
+                               'mode':args_dict['mode']}
+    args_dict['clone_args'] = {'model':  args_dict['model'],
+                               'distance':  args_dict['distance'],
+                               'norm': args_dict['norm'],
+                               'sym': args_dict['sym'],
+                               'linkage': args_dict['linkage'],
+                               'seq_field': args_dict['seq_field']}
 
-        # Get distance matrix
-        try:
-            args_dict['clone_args']['dist_mat'] = distance_models[args_dict['model']]
-        except KeyError:
-            sys.exit('Unrecognized distance model: %s' % args_dict['model'])
+    # Get distance matrix
+    try:
+        args_dict['clone_args']['dist_mat'] = distance_models[args_dict['model']]
+    except KeyError:
+        sys.exit('Unrecognized distance model: %s' % args_dict['model'])
 
-        del args_dict['fields']
-        del args_dict['action']
-        del args_dict['mode']
-        del args_dict['model']
-        del args_dict['distance']
-        del args_dict['norm']
-        del args_dict['sym']
-        del args_dict['linkage']
-        del args_dict['seq_field']
+    # Clean argument dictionary
+    del args_dict['fields']
+    del args_dict['action']
+    del args_dict['mode']
+    del args_dict['model']
+    del args_dict['distance']
+    del args_dict['norm']
+    del args_dict['sym']
+    del args_dict['linkage']
+    del args_dict['seq_field']
 
-    # Define clone_args
-    if args.command == 'chen2010':
-        args_dict['clone_func'] = distChen2010
-        args_dict['cluster_args'] = {'method': args.command }
-
-    if args.command == 'ademokun2011':
-        args_dict['clone_func'] = distAdemokun2011
-        args_dict['cluster_args'] = {'method': args.command }
-    
     # Call defineClones
-    del args_dict['command']
     del args_dict['db_files']
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
