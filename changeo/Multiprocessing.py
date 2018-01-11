@@ -260,7 +260,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(pass_count, result_count, 0.05, start_time)
+            printProgress(rec_count, result_count, 0.05, start_time)
 
             # Update counts for current iteration
             set_count += 1
@@ -290,7 +290,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_
             return None
 
         # Print total counts
-        printProgress(pass_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time)
 
         # Update return values
         log = OrderedDict()
