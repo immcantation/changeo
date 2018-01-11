@@ -39,7 +39,7 @@ class DbData:
 
     # Length evaluation
     def __len__(self):
-        if isinstance(self.data, IgRecord):
+        if isinstance(self.data, Receptor):
             return 1
         elif self.data is None:
             return 0
@@ -54,9 +54,10 @@ class DbResult:
     Attributes:
       id : result identifier
       data : list of original data records
-      results: list of successfully processed records
-      failed: list of records that failed processing for workers than may split sets
-      valid : True if processing was successfull and results should be written
+      results: list of processed records
+      data_pass: list of records that pass filtering for workers that split data before processing
+      data_fail: list of records that failed filtering for workers that split data before processing
+      valid : True if processing was successful and results should be written
       log : OrderedDict of log items
     """
     # Instantiation
@@ -64,7 +65,8 @@ class DbResult:
         self.id = key
         self.data = records
         self.results = None
-        self.failed = None
+        self.data_pass = records
+        self.data_fail = None
         self.valid = False
         self.log = OrderedDict([('ID', key)])
 
@@ -145,7 +147,8 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
     return None
 
 
-def processDbQueue(alive, data_queue, result_queue, process_func, process_args={}):
+def processDbQueue(alive, data_queue, result_queue, process_func, process_args={},
+                   filter_func=None, filter_args={}):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -154,8 +157,10 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
             continues; when False function returns
       data_queue : multiprocessing.Queue holding data to process
       result_queue : multiprocessing.Queue to hold processed results
-      process_func : Function to use for filtering sequences
-      process_args : Dictionary of arguments to pass to process_func
+      process_func : function to use for processing sequences
+      process_args : dictionary of arguments to pass to process_func
+      filter_func : function to use for filtering sequences before processing
+      filter_args : dictionary of arguments to pass to filter_func
 
     Returns:
       None
@@ -170,7 +175,11 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
             if data is None:  break
 
             # Perform work
-            result = process_func(data, **process_args)
+            if filter_func is None:
+                result = process_func(data, **process_args)
+            else:
+                result = filter_func(data, **filter_args)
+                result = process_func(result, **process_args)
 
             # Feed results to result queue
             result_queue.put(result)
@@ -180,7 +189,7 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence with ID: %s.\n' % str(data.id))
+        sys.stderr.write('Error processing data with ID: %s.\n' % str(data.id))
         raise
 
     return None

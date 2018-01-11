@@ -110,7 +110,6 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time)
     for i, record in enumerate(db, start=1):
-
         # Replace sequence description with full string, if required
         if id_dict is not None and record.sequence_id in id_dict:
             record.sequence_id = id_dict[record.sequence_id]

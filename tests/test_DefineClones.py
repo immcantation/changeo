@@ -10,12 +10,12 @@ import os
 import sys
 import time
 import unittest
-import cProfile
 from copy import deepcopy
 from itertools import chain
 
 # Presto and changeo imports
 from changeo.Receptor import Receptor
+from changeo.Multiprocessing import DbResult
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -112,6 +112,7 @@ class Test_DefineClones(unittest.TestCase):
         seq_copy = deepcopy(seq_list)
         for x in seq_copy:  x.update(deepcopy(group_list[1]))
         self.unambig_records = [Receptor(x) for x in seq_copy]
+        self.unambig_data = DbResult('unambig', self.unambig_records)
         self.unambig_clones = {('A1', 'A2', 'A3', 'A4'),
                                ('B1', 'B2', 'B3', 'B4')}
 
@@ -120,6 +121,7 @@ class Test_DefineClones(unittest.TestCase):
         seq_copy = deepcopy(seq_list)
         for i, x in enumerate(group_copy):  x.update(seq_copy[i])
         self.ambig_records = [Receptor(x) for x in group_copy]
+        self.ambig_data = DbResult('ambig', self.ambig_records)
         self.first_nofields = {('IGHV1-1', 'IGHJ6', '48'): ['A1','A4'],
                                ('IGHV2-1', 'IGHJ6', '48'): ['A2','B2'],
                                ('IGHV3-1', 'IGHJ6', '48'): ['A3'],
@@ -176,7 +178,7 @@ class Test_DefineClones(unittest.TestCase):
 
         # Test first grouping with fields
         results = DefineClones.groupByGene(self.ambig_records, fields=['FIELD1', 'FIELD2'],
-                                              mode='gene', action='first')
+                                           mode='gene', action='first')
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
         print('FIRST>')
@@ -212,36 +214,36 @@ class Test_DefineClones(unittest.TestCase):
         # prof.dump_stats('hs5f-unit-test-dict.prof')
 
         # ham model
-        results = DefineClones.distanceClones(self.unambig_records, model='ham', distance=9.0, norm='none')
-        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
+        results = DefineClones.distanceClones(self.unambig_data, model='ham', distance=9.0, norm='none')
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.results.values()])
         print('MODEL> ham')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # m1n_compat model
-        results = DefineClones.distanceClones(self.unambig_records, model='m1n_compat', distance=10.0, norm='none')
-        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
+        results = DefineClones.distanceClones(self.unambig_data, model='m1n_compat', distance=10.0, norm='none')
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.results.values()])
         print('MODEL> m1n_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # hs1f_compat model
-        results = DefineClones.distanceClones(self.unambig_records, model='hs1f_compat', distance=0.25)
-        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
+        results = DefineClones.distanceClones(self.unambig_data, model='hs1f_compat', distance=0.25)
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.results.values()])
         print('MODEL> hs1f_compat')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # hh_s5f model
-        results = DefineClones.distanceClones(self.unambig_records, model='hh_s5f', distance=0.1)
-        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
+        results = DefineClones.distanceClones(self.unambig_data, model='hh_s5f', distance=0.1)
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.results.values()])
         print('MODEL> hh_s5f')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)
 
         # aa model
-        results = DefineClones.distanceClones(self.unambig_records, model='aa', distance=3.0, norm='none')
-        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.values()])
+        results = DefineClones.distanceClones(self.unambig_data, model='aa', distance=3.0, norm='none')
+        results_set = set([tuple(sorted([x.sequence_id for x in v])) for v in results.results.values()])
         print('MODEL> aa')
         for i, x in enumerate(results_set):  print('  CLONE-%i> %s' % (i + 1, x))
         self.assertSetEqual(results_set, self.unambig_clones)

@@ -10,14 +10,11 @@ from changeo import __version__, __date__
 import os
 import re
 import sys
-import csv
-import numpy as np
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
 from textwrap import dedent
 from time import time
-from Bio import pairwise2
 from Bio.Seq import translate
 
 # Presto and changeo imports
@@ -27,7 +24,7 @@ from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields
-from changeo.Multiprocessing import DbData, DbResult, feedDbQueue
+from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
 from changeo.Parsers import ChangeoSchema, ChangeoReader, ChangeoWriter
 
 # Defaults
@@ -44,18 +41,18 @@ default_max_missing=0
 choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
 
 
-def filterMissing(data, field=default_seq_field, max_missing=default_max_missing):
+def filterMissing(data, seq_field=default_seq_field, max_missing=default_max_missing):
     """
-    Splits a list of Receptor into passed and failed groups based on the number
+    Splits a set of sequence into passed and failed groups based on the number
     of missing characters in the sequence
 
     Arguments:
-        data : list of Receptor records
-        field : sequence field to filter on
+        data : changeo.Multiprocessing.DbData object
+        seq_field : sequence field to filter on
         max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record
 
     Returns:
-        dict : a dictionary of {pass : list of passing records, fail : list of failing records}
+        changeo.Multiprocessing.DbResult : objected containing filtered records.
     """
     # Function to validate the sequence string
     def _pass(seq):
@@ -64,17 +61,26 @@ def filterMissing(data, field=default_seq_field, max_missing=default_max_missing
         else:
             return False
 
-    # Define return object
-    result = {'pass': None, 'fail': None}
+    # Define result object for iteration and get data records
+    result = DbResult(data.id, data.data)
 
-    pass_list = []
-    fail_list = []
-    for rec in data:
-        seq = str(rec.getSeq(field))
-        if _pass(seq):  pass_list.append(rec)
-        else:  fail_list.append(rec)
+    result.data_pass = []
+    result.data_fail = []
+    for rec in data.data:
+        seq = str(rec.getSeq(seq_field))
+        if _pass(seq):  result.data_pass.append(rec)
+        else:  result.data_fail.append(rec)
 
-    return {'pass': pass_list, 'fail': fail_list}
+    # Add V(D)J to log
+    result.log['ID'] = ','.join([str(x) for x in data.id])
+    result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in data.data]))
+    result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in data.data]))
+    result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in data.data]))
+    result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in data.data]))
+    result.log['CLONED'] = len(result.data_pass)
+    result.log['FILTERED'] = len(result.data_fail)
+
+    return result
 
 
 def indexByIdentity(index, key, rec, fields=None):
@@ -157,7 +163,7 @@ def indexByUnion(index, key, rec, fields=None):
 
 
 def groupByGene(db_iter, fields=None, mode=default_index_mode,
-                   action=default_index_action):
+                action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
 
@@ -222,10 +228,7 @@ def groupByGene(db_iter, fields=None, mode=default_index_mode,
         key = _get_key(rec, action)
 
         # Print progress
-        if rec_count == 0:
-            print('PROGRESS> Grouping sequences')
-
-        printProgress(rec_count, step=1000, start_time=start_time)
+        printProgress(rec_count, step=1000, start_time=start_time, task='Grouping sequences')
         rec_count += 1
 
         # Assigned passed preclone records to key and failed to index None
@@ -235,7 +238,7 @@ def groupByGene(db_iter, fields=None, mode=default_index_mode,
         else:
             clone_index.setdefault(None, []).append(rec)
 
-    printProgress(rec_count, step=1000, start_time=start_time, end=True)
+    printProgress(rec_count, step=1000, start_time=start_time, task='Grouping sequences', end=True)
 
     if action == 'set':
         clone_index = _flatten_dict(clone_index)
@@ -243,24 +246,24 @@ def groupByGene(db_iter, fields=None, mode=default_index_mode,
     return clone_index
 
 
-def distanceClones(records, model=default_distance_model, distance=default_distance,
-                   dist_mat=None, norm=default_norm, sym=default_sym,
-                   linkage=default_linkage, seq_field=default_seq_field):
+def distanceClones(result, seq_field=default_seq_field, model=default_distance_model,
+                   distance=default_distance, dist_mat=None, norm=default_norm, sym=default_sym,
+                   linkage=default_linkage):
     """
     Separates a set of Receptor objects into clones
 
     Arguments: 
-      records : an iterator of Receptor objects
+      result : a changeo.Multiprocessing.DbResult object with filtered records to clone
+      seq_field : sequence field used to calculate distance between records
       model : substitution model used to calculate distance
       distance : the distance threshold to assign clonal groups
       dist_mat : pandas DataFrame of pairwise nucleotide or amino acid distances
       norm : normalization method
       sym : symmetry method
       linkage : type of linkage
-      seq_field : sequence field used to calculate distance between records
 
     Returns: 
-      dict : dictionary of lists defining {clone number: [Receptor objects clonal group]}
+      changeo.Multiprocessing.DbResult : an updated DbResult object
     """
     # Get distance matrix if not provided
     if dist_mat is None:
@@ -280,7 +283,7 @@ def distanceClones(records, model=default_distance_model, distance=default_dista
 
     # Define unique junction mapping
     seq_map = {}
-    for rec in records:
+    for rec in result.data_pass:
         seq = rec.getChangeo(seq_field, seq=True)
         # Check if sequence length is 0
         if len(seq) == 0:
@@ -293,13 +296,16 @@ def distanceClones(records, model=default_distance_model, distance=default_dista
 
     # Process records
     if len(seq_map) == 1:
-        return {1:records}
+        result.results = {1:result.data_pass}
+        result.valid = True
+        result.log['CLONES'] = 1
+        return result
 
     # Define sequences
-    seqs = list(seq_map.keys())
+    sequences = list(seq_map.keys())
 
     # Calculate pairwise distance matrix
-    dists = calcDistances(seqs, nmer_len, dist_mat, sym=sym, norm=norm)
+    dists = calcDistances(sequences, nmer_len, dist_mat, sym=sym, norm=norm)
 
     # Perform hierarchical clustering
     clusters = formClusters(dists, linkage, distance)
@@ -307,87 +313,16 @@ def distanceClones(records, model=default_distance_model, distance=default_dista
     # Turn clusters into clone dictionary
     clone_dict = {}
     for i, c in enumerate(clusters):
-        clone_dict.setdefault(c, []).extend(seq_map[seqs[i]])
+        clone_dict.setdefault(c, []).extend(seq_map[sequences[i]])
 
-    return clone_dict
+    if clone_dict:
+        result.results = clone_dict
+        result.valid = True
+        result.log['CLONES'] = len(clone_dict)
+    else:
+        result.log['CLONES'] = 0
 
-
-def processQueue(alive, data_queue, result_queue, max_missing=default_max_missing,
-                 clone_func=distanceClones, clone_args={}):
-    """
-    Pulls from data queue, performs calculations, and feeds results queue
-
-    Arguments: 
-      alive : a multiprocessing.Value boolean controlling whether processing continues
-              if False exit process
-      data_queue : a multiprocessing.Queue holding data to process
-      result_queue : a multiprocessing.Queue to hold processed results
-      max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
-      clone_func : the function to call for clonal assignment
-      clone_args : a dictionary of arguments to pass to clone_func
-
-    Returns: 
-      None
-    """
-    try:
-        # Iterator over data queue until sentinel object reached
-        while alive.value:
-            # Get data from queue
-            if data_queue.empty():  continue
-            else:  data = data_queue.get()
-            # Exit upon reaching sentinel
-            if data is None:  break
-
-            # Define result object for iteration and get data records
-            result = DbResult(data.id, data.data)
-
-            # Check for invalid data (due to failed indexing) and add failed result
-            if not data:
-                result_queue.put(result)
-                continue
-
-            # Filter records based on missing content
-            seq_field = clone_args['seq_field'] if 'seq_field' in clone_args else 'JUNCTION'
-            filtered = filterMissing(data.data, field=seq_field, max_missing=max_missing)
-            records = filtered['pass']
-            result.failed = filtered['fail']
-
-            # Add V(D)J to log
-            result.log['ID'] = ','.join([str(x) for x in data.id])
-            result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in data.data]))
-            result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in data.data]))
-            result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in data.data]))
-            result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in data.data]))
-            result.log['PASSCOUNT'] = len(records)
-            result.log['FAILCOUNT'] = len(result.failed)
-             
-            # Checking for preclone failure and assign clones
-            clones = clone_func(records, **clone_args) if records else None
-
-            # import cProfile
-            # prof = cProfile.Profile()
-            # clones = prof.runcall(clone_func, records, **clone_args)
-            # prof.dump_stats('worker-%d.prof' % os.getpid())
-
-            if clones is not None:
-                result.results = clones
-                result.valid = True
-                result.log['CLONES'] = len(clones)
-            else:
-                result.log['CLONES'] = 0
-  
-            # Feed results to result queue
-            result_queue.put(result)
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        #sys.stderr.write('Exception in worker\n')
-        alive.value = False
-        raise
-    
-    return None
+    return result
 
 
 def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_out_args):
@@ -443,7 +378,6 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
 
     # Get results from queue and write to files
     try:
-        #print 'START COLLECT', alive.value
         # Iterator over results queue until sentinel object reached
         start_time = time()
         rec_count = clone_count = pass_count = fail_count = 0
@@ -453,12 +387,9 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
             else:  result = result_queue.get()
             # Exit upon reaching sentinel
             if result is None:  break
-            #print "COLLECT", alive.value, result['id']
-            
+
             # Print progress for previous iteration and update record count
-            if rec_count == 0:
-                print('PROGRESS> Assigning clones')
-            printProgress(rec_count, result_count, 0.05, start_time) 
+            printProgress(rec_count, result_count, 0.05, start_time, task='Assigning clones')
             rec_count += len(result.data)
             
             # Write passed and failed records
@@ -472,8 +403,8 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
                         pass_count += 1
                         result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
                 # Write failed sequences from passing sets
-                if result.failed:
-                    for i, rec in enumerate(result.failed, start=1):
+                if result.data_fail:
+                    for i, rec in enumerate(result.data_fail, start=1):
                         fail_count += 1
                         if fail_writer is not None: fail_writer.writeReceptor(rec)
                         result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
@@ -491,7 +422,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
             return None
         
         # Print total counts
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time, task='Assigning clones')
 
         # Close file handles
         pass_handle.close()
@@ -515,7 +446,8 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
     return None
 
 
-def defineClones(db_file, group_func=groupByGene, group_args={},
+def defineClones(db_file, seq_field=default_seq_field,
+                 group_func=groupByGene, group_args={},
                  clone_func=distanceClones, clone_args={},
                  max_missing=default_max_missing,
                  out_args=default_out_args, nproc=None, queue_size=None):
@@ -524,6 +456,7 @@ def defineClones(db_file, group_func=groupByGene, group_args={},
     
     Arguments:
       db_file : filename of input database
+      seq_field : sequence field used to determine clones
       group_func : the function to use for assigning preclones
       group_args : a dictionary of arguments to pass to group_func
       clone_func : the function to use for determining clones within preclonal groups
@@ -542,6 +475,7 @@ def defineClones(db_file, group_func=groupByGene, group_args={},
     log = OrderedDict()
     log['START'] = 'DefineClones'
     log['DB_FILE'] = os.path.basename(db_file)
+    log['SEQ_FIELD'] = seq_field
     log['MAX_MISSING'] = max_missing
     log['GROUP_FUNC'] = group_func.__name__
     log['GROUP_ARGS'] = group_args
@@ -560,15 +494,19 @@ def defineClones(db_file, group_func=groupByGene, group_args={},
                  'group_func': group_func, 
                  'group_args': group_args}
     # Define worker function and arguments
-    work_args = {'max_missing': max_missing,
-                 'clone_func': clone_func,
-                 'clone_args': clone_args}
+    filter_args = {'max_missing': max_missing,
+                   'seq_field': seq_field}
+    clone_args['seq_field'] = seq_field
+    work_args = {'process_func': clone_func,
+                 'process_args': clone_args,
+                 'filter_func': filterMissing,
+                 'filter_args': filter_args}
     # Define collector function and arguments
     collect_args = {'db_file': db_file,
                     'out_args': out_args}
 
     # Call process manager
-    result = manageProcesses(feed_func=feedDbQueue, work_func=processQueue, collect_func=collectQueue,
+    result = manageProcesses(feed_func=feedDbQueue, work_func=processDbQueue, collect_func=collectQueue,
                              feed_args=feed_args, work_args=work_args, collect_args=collect_args,
                              nproc=nproc, queue_size=queue_size)
         
@@ -698,8 +636,7 @@ if __name__ == '__main__':
                                'distance':  args_dict['distance'],
                                'norm': args_dict['norm'],
                                'sym': args_dict['sym'],
-                               'linkage': args_dict['linkage'],
-                               'seq_field': args_dict['seq_field']}
+                               'linkage': args_dict['linkage']}
 
     # Get distance matrix
     try:
@@ -716,7 +653,6 @@ if __name__ == '__main__':
     del args_dict['norm']
     del args_dict['sym']
     del args_dict['linkage']
-    del args_dict['seq_field']
 
     # Call defineClones
     del args_dict['db_files']
