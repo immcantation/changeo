@@ -177,7 +177,7 @@ class Test_DefineClones(unittest.TestCase):
         self.assertDictEqual(self.set_nofields, results_dict)
 
         # Test first grouping with fields
-        results = DefineClones.groupByGene(self.ambig_records, fields=['FIELD1', 'FIELD2'],
+        results = DefineClones.groupByGene(self.ambig_records, group_fields=['FIELD1', 'FIELD2'],
                                            mode='gene', action='first')
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
@@ -193,7 +193,7 @@ class Test_DefineClones(unittest.TestCase):
         self.assertDictEqual(self.first_fields, results_dict)
 
         # Test ambiguous grouping with fields
-        results = DefineClones.groupByGene(self.ambig_records, fields=['FIELD1', 'FIELD2'],
+        results = DefineClones.groupByGene(self.ambig_records, group_fields=['FIELD1', 'FIELD2'],
                                               mode='gene', action='set')
         # Extract nested keys and group lengths for comparison
         results_dict = dict()
