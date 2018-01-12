@@ -41,7 +41,7 @@ def getSeqDict(seq_file):
 
 
 def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, partial=False,
-            format='changeo', out_args=default_out_args):
+            format=default_format, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory.
     
@@ -117,7 +117,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
         # Parse sequence description into new columns
         if not no_parse:
             try:
-                ann_raw = parseAnnotation(record.sequence_id, delimiter=out_args['delimiter'])
+                ann_raw = parseAnnotation(record.sequence_id)
                 record.sequence_id = ann_raw.pop('ID')
 
                 # Convert to Receptor fields
@@ -180,7 +180,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
 # TODO:  may be able to merge with other mains
 def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
               parse_scores=False, parse_regions=False, parse_junction=False,
-              format='changeo', out_args=default_out_args):
+              format=default_format, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences.
 
@@ -316,7 +316,7 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
 # TODO:  may be able to merge with other mains
 def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
               parse_scores=False, parse_regions=False,
-              format='changeo', out_args=default_out_args):
+              format=default_format, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
@@ -430,7 +430,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser    
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, log=False)
+    parser_parent = getCommonArgParser(db_in=False, log=False, format=True)
 
     # IgBlast Aligner
     parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],
@@ -474,9 +474,6 @@ def getArgParser():
                                      should be included in the output. Adds the columns
                                      CDR3_IGBLAST_NT and CDR3_IGBLAST_AA. Requires IgBLAST
                                      version 1.5 or greater.''')
-    parser_igblast.add_argument('--format', action='store', dest='format', default=default_format,
-                                choices=('changeo', 'airr'),
-                                help='''Specify output format.''')
     parser_igblast.set_defaults(func=parseIgBLAST)
 
     # IMGT aligner
@@ -518,9 +515,6 @@ def getArgParser():
                                   included in the output. Adds the columns 
                                   N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
                                   P5J_LENGTH, D_FRAME.''')
-    parser_imgt.add_argument('--format', action='store', dest='format', default=default_format,
-                             choices=('changeo', 'airr'),
-                             help='''Specify output format.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
@@ -557,9 +551,6 @@ def getArgParser():
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
-    parser_ihmm.add_argument('--format', action='store', dest='format', default=default_format,
-                             choices=('changeo', 'airr'),
-                             help='''Specify output format.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser

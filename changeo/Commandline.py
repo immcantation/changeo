@@ -13,9 +13,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
                      RawDescriptionHelpFormatter
 
 # Changeo imports
-# TODO:  Can remove if we remove the `annotation` argument from `getCommonArgParser`
-default_delimiter = ('|', '=', ',')
-
+from changeo.Defaults import choices_format, default_format
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
     """
@@ -42,24 +40,21 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
     pass
 
 
-def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
-                       failed=True, log=True, annotation=True, multiproc=False):
+def getCommonArgParser(db_in=True, db_out=True, failed=True, log=True,
+                       format=False, multiproc=False):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments:
-      seq_in : If True include sequence input arguments
-      seq_out : If True include sequence output arguments
-      paired : If True defined paired-end sequence input and output arguments
-      db_in : If True include tab delimited database input arguments
-      db_out : If True include tab delimited database output arguments
-      failed : If True include arguments for output of failed results
-      log : If True include log arguments
-      annotation : If True include annotation arguments
-      multiproc : If True include multiprocessing arguments
+      db_in : if True include tab delimited database input arguments
+      db_out : if True include tab delimited database output arguments
+      failed : if True include arguments for output of failed results
+      log : if True include log arguments
+      format : input and output type arguments
+      multiproc : if True include multiprocessing arguments
 
     Returns:
-      ArgumentParser : An ArgumentParser object
+      argparse.ArgumentParser : an argument parser
     """
     parser = ArgumentParser(add_help=False, formatter_class=CommonHelpFormatter)
 
@@ -70,21 +65,6 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     if db_out:
         # Place holder for the future
         pass
-
-    # Sequence arguments
-    if seq_in and not paired:
-        parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
-                            help='A list of FASTA/FASTQ files containing sequences to process.')
-    elif seq_in and paired:
-        parser.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
-                            help='''An ordered list of FASTA/FASTQ files containing
-                                 head/primary sequences.''')
-        parser.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
-                            help='''An ordered list of FASTA/FASTQ files containing
-                                 tail/secondary sequences.''')
-    if seq_out:
-        parser.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
-                            help='Specify to force output as FASTA rather than FASTQ.')
 
     # Failed result arguments
     if failed:
@@ -98,13 +78,10 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
                             help='''Specify to write verbose logging to a file. May not be
                                   specified with multiple input files.''')
 
-    # Annotation arguments
-    if annotation:
-        parser.add_argument('--delim', nargs=3, action='store', dest='delimiter',
-                            type=str, default=default_delimiter,
-                            help='''A list of the three delimiters that separate annotation
-                                 blocks, field names and values, and values within a field,
-                                 respectively.''')
+    # Format arguments
+    if format:
+        parser.add_argument('--format', action='store', dest='format', default=default_format,
+                            choices=choices_format, help='''Specify input and output format.''')
 
     # Multiprocessing arguments
     if multiproc:

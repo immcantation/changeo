@@ -707,8 +707,7 @@ def getArgParser():
     subparsers.required = True
 
     # Define parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       failed=False, log=False)
+    parser_parent = getCommonArgParser(failed=False, log=False)
 
     # Subparser to convert changeo to AIRR files
     parser_airr = subparsers.add_parser('airr', parents=[parser_parent],

@@ -297,8 +297,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       multiproc=True)
+    parser_parent = getCommonArgParser(multiproc=True)
 
     # Argument parser for column-wise alignment across records
     parser_across = subparsers.add_parser('across', parents=[parser_parent],

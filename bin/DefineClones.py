@@ -38,7 +38,9 @@ default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
 default_max_missing=0
-choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f', 'mk_rs1nf', 'mk_rs5nf', 'hs1f_compat', 'm1n_compat')
+choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f',
+                          'mk_rs1nf', 'mk_rs5nf',
+                          'hs1f_compat', 'm1n_compat')
 
 
 def filterMissing(data, seq_field=default_seq_field, max_missing=default_max_missing):
@@ -547,8 +549,8 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       multiproc=True)
+    parser_parent = getCommonArgParser(multiproc=True)
+
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[parser_parent],

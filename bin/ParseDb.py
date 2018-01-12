@@ -736,8 +736,7 @@ def getArgParser():
     subparsers.required = True
 
     # Define parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       failed=False, log=False)
+    parser_parent = getCommonArgParser(failed=False, log=False)
 
     # Subparser to add records
     parser_add = subparsers.add_parser('add', parents=[parser_parent],

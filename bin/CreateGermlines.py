@@ -675,8 +675,8 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser(seq_in=False, seq_out=False, db_in=True,
-                                       annotation=False)
+    parser_parent = getCommonArgParser()
+
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[parser_parent],
