@@ -660,6 +660,25 @@ class Receptor:
         else:
             return None
 
+    def getAIRR(self, field, seq=False):
+        """
+        Get an attribute from an AIRR field name
+
+        Arguments:
+          field : AIRR column name as a string
+          seq : if True return the attribute as a Seq object
+
+        Returns:
+          Value in the AIRR field. Returns None if the field cannot be found.
+        """
+        # Map to Receptor attribute
+        field = AIRRSchema.asReceptor(field)
+
+        if seq:
+            return self.getSeq(field)
+        else:
+            return self.getField(field)
+
     def getChangeo(self, field, seq=False):
         """
         Get an attribute from a Change-O field name

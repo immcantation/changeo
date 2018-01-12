@@ -94,7 +94,7 @@ class DbResult:
             return len(self.data)
 
 
-def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
+def feedDbQueue(alive, data_queue, db_file, reader=ChangeoReader, group_func=None, group_args={}):
     """
     Feeds the data queue with Ig records
 
@@ -102,18 +102,19 @@ def feedDbQueue(alive, data_queue, db_file, group_func=None, group_args={}):
       alive : multiprocessing.Value boolean controlling whether processing continues
               if False exit process
       data_queue : multiprocessing.Queue to hold data for processing
-      db_file : Database file
-      group_func : Function to use for grouping records
-      group_args : Dictionary of arguments to pass to group_func
+      db_file : database file
+      reader : database reader class
+      group_func : function to use for grouping records
+      group_args : dictionary of arguments to pass to group_func
 
     Returns:
       None
     """
     # Open input file and perform grouping
     try:
-        # Iterate over Ig records and assign groups
+        # Iterate over records and assign groups
         db_handle = open(db_file, 'rt')
-        db_iter = ChangeoReader(db_handle)
+        db_iter = reader(db_handle)
         if group_func is not None:
             group_dict = group_func(db_iter, **group_args)
             group_iter = iter(group_dict.items())
@@ -195,8 +196,8 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
     return None
 
 
-def collectDbQueue(alive, result_queue, collect_queue, db_file, task_label, out_args,
-                   add_fields=None):
+def collectDbQueue(alive, result_queue, collect_queue, db_file,
+                   task_label, out_args, add_fields=None):
     """
     Pulls from results queue, assembles results and manages log and file IO
 

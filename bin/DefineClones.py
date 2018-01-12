@@ -21,11 +21,12 @@ from Bio.Seq import translate
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
+from changeo.Defaults import default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields
 from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
-from changeo.Parsers import ChangeoSchema, ChangeoReader, ChangeoWriter
+from changeo.Parsers import AIRRSchema, AIRRReader, AIRRWriter, ChangeoSchema, ChangeoReader, ChangeoWriter
 
 # Defaults
 default_translate = False
@@ -85,7 +86,7 @@ def filterMissing(data, seq_field=default_seq_field, max_missing=default_max_mis
     return result
 
 
-def indexByIdentity(index, key, rec, fields=None):
+def indexByIdentity(index, key, rec, group_fields=None):
     """
     Updates a preclone index with a simple key
 
@@ -93,8 +94,8 @@ def indexByIdentity(index, key, rec, fields=None):
       index : preclone index from groupByGene
       key : index key
       rec : Receptor to add to the index
-      fields : additional annotation fields to use to group preclones;
-               if None use only V, J and junction length
+      group_fields : additional annotation fields to use to group preclones;
+                     if None use only V, J and junction length
 
     Returns:
       None : Updates index with new key and records.
@@ -102,7 +103,7 @@ def indexByIdentity(index, key, rec, fields=None):
     index.setdefault(tuple(key), []).append(rec)
 
 
-def indexByUnion(index, key, rec, fields=None):
+def indexByUnion(index, key, rec, group_fields=None):
     """
     Updates a preclone index with the union of nested keys
 
@@ -110,15 +111,15 @@ def indexByUnion(index, key, rec, fields=None):
       index : preclone index from groupByGene
       key : index key
       rec : Receptor to add to the index
-      fields : additional annotation fields to use to group preclones;
-               if None use only V, J and junction length
+      group_fields : additional annotation fields to use to group preclones;
+                     if None use only V, J and junction length
 
     Returns:
       None : Updates index with new key and records.
     """
     # List of values for this/new key
     val = [rec]
-    f_range = list(range(2, 3 + (len(fields) if fields else 0)))
+    f_range = list(range(2, 3 + (len(group_fields) if group_fields else 0)))
 
     # See if field/junction length combination exists in index
     outer_dict = index
@@ -164,15 +165,15 @@ def indexByUnion(index, key, rec, fields=None):
         outer_dict[key[1]] = {key[0]: val}
 
 
-def groupByGene(db_iter, fields=None, mode=default_index_mode,
+def groupByGene(db_iter, group_fields=None, mode=default_index_mode,
                 action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
 
     Arguments: 
       db_iter : an iterator of Receptor objects defined by ChangeoReader
-      fields : additional annotation fields to use to group preclones;
-               if None use only V, J and junction length
+      group_fields : additional annotation fields to use to group preclones;
+                     if None use only V, J and junction length
       mode : specificity of alignment call to use for assigning preclones;
              one of ('allele', 'gene')
       action : how to handle multiple value fields when assigning preclones;
@@ -183,25 +184,25 @@ def groupByGene(db_iter, fields=None, mode=default_index_mode,
     """
     # print(fields)
     # Define functions for grouping keys
-    if mode == 'allele' and fields is None:
+    if mode == 'allele' and group_fields is None:
         def _get_key(rec, act):
             return [rec.getVAllele(act), rec.getJAllele(act),
                     None if rec.junction is None else len(rec.junction)]
-    elif mode == 'gene' and fields is None:
+    elif mode == 'gene' and group_fields is None:
         def _get_key(rec, act):  
             return [rec.getVGene(act), rec.getJGene(act),
                     None if rec.junction is None else len(rec.junction)]
-    elif mode == 'allele' and fields is not None:
+    elif mode == 'allele' and group_fields is not None:
         def _get_key(rec, act):
             vdj = [rec.getVAllele(act), rec.getJAllele(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.getChangeo(k) for k in fields]
+            ann = [rec.getField(k) for k in group_fields]
             return list(chain(vdj, ann))
-    elif mode == 'gene' and fields is not None:
+    elif mode == 'gene' and group_fields is not None:
         def _get_key(rec, act):
             vdj = [rec.getVGene(act), rec.getJGene(act),
                     None if rec.junction is None else len(rec.junction)]
-            ann = [rec.getChangeo(k) for k in fields]
+            ann = [rec.getField(k) for k in group_fields]
             return list(chain(vdj, ann))
 
     # Function to flatten nested dictionary
@@ -236,7 +237,7 @@ def groupByGene(db_iter, fields=None, mode=default_index_mode,
         # Assigned passed preclone records to key and failed to index None
         if all([k is not None and k != '' for k in key]):
             # Update index dictionary
-            index_func(clone_index, key, rec, fields)
+            index_func(clone_index, key, rec, group_fields)
         else:
             clone_index.setdefault(None, []).append(rec)
 
@@ -286,7 +287,7 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
     # Define unique junction mapping
     seq_map = {}
     for rec in result.data_pass:
-        seq = rec.getChangeo(seq_field, seq=True)
+        seq = rec.getSeq(seq_field)
         # Check if sequence length is 0
         if len(seq) == 0:
             return None
@@ -448,27 +449,30 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
     return None
 
 
-def defineClones(db_file, seq_field=default_seq_field,
+def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
                  group_func=groupByGene, group_args={},
                  clone_func=distanceClones, clone_args={},
-                 max_missing=default_max_missing,
+                 max_missing=default_max_missing, format=default_format,
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
     Define clonally related sequences
     
     Arguments:
-      db_file : filename of input database
-      seq_field : sequence field used to determine clones
-      group_func : the function to use for assigning preclones
-      group_args : a dictionary of arguments to pass to group_func
-      clone_func : the function to use for determining clones within preclonal groups
-      clone_args : a dictionary of arguments to pass to clone_func
+      db_file : filename of input database.
+      seq_field : sequence field used to determine clones.
+      group_fields : additional annotation fields to use to group preclones;
+                     if None use only V and J.
+      group_func : the function to use for assigning preclones.
+      group_args : a dictionary of arguments to pass to group_func.
+      clone_func : the function to use for determining clones within preclonal groups.
+      clone_args : a dictionary of arguments to pass to clone_func.
       max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
-      out_args : common output argument dictionary from parseCommonArgs
+      format : input and output format.
+      out_args : common output argument dictionary from parseCommonArgs.
       nproc : the number of processQueue processes;
-              if None defaults to the number of CPUs
+              if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
-                   if None defaults to 2*nproc
+                   if None defaults to 2*nproc.
     
     Returns:
       list : successful output file names
@@ -478,6 +482,7 @@ def defineClones(db_file, seq_field=default_seq_field,
     log['START'] = 'DefineClones'
     log['DB_FILE'] = os.path.basename(db_file)
     log['SEQ_FIELD'] = seq_field
+    log['GROUP_FIELDS'] = group_fields
     log['MAX_MISSING'] = max_missing
     log['GROUP_FUNC'] = group_func.__name__
     log['GROUP_ARGS'] = group_args
@@ -490,9 +495,25 @@ def defineClones(db_file, seq_field=default_seq_field,
 
     log['NPROC'] = nproc
     printLog(log)
-    
+
+    # Format options
+    if format == 'changeo':
+        reader = ChangeoReader
+        writer = ChangeoWriter
+        if group_fields is not None:
+            group_fields = [ChangeoSchema.asReceptor(f) for f in group_fields]
+    elif format == 'airr':
+        reader = AIRRReader
+        writer = AIRRWriter
+        if group_fields is not None:
+            group_fields = [AIRRSchema.asReceptor(f) for f in group_fields]
+    else:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Define feeder function and arguments
+    group_args['group_fields'] = group_fields
     feed_args = {'db_file': db_file,
+                 'reader': reader,
                  'group_func': group_func, 
                  'group_args': group_args}
     # Define worker function and arguments
@@ -503,6 +524,7 @@ def defineClones(db_file, seq_field=default_seq_field,
                  'process_args': clone_args,
                  'filter_func': filterMissing,
                  'filter_args': filter_args}
+
     # Define collector function and arguments
     collect_args = {'db_file': db_file,
                     'out_args': out_args}
@@ -549,7 +571,7 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser(multiproc=True)
+    parser_parent = getCommonArgParser(format=True, multiproc=True)
 
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -559,8 +581,8 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     # Distance cloning method
-    parser.add_argument('-f', nargs='+', action='store', dest='fields', default=None,
-                             help='Additional fields to use for grouping clones (non VDJ)')
+    parser.add_argument('-f', nargs='+', action='store', dest='group_fields', default=None,
+                             help='Additional fields to use for grouping clones (non-VDJ)')
     parser.add_argument('--mode', action='store', dest='mode',
                              choices=('allele', 'gene'), default=default_index_mode,
                              help='''Specifies whether to use the V(D)J allele or gene for
@@ -625,14 +647,13 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # Convert case of fields
-    if 'seq_field' in args_dict:
-        args_dict['seq_field'] = args_dict['seq_field'].upper()
-    if 'fields' in args_dict and args_dict['fields'] is not None:  
-        args_dict['fields'] = [f.upper() for f in args_dict['fields']]
+    # if 'seq_field' in args_dict:
+    #     args_dict['seq_field'] = args_dict['seq_field'].upper()
+    # if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
+    #     args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]
     
     # Define grouping and cloning function arguments
-    args_dict['group_args'] = {'fields': args_dict['fields'],
-                               'action': args_dict['action'],
+    args_dict['group_args'] = {'action': args_dict['action'],
                                'mode':args_dict['mode']}
     args_dict['clone_args'] = {'model':  args_dict['model'],
                                'distance':  args_dict['distance'],
@@ -647,7 +668,6 @@ if __name__ == '__main__':
         sys.exit('Unrecognized distance model: %s' % args_dict['model'])
 
     # Clean argument dictionary
-    del args_dict['fields']
     del args_dict['action']
     del args_dict['mode']
     del args_dict['model']
