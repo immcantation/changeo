@@ -17,6 +17,7 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from changeo.Defaults import default_csv_size
+from changeo.Parsers import AIRRReader, ChangeoReader
 from changeo.Receptor import parseAllele, allele_regex
 from presto.IO import getFileType
 
@@ -142,7 +143,7 @@ def countDbFile(file):
     return db_count
 
 
-def getDbFields(file, add=None, exclude=None):
+def getDbFields(file, add=None, exclude=None, reader=ChangeoReader):
     """
     Get field names from a db file
 
@@ -150,14 +151,14 @@ def getDbFields(file, add=None, exclude=None):
       file : db file to pull base fields from.
       add : fields to append to the field set.
       exclude : fields to exclude from the field set.
+      reader : reader class.
 
     Returns:
         list : list of field names
     """
     try:
         with open(file, 'rt') as handle:
-            reader = csv.DictReader(handle, dialect='excel-tab')
-            fields = [n.strip().upper() for n in reader.fieldnames]
+            fields = reader(handle).fields
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % file)
     except:

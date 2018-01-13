@@ -328,7 +328,7 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
     return result
 
 
-def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_out_args):
+def collectQueue(alive, result_queue, collect_queue, db_file, out_fields, writer=ChangeoWriter, out_args=default_out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -338,6 +338,8 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
       result_queue : a multiprocessing.Queue holding processQueue results
       collect_queue : a multiprocessing.Queue to store collector return values
       db_file : the input database file name
+      out_fields : list of output field names
+      writer : writer class.
       out_args : common output argument dictionary from parseCommonArgs
     
     Returns:
@@ -347,7 +349,6 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
     try:
         # Count records and define output format
         result_count = countDbFile(db_file)
-        out_fields = getDbFields(db_file, add='CLONE')
 
         # Defined successful output handle
         pass_handle = getOutputHandle(db_file, 
@@ -355,7 +356,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
                                       out_type='tsv')
-        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+        pass_writer = writer(pass_handle, fields=out_fields)
 
         # Defined failed alignment output handle
         if out_args['failed']:
@@ -364,7 +365,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, out_args=default_o
                                           out_dir=out_args['out_dir'], 
                                           out_name=out_args['out_name'], 
                                           out_type='tsv')
-            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
+            fail_writer = writer(fail_handle, fields=out_fields)
         else:
             fail_handle = None
             fail_writer = None
@@ -502,11 +503,13 @@ def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
         writer = ChangeoWriter
         if group_fields is not None:
             group_fields = [ChangeoSchema.asReceptor(f) for f in group_fields]
+        out_fields = getDbFields(db_file, add='CLONE', reader=reader)
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
         if group_fields is not None:
             group_fields = [AIRRSchema.asReceptor(f) for f in group_fields]
+        out_fields = getDbFields(db_file, add='clone', reader=reader)
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
@@ -527,6 +530,8 @@ def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
 
     # Define collector function and arguments
     collect_args = {'db_file': db_file,
+                    'out_fields': out_fields,
+                    'writer': writer,
                     'out_args': out_args}
 
     # Call process manager
