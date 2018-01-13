@@ -586,7 +586,11 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     # Distance cloning method
-    parser.add_argument('-f', nargs='+', action='store', dest='group_fields', default=None,
+    parser.add_argument('--sf', action='store', dest='seq_field',
+                                default=default_seq_field,
+                                help='''The name of the field to be used to calculate
+                                     distance between records''')
+    parser.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                              help='Additional fields to use for grouping clones (non-VDJ)')
     parser.add_argument('--mode', action='store', dest='mode',
                              choices=('allele', 'gene'), default=default_index_mode,
@@ -631,10 +635,6 @@ def getArgParser():
                                      from clonal assignment. Warning, under single linkage 
                                      non-informative positions can create artifactual links 
                                      between unrelated sequences. Use with caution.''')
-    parser.add_argument('--sf', action='store', dest='seq_field',
-                                default=default_seq_field,
-                                help='''The name of the field to be used to calculate
-                                     distance between records''')
     parser.set_defaults(group_func=groupByGene)
     parser.set_defaults(clone_func=distanceClones)
         

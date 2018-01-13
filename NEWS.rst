@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.9.999:  January 10, 2018
+Version 0.3.9.999:  January 13, 2018
 -------------------------------------------------------------------------------
 
 DefineClones:
@@ -9,6 +9,7 @@ DefineClones:
 + Removed subcommands from DefineClones, making the previous ``bygroup``
   subcommand the default behavior and removing the ``chen2010`` and
   ``ademokun2011`` methods.
++ Renamed ``-f`` argument to ``--gf`` for consistency with other tools.
 
 
 Version 0.3.9:  October 17, 2017
