@@ -1,8 +1,13 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.9.999:  January 13, 2018
+Version 0.3.9.999:  January 15, 2018
 -------------------------------------------------------------------------------
+
+AlignRecords:
+
++ Fixed a terminal error in the ``across`` and ``block`` subcommands that
+  occurred when sequence identifiers contained space characters.
 
 DefineClones:
 

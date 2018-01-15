@@ -13,9 +13,10 @@ from time import time
 
 # Presto and changeo imports
 from presto.IO import getOutputHandle, printProgress, printLog
+from changeo.Defaults import default_out_args
 from changeo.IO import countDbFile, getDbFields
 from changeo.Receptor import Receptor
-from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 
 
 class DbData:
@@ -196,21 +197,21 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
     return None
 
 
-def collectDbQueue(alive, result_queue, collect_queue, db_file,
-                   task_label, out_args, add_fields=None):
+def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
+                   writer=ChangeoWriter, out_args=default_out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments:
       alive : multiprocessing.Value boolean controlling whether processing
-              continues; when False function returns
-      result_queue : multiprocessing.Queue holding worker results
-      collect_queue : multiprocessing.Queue to store collector return values
-      db_file : Database file name
-      task_label : Task label used to tag the output files
-      out_args : Common output argument dictionary from parseCommonArgs
-      add_fields : List of fields added to the writer not present in the in_file;
-                   if None do not add fields
+              continues; when False function returns.
+      result_queue : multiprocessing.Queue holding worker results.
+      collect_queue : multiprocessing.Queue to store collector return values.
+      db_file : database file name.
+      label : task label used to tag the output files.
+      fields : list of output fields.
+      writer : writer class.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       None : Adds a dictionary with key value pairs to collect_queue containing
@@ -222,21 +223,20 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file,
 
         # Defined valid alignment output handle
         pass_handle = getOutputHandle(db_file,
-                                      out_label='%s-pass' % task_label,
+                                      out_label='%s-pass' % label,
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
                                       out_type='tsv')
-        out_fields = getDbFields(db_file, add=add_fields)
-        pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+        pass_writer = writer(pass_handle, fields=fields)
 
         # Defined failed alignment output handle
         if out_args['failed']:
             fail_handle = getOutputHandle(db_file,
-                                          '%s-fail'  % task_label,
+                                          out_label='%s-fail'  % label,
                                           out_dir=out_args['out_dir'],
                                           out_name=out_args['out_name'],
                                           out_type='tsv')
-            fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
+            fail_writer = writer(fail_handle, fields=fields)
         else:
             fail_handle = None
 

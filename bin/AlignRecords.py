@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 # Imports
 import os
 import shutil
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
@@ -21,7 +22,9 @@ from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+from changeo.IO import getDbFields
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
+from changeo.Parsers import AIRRSchema, AIRRReader, AIRRWriter, ChangeoSchema, ChangeoReader, ChangeoWriter
 
 
 # TODO:  maybe not bothering with 'set' is best. can just work off field identity
@@ -71,17 +74,17 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
-def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignBlocks(data, field_map, muscle_exec=default_muscle_exec):
     """
     Multiple aligns blocks of sequence fields together
 
     Arguments:
-      data : a DbData object with IgRecords to process.
-      seq_fields : the sequence fields to multiple align.
+      data : DbData object with Receptor objects to process.
+      field_map : a dictionary of {input sequence : output sequence) field names to multiple align.
       muscle_exec : the MUSCLE executable.
 
     Returns:
-      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
+      changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
@@ -94,16 +97,17 @@ def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
         result.valid = False
         return result
 
-    seq_list = [SeqRecord(r.getSeq(f), id='%s_%s' % (r.sequence_id, f)) for f in seq_fields \
+    seq_fields = list(field_map.keys())
+    seq_list = [SeqRecord(r.getSeq(f), id='%s_%s' % (r.sequence_id.replace(' ', '_'), f)) for f in seq_fields \
                 for r in data.data]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
         aln_map = {x.id: i for i, x in enumerate(seq_aln)}
         for i, r in enumerate(result.results, start=1):
             for f in seq_fields:
-                idx = aln_map['%s_%s' % (r.sequence_id, f)]
+                idx = aln_map['%s_%s' % (r.sequence_id.replace(' ', '_'), f)]
                 seq = str(seq_aln[idx].seq)
-                r.annotations['%s_ALIGN' % f] = seq
+                r.annotations[field_map[f]] = seq
                 result.log['%s-%s' % (f, r.sequence_id)] = seq
 
     else:
@@ -113,17 +117,17 @@ def alignBlocks(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-def alignAcross(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignAcross(data, field_map, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields column wise
 
     Arguments:
-      data : a DbData object with IgRecords to process.
-      seq_fields : the sequence fields to multiple align.
+      data : DbData object with Receptor objects to process.
+      field_map : a dictionary of {input sequence : output sequence) field names to multiple align.
       muscle_exec : the MUSCLE executable.
 
     Returns:
-      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
+      changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
@@ -136,15 +140,16 @@ def alignAcross(data, seq_fields, muscle_exec=default_muscle_exec):
         result.valid = False
         return result
 
+    seq_fields = list(field_map.keys())
     for f in seq_fields:
-        seq_list = [SeqRecord(r.getSeq(f), id=r.sequence_id) for r in data.data]
+        seq_list = [SeqRecord(r.getSeq(f), id=r.sequence_id.replace(' ', '_')) for r in data.data]
         seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
         if seq_aln is not None:
             aln_map = {x.id: i for i, x in enumerate(seq_aln)}
             for i, r in enumerate(result.results, start=1):
-                idx = aln_map[r.sequence_id]
+                idx = aln_map[r.sequence_id.replace(' ', '_')]
                 seq = str(seq_aln[idx].seq)
-                r.annotations['%s_ALIGN' % f] = seq
+                r.annotations[field_map[f]] = seq
                 result.log['%s-%s' % (f, r.sequence_id)] = seq
         else:
             result.valid = False
@@ -153,17 +158,17 @@ def alignAcross(data, seq_fields, muscle_exec=default_muscle_exec):
     return result
 
 
-def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
+def alignWithin(data, field_map, muscle_exec=default_muscle_exec):
     """
     Multiple aligns sequence fields within a row
 
     Arguments:
-      data : a DbData object with an IgRecords to process.
-      seq_fields : the sequence fields to multiple align.
+      data : DbData object with Receptor objects to process.
+      field_map : a dictionary of {input sequence : output sequence) field names to multiple align.
       muscle_exec : the MUSCLE executable.
 
     Returns:
-      changeo.Multiprocessing.DbResult : object containing IgRecords with multiple aligned sequence fields.
+      changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
     # Define return object
     result = DbResult(data.id, data.data)
@@ -177,6 +182,7 @@ def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
         return result
 
     record = data.data
+    seq_fields = list(field_map.keys())
     seq_list = [SeqRecord(record.getSeq(f), id=f) for f in seq_fields]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:
@@ -184,7 +190,7 @@ def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
         for f in seq_fields:
             idx = aln_map[f]
             seq = str(seq_aln[idx].seq)
-            record.annotations['%s_ALIGN' % f] = seq
+            record.annotations[field_map[f]] = seq
             result.log[f] = seq
     else:
         result.valid = False
@@ -193,7 +199,7 @@ def alignWithin(data, seq_fields, muscle_exec=default_muscle_exec):
 
 
 def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
-                 out_args=default_out_args, nproc=None, queue_size=None):
+                 format='changeo', out_args=default_out_args, nproc=None, queue_size=None):
     """
     Performs a multiple alignment on sets of sequences
 
@@ -227,23 +233,43 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
     if 'action' in group_args: log['ACTION'] = group_args['action']
     log['NPROC'] = nproc
     printLog(log)
- 
+
+    # Format options
+    if format == 'changeo':
+        reader = ChangeoReader
+        writer = ChangeoWriter
+        field_map = OrderedDict([(ChangeoSchema.asReceptor(f), '%s_ALIGN' % f) for f in seq_fields])
+        if 'group_fields' in group_args and group_args['group_fields'] is not None:
+            group_args['group_fields'] = [ChangeoSchema.asReceptor(f) for f in group_args['group_fields']]
+        out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
+    elif format == 'airr':
+        reader = AIRRReader
+        writer = AIRRWriter
+        field_map = OrderedDict([(AIRRSchema.asReceptor(f), '%s_align' % f) for f in seq_fields])
+        if 'group_fields' in group_args and group_args['group_fields'] is not None:
+            group_args['group_fields'] = [AIRRSchema.asReceptor(f) for f in group_args['group_fields']]
+        out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
+    else:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Define feeder function and arguments
     feed_func = feedDbQueue
     feed_args = {'db_file': db_file,
+                 'reader': reader,
                  'group_func': group_func,
                  'group_args': group_args}
     # Define worker function and arguments
-    align_args['seq_fields'] = seq_fields
+    align_args['field_map'] = field_map
     work_func = processDbQueue
     work_args = {'process_func': align_func,
                  'process_args': align_args}
     # Define collector function and arguments
     collect_func = collectDbQueue
     collect_args = {'db_file': db_file,
-                    'task_label': 'align',
-                    'out_args': out_args,
-                    'add_fields': ['%s_ALIGN' % f for f in seq_fields]}
+                    'label': 'align',
+                    'fields': out_fields,
+                    'writer': writer,
+                    'out_args': out_args}
     
     # Call process manager
     result = manageProcesses(feed_func, work_func, collect_func, 
@@ -297,7 +323,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(multiproc=True)
+    parser_parent = getCommonArgParser(format=True, multiproc=True)
 
     # Argument parser for column-wise alignment across records
     parser_across = subparsers.add_parser('across', parents=[parser_parent],
@@ -375,10 +401,10 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # Convert case of fields
-    if 'seq_fields' in args_dict:
-        args_dict['seq_fields'] = [f.upper() for f in args_dict['seq_fields']]
-    if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
-        args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]
+    # if 'seq_fields' in args_dict:
+    #     args_dict['seq_fields'] = [f.upper() for f in args_dict['seq_fields']]
+    # if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
+    #     args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]
 
     # Check if a valid MUSCLE executable was specified for muscle mode
     if not shutil.which(args.muscle_exec):
