@@ -590,7 +590,7 @@ def processQueue(alive, data_queue, result_queue, max_missing=default_max_missin
     return None
 
 
-def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
+def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args, max_missing=None):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -601,6 +601,7 @@ def processQueueClust(alive, data_queue, result_queue, clone_func, clone_args):
     result_queue = a multiprocessing.Queue to hold processed results
     clone_func = the function to call for calculating pairwise distances between sequences
     clone_args = a dictionary of arguments to pass to clone_func
+    max_missing = does nothing. placeholder.
 
     Returns: 
     None
