@@ -297,15 +297,21 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
 
         seq_map.setdefault(seq, []).append(rec)
 
-    # Process records
-    if len(seq_map) == 1:
-        result.results = {1:result.data_pass}
+    # Define sequences
+    sequences = list(seq_map.keys())
+
+    # Zero record case
+    if not sequences:
+        result.valid = False
+        result.log['CLONES'] = 0
+        return result
+
+    # Single record case
+    if len(sequences) == 1:
+        result.results = {1: result.data_pass}
         result.valid = True
         result.log['CLONES'] = 1
         return result
-
-    # Define sequences
-    sequences = list(seq_map.keys())
 
     # Calculate pairwise distance matrix
     dists = calcDistances(sequences, nmer_len, dist_mat, sym=sym, norm=norm)
