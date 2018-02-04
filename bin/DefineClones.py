@@ -792,7 +792,6 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
     """
     # Open output files
     try:
-               
         # Iterate over Ig records to count and order by junction length
         result_count = 0
         records = {}
@@ -804,8 +803,8 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
         records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
                 
         # Define empty matrix to store assembled results
-        dist_mat = np.zeros((result_count,result_count))
-        
+        dist_mat = np.zeros((result_count, result_count))
+
         # Count records and define output format 
         out_type = getFileType(db_file) if out_args['out_type'] is None \
                    else out_args['out_type']
@@ -835,6 +834,11 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
             log_handle = None
         else:
             log_handle = open(out_args['log_file'], 'w')
+    except MemoryError:
+        sys.stderr.write('Insufficient memory to cluster %i sequences. Reduce sequence count.\n' \
+                          % result_count)
+        alive.value = False
+        return None
     except:
         alive.value = False
         raise
