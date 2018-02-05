@@ -1,6 +1,16 @@
 Release Notes
 ===============================================================================
 
+Version 0.3.10:  February 5, 2018
+-------------------------------------------------------------------------------
+
+DefineClones:
+
++ Fixed a bug causing the chen2010 and ademokun2011 methods to error.
++ Added informative message for out of memory error in chen2010 and
+  ademokun2011 methods.
+
+
 Version 0.3.9:  October 17, 2017
 -------------------------------------------------------------------------------
 
