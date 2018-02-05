@@ -717,8 +717,10 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
         else:
             fail_count += 1
 
-    # Print counts
+    # Final progress
     printProgress(rec_count, result_count, 0.05, start_time)
+
+    # Print counts
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count

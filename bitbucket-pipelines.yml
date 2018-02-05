@@ -1,5 +1,5 @@
 image:
-  name: javh/immcantation:test
+  name: kleinstein/immcantation:test
 
 pipelines:
   default:

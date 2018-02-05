@@ -147,17 +147,19 @@ def countDbFile(db_file):
     # Count records and check file
     try:
         with open(db_file, 'rt') as db_handle:
-            db_records = csv.reader(db_handle, dialect='excel-tab')
-            for i, __ in enumerate(db_records):  pass
-        db_count = i
+            reader = csv.reader(db_handle, dialect='excel-tab')
+            next(reader, None)
+            count = 0
+            for x in reader:
+                if x:  count += 1
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
     except:
         sys.exit('ERROR:  File %s is invalid' % db_file)
     else:
-        if db_count == 0:  sys.exit('ERROR:  File %s is empty' % db_file)
+        if count == 0:  sys.exit('ERROR:  File %s is empty' % db_file)
 
-    return db_count
+    return count
 
 
 def extractIMGT(imgt_output):

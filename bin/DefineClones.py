@@ -323,32 +323,39 @@ def distChen2010(records):
     list of distances
     """
     # Pull out query sequence and V/J information
-    query = records.popitem(last=False)
+    query = records.pop(0)
     query_cdr3 = query.junction[3:-3]
     query_v_allele = query.getVAllele()
     query_v_gene = query.getVGene()
     query_v_family = query.getVFamily()
     query_j_allele = query.getJAllele()
     query_j_gene = query.getJGene()
+
     # Create alignment scoring dictionary
     score_dict = getDNAScoreDict()
-    
-    scores = [0]*len(records)    
-    for i in range(len(records)):
-        ld = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
-                                      score_dict, -1, -1, one_alignment_only=True)
+
+    record_count = len(records)
+    scores = [0]*record_count
+    for i in range(record_count):
+        align = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
+                                         score_dict, -1, -1, one_alignment_only=True)
+        # Get edit distance
+        ld = sum([1 - score_dict[(a, b)] for a, b in zip(align[0][0], align[0][1])])
+
         # Check V similarity
         if records[i].getVAllele() == query_v_allele: ld += 0
         elif records[i].getVGene() == query_v_gene: ld += 1
         elif records[i].getVFamily() == query_v_family: ld += 3
         else: ld += 5
+
         # Check J similarity
         if records[i].getJAllele() == query_j_allele: ld += 0
         elif records[i].getJGene() == query_j_gene: ld += 1
         else: ld += 3
+
         # Divide by length
-        scores[i] = ld/max(len(records[i].junction[3:-3]), query_cdr3)
-        
+        scores[i] = ld/max(len(records[i].junction[3:-3]), len(query_cdr3))
+
     return scores
 
 
@@ -363,24 +370,28 @@ def distAdemokun2011(records):
     list of distances
     """
     # Pull out query sequence and V family information
-    query = records.popitem(last=False)
+    query = records.pop(0)
     query_cdr3 = query.junction[3:-3]
     query_v_family = query.getVFamily()
+
     # Create alignment scoring dictionary
     score_dict = getDNAScoreDict()
-    
-    scores = [0]*len(records)    
-    for i in range(len(records)):
-        
+
+    record_count = len(records)
+    scores = [0]*record_count
+    for i in range(record_count):
         if abs(len(query_cdr3) - len(records[i].junction[3:-3])) > 10:
             scores[i] = 1
         elif query_v_family != records[i].getVFamily(): 
             scores[i] = 1
         else: 
-            ld = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3], 
-                                          score_dict, -1, -1, one_alignment_only=True)
-            scores[i] = ld/min(len(records[i].junction[3:-3]), query_cdr3)
-    
+            align = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
+                                             score_dict, -1, -1, one_alignment_only=True)
+            # Get edit distance
+            ld = sum([1 - score_dict[(a, b)] for a, b in zip(align[0][0], align[0][1])])
+            # Normalize
+            scores[i] = ld/min(len(records[i].junction[3:-3]), len(query_cdr3))
+
     return scores
 
 
@@ -478,8 +489,11 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
         records = OrderedDict(sorted(list(records.items()), key=lambda i: i[1].junction_length))
         dist_dict = {}
         for __ in range(len(records)):
-            k,v = records.popitem(last=False)
-            dist_dict[k] = [v].append(list(records.values()))
+            k, v = records.popitem(last=False)
+            #print(k, v)
+            #dist_dict[k] = [v].append(list(records.values()))
+            dist_dict[k] = [v]
+            dist_dict[k].extend(records.values())
     except:
         #sys.stderr.write('Exception in feeder grouping step\n')
         alive.value = False
@@ -487,7 +501,6 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
     
     # Add groups to data queue
     try:
-        # print 'START FEED', alive.value
         # Iterate over groups and feed data queue
         dist_iter = iter(dist_dict.items())
         while alive.value:
@@ -496,8 +509,7 @@ def feedQueueClust(alive, data_queue, db_file, group_func=None, group_args={}):
             else:  data = next(dist_iter, None)
             # Exit upon reaching end of iterator
             if data is None:  break
-            #print "FEED", alive.value, k
-            
+
             # Feed queue
             data_queue.put(DbData(*data))
         else:
@@ -846,7 +858,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
     try:
         # Iterator over results queue until sentinel object reached
         start_time = time()
-        row_count = rec_count = 0
+        row_count = 0
         while alive.value:
             # Get result from queue
             if result_queue.empty():  continue
@@ -855,28 +867,30 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
             if result is None:  break
 
             # Print progress for previous iteration
-            if row_count == 0:
-                print('PROGRESS> Assigning clones')
             printProgress(row_count, result_count, 0.05, start_time)
             
             # Update counts for iteration
             row_count += 1
-            rec_count += len(result)
-            
             # Add result row to distance matrix
             if result:
-                dist_mat[list(range(result_count-len(result),result_count)),result_count-len(result)] = result.results
-                
+                row_len = len(result)
+                dist_mat[list(range(result_count - row_len, result_count)),
+                         result_count - row_len - 1] = result.results
+
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
-            return None    
+            return None
         
+        # Convert to lower triangular to symmetrical matrix
+        x, y = np.triu_indices(len(dist_mat), 1)
+        dist_mat[x, y] = dist_mat[y, x]
+        #print(dist_mat)
+
         # Calculate linkage and carry out clustering
-        # print dist_mat
         clusters = cluster_func(dist_mat, **cluster_args) if dist_mat is not None else None
         clones = {}
-        # print clusters
+        # print(clusters)
         for i, c in enumerate(clusters):
             clones.setdefault(c, []).append(records[list(records.keys())[i]])
         
@@ -889,14 +903,11 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
                     rec.annotations['CLONE'] = clone_count
                     pass_writer.writerow(rec.toDict())
                     pass_count += 1
-                    #result.log['CLONE%i-%i' % (clone_count, i + 1)] = str(rec.junction)
-
         else:
             for i, rec in enumerate(result.data):
                 fail_writer.writerow(rec.toDict())
                 fail_count += 1
-                #result.log['CLONE0-%i' % (i + 1)] = str(rec.junction)
-        
+
         # Print final progress
         printProgress(row_count, result_count, 0.05, start_time)
     
@@ -909,7 +920,7 @@ def collectQueueClust(alive, result_queue, collect_queue, db_file, out_args, clu
         log = OrderedDict()
         log['OUTPUT'] = os.path.basename(pass_handle.name)
         log['CLONES'] = clone_count
-        log['RECORDS'] = rec_count
+        log['RECORDS'] = result_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
         collect_dict = {'log':log, 'out_files': [pass_handle.name]}

@@ -207,6 +207,7 @@ def formClusters(dists, link, distance):
     links = linkage(dists, link)
     # Break into clusters based on cutoff
     clusters = fcluster(links, distance, criterion='distance')
+
     return clusters
 
 # TODO: This should all probably be a class
