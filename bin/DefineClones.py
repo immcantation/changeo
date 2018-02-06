@@ -337,24 +337,25 @@ def distChen2010(records):
     record_count = len(records)
     scores = [0]*record_count
     for i in range(record_count):
-        align = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
+        subject_cdr3 = records[i].junction[3:-3]
+        align = pairwise2.align.globalds(query_cdr3, subject_cdr3,
                                          score_dict, -1, -1, one_alignment_only=True)
         # Get edit distance
         ld = sum([1 - score_dict[(a, b)] for a, b in zip(align[0][0], align[0][1])])
 
-        # Check V similarity
+        # Penalize V similarity
         if records[i].getVAllele() == query_v_allele: ld += 0
         elif records[i].getVGene() == query_v_gene: ld += 1
         elif records[i].getVFamily() == query_v_family: ld += 3
         else: ld += 5
 
-        # Check J similarity
+        # Penalize J similarity
         if records[i].getJAllele() == query_j_allele: ld += 0
         elif records[i].getJGene() == query_j_gene: ld += 1
         else: ld += 3
 
-        # Divide by length
-        scores[i] = ld/max(len(records[i].junction[3:-3]), len(query_cdr3))
+        # Divide by alignment length
+        scores[i] = ld / align[0][4]
 
     return scores
 
@@ -380,17 +381,19 @@ def distAdemokun2011(records):
     record_count = len(records)
     scores = [0]*record_count
     for i in range(record_count):
-        if abs(len(query_cdr3) - len(records[i].junction[3:-3])) > 10:
+        subject_cdr3 = records[i].junction[3:-3]
+        if abs(len(query_cdr3) - len(subject_cdr3)) > 10:
             scores[i] = 1
         elif query_v_family != records[i].getVFamily(): 
             scores[i] = 1
         else: 
-            align = pairwise2.align.globalds(query_cdr3, records[i].junction[3:-3],
+            align = pairwise2.align.globalds(query_cdr3, subject_cdr3,
                                              score_dict, -1, -1, one_alignment_only=True)
             # Get edit distance
             ld = sum([1 - score_dict[(a, b)] for a, b in zip(align[0][0], align[0][1])])
+
             # Normalize
-            scores[i] = ld/min(len(records[i].junction[3:-3]), len(query_cdr3))
+            scores[i] = ld / min(len(subject_cdr3), len(query_cdr3))
 
     return scores
 
@@ -412,6 +415,7 @@ def hierClust(dist_mat, method='chen2010'):
     else: clusters = np.ones(dist_mat.shape[0])
         
     return clusters
+
 
 # TODO:  Merge duplicate feed, process and collect functions.
 def feedQueue(alive, data_queue, db_file, group_func, group_args={}):
