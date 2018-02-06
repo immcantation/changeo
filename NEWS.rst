@@ -1,14 +1,15 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.10:  February 5, 2018
+Version 0.3.10:  February 6, 2018
 -------------------------------------------------------------------------------
 
 Fixed incorrect progress bars resulting from files containing empty lines.
 
 DefineClones:
 
-+ Fixed bugs causing the chen2010 and ademokun2011 methods to fail.
++ Fixed several bugs in the chen2010 and ademokun2011 methods that caused them
+  to eithe fail or incorrectly cluster all sequences into a single clone.
 + Added informative message for out of memory error in chen2010 and
   ademokun2011 methods.
 
