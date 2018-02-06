@@ -1621,16 +1621,21 @@ def inferJunction(db, repo_dict):
     if jgene in repo_dict:
         # Get germline J sequence
         jgerm = repo_dict[jgene]
-        jgerm = jgerm[:(db['J_GERM_START'] + db['J_GERM_LENGTH'] - 1)]
+
         # Look for (F|W)GXG aa motif in nt sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
-        aa_end = len(db['SEQUENCE_IMGT'])
-        #TODO: Figure out else case
+
+        # Define junction end position
+        seq_len = len(db['SEQUENCE_IMGT'])
         if motif:
-            # print('\n', motif.group())
-            aa_end = motif.start() - len(jgerm) + 3
+            j_start = seq_len - db['J_GERM_LENGTH']
+            motif_pos = max(motif.start() - db['J_GERM_START'] + 1, -1)
+            junc_end = j_start + motif_pos + 3
+        else:
+            junc_end = seq_len
+
         # Add fields to dict
-        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:aa_end]
+        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:junc_end]
         junc_dict['JUNCTION_LENGTH'] = len(junc_dict['JUNCTION'])
 
     return junc_dict
