@@ -9,7 +9,7 @@ Fixed incorrect progress bars resulting from files containing empty lines.
 DefineClones:
 
 + Fixed several bugs in the chen2010 and ademokun2011 methods that caused them
-  to eithe fail or incorrectly cluster all sequences into a single clone.
+  to either fail or incorrectly cluster all sequences into a single clone.
 + Added informative message for out of memory error in chen2010 and
   ademokun2011 methods.
 
