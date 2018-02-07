@@ -24,7 +24,7 @@ class DbData:
     Attributes:
       id : result identifier
       data : list of data records
-      valid : True if preprocessing was successfull and data should be processed
+      valid : True if preprocessing was successful and data should be processed
     """
     # Instantiation
     def __init__(self, key, records):
