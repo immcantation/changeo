@@ -30,6 +30,290 @@ default_j_field = 'J_CALL'
 default_germ_types = 'dmask'
 
 
+def getVGermline(receptor, references, v_field=default_v_field):
+    """
+    Extract V allele and germline sequence
+
+    Arguments:
+      receptor : Receptor object
+      references : dictionary of germline sequences
+      v_field : field containing the V allele assignment
+
+    Returns:
+      tuple : V allele name, V segment germline sequence
+    """
+    # Extract V allele call
+    vgene = parseAllele(receptor.getField(v_field), allele_regex, 'first')
+
+    # Build V segment germline sequence
+    if vgene is None:
+        try:  vlen = int(receptor.v_germ_length_imgt)
+        except (TypeError, ValueError):  vlen = 0
+        germ_vseq = 'N' * vlen
+    elif vgene in references:
+        # Define V germline positions
+        try:  vstart = int(receptor.v_germ_start_imgt) - 1
+        except (TypeError, ValueError):  vstart = 0
+        try:  vlen = int(receptor.v_germ_length_imgt)
+        except (TypeError, ValueError):  vlen = 0
+        # Define V germline sequence
+        vseq = references[vgene]
+        vpad = vlen - len(vseq[vstart:])
+        if vpad < 0: vpad = 0
+        germ_vseq = vseq[vstart:(vstart + vlen)] + ('N' * vpad)
+    else:
+        germ_vseq = None
+
+    return vgene, germ_vseq
+
+
+def getDGermline(receptor, references, d_field=default_d_field):
+    """
+    Extract D allele and germline sequence
+
+    Arguments:
+      receptor : Receptor object
+      references : dictionary of germline sequences
+      d_field : field containing the D allele assignment
+
+    Returns:
+      tuple : D allele name, D segment germline sequence
+    """
+    # Extract D allele call
+    dgene = parseAllele(receptor.getField(d_field), allele_regex, 'first')
+
+    # Build D segment germline sequence
+    if dgene is None:
+        germ_dseq = ''
+    elif dgene in references:
+        # Define D germline positions
+        try:  dstart = int(receptor.d_germ_start) - 1
+        except (TypeError, ValueError):  dstart = 0
+        try:  dlen = int(receptor.d_germ_length)
+        except (TypeError, ValueError):  dlen = 0
+        # Define D germline sequence
+        dseq = references[dgene]
+        germ_dseq = dseq[dstart:(dstart + dlen)]
+
+    return dgene, germ_dseq
+
+
+def getJGermline(receptor, references, j_field=default_j_field):
+    """
+    Extract J allele and germline sequence
+
+    Arguments:
+      receptor : Receptor object
+      references : dictionary of germline sequences
+      j_field : field containing the J allele assignment
+
+    Returns:
+      tuple : J allele name, J segment germline sequence
+    """
+    # Extract J allele call
+    jgene = parseAllele(receptor.getField(j_field), allele_regex, 'first')
+
+    # Build J segment germline sequence
+    if jgene is None:
+        try:  jlen = int(receptor.j_germ_length)
+        except (TypeError, ValueError):  jlen = 0
+        germ_jseq = 'N' * jlen
+    elif jgene in references:
+        jseq = references[jgene]
+        # Define J germline positions
+        try:  jstart = int(receptor.j_germ_start) - 1
+        except (TypeError, ValueError):  jstart = 0
+        try:  jlen = int(receptor.j_germ_length)
+        except (TypeError, ValueError):  jlen = 0
+        # Define J germline sequence
+        jpad = jlen - len(jseq[jstart:])
+        if jpad < 0: jpad = 0
+        germ_jseq = jseq[jstart:(jstart + jlen)] + ('N' * jpad)
+
+    return jgene, germ_jseq
+
+
+def stitchGermline(receptor, v_germline, d_germline, j_germline):
+    """
+    Assemble full length germline sequence
+
+    Arguments:
+      receptor : Receptor object
+      v_germline : V segment germline sequence as a string
+      d_germline : D segment germline sequence as a string
+      j_germline : J segment germline sequence as a string
+
+    Returns:
+      str : full germline sequence
+    """
+    # Assemble pieces starting with V segment
+    sequence = v_germline
+
+    # Add Ns for first N/P region
+    try:  np1_len = int(receptor.np1_length)
+    except (TypeError, ValueError):  np1_len = 0
+    sequence += 'N' * np1_len
+
+    # Add D segment
+    sequence += d_germline
+
+    # Add Ns for second N/P region
+    try:  np2_len = int(receptor.np2_length)
+    except (TypeError, ValueError):  np2_len = 0
+    sequence += 'N' * np2_len
+
+    # Add J segment
+    sequence += j_germline
+
+    return sequence
+
+
+def stitchRegions(receptor, v_germline, d_germline, j_germline):
+    """
+    Assemble full length region encoding
+
+    Arguments:
+      receptor : Receptor object
+      v_germline : V segment germline sequence as a string
+      d_germline : D segment germline sequence as a string
+      j_germline : J segment germline sequence as a string
+
+    Returns:
+      str : string defining germline regions
+    """
+    # Set mode for region definitions
+    full_junction = True if getattr(receptor, 'n1_length', None) is not None else False
+
+    # Assemble pieces starting with V segment
+    regions = 'V' * len(v_germline)
+
+    # NP nucleotide additions after V
+    if not full_junction:
+        # PNP nucleotide additions after V
+        try:  np1_len = int(receptor.np1_length)
+        except (TypeError, ValueError):  np1_len = 0
+        regions += 'N' * np1_len
+    else:
+        # P nucleotide additions before N1
+        try:  p3v_len = int(receptor.p3v_length)
+        except (TypeError, ValueError):  p3v_len = 0
+        # N1 nucleotide additions
+        try:  n1_len = int(receptor.n1_length)
+        except (TypeError, ValueError):  n1_len = 0
+        # P nucleotide additions before D
+        try:  p5d_len = int(receptor.p5d_length)
+        except (TypeError, ValueError):  p5d_len = 0
+
+        # Update regions
+        regions += 'P' * p3v_len
+        regions += 'N' * n1_len
+        regions += 'P' * p5d_len
+
+    # Add D segment
+    regions += 'D' * len(d_germline)
+
+    # NP nucleotide additions before J
+    if not full_junction:
+        # NP nucleotide additions
+        try:  np2_len = int(receptor.np2_length)
+        except (TypeError, ValueError):  np2_len = 0
+        regions += 'N' * np2_len
+    else:
+        # P nucleotide additions after D
+        try: p3d_len = int(receptor.p3d_length)
+        except (TypeError, ValueError): p3d_len = 0
+        # N2 nucleotide additions
+        try:  n2_len = int(receptor.n2_length)
+        except (TypeError, ValueError): n2_len = 0
+        # P nucleotide additions before J
+        try:  p5j_len = int(receptor.p5j_length)
+        except (TypeError, ValueError):  p5j_len = 0
+
+        # Update regions
+        regions += 'P' * p3d_len
+        regions += 'N' * n2_len
+        regions += 'P' * p5j_len
+
+    # Add J segment
+    regions += 'J' * len(j_germline)
+
+    return regions
+
+
+def joinGermlineNew(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
+                 d_field=default_d_field, j_field=default_j_field,
+                 germ_types=default_germ_types):
+    """
+    Join gapped germline sequences aligned with sample sequences
+
+    Arguments:
+    receptor = Receptor object
+    references = dictionary of IMGT gapped germline sequences
+    seq_field = field in which to look for sequence
+    v_field = field in which to look for V call
+    d_field = field in which to look for V call
+    j_field = field in which to look for V call
+    germ_types = types of germline sequences to be output
+                 (full germline, D-region masked, only V-region germline)
+
+    Returns:
+    dictionary of germline_type: germline_sequence
+    """
+    germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
+
+    # Define log
+    log = OrderedDict()
+    log['ID'] = receptor.sequence_id
+
+    # Build V segment germline sequence
+    vgene, germ_vseq = getVGermline(receptor, references, v_field=v_field)
+    log['V_CALL'] = vgene
+    if germ_vseq is None:
+        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        return log, germlines
+
+    # Build D segment germline sequence
+    dgene, germ_dseq = getDGermline(receptor, references, d_field=d_field)
+    log['D_CALL'] = dgene
+    if germ_dseq is None:
+        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        return log, germlines
+
+    # Build J segment germline sequence
+    jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field)
+    log['J_CALL'] = jgene
+    if germ_jseq is None:
+        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        return log, germlines
+
+    # Stitch complete germlines
+    germ_seq = stitchGermline(receptor, germ_vseq, germ_dseq, germ_jseq)
+    regions = stitchRegions(receptor, germ_vseq, germ_dseq, germ_jseq)
+
+    # Define return germlines
+    germlines['full'] = germ_seq
+    germlines['regions'] = regions
+
+    if 'dmask' in germ_types:
+        germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
+                             'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
+                             germ_seq[-len(germ_jseq):]
+    if 'vonly' in germ_types:
+        germlines['vonly'] = germ_vseq
+
+    # Check that input and germline sequence match
+    if len(receptor.getField(seq_field)) == 0:
+        log['ERROR'] = 'Sequence is missing from the %s field' % seq_field
+    elif len(germlines['full']) != len(receptor.getField(seq_field)):
+        log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
+                              (len(germlines['full']) - len(receptor.getField(seq_field)))
+
+    # Convert to uppercase
+    for k, v in germlines.items():  germlines[k] = v.upper()
+
+    return log, germlines
+
+
 def joinGermline(align, references, seq_field=default_seq_field, v_field=default_v_field,
                  d_field=default_d_field, j_field=default_j_field,
                  germ_types=default_germ_types):
