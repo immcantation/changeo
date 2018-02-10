@@ -17,19 +17,17 @@ from time import time
 # Presto and change imports
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
+from changeo.Defaults import default_format, default_v_field, default_d_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, getDbFields, readRepo
 from changeo.Receptor import allele_regex, parseAllele
-from changeo.Parsers import ChangeoReader, ChangeoWriter
+from changeo.Parsers import AIRRReader, AIRRWriter, AIRRSchema, ChangeoReader, ChangeoWriter, ChangeoSchema
 
 # Defaults
 default_seq_field = 'SEQUENCE_IMGT'
-default_v_field = 'V_CALL'
-default_d_field = 'D_CALL'
-default_j_field = 'J_CALL'
 default_germ_types = 'dmask'
 
-
+# TODO: this is not generalized for non-IMGT gapped sequences!
 def getVGermline(receptor, references, v_field=default_v_field):
     """
     Extract V allele and germline sequence
@@ -240,24 +238,24 @@ def stitchRegions(receptor, v_germline, d_germline, j_germline):
     return regions
 
 
-def joinGermlineNew(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
-                 d_field=default_d_field, j_field=default_j_field,
-                 germ_types=default_germ_types):
+def joinGermlineNEW(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
+                    d_field=default_d_field, j_field=default_j_field,
+                    germ_types=default_germ_types):
     """
     Join gapped germline sequences aligned with sample sequences
 
     Arguments:
-    receptor = Receptor object
-    references = dictionary of IMGT gapped germline sequences
-    seq_field = field in which to look for sequence
-    v_field = field in which to look for V call
-    d_field = field in which to look for V call
-    j_field = field in which to look for V call
-    germ_types = types of germline sequences to be output
-                 (full germline, D-region masked, only V-region germline)
+      receptor : Receptor object
+      references : dictionary of IMGT gapped germline sequences
+      seq_field : field in which to look for sequence
+      v_field : field in which to look for V call
+      d_field : field in which to look for V call
+      j_field : field in which to look for V call
+      germ_types : types of germline sequences to be output
+                   (full germline, D-region masked, only V-region germline)
 
     Returns:
-    dictionary of germline_type: germline_sequence
+      tuple : log dictionary, dictionary of {germline_type: germline_sequence}
     """
     germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
 
@@ -301,15 +299,20 @@ def joinGermlineNew(receptor, references, seq_field=default_seq_field, v_field=d
     if 'vonly' in germ_types:
         germlines['vonly'] = germ_vseq
 
+    # Convert to uppercase
+    for k, v in germlines.items():  germlines[k] = v.upper()
+
+    # Update log
+    log['SEQUENCE'] = receptor.getField(seq_field)
+    log['GERMLINE'] = germ_seq
+    log['REGIONS'] = regions
+
     # Check that input and germline sequence match
     if len(receptor.getField(seq_field)) == 0:
         log['ERROR'] = 'Sequence is missing from the %s field' % seq_field
     elif len(germlines['full']) != len(receptor.getField(seq_field)):
         log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
                               (len(germlines['full']) - len(receptor.getField(seq_field)))
-
-    # Convert to uppercase
-    for k, v in germlines.items():  germlines[k] = v.upper()
 
     return log, germlines
 
@@ -567,40 +570,81 @@ def joinGermline(align, references, seq_field=default_seq_field, v_field=default
     return result_log, germlines
 
 
-def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args=default_out_args):
+def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
+                         d_field=default_d_field, j_field=default_j_field,
+                         germ_types=default_germ_types, format=default_format,
+                         out_args=default_out_args):
     """
     Write germline sequences to tab-delimited database file
 
     Arguments:
-    db_file = input tab-delimited database file
-    repo = folder with germline repertoire files
-    germ_types = types of germline sequences to be output
-                     (full germline, D-region masked, only V-region germline)
-    v_field = field in which to look for V call
-    seq_field = field in which to look for sequence
-    out_args = arguments for output preferences
+      db_file : input tab-delimited database file
+      repo : folder with germline repertoire files
+      seq_field : field in which to look for sequence
+      v_field : field in which to look for V call
+      d_field : field in which to look for D call
+      j_field : field in which to look for J call
+      germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
+      format : input and output format
+      out_args : arguments for output preferences
 
     Returns:
-    None
+      None
     """
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
     log['DB_FILE'] = os.path.basename(db_file)
-    log['GERM_TYPES'] = germ_types if isinstance(germ_types, str) else ','.join(germ_types)
-    log['CLONED'] = 'False'
-    log['V_FIELD'] = v_field
+    log['GERM_TYPES'] = ','.join(germ_types)
     log['SEQ_FIELD'] = seq_field
+    log['V_FIELD'] = v_field
+    log['D_FIELD'] = d_field
+    log['J_FIELD'] = j_field
+    log['CLONED'] = 'False'
     printLog(log)
+
+    # Format options
+    if format == 'changeo':
+        reader = ChangeoReader
+        writer = ChangeoWriter
+        schema = ChangeoSchema
+        germline_fields = OrderedDict()
+        seq_type = seq_field.split('_')[-1]
+        if 'full' in germ_types:  germline_fields['full'] = 'GERMLINE_' + seq_type
+        if 'dmask' in germ_types:  germline_fields['dmask'] = 'GERMLINE_' + seq_type + '_D_MASK'
+        if 'vonly' in germ_types:  germline_fields['vonly'] = 'GERMLINE_' + seq_type + '_V_REGION'
+        if 'regions' in germ_types:  germline_fields['regions'] = 'GERMLINE_REGIONS'
+        out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
+    elif format == 'airr':
+        reader = AIRRReader
+        writer = AIRRWriter
+        schema = AIRRSchema
+        germline_fields = OrderedDict()
+        # TODO: this won't work for AIRR necessarily
+        seq_type = seq_field.split('_')[-1]
+        if 'full' in germ_types:  germline_fields['full'] = 'germline_' + seq_type
+        if 'dmask' in germ_types:  germline_fields['dmask'] = 'germline_' + seq_type + '_d_mask'
+        if 'vonly' in germ_types:  germline_fields['vonly'] = 'germline_' + seq_type + '_v_region'
+        if 'regions' in germ_types:  germline_fields['regions'] = 'germline_regions'
+        out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
+    else:
+        sys.exit('Error:  Invalid format %s' % format)
 
     # Get repertoire and open Db reader
     references = readRepo(repo)
     db_handle = open(db_file, 'rt')
-    reader = ChangeoReader(db_handle, receptor=False)
+    reader = reader(db_handle)
 
-    # Exit if V call field does not exist in reader
-    if v_field not in reader.fields:
-        sys.exit('Error: V field does not exist in input database file.')
+    # Check for existence of fields
+    for f in [v_field, d_field, j_field, seq_field]:
+        if f not in reader.fields:
+            sys.exit('Error: %s field does not exist in input database file.' % f)
+    #  Translate to Receptor attribute names
+    v_field = schema.asReceptor(v_field)
+    d_field = schema.asReceptor(d_field)
+    j_field = schema.asReceptor(j_field)
+    seq_field = schema.asReceptor(seq_field)
+
 
     # Define log handle
     if out_args['log_file'] is None:
@@ -608,12 +652,6 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     else:
         log_handle = open(out_args['log_file'], 'w')
 
-    add_fields = []
-    seq_type = seq_field.split('_')[-1]
-    if 'full' in germ_types: add_fields +=  ['GERMLINE_' + seq_type]
-    if 'dmask' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_D_MASK']
-    if 'vonly' in germ_types: add_fields += ['GERMLINE_' + seq_type + '_V_REGION']
-    if 'regions' in germ_types: add_fields += ['GERMLINE_REGIONS']
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file,
@@ -621,8 +659,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
                                   out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'],
                                   out_type='tsv')
-    out_fields=getDbFields(db_file, add=add_fields)
-    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
+    pass_writer = writer(pass_handle, fields=out_fields)
 
     if out_args['failed']:
         fail_handle = getOutputHandle(db_file,
@@ -630,7 +667,7 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
                                       out_type='tsv')
-        fail_writer = ChangeoWriter(fail_handle, fields=out_fields)
+        fail_writer = writer(fail_handle, fields=out_fields)
     else:
         fail_handle = None
         fail_writer = None
@@ -640,30 +677,29 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     rec_count = countDbFile(db_file)
     pass_count = fail_count = 0
     # Iterate over rows
-    for i, row in enumerate(reader):
+    for i, rec in enumerate(reader):
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
 
-        result_log, germlines = joinGermline(row, references, seq_field=seq_field, v_field=v_field,
-                                             germ_types=germ_types)
+        result_log, germlines = joinGermlineNEW(rec, references, seq_field=seq_field, v_field=v_field,
+                                                d_field=d_field, j_field=j_field, germ_types=germ_types)
 
-        # Add germline field(s) to dictionary
-        if 'full' in germ_types: row['GERMLINE_' + seq_type] = germlines['full']
-        if 'dmask' in germ_types: row['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
-        if 'vonly' in germ_types: row['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
-        if 'regions' in germ_types: row['GERMLINE_REGIONS'] = germlines['regions']
+        # Add germlines to Receptor record
+        # TODO: this should probably pass through the schemas instead so the output fields are correct
+        annotations = {}
+        if 'full' in germ_types:  annotations[germline_fields['full']] = germlines['full']
+        if 'dmask' in germ_types:  annotations[germline_fields['dmask']] = germlines['dmask']
+        if 'vonly' in germ_types:  annotations[germline_fields['vonly']] = germlines['vonly']
+        if 'regions' in germ_types:  annotations[germline_fields['regions']] = germlines['regions']
+        rec.updateAnnotations(annotations)
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
             fail_count += 1
-            if fail_writer is not None: fail_writer.writeDict(row)
+            if fail_writer is not None: fail_writer.writeReceptor(rec)
         else:
-            result_log['SEQUENCE'] = row[seq_field]
-            result_log['GERMLINE'] = germlines['full']
-            result_log['REGIONS'] = germlines['regions']
-
             pass_count += 1
-            pass_writer.writeDict(row)
+            pass_writer.writeReceptor(rec)
         printLog(result_log, handle=log_handle)
 
     # Print log
@@ -681,6 +717,119 @@ def assembleEachGermline(db_file, repo, germ_types, v_field, seq_field, out_args
     pass_handle.close()
     if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()
+
+
+def makeCloneGermlineNEW(clone, clone_dict, references, counts, writers, seq_field=default_seq_field,
+                         v_field=default_v_field, d_field=default_d_field, j_field=default_j_field,
+                         germ_types=default_germ_types, out_args=default_out_args):
+    """
+    Determine consensus clone sequence and create germline for clone
+
+    Arguments:
+      clone : clone ID
+      clone_dict : iterable yielding dictionaries of sequence data from clone
+      references : dictionary of IMGT gapped germline sequences
+      counts = dictionary of pass counter and fail counter
+      writers = dictionary with pass and fail DB writers
+      seq_field : field in which to look for sequence
+      v_field : field in which to look for V call
+      d_field : field in which to look for D call
+      j_field : field in which to look for J call
+      germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
+      out_args = arguments for output preferences
+
+    Returns:
+      tuple : log dictionary, dictionary of {germline_type: germline_sequence},
+              dictionary of consensus {segment: gene call}
+    """
+    seq_type = seq_field.split('_')[-1]
+
+    # Create dictionaries to count observed V/J calls
+    v_dict = OrderedDict()
+    j_dict = OrderedDict()
+
+    # Find longest sequence in clone
+    max_length = 0
+    for val in clone_dict.values():
+        v = val[v_field]
+        v_dict[v] = v_dict.get(v, 0) + 1
+        j = val[j_field]
+        j_dict[j] = j_dict.get(j, 0) + 1
+        if len(val[seq_field]) > max_length:
+            max_length = len(val[seq_field])
+
+    # Consensus V and J having most observations
+    v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
+    j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
+
+    # Consensus sequence(s) with consensus V/J calls and longest sequence
+    cons = [val for val in list(clone_dict.values()) \
+            if val.get(v_field, '') in v_cons and \
+            val.get(j_field, '') in j_cons and \
+            len(val[seq_field]) == max_length]
+
+    # Sequence(s) with consensus V/J are not longest
+    if not cons:
+        # Sequence(s) with consensus V/J (not longest)
+        cons = [val for val in list(clone_dict.values()) \
+                if val.get(v_field, '') in v_cons and val.get(j_field, '') in j_cons]
+
+        # No sequence has both consensus V and J call
+        if not cons:
+            result_log = OrderedDict()
+            result_log['ID'] = clone
+            result_log['V_CALL'] = ','.join(v_cons)
+            result_log['J_CALL'] = ','.join(j_cons)
+            result_log['ERROR'] = 'No consensus sequence for clone found'
+        else:
+            # Pad end of consensus sequence with gaps to make it the max length
+            cons = cons[0]
+            cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
+            cons[seq_field] += '.' * (max_length - len(cons[seq_field]))
+            result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                                 germ_types=germ_types)
+            result_log['ID'] = clone
+            result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+    else:
+        cons = cons[0]
+        result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                             germ_types=germ_types)
+        result_log['ID'] = clone
+        result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+
+    # Write sequences of clone
+    for val in clone_dict.values():
+        if 'ERROR' not in result_log:
+            # Update lengths padded to longest sequence in clone
+            val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val[seq_field]))
+            val[seq_field] += '.' * (max_length - len(val[seq_field]))
+
+            # Add column(s) to tab-delimited database file
+            if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
+            if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
+            if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
+            if 'regions' in germ_types: val['GERMLINE_REGIONS'] = germlines['regions']
+
+            # Add field
+            val['GERMLINE_V_CALL'] = result_log['V_CALL']
+            val['GERMLINE_D_CALL'] = result_log['D_CALL']
+            val['GERMLINE_J_CALL'] = result_log['J_CALL']
+
+            result_log['SEQUENCE'] = cons[seq_field]
+            result_log['GERMLINE'] = germlines['full']
+            result_log['REGIONS'] = germlines['regions']
+
+            # Write to pass file
+            counts['pass'] += 1
+            writers['pass'].writeDict(val)
+        else:
+            # Write to fail file
+            counts['fail'] += 1
+            if writers['fail'] is not None:
+                writers['fail'].writeDict(val)
+
+    # Return log
+    return result_log
 
 
 def makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
@@ -794,7 +943,9 @@ def makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
 
 
 def assembleCloneGermline(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
-                          germ_types=default_germ_types, out_args=default_out_args):
+                          d_field=default_d_field, j_field=default_j_field,
+                          germ_types=default_germ_types,
+                          format=default_format, out_args=default_out_args):
     """
     Assemble one germline sequence for each clone in a tab-delimited database file
 
@@ -959,7 +1110,7 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser()
+    parser_parent = getCommonArgParser(format=True)
 
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -981,10 +1132,14 @@ def getArgParser():
                              is unsorted. Note, if allele calls are ambiguous within a clonal group,
                              this will place the germline call used for the entire clone within the
                              GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
-    parser.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
-                        help='Specify field to use for germline V call')
-    parser.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
-                        help='Specify field to use for sequence')
+    parser.add_argument('--sf', action='store', dest='seq_field', default=None,
+                        help='Field containing the alinged sequence.')
+    parser.add_argument('--vf', action='store', dest='v_field', default=None,
+                        help='Field containing the germline V segment call.')
+    parser.add_argument('--df', action='store', dest='d_field', default=None,
+                        help='Field containing the germline D segment call.')
+    parser.add_argument('--jf', action='store', dest='j_field', default=None,
+                        help='Field containing the germline J segment call.')
 
     return parser
 
@@ -1001,9 +1156,24 @@ if __name__ == "__main__":
     args_dict = parseCommonArgs(args)
     del args_dict['db_files']
     del args_dict['cloned']
-    args_dict['v_field'] = args_dict['v_field'].upper()
-    args_dict['seq_field'] = args_dict['seq_field'].upper()
-    
+
+    # Set default fields if not specified.
+    default_fields = {'seq_field': default_seq_field,
+                      'v_field': default_v_field,
+                      'd_field': default_d_field,
+                      'j_field': default_j_field}
+    # Default Change-O fields
+    if args_dict['format'] == 'changeo':
+        for f in default_fields:
+            if args_dict[f] is None:  args_dict[f] = default_fields[f]
+            else: args_dict[f] = args_dict[f].upper()
+    # Default AIRR fields
+    if args_dict['format'] == 'airr':
+        for f in default_fields:
+            if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
+            else: args_dict[f] = args_dict[f].lower()
+
+
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
         if args.__dict__['cloned']:

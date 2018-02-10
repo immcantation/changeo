@@ -9,6 +9,11 @@ from changeo import __version__, __date__
 # System settings
 default_csv_size = 2**24
 
+# Fields
+default_v_field = 'V_CALL'
+default_d_field = 'D_CALL'
+default_j_field = 'J_CALL'
+
 # Annotation parameters
 default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]

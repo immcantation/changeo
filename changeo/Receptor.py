@@ -34,6 +34,7 @@ class AIRRSchema:
     # Core fields
     core = OrderedDict([('rearrangement_id', 'sequence_id'),
                         ('sequence', 'sequence_input'),
+                        ('sequence_imgt', 'sequence_imgt'),
                         ('functional', 'functional'),
                         ('rev_comp', 'rev_comp'),
                         ('v_call', 'v_call'),
@@ -46,8 +47,8 @@ class AIRRSchema:
                         ('np2_length', 'np2_length'),
                         ('v_start', 'v_seq_start'),
                         ('v_end', 'v_seq_end'),
-                        ('v_germ_start', 'v_germ_start_vdj'),
-                        ('v_germ_end', 'v_germ_end_vdj'),
+                        ('v_germ_start', 'v_germ_start_imgt'),
+                        ('v_germ_end', 'v_germ_end_imgt'),
                         ('d_start', 'd_seq_start'),
                         ('d_end', 'd_seq_end'),
                         ('d_germ_start', 'd_germ_start'),
@@ -163,6 +164,7 @@ class AIRRSchema:
 
     # Positional fields in the form <Receptor end field>: (<Receptor start field>, <Receptor length field>)
     _end = {'v_seq_end': ('v_seq_start', 'v_seq_length'),
+            'v_germ_end_imgt': ('v_germ_start_imgt', 'v_germ_length_imgt'),
             'v_germ_end_vdj': ('v_germ_start_vdj', 'v_germ_length_vdj'),
             'd_seq_end': ('d_seq_start', 'd_seq_length'),
             'd_germ_end': ('d_germ_start', 'd_germ_length'),
