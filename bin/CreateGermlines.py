@@ -20,7 +20,7 @@ from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Defaults import default_format, default_v_field, default_d_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, getDbFields, readRepo
-from changeo.Receptor import allele_regex, parseAllele
+from changeo.Receptor import allele_regex, parseAllele, Receptor
 from changeo.Parsers import AIRRReader, AIRRWriter, AIRRSchema, ChangeoReader, ChangeoWriter, ChangeoSchema
 
 # Defaults
@@ -645,13 +645,9 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
     j_field = schema.asReceptor(j_field)
     seq_field = schema.asReceptor(seq_field)
 
-
     # Define log handle
-    if out_args['log_file'] is None:
-        log_handle = None
-    else:
-        log_handle = open(out_args['log_file'], 'w')
-
+    if out_args['log_file'] is None:  log_handle = None
+    else:  log_handle = open(out_args['log_file'], 'w')
 
     # Create output file handle and Db writer
     pass_handle = getOutputHandle(db_file,
@@ -681,8 +677,14 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
         # Print progress
         printProgress(i, rec_count, 0.05, start_time)
 
+        # TODO: if cloned: (1) check clone id, (2) update receptor list, (3) make clonal germline, (4) write all records in clone
+        # TODO: add check for sorted clones earlier. when counting clones.
+        # TODO: whole cloned/not-cloned loops could be two processing/writer function. with log output embedded.
+        # TODO: or just a writer than takes a Receptor list, germlines, and log
         result_log, germlines = joinGermlineNEW(rec, references, seq_field=seq_field, v_field=v_field,
                                                 d_field=d_field, j_field=j_field, germ_types=germ_types)
+
+        # TODO: def writeGermlines(receptors, germlines, log, pass_writer, fail_writer, log_handle)
 
         # Add germlines to Receptor record
         # TODO: this should probably pass through the schemas instead so the output fields are correct
