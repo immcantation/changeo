@@ -602,15 +602,15 @@ class Receptor:
         # Add remaining elements as annotations dictionary
         self.annotations = data
 
-    def updateAnnotations(self, data):
+    def setDict(self, data):
         """
-        Adds and updates annotations
+        Adds or updates multiple attributes and annotations
 
         Arguments:
-          data : a dictionary of annotations to add or update
+          data : a dictionary of annotations to add or update.
 
         Returns:
-          None : updates attribute values and the annotations attribute
+          None : updates attribute values and the annotations attribute.
         """
         # Partition data
         attributes = {k.lower(): v for k, v in data.items() if k.lower() in Receptor._parsers}
@@ -624,9 +624,28 @@ class Receptor:
         # Update annotations
         self.annotations.update(annotations)
 
+    def setField(self, field, value):
+        """
+        Set an attribute or annotation value
+
+        Arguments:
+          field : attribute name as a string
+          value : value to assign
+
+        Returns:
+          None. Updates attribute or annotation.
+        """
+        field = field.lower()
+
+        if field in Receptor._parsers:
+            f = getattr(Receptor, Receptor._parsers[field])
+            setattr(self, field, f(value))
+        else:
+            self.annotations[field] = value
+
     def getField(self, field):
         """
-        Get an attribute value
+        Get an attribute or annotation value
 
         Arguments:
           field : attribute name as a string

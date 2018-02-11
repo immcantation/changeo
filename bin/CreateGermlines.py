@@ -131,21 +131,21 @@ def getJGermline(receptor, references, j_field=default_j_field):
     return jgene, germ_jseq
 
 
-def stitchGermline(receptor, v_germline, d_germline, j_germline):
+def stitchVDJ(receptor, v_seq, d_seq, j_seq):
     """
     Assemble full length germline sequence
 
     Arguments:
       receptor : Receptor object
-      v_germline : V segment germline sequence as a string
-      d_germline : D segment germline sequence as a string
-      j_germline : J segment germline sequence as a string
+      v_seq : V segment sequence as a string
+      d_seq : D segment sequence as a string
+      j_seq : J segment sequence as a string
 
     Returns:
       str : full germline sequence
     """
     # Assemble pieces starting with V segment
-    sequence = v_germline
+    sequence = v_seq
 
     # Add Ns for first N/P region
     try:  np1_len = int(receptor.np1_length)
@@ -153,7 +153,7 @@ def stitchGermline(receptor, v_germline, d_germline, j_germline):
     sequence += 'N' * np1_len
 
     # Add D segment
-    sequence += d_germline
+    sequence += d_seq
 
     # Add Ns for second N/P region
     try:  np2_len = int(receptor.np2_length)
@@ -161,20 +161,20 @@ def stitchGermline(receptor, v_germline, d_germline, j_germline):
     sequence += 'N' * np2_len
 
     # Add J segment
-    sequence += j_germline
+    sequence += j_seq
 
     return sequence
 
 
-def stitchRegions(receptor, v_germline, d_germline, j_germline):
+def stitchRegions(receptor, v_seq, d_seq, j_seq):
     """
     Assemble full length region encoding
 
     Arguments:
       receptor : Receptor object
-      v_germline : V segment germline sequence as a string
-      d_germline : D segment germline sequence as a string
-      j_germline : J segment germline sequence as a string
+      v_seq : V segment germline sequence as a string
+      d_seq : D segment germline sequence as a string
+      j_seq : J segment germline sequence as a string
 
     Returns:
       str : string defining germline regions
@@ -183,7 +183,7 @@ def stitchRegions(receptor, v_germline, d_germline, j_germline):
     full_junction = True if getattr(receptor, 'n1_length', None) is not None else False
 
     # Assemble pieces starting with V segment
-    regions = 'V' * len(v_germline)
+    regions = 'V' * len(v_seq)
 
     # NP nucleotide additions after V
     if not full_junction:
@@ -208,7 +208,7 @@ def stitchRegions(receptor, v_germline, d_germline, j_germline):
         regions += 'P' * p5d_len
 
     # Add D segment
-    regions += 'D' * len(d_germline)
+    regions += 'D' * len(d_seq)
 
     # NP nucleotide additions before J
     if not full_junction:
@@ -233,14 +233,14 @@ def stitchRegions(receptor, v_germline, d_germline, j_germline):
         regions += 'P' * p5j_len
 
     # Add J segment
-    regions += 'J' * len(j_germline)
+    regions += 'J' * len(j_seq)
 
     return regions
 
 
-def joinGermlineNEW(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
-                    d_field=default_d_field, j_field=default_j_field,
-                    germ_types=default_germ_types):
+def buildGermline(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
+                  d_field=default_d_field, j_field=default_j_field,
+                  germ_types=default_germ_types):
     """
     Join gapped germline sequences aligned with sample sequences
 
@@ -285,7 +285,7 @@ def joinGermlineNEW(receptor, references, seq_field=default_seq_field, v_field=d
         return log, germlines
 
     # Stitch complete germlines
-    germ_seq = stitchGermline(receptor, germ_vseq, germ_dseq, germ_jseq)
+    germ_seq = stitchVDJ(receptor, germ_vseq, germ_dseq, germ_jseq)
     regions = stitchRegions(receptor, germ_vseq, germ_dseq, germ_jseq)
 
     # Define return germlines
@@ -570,10 +570,10 @@ def joinGermline(align, references, seq_field=default_seq_field, v_field=default
     return result_log, germlines
 
 
-def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
-                         d_field=default_d_field, j_field=default_j_field,
-                         germ_types=default_germ_types, format=default_format,
-                         out_args=default_out_args):
+def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
+                    d_field=default_d_field, j_field=default_j_field,
+                    germ_types=default_germ_types, cloned=False,
+                    format=default_format, out_args=default_out_args):
     """
     Write germline sequences to tab-delimited database file
 
@@ -585,6 +585,7 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
       d_field : field in which to look for D call
       j_field : field in which to look for J call
       germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
+      cloned : if True build germlines by clone, otherwise build individual germlines
       format : input and output format
       out_args : arguments for output preferences
 
@@ -600,7 +601,7 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
     log['V_FIELD'] = v_field
     log['D_FIELD'] = d_field
     log['J_FIELD'] = j_field
-    log['CLONED'] = 'False'
+    log['CLONED'] = cloned
     printLog(log)
 
     # Format options
@@ -671,7 +672,9 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
-    pass_count = fail_count = 0
+    clone_count = pass_count = fail_count = 0
+    clone_id = None
+    receptor_list = []
     # Iterate over rows
     for i, rec in enumerate(reader):
         # Print progress
@@ -681,10 +684,8 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
         # TODO: add check for sorted clones earlier. when counting clones.
         # TODO: whole cloned/not-cloned loops could be two processing/writer function. with log output embedded.
         # TODO: or just a writer than takes a Receptor list, germlines, and log
-        result_log, germlines = joinGermlineNEW(rec, references, seq_field=seq_field, v_field=v_field,
-                                                d_field=d_field, j_field=j_field, germ_types=germ_types)
-
-        # TODO: def writeGermlines(receptors, germlines, log, pass_writer, fail_writer, log_handle)
+        result_log, germlines = buildGermline(rec, references, seq_field=seq_field, v_field=v_field,
+                                              d_field=d_field, j_field=j_field, germ_types=germ_types)
 
         # Add germlines to Receptor record
         # TODO: this should probably pass through the schemas instead so the output fields are correct
@@ -693,7 +694,7 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
         if 'dmask' in germ_types:  annotations[germline_fields['dmask']] = germlines['dmask']
         if 'vonly' in germ_types:  annotations[germline_fields['vonly']] = germlines['vonly']
         if 'regions' in germ_types:  annotations[germline_fields['regions']] = germlines['regions']
-        rec.updateAnnotations(annotations)
+        rec.setDict(annotations)
 
         # Write row to pass or fail file
         if 'ERROR' in result_log:
@@ -721,18 +722,15 @@ def assembleEachGermline(db_file, repo, seq_field=default_seq_field, v_field=def
     if log_handle is not None:  log_handle.close()
 
 
-def makeCloneGermlineNEW(clone, clone_dict, references, counts, writers, seq_field=default_seq_field,
-                         v_field=default_v_field, d_field=default_d_field, j_field=default_j_field,
-                         germ_types=default_germ_types, out_args=default_out_args):
+def buildClonalGermline(receptors, references, seq_field=default_seq_field,
+                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field,
+                        germ_types=default_germ_types):
     """
     Determine consensus clone sequence and create germline for clone
 
     Arguments:
-      clone : clone ID
-      clone_dict : iterable yielding dictionaries of sequence data from clone
+      receptors : list of Receptor objects
       references : dictionary of IMGT gapped germline sequences
-      counts = dictionary of pass counter and fail counter
-      writers = dictionary with pass and fail DB writers
       seq_field : field in which to look for sequence
       v_field : field in which to look for V call
       d_field : field in which to look for D call
@@ -744,7 +742,8 @@ def makeCloneGermlineNEW(clone, clone_dict, references, counts, writers, seq_fie
       tuple : log dictionary, dictionary of {germline_type: germline_sequence},
               dictionary of consensus {segment: gene call}
     """
-    seq_type = seq_field.split('_')[-1]
+    # Log
+    log = OrderedDict()
 
     # Create dictionaries to count observed V/J calls
     v_dict = OrderedDict()
@@ -752,86 +751,66 @@ def makeCloneGermlineNEW(clone, clone_dict, references, counts, writers, seq_fie
 
     # Find longest sequence in clone
     max_length = 0
-    for val in clone_dict.values():
-        v = val[v_field]
+    for rec in receptors:
+        v = rec.getField(v_field)
         v_dict[v] = v_dict.get(v, 0) + 1
-        j = val[j_field]
+        j = rec.getField(j_field)
         j_dict[j] = j_dict.get(j, 0) + 1
-        if len(val[seq_field]) > max_length:
-            max_length = len(val[seq_field])
+        seq_len = len(rec.getField(seq_field))
+        if seq_len > max_length:
+            max_length = seq_len
 
     # Consensus V and J having most observations
     v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
     j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
 
     # Consensus sequence(s) with consensus V/J calls and longest sequence
-    cons = [val for val in list(clone_dict.values()) \
-            if val.get(v_field, '') in v_cons and \
-            val.get(j_field, '') in j_cons and \
-            len(val[seq_field]) == max_length]
-
-    # Sequence(s) with consensus V/J are not longest
+    cons = [x for x in receptors if x.getField(v_field) in v_cons and \
+                                    x.getField(j_field) in j_cons and \
+                                    len(x.getField(seq_field)) == max_length]
+    # Consensus sequence(s) with consensus V/J calls but not the longest sequence
     if not cons:
-        # Sequence(s) with consensus V/J (not longest)
-        cons = [val for val in list(clone_dict.values()) \
-                if val.get(v_field, '') in v_cons and val.get(j_field, '') in j_cons]
+        cons = [x for x in receptors if x.getField(v_field) in v_cons and \
+                                        x.getField(j_field) in j_cons]
 
-        # No sequence has both consensus V and J call
-        if not cons:
-            result_log = OrderedDict()
-            result_log['ID'] = clone
-            result_log['V_CALL'] = ','.join(v_cons)
-            result_log['J_CALL'] = ','.join(j_cons)
-            result_log['ERROR'] = 'No consensus sequence for clone found'
-        else:
-            # Pad end of consensus sequence with gaps to make it the max length
-            cons = cons[0]
-            cons['J_GERM_LENGTH'] = str(int(cons['J_GERM_LENGTH'] or 0) + max_length - len(cons[seq_field]))
-            cons[seq_field] += '.' * (max_length - len(cons[seq_field]))
-            result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
-                                                 germ_types=germ_types)
-            result_log['ID'] = clone
-            result_log['CONSENSUS'] = cons['SEQUENCE_ID']
-    else:
-        cons = cons[0]
-        result_log, germlines = joinGermline(cons, references, seq_field=seq_field, v_field=v_field,
-                                             germ_types=germ_types)
-        result_log['ID'] = clone
-        result_log['CONSENSUS'] = cons['SEQUENCE_ID']
+    # Return without germline if no sequence has both consensus V and J call
+    if not cons:
+        log['V_CALL'] = ','.join(v_cons)
+        log['J_CALL'] = ','.join(j_cons)
+        log['ERROR'] = 'No sequence found with both consensus V and J calls.'
+        return log, None, None
 
-    # Write sequences of clone
-    for val in clone_dict.values():
-        if 'ERROR' not in result_log:
-            # Update lengths padded to longest sequence in clone
-            val['J_GERM_LENGTH'] = str(int(val['J_GERM_LENGTH'] or 0) + max_length - len(val[seq_field]))
-            val[seq_field] += '.' * (max_length - len(val[seq_field]))
+    # Assign consensus Receptor
+    cons = cons[0]
+    genes = {'v': cons.getField(v_field),
+             'd': cons.getField(d_field),
+             'j': cons.getField(j_field)}
 
-            # Add column(s) to tab-delimited database file
-            if 'full' in germ_types: val['GERMLINE_' + seq_type] = germlines['full']
-            if 'dmask' in germ_types: val['GERMLINE_' + seq_type + '_D_MASK'] = germlines['dmask']
-            if 'vonly' in germ_types: val['GERMLINE_' + seq_type + '_V_REGION'] = germlines['vonly']
-            if 'regions' in germ_types: val['GERMLINE_REGIONS'] = germlines['regions']
+    # Pad end of consensus sequence with gaps to make it the max length
+    gap_length = max_length - cons.getField(seq_field)
+    if gap_length > 0:
+        cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
+        cons.setField(seq_field, cons.getSeq(seq_field) + '-' * gap_length)
 
-            # Add field
-            val['GERMLINE_V_CALL'] = result_log['V_CALL']
-            val['GERMLINE_D_CALL'] = result_log['D_CALL']
-            val['GERMLINE_J_CALL'] = result_log['J_CALL']
+    # Update lengths padded to longest sequence in clone
+    for rec in receptors:
+        x = max_length - rec.getField(seq_field)
+        rec.j_germ_length = int(rec.j_germ_length or 0) + x
+        rec.setField(seq_field, rec.getSeq(seq_field) + '-' * x)
 
-            result_log['SEQUENCE'] = cons[seq_field]
-            result_log['GERMLINE'] = germlines['full']
-            result_log['REGIONS'] = germlines['regions']
+    # Stitch consensus germline
+    join_log, germlines = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                        d_field=d_field, j_field=j_field, germ_types=germ_types)
 
-            # Write to pass file
-            counts['pass'] += 1
-            writers['pass'].writeDict(val)
-        else:
-            # Write to fail file
-            counts['fail'] += 1
-            if writers['fail'] is not None:
-                writers['fail'].writeDict(val)
+    # Update log
+    log['CONSENSUS'] = cons.sequence_id
+    log['V_CALL'] = genes['v']
+    log['D_CALL'] = genes['d']
+    log['J_CALL'] = genes['j']
+    log.update(join_log)
 
     # Return log
-    return result_log
+    return log, germlines, genes
 
 
 def makeCloneGermline(clone, clone_dict, references, germ_types, v_field,
@@ -1181,4 +1160,4 @@ if __name__ == "__main__":
         if args.__dict__['cloned']:
             assembleCloneGermline(**args_dict)
         else:
-            assembleEachGermline(**args_dict)
+            createGermlines(**args_dict)
