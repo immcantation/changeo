@@ -1,6 +1,16 @@
 Release Notes
 ===============================================================================
 
+Version 0.3.12:  February 13, 2018
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Fixed a bug wherein specifying multiple simultaneous inputs would cause
+  duplication of parsed pRESTO fields to appear in the second and higher
+  output files.
+
+
 Version 0.3.11:  February 6, 2018
 -------------------------------------------------------------------------------
 

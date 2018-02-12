@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 import csv
 import re
 import sys
+from copy import copy
 from itertools import chain, groupby
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -116,7 +117,7 @@ class IMGTReader:
         self.ig = ig
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = copy(default_core_fields)
         if parse_regions:
             self._fields.extend(default_region_fields)
         if parse_junction:
@@ -556,7 +557,7 @@ class IgBLASTReader:
         self.ig = ig
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = copy(default_core_fields)
         if parse_regions:
             self._fields.extend(default_region_fields)
         if parse_scores:
@@ -1228,7 +1229,7 @@ class IHMMuneReader:
         self.ig = ig
 
         # Define field list
-        self._fields = default_core_fields
+        self._fields = copy(default_core_fields)
         if parse_regions:
             self._fields.extend(default_region_fields)
         if parse_scores:
