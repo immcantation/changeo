@@ -93,11 +93,12 @@ output is parsed by the :program:`igblast` subcommand of
 subsequent Change-O modules operate. In addition to the IgBLAST output
 (:option:`-i S43_atleast-2.fmt7  <MakeDb igblast -i>`), both the FASTA files input to
 IgBLAST (:option:`-s S43_atleast-2.fasta  <MakeDb igblast -s>`) and the IMGT-gapped reference
-sequences (:option:`-r Human_IGH[VDJ].fasta <MakeDb igblast -r>`) must be provided to :ref:`MakeDb`:
+sequences (:option:`-r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta <MakeDb igblast -r>`)
+must be provided to :ref:`MakeDb`:
 
 .. literalinclude:: scripts/IgBLAST_Commands.sh
    :language: none
-   :lines: 22-23
+   :lines: 22-24
 
 The optional (:option:`--regions <MakeDb igblast --regions>`) and
 (:option:`--scores <MakeDb igblast --scores>`) arguments add extra columns to the output

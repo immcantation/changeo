@@ -19,5 +19,6 @@ igblastn \
     -query S43_atleast-2.fasta \
     -out S43_atleast-2.fmt7
 # Parse IgBLAST output
-MakeDb.py igblast -i S43_atleast-2.fmt7 -s S43_atleast-2.fasta -r Human_IGH[VDJ].fasta \
+MakeDb.py igblast -i S43_atleast-2.fmt7 -s S43_atleast-2.fasta \
+    -r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta \
     --regions --scores
