@@ -672,9 +672,10 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Initialize time and total count for progress bar
     start_time = time()
     rec_count = countDbFile(db_file)
-    clone_count = pass_count = fail_count = 0
+    pass_count = fail_count = 0
+    clone_count = 0
     clone_id = None
-    receptor_list = []
+    rec_list = []
     # Iterate over rows
     for i, rec in enumerate(reader):
         # Print progress
@@ -684,8 +685,13 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         # TODO: add check for sorted clones earlier. when counting clones.
         # TODO: whole cloned/not-cloned loops could be two processing/writer function. with log output embedded.
         # TODO: or just a writer than takes a Receptor list, germlines, and log
-        result_log, germlines = buildGermline(rec, references, seq_field=seq_field, v_field=v_field,
-                                              d_field=d_field, j_field=j_field, germ_types=germ_types)
+
+        if not cloned:
+            result_log, germlines = buildGermline(rec, references, seq_field=seq_field, v_field=v_field,
+                                                  d_field=d_field, j_field=j_field, germ_types=germ_types)
+        else:
+            result_log, germlines, genes = buildClonalGermline(rec_list, references, seq_field=seq_field, v_field=v_field,
+                                                  d_field=d_field, j_field=j_field, germ_types=germ_types)
 
         # Add germlines to Receptor record
         # TODO: this should probably pass through the schemas instead so the output fields are correct
@@ -799,7 +805,7 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
         rec.setField(seq_field, rec.getSeq(seq_field) + '-' * x)
 
     # Stitch consensus germline
-    join_log, germlines = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
+    cons_log, germlines = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
                                         d_field=d_field, j_field=j_field, germ_types=germ_types)
 
     # Update log
@@ -807,7 +813,7 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
     log['V_CALL'] = genes['v']
     log['D_CALL'] = genes['d']
     log['J_CALL'] = genes['j']
-    log.update(join_log)
+    log.update(cons_log)
 
     # Return log
     return log, germlines, genes
