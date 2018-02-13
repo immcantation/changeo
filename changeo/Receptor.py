@@ -129,9 +129,10 @@ class AIRRSchema:
                                 ('cdr3_igblast_end', 'cdr3_igblast_end')])
     igblast_cdr3_fields = list(igblast_cdr3.keys())
 
-    # Count fields
+    # Grouping and counting fields
     count = OrderedDict([('duplicate_count', 'dupcount'),
-                          ('consensus_count', 'conscount')])
+                         ('consensus_count', 'conscount'),
+                         ('clone', 'clone')])
     count_fields = list(count.keys())
 
     # Mapping of AIRR column names to Receptor attributes
@@ -344,9 +345,10 @@ class ChangeoSchema:
                                 ('CDR3_IGBLAST_END', 'cdr3_igblast_end')])
     igblast_cdr3_fields = list(igblast_cdr3.keys())
 
-    # Count fields
+    # Grouping and counting fields
     count = OrderedDict([('CONSCOUNT', 'conscount'),
-                         ('DUPCOUNT', 'dupcount')])
+                         ('DUPCOUNT', 'dupcount'),
+                         ('CLONE', 'clone')])
     count_fields = list(count.keys())
 
     # Mapping of Change-O column names to Receptor attributes
@@ -504,7 +506,8 @@ class Receptor:
                 'cdr3_igblast_nt': '_nucleotide',
                 'cdr3_igblast_aa': '_aminoacid',
                 'conscount': '_integer',
-                'dupcount': '_integer'}
+                'dupcount': '_integer',
+                'clone': '_identity'}
 
     # Mapping of derived properties to parsing functions
     _derived = {'v_seq_end': '_integer',
@@ -794,123 +797,140 @@ class Receptor:
         return [vdj[k] for k in calls]
 
     # TODO: this can't distinguish empty value ("") from missing field (no column)
-    def getVAllele(self, action='first'):
+    def getVAllele(self, action='first', field=None):
         """
-        V-region allele getter
+        V segment allele getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the V call. Use v_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        x = self.v_call_genotyped if self.v_call_genotyped is not None else self.v_call
+        x = self.v_call if field is None else self.getField(field)
         return parseAllele(x, allele_regex, action)
 
-    def getDAllele(self, action='first'):
+    def getDAllele(self, action='first', field=None):
         """
-        D-region allele getter
+        D segment allele getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or 'list'
+          field : attribute or annotation name containing the D call. Use d_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.d_call, allele_regex, action)
+        x = self.d_call if field is None else self.getField(field)
+        return parseAllele(x, allele_regex, action)
 
-    def getJAllele(self, action='first'):
+    def getJAllele(self, action='first', field=None):
         """
-        J-region allele getter
+        J segment allele getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or 'list'
+          field : attribute or annotation name containing the J call. Use j_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.j_call, allele_regex, action)
+        x = self.j_call if field is None else self.getField(field)
+        return parseAllele(x, allele_regex, action)
 
-    def getVGene(self, action='first'):
+    def getVGene(self, action='first', field=None):
         """
-        V-region gene getter
+        V segment gene getter
 
         Arguments:
-          actions : One of ('first','set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the V call. Use v_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.v_call, gene_regex, action)
+        x = self.v_call if field is None else self.getField(field)
+        return parseAllele(x, gene_regex, action)
 
-    def getDGene(self, action='first'):
+    def getDGene(self, action='first', field=None):
         """
-        D-region gene getter
+        D segment gene getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the D call. Use d_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.d_call, gene_regex, action)
+        x = self.d_call if field is None else self.getField(field)
+        return parseAllele(x, gene_regex, action)
 
-    def getJGene(self, action='first'):
+    def getJGene(self, action='first', field=None):
         """
-        J-region gene getter
+        J segment gene getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the J call. Use j_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.j_call, gene_regex, action)
+        x = self.j_call if field is None else self.getField(field)
+        return parseAllele(x, gene_regex, action)
 
-    def getVFamily(self, action='first'):
+    def getVFamily(self, action='first', field=None):
         """
-        V-region family getter
+        V segment family getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the V call. Use v_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.v_call, family_regex, action)
+        x = self.v_call if field is None else self.getField(field)
+        return parseAllele(x, family_regex, action)
 
-    def getDFamily(self, action='first'):
+    def getDFamily(self, action='first', field=None):
         """
-        D-region family getter
+        D segment family getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the D call. Use d_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.d_call, family_regex, action)
+        x = self.d_call if field is None else self.getField(field)
+        return parseAllele(x, family_regex, action)
 
-    def getJFamily(self, action='first'):
+    def getJFamily(self, action='first', field=None):
         """
-        J-region family getter
+        J segment family getter
 
         Arguments:
-          actions : One of ('first', 'set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the J call. Use j_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
-        return parseAllele(self.j_call, family_regex, action)
+        x = self.j_call if field is None else self.getField(field)
+        return parseAllele(x, family_regex, action)
 
     def getAlleleNumbers(self, calls, action='first'):
         """
@@ -929,44 +949,50 @@ class Receptor:
 
         return [vdj[k] for k in calls]
 
-    def getVAlleleNumber(self, action='first'):
+    def getVAlleleNumber(self, action='first', field=None):
         """
-        V-region allele number getter
+        V segment allele number getter
 
         Arguments:
-          actions : One of ('first','set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the V call. Use v_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
-        return parseAllele(self.v_call, allele_number_regex, action)
+        x = self.v_call if field is None else self.getField(field)
+        return parseAllele(x, allele_number_regex, action)
 
-    def getDAlleleNumber(self, action='first'):
+    def getDAlleleNumber(self, action='first', field=None):
         """
-        D-region allele number getter
+        D segment allele number getter
 
         Arguments:
-          actions : One of ('first','set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the D call. Use d_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
-        return parseAllele(self.d_call, allele_number_regex, action)
+        x = self.d_call if field is None else self.getField(field)
+        return parseAllele(x, allele_number_regex, action)
 
-    def getJAlleleNumber(self, action='first'):
+    def getJAlleleNumber(self, action='first', field=None):
         """
-        J-region allele number getter
+        J segment allele number getter
 
         Arguments:
-          actions : One of ('first','set')
+          actions : One of 'first', 'set' or list'
+          field : attribute or annotation name containing the J call. Use j_call attribute if None.
 
         Returns:
           str : String of the allele when action is 'first';
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
-        return parseAllele(self.j_call, allele_number_regex, action)
+        x = self.j_call if field is None else self.getField(field)
+        return parseAllele(x, allele_number_regex, action)
 
     @property
     def v_seq_end(self):

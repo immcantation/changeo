@@ -13,6 +13,7 @@ default_csv_size = 2**24
 default_v_field = 'V_CALL'
 default_d_field = 'D_CALL'
 default_j_field = 'J_CALL'
+default_clone_field = 'CLONE'
 
 # Annotation parameters
 default_delimiter = ('|', '=', ',')
