@@ -240,8 +240,7 @@ def stitchRegions(receptor, v_seq, d_seq, j_seq):
 
 
 def buildGermline(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
-                  d_field=default_d_field, j_field=default_j_field,
-                  germ_types=default_germ_types):
+                  d_field=default_d_field, j_field=default_j_field):
     """
     Join gapped germline sequences aligned with sample sequences
 
@@ -252,8 +251,6 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
       v_field : field in which to look for V call
       d_field : field in which to look for V call
       j_field : field in which to look for V call
-      germ_types : types of germline sequences to be output
-                   (full germline, D-region masked, only V-region germline)
 
     Returns:
       tuple : log dictionary, dictionary of {germline_type: germline_sequence}, dictionary of {segment: gene call}
@@ -261,11 +258,9 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
     # Return objects
     log = OrderedDict()
     germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
-    genes = {'v': None, 'd': None, 'j': None}
 
     # Build V segment germline sequence
     vgene, germ_vseq = getVGermline(receptor, references, v_field=v_field)
-    genes['v'] = vgene
     log['V_CALL'] = vgene
     if germ_vseq is None:
         log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
@@ -273,7 +268,6 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
 
     # Build D segment germline sequence
     dgene, germ_dseq = getDGermline(receptor, references, d_field=d_field)
-    genes['d'] = dgene
     log['D_CALL'] = dgene
     if germ_dseq is None:
         log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
@@ -281,7 +275,6 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
 
     # Build J segment germline sequence
     jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field)
-    genes['j'] = jgene
     log['J_CALL'] = jgene
     if germ_jseq is None:
         log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
@@ -290,20 +283,6 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
     # Stitch complete germlines
     germ_seq = stitchVDJ(receptor, germ_vseq, germ_dseq, germ_jseq)
     regions = stitchRegions(receptor, germ_vseq, germ_dseq, germ_jseq)
-
-    # Define return germlines
-    germlines['full'] = germ_seq
-    germlines['regions'] = regions
-
-    if 'dmask' in germ_types:
-        germlines['dmask'] = germ_seq[:len(germ_vseq)] + \
-                             'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
-                             germ_seq[-len(germ_jseq):]
-    if 'vonly' in germ_types:
-        germlines['vonly'] = germ_vseq
-
-    # Convert to uppercase
-    for k, v in germlines.items():  germlines[k] = v.upper()
 
     # Update log
     log['SEQUENCE'] = receptor.getField(seq_field)
@@ -315,18 +294,29 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
         log['ERROR'] = 'Sequence is missing from the %s field' % seq_field
         return log, None, None
 
-    if len(germlines['full']) != len(receptor.getField(seq_field)):
+    if len(germ_seq) != len(receptor.getField(seq_field)):
         log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
                               (len(germlines['full']) - len(receptor.getField(seq_field)))
         return log, None, None
+
+    # Define return germlines object
+    germ_dmask = germ_seq[:len(germ_vseq)] + \
+                 'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
+                 germ_seq[-len(germ_jseq):]
+    germlines = {'full': germ_seq, 'dmask': germ_dmask, 'vonly': germ_vseq, 'regions': regions}
+    for k, v in germlines.items():  germlines[k] = v.upper()
+
+    # Define return genes object
+    genes = {'v': log['V_CALL'],
+             'd': log['D_CALL'],
+             'j': log['J_CALL']}
 
     return log, germlines, genes
 
 
 # TODO: Should do 'first' method for ambiguous V/J groups. And explicit allele extraction.
 def buildClonalGermline(receptors, references, seq_field=default_seq_field,
-                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field,
-                        germ_types=default_germ_types):
+                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field):
     """
     Determine consensus clone sequence and create germline for clone
 
@@ -337,8 +327,6 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
       v_field : field in which to look for V call
       d_field : field in which to look for D call
       j_field : field in which to look for J call
-      germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
-      out_args = arguments for output preferences
 
     Returns:
       tuple : log dictionary, dictionary of {germline_type: germline_sequence},
@@ -384,9 +372,6 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
 
     # Assign consensus Receptor
     cons = cons[0]
-    genes = {'v': cons.getVAllele(action='first', field=v_field),
-             'd': cons.getDAllele(action='first', field=d_field),
-             'j': cons.getJAllele(action='first', field=j_field)}
 
     # Pad end of consensus sequence with gaps to make it the max length
     gap_length = max_length - len(cons.getField(seq_field))
@@ -401,15 +386,12 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
         rec.setField(seq_field, rec.getSeq(seq_field) + ('-' * x))
 
     # Stitch consensus germline
-    cons_log, germlines, __ = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
-                                            d_field=d_field, j_field=j_field, germ_types=germ_types)
+    cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
+                                            d_field=d_field, j_field=j_field)
 
     # Update log
     log['CONSENSUS'] = cons.sequence_id
     log.update(cons_log)
-    # log['V_CALL'] = genes['v']
-    # log['D_CALL'] = genes['d']
-    # log['J_CALL'] = genes['j']
 
     # Return log
     return log, germlines, genes
@@ -449,7 +431,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     log['D_FIELD'] = d_field
     log['J_FIELD'] = j_field
     log['CLONED'] = cloned
-    log['CLONE_FIELD'] = clone_field
+    if cloned:  log['CLONE_FIELD'] = clone_field
     printLog(log)
 
     # Format options
@@ -554,28 +536,31 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         # Build germline for records
         if len(records) == 1:
             germ_log, germlines, genes = buildGermline(records[0], references, seq_field=seq_field, v_field=v_field,
-                                                       d_field=d_field, j_field=j_field, germ_types=germ_types)
+                                                       d_field=d_field, j_field=j_field)
         else:
             germ_log, germlines, genes = buildClonalGermline(records, references, seq_field=seq_field, v_field=v_field,
-                                                             d_field=d_field, j_field=j_field, germ_types=germ_types)
+                                                             d_field=d_field, j_field=j_field)
         rec_log.update(germ_log)
-
-        # Add germlines to Receptor record
-        annotations = OrderedDict()
-        if 'full' in germ_types:  annotations[germline_fields['full']] = germlines['full']
-        if 'dmask' in germ_types:  annotations[germline_fields['dmask']] = germlines['dmask']
-        if 'vonly' in germ_types:  annotations[germline_fields['vonly']] = germlines['vonly']
-        if 'regions' in germ_types:  annotations[germline_fields['regions']] = germlines['regions']
-        if cloned:
-            annotations[germline_fields['v']] = genes['v']
-            annotations[germline_fields['d']] = genes['d']
-            annotations[germline_fields['j']] = genes['j']
-        for r in records: r.setDict(annotations)
 
         # Write row to pass or fail file
         if germlines is not None:
             pass_count += len(records)
-            for r in records: pass_writer.writeReceptor(r)
+
+            # Add germlines to Receptor record
+            annotations = OrderedDict()
+            if 'full' in germ_types:  annotations[germline_fields['full']] = germlines['full']
+            if 'dmask' in germ_types:  annotations[germline_fields['dmask']] = germlines['dmask']
+            if 'vonly' in germ_types:  annotations[germline_fields['vonly']] = germlines['vonly']
+            if 'regions' in germ_types:  annotations[germline_fields['regions']] = germlines['regions']
+            if cloned:
+                annotations[germline_fields['v']] = genes['v']
+                annotations[germline_fields['d']] = genes['d']
+                annotations[germline_fields['j']] = genes['j']
+
+            # Write records
+            for r in records:
+                r.setDict(annotations)
+                pass_writer.writeReceptor(r)
         else:
             fail_count += len(records)
             if fail_writer is not None:

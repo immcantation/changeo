@@ -129,7 +129,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
                 if i == 1:  fields = _annotate(fields, ann_parsed.keys())
 
                 # Update Receptor record
-                record.setDict(ann_parsed)
+                record.setDict(ann_parsed, parse=True)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 no_parse = True

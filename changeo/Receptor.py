@@ -442,8 +442,8 @@ class Receptor:
                 'd_call': '_identity',
                 'j_call': '_identity',
                 'sequence_input': '_nucleotide',
-                'sequence_vdj': '_nucleotide',
                 'sequence_imgt': '_nucleotide',
+                'sequence_vdj': '_nucleotide',
                 'junction': '_nucleotide',
                 'junction_aa': '_aminoacid',
                 'functional': '_logical',
@@ -605,12 +605,13 @@ class Receptor:
         # Add remaining elements as annotations dictionary
         self.annotations = data
 
-    def setDict(self, data):
+    def setDict(self, data, parse=False):
         """
         Adds or updates multiple attributes and annotations
 
         Arguments:
           data : a dictionary of annotations to add or update.
+          parse : if True pass values through string parsing functions for known fields.
 
         Returns:
           None : updates attribute values and the annotations attribute.
@@ -621,28 +622,33 @@ class Receptor:
 
         # Update attributes
         for k, v in attributes.items():
-            f = getattr(Receptor, Receptor._parsers[k])
-            setattr(self, k, f(v))
+            if parse:
+                f = getattr(Receptor, Receptor._parsers[k])
+                setattr(self, k, f(v))
+            else:
+                setattr(self, k, v)
 
         # Update annotations
         self.annotations.update(annotations)
 
-    def setField(self, field, value):
+    def setField(self, field, value, parse=False):
         """
         Set an attribute or annotation value
 
         Arguments:
           field : attribute name as a string
           value : value to assign
+          parse : if True pass values through string parsing functions for known fields.
 
         Returns:
           None. Updates attribute or annotation.
         """
         field = field.lower()
-
-        if field in Receptor._parsers:
+        if field in Receptor._parsers and parse:
             f = getattr(Receptor, Receptor._parsers[field])
             setattr(self, field, f(value))
+        elif field in Receptor._parsers:
+            setattr(self, field, value)
         else:
             self.annotations[field] = value
 
