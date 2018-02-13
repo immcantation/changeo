@@ -440,31 +440,31 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         writer = ChangeoWriter
         schema = ChangeoSchema
         germline_fields = OrderedDict()
-        if cloned:
-            germline_fields['v'] = 'GERMLINE_V_CALL'
-            germline_fields['d'] = 'GERMLINE_D_CALL'
-            germline_fields['j'] = 'GERMLINE_J_CALL'
         seq_type = seq_field.split('_')[-1]
         if 'full' in germ_types:  germline_fields['full'] = 'GERMLINE_' + seq_type
         if 'dmask' in germ_types:  germline_fields['dmask'] = 'GERMLINE_' + seq_type + '_D_MASK'
         if 'vonly' in germ_types:  germline_fields['vonly'] = 'GERMLINE_' + seq_type + '_V_REGION'
         if 'regions' in germ_types:  germline_fields['regions'] = 'GERMLINE_REGIONS'
+        if cloned:
+            germline_fields['v'] = 'GERMLINE_V_CALL'
+            germline_fields['d'] = 'GERMLINE_D_CALL'
+            germline_fields['j'] = 'GERMLINE_J_CALL'
         out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
         schema = AIRRSchema
         germline_fields = OrderedDict()
-        if cloned:
-            germline_fields['v'] = 'germline_v_call'
-            germline_fields['d'] = 'germline_d_call'
-            germline_fields['j'] = 'germline_j_call'
         # TODO: this won't work for AIRR necessarily
         seq_type = seq_field.split('_')[-1]
         if 'full' in germ_types:  germline_fields['full'] = 'germline_' + seq_type
         if 'dmask' in germ_types:  germline_fields['dmask'] = 'germline_' + seq_type + '_d_mask'
         if 'vonly' in germ_types:  germline_fields['vonly'] = 'germline_' + seq_type + '_v_region'
         if 'regions' in germ_types:  germline_fields['regions'] = 'germline_regions'
+        if cloned:
+            germline_fields['v'] = 'germline_v_call'
+            germline_fields['d'] = 'germline_d_call'
+            germline_fields['j'] = 'germline_j_call'
         out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
     else:
         sys.exit('Error:  Invalid format %s' % format)
@@ -547,7 +547,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
             pass_count += len(records)
 
             # Add germlines to Receptor record
-            annotations = OrderedDict()
+            annotations = {}
             if 'full' in germ_types:  annotations[germline_fields['full']] = germlines['full']
             if 'dmask' in germ_types:  annotations[germline_fields['dmask']] = germlines['dmask']
             if 'vonly' in germ_types:  annotations[germline_fields['vonly']] = germlines['vonly']
