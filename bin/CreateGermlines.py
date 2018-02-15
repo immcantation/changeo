@@ -370,9 +370,10 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
         log['ERROR'] = 'No sequence found with both consensus V and J calls.'
         return log, None, None
 
-    # Assign consensus Receptor
-    cons = cons[0]
+    # Select consensus Receptor, resolving ties by alphabetical ordering of sequence id.
+    cons = sorted(cons, key=lambda x: x.sequence_id)[0]
 
+    # TODO: padding character should be N, after tests are done
     # Pad end of consensus sequence with gaps to make it the max length
     gap_length = max_length - len(cons.getField(seq_field))
     if gap_length > 0:
