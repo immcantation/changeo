@@ -511,9 +511,9 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Define Receptor iterator
     if cloned:
         start_time = time()
-        printMessage('Sorting by clone', start_time=start_time, width=25)
+        printMessage('Sorting by clone', start_time=start_time, width=20)
         sorted_records = sorted(reader, key=lambda x: x.getField(clone_field))
-        printMessage('Done', start_time=start_time, end=True, width=25)
+        printMessage('Done', start_time=start_time, end=True, width=20)
         receptor_iter = groupby(sorted_records, lambda x: x.getField(clone_field))
         #receptor_iter = groupby(reader, lambda x: x.getField(clone_field))
     else:

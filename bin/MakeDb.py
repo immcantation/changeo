@@ -211,14 +211,14 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
     printLog(log)
 
     start_time = time()
-    printMessage('Loading sequence files', start_time=start_time, width=25)
+    printMessage('Loading files', start_time=start_time, width=20)
     # Extract IMGT files
     temp_dir, imgt_files = extractIMGT(aligner_output)
     # Count records in IMGT files
     total_count = countDbFile(imgt_files['summary'])
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
-    printMessage('Done', start_time=start_time, end=True, width=25)
+    printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define output fields
     if format == 'changeo':
@@ -283,14 +283,14 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     printLog(log)
 
     start_time = time()
-    printMessage('Loading sequence files', start_time=start_time, width=25)
+    printMessage('Loading files', start_time=start_time, width=20)
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
     repo_dict = readRepo(repo)
-    printMessage('Done', start_time=start_time, end=True, width=25)
+    printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define output fields
     if format == 'changeo':
@@ -347,14 +347,14 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     printLog(log)
 
     start_time = time()
-    printMessage('Loading sequence files', start_time=start_time, width=25)
+    printMessage('Loading files', start_time=start_time, width=20)
     # Count records in sequence file
     total_count = countSeqFile(seq_file)
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
     repo_dict = readRepo(repo)
-    printMessage('Done', start_time=start_time, end=True, width=25)
+    printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define output fields
     if format == 'changeo':

@@ -1,20 +1,36 @@
 Release Notes
 ===============================================================================
 
-Version 0.3.9.999:  January 15, 2018
+Version 0.3.12:  February 16, 2018
 -------------------------------------------------------------------------------
 
-AlignRecords:
+MakeDb:
 
-+ Fixed a terminal error in the ``across`` and ``block`` subcommands that
-  occurred when sequence identifiers contained space characters.
++ Fixed a bug wherein specifying multiple simultaneous inputs would cause
+  duplication of parsed pRESTO fields to appear in the second and higher
+  output files.
+
+
+Version 0.3.11:  February 6, 2018
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Fixed junction inferrence for igblast subcommand when J region is
+  truncated.
+
+
+Version 0.3.10:  February 6, 2018
+-------------------------------------------------------------------------------
+
+Fixed incorrect progress bars resulting from files containing empty lines.
 
 DefineClones:
 
-+ Removed subcommands from DefineClones, making the previous ``bygroup``
-  subcommand the default behavior and removing the ``chen2010`` and
-  ``ademokun2011`` methods.
-+ Renamed ``-f`` argument to ``--gf`` for consistency with other tools.
++ Fixed several bugs in the chen2010 and ademokun2011 methods that caused them
+  to either fail or incorrectly cluster all sequences into a single clone.
++ Added informative message for out of memory error in chen2010 and
+  ademokun2011 methods.
 
 
 Version 0.3.9:  October 17, 2017
