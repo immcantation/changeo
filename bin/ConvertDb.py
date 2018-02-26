@@ -408,10 +408,6 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #   Line 2, Column 4: Qualifier key
     #   Line 2, Column 5: Qualifier value
 
-    # Set inference type
-    if inference is not None:
-        inference = 'alignment:%s' % inference
-
     # Get genes and check for valid record
     v_gene = record.getVGene()
     d_gene = record.getDGene()
@@ -477,8 +473,9 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     inference (reference alignment tool)
     v_segment = [('gene', v_gene),
                  ('allele', record.getVAlleleNumber()),
-                 ('db_xref', '%s:%s' % (db_xref, v_gene)),
-                 ('inference', inference)]
+                 ('db_xref', '%s:%s' % (db_xref, v_gene))]
+    if inference is not None:
+        v_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
     result[(variable_start, record.v_seq_end - start_trim, 'V_segment')] = v_segment
 
     # D_segment
@@ -489,8 +486,9 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     if d_gene:
         d_segment = [('gene', d_gene),
                      ('allele', record.getDAlleleNumber()),
-                     ('db_xref', '%s:%s' % (db_xref, d_gene)),
-                     ('inference', inference)]
+                     ('db_xref', '%s:%s' % (db_xref, d_gene))]
+        if inference is not None:
+            d_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
         result[(record.d_seq_start - start_trim, record.d_seq_end - start_trim, 'D_segment')] = d_segment
 
     # J_segment
@@ -500,8 +498,9 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     inference
     j_segment = [('gene', j_gene),
                  ('allele', record.getVAlleleNumber()),
-                 ('db_xref', '%s:%s' % (db_xref, j_gene)),
-                 ('inference', inference)]
+                 ('db_xref', '%s:%s' % (db_xref, j_gene))]
+    if inference is not None:
+        j_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
     result[(record.j_seq_start - start_trim, j_end - start_trim, 'J_segment')] = j_segment
 
     # CDS
@@ -510,10 +509,12 @@ def makeGenbankFeatures(record, start=None, end=None, inference=None,
     #     inference
     cds_start = '<%i' % junction_start
     cds_end = '>%i' % junction_end
-    result[(cds_start, cds_end, 'CDS')] = [('codon_start', 1),
-                                           ('product', '%s junction region' % product),
-                                           ('function', 'JUNCTION'),
-                                           ('inference', inference)]
+    cds_record = [('codon_start', 1),
+                  ('product', '%s junction region' % product),
+                  ('function', 'JUNCTION')]
+    if inference is not None:
+        cds_record.append(('inference', 'COORDINATES:protein motif:%s' % inference))
+    result[(cds_start, cds_end, 'CDS')] = cds_record
 
     return result
 
