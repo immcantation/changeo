@@ -573,7 +573,7 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
         name = '%s [tissue-type=%s]' % (name, tissue)
     if cell is not None:
         name = '%s [cell-type=%s]' % (name, cell)
-    name = '%s [moltype=%s] [keyword=AIRR]' % (name, molecule)
+    name = '%s [moltype=%s] [keyword=TLS; Targeted Locus Study; AIRR; MiAIRR:1.0]' % (name, molecule)
 
     # Return SeqRecord and positions
     record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=name,
