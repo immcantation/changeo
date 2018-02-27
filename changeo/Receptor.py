@@ -32,31 +32,32 @@ class AIRRSchema:
     AIRR format to Receptor mappings
     """
     # Core fields
-    core = OrderedDict([('rearrangement_id', 'sequence_id'),
+    core = OrderedDict([('sequence_id', 'sequence_id'),
                         ('sequence', 'sequence_input'),
-                        ('sequence_imgt', 'sequence_imgt'),
-                        ('functional', 'functional'),
+                        ('sequence_alignment', 'sequence_imgt'),
+                        ('germline_alignment', 'germline_imgt'),
+                        ('productive', 'functional'),
                         ('rev_comp', 'rev_comp'),
                         ('v_call', 'v_call'),
                         ('d_call', 'd_call'),
                         ('j_call', 'j_call'),
-                        ('junction_nt', 'junction'),
-                        ('junction_nt_length', 'junction_length'),
+                        ('junction', 'junction'),
+                        ('junction_length', 'junction_length'),
                         ('junction_aa', 'junction_aa'),
                         ('np1_length', 'np1_length'),
                         ('np2_length', 'np2_length'),
-                        ('v_start', 'v_seq_start'),
-                        ('v_end', 'v_seq_end'),
-                        ('v_germ_start', 'v_germ_start_imgt'),
-                        ('v_germ_end', 'v_germ_end_imgt'),
-                        ('d_start', 'd_seq_start'),
-                        ('d_end', 'd_seq_end'),
-                        ('d_germ_start', 'd_germ_start'),
-                        ('d_germ_end', 'd_germ_end'),
-                        ('j_start', 'j_seq_start'),
-                        ('j_end', 'j_seq_end'),
-                        ('j_germ_start', 'j_germ_start'),
-                        ('j_germ_end', 'j_germ_end')])
+                        ('v_sequence_start', 'v_seq_start'),
+                        ('v_sequence_end', 'v_seq_end'),
+                        ('v_germline_start', 'v_germ_start_imgt'),
+                        ('v_germline_end', 'v_germ_end_imgt'),
+                        ('d_sequence_start', 'd_seq_start'),
+                        ('d_sequence_end', 'd_seq_end'),
+                        ('d_germline_start', 'd_germ_start'),
+                        ('d_germline_end', 'd_germ_end'),
+                        ('j_sequence_start', 'j_seq_start'),
+                        ('j_sequence_end', 'j_seq_end'),
+                        ('j_germline_start', 'j_germ_start'),
+                        ('j_germline_end', 'j_germ_end')])
     core_fields = list(core.keys())
 
     # Alignment scoring fields
@@ -86,30 +87,30 @@ class AIRRSchema:
     ihmm_score_fields = list(ihmm_score.keys())
 
     # FWR andd CDR fields
-    region = OrderedDict([('fwr1_nt', 'fwr1_imgt'),
-                          ('fwr2_nt', 'fwr2_imgt'),
-                          ('fwr3_nt', 'fwr3_imgt'),
-                          ('fwr4_nt', 'fwr4_imgt'),
-                          ('cdr1_nt', 'cdr1_imgt'),
-                          ('cdr2_nt', 'cdr2_imgt'),
-                          ('cdr3_nt', 'cdr3_imgt')])
+    region = OrderedDict([('cdr1', 'cdr1_imgt'),
+                          ('cdr2', 'cdr2_imgt'),
+                          ('cdr3', 'cdr3_imgt'),
+                          ('fwr1', 'fwr1_imgt'),
+                          ('fwr2', 'fwr2_imgt'),
+                          ('fwr3', 'fwr3_imgt'),
+                          ('fwr4', 'fwr4_imgt')])
     region_fields = list(region.keys())
 
     # CDR and FWR position fields
-    region_position = OrderedDict([('fwr1_start', 'fwr1_start'),
+    region_position = OrderedDict([('cdr1_start', 'cdr1_start'),
+                                   ('cdr1_end', 'cdr1_end'),
+                                   ('cdr2_start', 'cdr2_start'),
+                                   ('cdr2_end', 'cdr2_end'),
+                                   ('cdr3_start', 'cdr3_start'),
+                                   ('cdr3_end', 'cdr3_end'),
+                                   ('fwr1_start', 'fwr1_start'),
                                    ('fwr1_end', 'fwr1_end'),
                                    ('fwr2_start', 'fwr2_start'),
                                    ('fwr2_end', 'fwr2_end'),
                                    ('fwr3_start', 'fwr3_start'),
                                    ('fwr3_end', 'fwr3_end'),
                                    ('fwr4_start', 'fwr4_start'),
-                                   ('fwr4_end', 'fwr4_end'),
-                                   ('cdr1_start', 'cdr1_start'),
-                                   ('cdr1_end', 'cdr1_end'),
-                                   ('cdr2_start', 'cdr2_start'),
-                                   ('cdr2_end', 'cdr2_end'),
-                                   ('cdr3_start', 'cdr3_start'),
-                                   ('cdr3_end', 'cdr3_end')])
+                                   ('fwr4_end', 'fwr4_end')])
     region_position_fields = list(region_position.keys())
 
     # Detailed junction fields
