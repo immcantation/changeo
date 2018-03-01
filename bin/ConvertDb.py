@@ -10,6 +10,7 @@ from changeo import __version__, __date__
 import csv
 import os
 import re
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
@@ -25,7 +26,7 @@ from Bio.Alphabet import IUPAC
 from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress
-from changeo.Defaults import default_csv_size
+from changeo.Defaults import default_csv_size, default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile
 from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
@@ -586,7 +587,8 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=None,
                      isolate=None, tissue=None, cell=None, molecule=default_molecule,
                      product=default_product, cregion_field=None, label=None,
-                     keep_id=False, keep_stop=False, out_args=default_out_args):
+                     keep_id=False, keep_stop=False,
+                     format=default_format, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -605,6 +607,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       label : a string to use as a label for the ID. if None do not add a field label.
       keep_id : if True use the original sequence ID for the output IDs
       keep_stop : if True retain records with junctions having stop codons.
+      format : input and output format.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -616,9 +619,19 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
+
+    # Format options
+    if format == 'changeo':
+        reader = ChangeoReader
+    elif format == 'airr':
+        reader = AIRRReader
+    else:
+        sys.exit('Error:  Invalid format %s' % format)
+
+
     # Open file handles
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle)
+    db_iter = reader(db_handle)
     fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type='fsa')
     tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
@@ -781,7 +794,7 @@ def getArgParser():
     parser_baseln.set_defaults(func=convertDbBaseline)
 
     # Subparser to convert database entries to a GenBank fasta and feature table file
-    parser_gb = subparsers.add_parser('genbank', parents=[parser_parent],
+    parser_gb = subparsers.add_parser('genbank', parents=[getCommonArgParser(failed=False, log=False, format=True)],
                                        formatter_class=CommonHelpFormatter,
                                        help='Creates a fasta and feature table file for GenBank submissions.',
                                        description='Creates a fasta and feature table file for GenBank submissions.')

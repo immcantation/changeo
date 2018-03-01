@@ -414,7 +414,6 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
       cloned : if True build germlines by clone, otherwise build individual germlines
       clone_field : field containing clone identifiers; ignored if cloned=False.
       germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
-
       format : input and output format
       out_args : arguments for output preferences
 
