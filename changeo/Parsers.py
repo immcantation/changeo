@@ -898,6 +898,7 @@ class IgBLASTReader:
           dict : nucleotide and amino acid CDR3 sequences
         """
         # Example:
+        #   # Sub-region sequence details (nucleotide sequence, translation, start, end)
         #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
 
         # Define column names
@@ -981,6 +982,35 @@ class IgBLASTReader:
 
         return result
 
+    @staticmethod
+    def _parseSubregionSection(section, sequence):
+        """
+        Parse subregion section
+
+        Arguments:
+          section :  subregion section dictionary return by parseBlock
+          sequence : input sequence
+
+        Returns:
+          dict : db of results.
+        """
+        # Extract junction
+        junc_start = int(section['CDR3_IGBLAST_START']) - 3
+        junc_end = int(section['CDR3_IGBLAST_END']) + 3
+        junc_seq = sequence[(junc_start - 1):junc_end]
+        junc_len = len(junc_seq)
+
+        # Translation
+        junc_tmp = junc_seq.replace('-', 'N').replace('.', 'N')
+        if junc_len % 3 > 0:  junc_tmp = junc_tmp[:junc_len - junc_len % 3]
+        junc_aa = str(Seq(junc_tmp).translate())
+
+        # Build return values
+        return {'JUNCTION': junc_seq,
+                'JUNCTION_AA': junc_aa,
+                'JUNCTION_LENGTH': junc_len,
+                'JUNCTION_START': junc_start,
+                'JUNCTION_END': junc_end}
 
     @staticmethod
     def _parseVHitPos(v_hit):
@@ -1067,7 +1097,6 @@ class IgBLASTReader:
 
         return seq
 
-
     @staticmethod
     def _parseVHits(hits, db):
         """
@@ -1145,7 +1174,6 @@ class IgBLASTReader:
         seq_vdj = db['SEQUENCE_VDJ']
         j_hit = next(x for x in hits if x['segment'] == 'J')
 
-
         # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
         overlap = 0
@@ -1178,7 +1206,6 @@ class IgBLASTReader:
         result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, j_hit, overlap)
 
         return result
-
 
     @staticmethod
     def _parseHitScores(hits, segment):
@@ -1216,7 +1243,6 @@ class IgBLASTReader:
             result['%s_CIGAR' % segment] = None
 
         return result
-
 
     def parseBlock(self, block):
         """
@@ -1325,10 +1351,14 @@ class IgBLASTReader:
         if 'V_CALL' in db and db['V_CALL']:
             db.update(gapV(db, self.repo_dict))
 
-        # Infer IMGT junction
-        if ('J_CALL' in db and db['J_CALL']) and \
-                ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-            db.update(inferJunction(db, self.repo_dict))
+        # Add junction
+        if 'subregion' in sections:
+            if 'CDR3_IGBLAST_START' in sections['subregion']:
+                junction = self._parseSubregionSection(sections['subregion'], db['SEQUENCE_INPUT'])
+                db.update(junction)
+            elif ('J_CALL' in db and db['J_CALL']) and ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
+                junction = inferJunction(db, self.repo_dict)
+                db.update(junction)
 
         # Add IgBLAST CDR3 sequences
         if self.parse_igblast_cdr3:
