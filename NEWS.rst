@@ -37,11 +37,11 @@ DefineClones:
 
 + Removed the chen2010 and ademokun2011 and made the previous bygroup
   subcommand the default behavior.
-+ Renamed the `--f`` argument to ``--gf`` for consistency with other tools.
++ Renamed the ``--f`` argument to ``--gf`` for consistency with other tools.
 
 MakeDb:
 
-+ Renamed ``--noparse` argument to ``--asis-id``.
++ Renamed ``--noparse`` argument to ``--asis-id``.
 + Added ``asis-calls`` argument to igblast subcommand to allow use with
   non-standard gene names.
 + Changed junction inference in igblast subcommand to use IgBLAST's CDR3
