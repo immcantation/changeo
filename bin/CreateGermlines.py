@@ -28,6 +28,7 @@ from changeo.Parsers import AIRRReader, AIRRWriter, AIRRSchema, ChangeoReader, C
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_types = 'dmask'
 
+
 # TODO: this is not generalized for non-IMGT gapped sequences!
 def getVGermline(receptor, references, v_field=default_v_field):
     """

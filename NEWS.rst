@@ -6,7 +6,12 @@ Version 0.4.0.999:  March 6, 2018
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
   all relevant tools.
-+ Numerous API changes.
++ Numerous API changes and internal structural changes to commandline tools.
+
+AlignRecords:
+
++ Fixed a bug arising when space characters are present in the sequence
+  identifiers.
 
 ConvertDb:
 
@@ -18,16 +23,32 @@ ConvertDb:
 + Contains the baseline and fasta subcommands previously in
   ParseDb.
 
+CreateGermlines
+
++ Changed character used to pad clonal consensus sequences from ``.`` to ``N``.
++ Changed tie resolution in clonal consensus from random V/J gene to
+  alphabetical by sequence identifier.
++ Added ``--df`` and ``-jf`` arguments for specifying D and J fields,
+  respectively.
++ Add initial sorting step with specifying ``--cloned`` so that clonally
+  ordered input is no longer required.
+
 DefineClones:
 
 + Removed the chen2010 and ademokun2011 and made the previous bygroup
   subcommand the default behavior.
++ Renamed the `--f`` argument to ``--gf`` for consistency with other tools.
 
 MakeDb:
 
 + Renamed ``--noparse` argument to ``--asis-id``.
 + Added ``asis-calls`` argument to igblast subcommand to allow use with
   non-standard gene names.
++ Changed junction inference in igblast subcommand to use IgBLAST's CDR3
+  assignment for IgBLAST versions greater than or equal to 1.7.0.
++ Changed behavior of the igblast subcommand's translation of the junction
+  sequence to truncate junction that are not multiples of 3, rather than
+  pad to a multiple of 3 (removes trailing X character).
 
 
 Version 0.3.12:  February 16, 2018

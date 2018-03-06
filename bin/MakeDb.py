@@ -236,8 +236,7 @@ def parseIMGT(aligner_output, seq_file=None, partial=False,
             open(imgt_files['ntseq'], 'r') as ntseq_handle, \
             open(imgt_files['junction'], 'r') as junction_handle:
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle)
-        #file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, fields, aligner_output, total_count, id_dict=id_dict,
+        writeDb(parse_iter, fields=fields, in_file=aligner_output, total_count=total_count, id_dict=id_dict,
                 asis_id=asis_id, partial=partial, format=format, out_args=out_args)
 
     # Cleanup temp directory
@@ -365,8 +364,7 @@ def parseIHMM(aligner_output, seq_file, repo, partial=False,
     # Parse and write output
     with open(aligner_output, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, repo_dict)
-        #file_prefix = getFilePrefix(aligner_output, out_args)
-        writeDb(parse_iter, fields, aligner_output, total_count,
+        writeDb(parse_iter, fields=fields, in_file=aligner_output, total_count=total_count,
                 asis_id=asis_id, partial=partial, format=format, out_args=out_args)
 
     return None

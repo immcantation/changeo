@@ -6,6 +6,5 @@ pipelines:
     default:
       - step:
           script:
-            - pip3 install hg+https://bitbucket.org/kleinstein/presto#default
             - python3 setup.py install
             - python3 -m unittest
