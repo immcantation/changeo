@@ -1,6 +1,35 @@
 Release Notes
 ===============================================================================
 
+Version 0.4.0.999:  March 6, 2018
+-------------------------------------------------------------------------------
+
++ Added support for the AIRR standard TSV via the ``--format airr`` argument to
+  all relevant tools.
++ Numerous API changes.
+
+ConvertDb:
+
++ New tool.
++ Includes the airr and changeo subcommand to convert between AIRR and Change-O
+  formatted TSV files.
++ The genbank subcommand creates tbl2asn input files for submission to
+  GenBank/TLS.
++ Contains the baseline and fasta subcommands previously in
+  ParseDb.
+
+DefineClones:
+
++ Removed the chen2010 and ademokun2011 and made the previous bygroup
+  subcommand the default behavior.
+
+MakeDb:
+
++ Renamed ``--noparse` argument to ``--asis-id``.
++ Added ``asis-calls`` argument to igblast subcommand to allow use with
+  non-standard gene names.
+
+
 Version 0.3.12:  February 16, 2018
 -------------------------------------------------------------------------------
 
