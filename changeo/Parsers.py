@@ -1633,7 +1633,7 @@ class IHMMuneReader:
 
         return result
 
-
+    @staticmethod
     def _parseDHit(record, db):
         """
         Parse D alignment information
@@ -1668,7 +1668,6 @@ class IHMMuneReader:
             result['D_GERM_LENGTH'] = result['D_SEQ_LENGTH']
 
         return result
-
 
     @staticmethod
     def _parseJHit(record, db):
@@ -1834,6 +1833,90 @@ class IHMMuneReader:
             return Receptor(db)
         else:
             return db
+
+
+def maskSplitCodons(receptor):
+    """
+    Identify junction region by IMGT definition.
+
+    Arguments:
+      receptor : Receptor object.
+
+    Returns:
+      str : modified IMGT gapped sequence.
+    """
+
+    qi = receptor.sequence_input
+    si = receptor.sequence_imgt
+
+    # adjust starting position of query sequence
+    qi = qi[(receptor.v_seq_start - 1):]
+
+    # deal with the fact that it's possible to start mid-codon
+    scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
+    #print(len(scodons))
+    for i in range(0, len(scodons)):
+        if scodons[i] != '...':
+            if scodons[i][0:2] == '..':
+                scodons[i] = "NN"+scodons[i][2]
+                qi = "NN" + qi
+                spos = i
+                break
+            elif scodons[i][0] == '.':
+                scodons[i] = "N" + scodons[i][1:3]
+                qi = "N" + qi
+                spos = i
+                break
+            else:
+                spos = i
+                break
+
+    qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
+
+
+    qpos = 0
+    for i in range(spos, len(scodons)):
+        if scodons[i] != '...':
+            qpos += 1
+
+    qpos = 0
+    while spos < len(scodons):
+        #print(scodons[spos] + "\t" + qcodons[qpos])
+        if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
+            spos += 1
+        elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
+            spos += 1
+            qpos += 1
+        else: # if not the same, mask IMGT at that site and scan foward until you find a codon that matches next site
+            print("checking %s at position %d" % (scodons[spos], spos))
+            ospos=spos
+            spos += 1
+            qpos += 1
+            while qpos < len(qcodons) and spos < len(scodons) and scodons[spos] != qcodons[qpos]:
+                qpos += 1
+            if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
+                qpos -= 1
+                spos = ospos
+                print("But codon was apparently preserved")
+            elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
+                scodons[ospos] = "NNN"
+                if spos >= len(scodons):
+                    print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                else:
+                    print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                    exit(1)
+            elif qcodons[qpos] == scodons[spos]:
+                print("Masked %s at position %d" % (scodons[ospos], ospos))
+                scodons[ospos] = "NNN"
+            else:
+                print("Something weird happened")
+                exit(1)
+
+    concatenated_seq = Seq("")
+    for i in scodons:
+        concatenated_seq += i
+
+    return concatenated_seq
 
 
 def gapV(db, repo_dict):
