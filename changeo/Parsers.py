@@ -12,6 +12,8 @@ import sys
 from itertools import chain, groupby
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from collections import OrderedDict
+
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
@@ -1848,13 +1850,16 @@ def maskSplitCodons(receptor):
 
     qi = receptor.sequence_input
     si = receptor.sequence_imgt
+    log = OrderedDict()
+    log['ID']=receptor.sequence_id
+    log['CLONE']=receptor.clone
+    log['PASS'] = True
 
     # adjust starting position of query sequence
     qi = qi[(receptor.v_seq_start - 1):]
 
     # deal with the fact that it's possible to start mid-codon
     scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
-    #print(len(scodons))
     for i in range(0, len(scodons)):
         if scodons[i] != '...':
             if scodons[i][0:2] == '..':
@@ -1897,26 +1902,35 @@ def maskSplitCodons(receptor):
             if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
                 qpos -= 1
                 spos = ospos
-                print("But codon was apparently preserved")
+                #print("But codon was apparently preserved")
+                log[str(spos)]="IN-FRAME"
             elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= len(scodons):
-                    print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                    #print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                    log[str(spos)] = "END"
                 else:
-                    print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
-                    exit(1)
+                    #print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                    log[str(spos)] = "FAILED_MATCH"
+                    log['PASS']=False
+                    #exit(1)
             elif qcodons[qpos] == scodons[spos]:
-                print("Masked %s at position %d" % (scodons[ospos], ospos))
+                #print("Masked %s at position %d" % (scodons[ospos], ospos))
                 scodons[ospos] = "NNN"
+                log[str(spos)] = "MASKED"
             else:
-                print("Something weird happened")
-                exit(1)
+                #print("Something weird happened")
+                log['PASS'] = False
+                #exit(1)
 
     concatenated_seq = Seq("")
     for i in scodons:
         concatenated_seq += i
 
-    return concatenated_seq
+    log['INSEQ'] = receptor.sequence_input
+    log['IMGTSEQ'] = receptor.sequence_imgt
+    log["MASKED"] = concatenated_seq
+    return concatenated_seq, log
 
 
 def gapV(db, repo_dict, asis_calls=False):

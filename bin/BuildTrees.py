@@ -1,18 +1,32 @@
 #!/usr/bin/env python3
 
-import changeo.Parsers
+from argparse import ArgumentParser
+from textwrap import dedent
+import sys
+from time import time
 
-def outputIgPhyML(clones, sequences, outdir):
+# Presto and change imports
+from presto.Defaults import default_out_args
+from presto.IO import  printLog
+from changeo.Defaults import default_format
+
+import changeo
+import changeo.Parsers
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+
+
+def outputIgPhyML(clones, sequences, out_dir):
     """
-    1. Remove columns in clonal lineage that only contain gaps in data seqs (ignore reference)
-    2. Remove same columns in refernce
-    3. Create list of IMGT numbering for each site in alignment
-    :param
-    clones: distrionary of clones
-    sequences: list of masked sequences
-    outdir: string specifying output directory
-    :return: void, outputs files to "outdir"
+    Create intermediate sequence alignment and partition files for IgPhyML output
+
+    Arguments:
+        clones (list): receptor objects within the same clone
+        sequences (list): sequences within the same clone (share indexes with clones parameter)
+        out_dir (string): directory for output files
+    Returns:
+        None. Outputs alignment and partition files
     """
+
     sites = len(sequences[0])
     for i in sequences:
         if len(i) != sites:
@@ -48,7 +62,7 @@ def outputIgPhyML(clones, sequences, outdir):
             imgt.append(i//3)
 
     # Output fasta file of masked, concatenated sequences
-    outfile = outdir+"/"+clones[0].clone+".fa"
+    outfile = out_dir+"/"+clones[0].clone+".fa"
     clonef = open(outfile, 'w')
     for j in range(0,nseqs):
         print(">%s" % clones[j].sequence_id,file=clonef)
@@ -62,7 +76,7 @@ def outputIgPhyML(clones, sequences, outdir):
     clonef.close()
 
     #output partition file
-    partfile = outdir + "/" + clones[0].clone + ".part.txt"
+    partfile = out_dir + "/" + clones[0].clone + ".part.txt"
     partf = open(partfile, 'w')
     print("%d %d" % (2, len(newgerm)), file=partf)
     print("FWR:IMGT", file=partf)
@@ -72,42 +86,143 @@ def outputIgPhyML(clones, sequences, outdir):
     print(",".join(map(str,imgt)), file=partf)
 
 
-handle = open('test_proc/test_db-pass_clone-pass_germ-pass.tsv')
-records = changeo.Parsers.ChangeoReader(handle)
 
-cloneseqs = {}
-cloneids = {}
-clonegerms = {}
-clones = {}
-outdir = "test_proc/igphyml_out"
-for r in records:
-    if r.functional == True:
-        mask_seq = changeo.Parsers.maskSplitCodons(r)
-        if r.clone in clones:
-            clones[r.clone].append(r)
-            cloneseqs[r.clone].append(mask_seq)
-        else:
-            clones[r.clone]=[r]
-            cloneseqs[r.clone] = [mask_seq]
+def buildTrees(db_file, out_args=default_out_args,format=default_format):
+    """
+    Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
+
+    Arguments:
+        db_file : input tab-delimited database file
+        out_dir (string): directory to contain output files
+        out_args: unused
+        format: ununsed
+    Returns:
+        Nothing. Outputs files for IgPhyML
+
+    """
+
+    # Format options
+    if format == 'changeo':
+        reader = changeo.Parsers.ChangeoReader
+    elif format == 'airr':
+        reader = changeo.Parsers.AIRRReader
     else:
-        print("Skipping %s", r.sequence_id)
+        sys.exit('Error:  Invalid format %s' % format)
 
-clonesizes={}
-for k in clones.keys():
-    changeo.Parsers.outputIgPhyML(clones[str(k)], cloneseqs[str(k)], outdir)
-    clonesizes[str(k)] = len(cloneseqs[str(k)])
+    handle = open(db_file,'r')
+    records = reader(handle) # open input file
+    out_dir = out_args['out_dir'] # get output directory
+    log_handle = open(out_args['log_file'],'w')
 
-repfile1 = outdir + "/repFile.tsv"
-repfile2 = outdir + "/repFile.N.tsv"
-rout1 = open(repfile1, 'w')
-rout2 = open(repfile2, 'w')
-print(len(clonesizes),file=rout1)
-print(len(clonesizes),file=rout2)
-for key in sorted(clonesizes, key=clonesizes.get,reverse=True):
-    print(key + "\t"+str(clonesizes[key]))
-    outfile = outdir + "/" + key + ".fa"
-    partfile = outdir + "/" + key + ".part.txt"
-    print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=rout1)
-    print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", "N"), file=rout2)
 
-handle.close()
+
+    cloneseqs = {}
+    clones = {}
+    for r in records:
+        if r.functional:
+            mout = changeo.Parsers.maskSplitCodons(r)
+            mask_seq=mout[0]
+            printLog(mout[1],handle=log_handle)
+            if r.clone in clones:
+                clones[r.clone].append(r)
+                cloneseqs[r.clone].append(mask_seq)
+            else:
+                clones[r.clone]=[r]
+                cloneseqs[r.clone] = [mask_seq]
+        else:
+            print("Skipping %s", r.sequence_id)
+
+    clonesizes={}
+    for k in clones.keys():
+        outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir)
+        clonesizes[str(k)] = len(cloneseqs[str(k)])
+
+    repfile1 = out_dir + "/repFile.tsv"
+    repfile2 = out_dir + "/repFile.N.tsv"
+    rout1 = open(repfile1, 'w')
+    rout2 = open(repfile2, 'w')
+    print(len(clonesizes),file=rout1)
+    print(len(clonesizes),file=rout2)
+    for key in sorted(clonesizes, key=clonesizes.get,reverse=True):
+        print(key + "\t"+str(clonesizes[key]))
+        outfile = out_dir + "/" + key + ".fa"
+        partfile = out_dir + "/" + key + ".part.txt"
+        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=rout1)
+        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", "N"), file=rout2)
+
+    handle.close()
+
+
+def getArgParser():
+    """
+    Defines the ArgumentParser
+
+    Arguments:
+    None
+
+    Returns:
+    an ArgumentParser object
+    """
+    # Define input and output field help message
+    fields = dedent(
+             '''
+             output files:
+                 germ-pass
+                    database with assigned germline sequences.
+                 germ-fail
+                    database with records failing germline assignment.
+
+             required fields:
+                 SEQUENCE_ID, SEQUENCE_VDJ or SEQUENCE_IMGT,
+                 V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL,
+                 V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
+                 D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
+                 J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
+                 NP1_LENGTH, NP2_LENGTH
+
+             optional fields:
+                 N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
+                 CLONE
+
+
+             output fields:
+                 GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
+                 GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
+                 GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
+                 GERMLINE_REGIONS
+              ''')
+
+    # Parent parser
+    parser_parent = getCommonArgParser(log=True, format=True)
+
+    # Define argument parser
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            parents=[parser_parent],
+                            formatter_class=CommonHelpFormatter)
+
+    # parser.add_argument('--version', action='version',
+    #                    version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+
+    # parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+    #                   help='''List of folders and/or fasta files (with .fasta, .fna or .fa
+    #                     extension) with germline sequences.''')
+
+    return parser
+
+
+if __name__ == '__main__':
+    """
+    Parses command line arguments and calls main
+    """
+    # Parse command line arguments
+    parser = getArgParser()
+    checkArgs(parser)
+    args = parser.parse_args()
+    args_dict = parseCommonArgs(args)
+    del args_dict['db_files']
+    #print(args_dict['out_dir'])
+
+    # Call main for each input file
+    for f in args.__dict__['db_files']:
+        args_dict['db_file'] = f
+        buildTrees(**args_dict)
