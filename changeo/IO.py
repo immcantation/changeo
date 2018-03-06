@@ -25,13 +25,13 @@ from presto.IO import getFileType
 csv.field_size_limit(default_csv_size)
 
 
-def readRepo(repo):
+def readGermlines(repo, asis=False):
     """
     Parses germline repositories
 
     Arguments:
-      repo : String list of directories and/or files
-             from which to read germline records
+      repo : list of strings specifying directories and/or files from which to read germline records.
+      asis : if True use sequence ID as record name and do not parse headers for allele names.
 
     Returns:
       dict : Dictionary of {allele: sequence} germlines
@@ -57,7 +57,7 @@ def readRepo(repo):
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
-                germ_key = parseAllele(g.description, allele_regex, 'first')
+                germ_key = parseAllele(g.description, allele_regex, 'first') if not asis else g.id
                 repo_dict[germ_key] = str(g.seq).upper()
 
     return repo_dict

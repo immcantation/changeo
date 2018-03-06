@@ -18,7 +18,7 @@ data_path = os.path.join(test_path, 'data')
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
-from changeo.IO import extractIMGT, readRepo, countDbFile, getDbFields
+from changeo.IO import extractIMGT, readGermlines, countDbFile, getDbFields
 
 
 class Test_MakeDb(unittest.TestCase):

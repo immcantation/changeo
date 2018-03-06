@@ -21,7 +21,7 @@ from presto.IO import getOutputHandle, printLog, printMessage, printProgress
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields, readRepo
+from changeo.IO import countDbFile, getDbFields, readGermlines
 from changeo.Parsers import AIRRReader, AIRRWriter, AIRRSchema, ChangeoReader, ChangeoWriter, ChangeoSchema
 
 # Defaults
@@ -469,7 +469,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         sys.exit('Error:  Invalid format %s' % format)
 
     # Get repertoire and open Db reader
-    references = readRepo(repo)
+    references = readGermlines(repo)
     db_handle = open(db_file, 'rt')
     reader = reader(db_handle)
 

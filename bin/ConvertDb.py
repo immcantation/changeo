@@ -619,7 +619,6 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
-
     # Format options
     if format == 'changeo':
         reader = ChangeoReader
@@ -627,7 +626,6 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
         reader = AIRRReader
     else:
         sys.exit('Error:  Invalid format %s' % format)
-
 
     # Open file handles
     db_handle = open(db_file, 'rt')

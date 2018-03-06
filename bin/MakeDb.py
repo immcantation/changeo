@@ -20,7 +20,7 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, readRepo
+from changeo.IO import countDbFile, extractIMGT, readGermlines
 from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
@@ -40,7 +40,7 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, partial=False,
+def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_id=True,
             format=default_format, out_args=default_out_args):
     """
     Writes tab-delimited database file in output directory.
@@ -51,8 +51,8 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
       in_file : input file name.
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : if True put incomplete alignments in the pass file.
+      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -115,7 +115,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
             record.sequence_id = id_dict[record.sequence_id]
 
         # Parse sequence description into new columns
-        if not no_parse:
+        if not asis_id:
             try:
                 ann_raw = parseAnnotation(record.sequence_id)
                 record.sequence_id = ann_raw.pop('ID')
@@ -132,7 +132,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
                 record.setDict(ann_parsed, parse=True)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
-                no_parse = True
+                asis_id = True
                 sys.stderr.write('\nWARNING: Sequence annotation format not recognized. Sequence headers will not be parsed.\n')
 
         # Count pass or fail and write to appropriate file
@@ -167,7 +167,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
 
     # Print consol log
     log = OrderedDict()
-    log['OUTPUT'] = pass_handle.name
+    log['OUTPUT'] = pass_handle.name if pass_handle is not None else None
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     log['END'] = 'MakeDb'
@@ -178,19 +178,19 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, no_parse=True, parti
 
 
 # TODO:  may be able to merge with other mains
-def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
+def parseIMGT(aligner_output, seq_file=None, partial=False,
               parse_scores=False, parse_regions=False, parse_junction=False,
-              format=default_format, out_args=default_out_args):
+              asis_id=True, format=default_format, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences.
 
     Arguments:
       aligner_output : zipped file or unzipped folder output by IMGT.
       seq_file : FASTA file input to IMGT (from which to get seqID).
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : If True put incomplete alignments in the pass file.
       parse_scores : if True add alignment score fields to output file.
       parse_regions : if True add FWR and CDR region fields to output file.
+      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -203,7 +203,7 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
     log['ALIGNER'] = 'IMGT'
     log['ALIGNER_OUTPUT'] = aligner_output
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
-    log['NO_PARSE'] = no_parse
+    log['ASIS_ID'] = asis_id
     log['PARTIAL'] = partial
     log['SCORES'] = parse_scores
     log['REGIONS'] = parse_regions
@@ -235,12 +235,10 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
             open(imgt_files['gapped'], 'r') as gapped_handle, \
             open(imgt_files['ntseq'], 'r') as ntseq_handle, \
             open(imgt_files['junction'], 'r') as junction_handle:
-        parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle,
-                                parse_scores=parse_scores, parse_regions=parse_regions,
-                                parse_junction=parse_junction)
+        parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle)
         #file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, fields, aligner_output, total_count, id_dict=id_dict,
-                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
+                asis_id=asis_id, partial=partial, format=format, out_args=out_args)
 
     # Cleanup temp directory
     temp_dir.cleanup()
@@ -249,9 +247,9 @@ def parseIMGT(aligner_output, seq_file=None, no_parse=True, partial=False,
 
 
 # TODO:  may be able to merge with other mains
-def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
+def parseIgBLAST(aligner_output, seq_file, repo, partial=False,
                  parse_regions=False, parse_scores=False, parse_igblast_cdr3=False,
-                 format='changeo', out_args=default_out_args):
+                 asis_id=True, asis_calls=False, format='changeo', out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
 
@@ -259,11 +257,12 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
       aligner_output : IgBLAST output file to process.
       seq_file : fasta file input to IgBlast (from which to get sequence).
       repo : folder with germline repertoire files.
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : If True put incomplete alignments in the pass file.
       parse_regions : if True add FWR and CDR fields to output file.
       parse_scores : if True add alignment score fields to output file.
       parse_igblast_cdr3 : if True parse CDR3 sequences generated by IgBLAST.
+      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
+      asis_calls : if True do not parse gene calls for allele names.
       format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -273,13 +272,14 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MakeDB'
-    log['ALIGNER'] = 'IgBlast'
+    log['ALIGNER'] = 'IgBLAST'
     log['ALIGNER_OUTPUT'] = os.path.basename(aligner_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
-    log['NO_PARSE'] = no_parse
     log['PARTIAL'] = partial
     log['SCORES'] = parse_scores
     log['REGIONS'] = parse_regions
+    log['ASIS_ID'] = asis_id
+    log['ASIS_CALLS'] = asis_calls
     printLog(log)
 
     start_time = time()
@@ -289,7 +289,7 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = readRepo(repo)
+    repo_dict = readGermlines(repo, asis=asis_calls)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define output fields
@@ -304,18 +304,16 @@ def parseIgBLAST(aligner_output, seq_file, repo, no_parse=True, partial=False,
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
-        parse_iter = IgBLASTReader(f, seq_dict, repo_dict,
-                                   parse_scores=parse_scores, parse_regions=parse_regions,
-                                   parse_igblast_cdr3=parse_igblast_cdr3)
-        writeDb(parse_iter, fields, aligner_output, total_count,
-                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
+        parse_iter = IgBLASTReader(f, seq_dict, repo_dict, asis_calls=asis_calls)
+        writeDb(parse_iter, fields=fields, in_file=aligner_output, total_count=total_count,
+                partial=partial, asis_id=asis_id, format=format, out_args=out_args)
 
     return None
 
 
 # TODO:  may be able to merge with other mains
-def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
-              parse_scores=False, parse_regions=False,
+def parseIHMM(aligner_output, seq_file, repo, partial=False,
+              parse_scores=False, parse_regions=False, asis_id=True,
               format=default_format, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
@@ -324,10 +322,10 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
       aligner_output : iHMMune-Align output file to process.
       seq_file : fasta file input to iHMMuneAlign (from which to get sequence).
       repo : folder with germline repertoire files.
-      no_parse : if ID is to be parsed for pRESTO output with default delimiters.
       partial : If True put incomplete alignments in the pass file.
       parse_scores : if True parse alignment scores.
       parse_regions : if True add FWR and CDR region fields.
+      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       format : output format. one of 'changeo' or 'airr'.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -340,7 +338,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     log['ALIGNER'] = 'iHMMune-Align'
     log['ALIGNER_OUTPUT'] = os.path.basename(aligner_output)
     log['SEQ_FILE'] = os.path.basename(seq_file)
-    log['NO_PARSE'] = no_parse
+    log['ASIS_ID'] = asis_id
     log['PARTIAL'] = partial
     log['SCORES'] = parse_scores
     log['REGIONS'] = parse_regions
@@ -353,7 +351,7 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = readRepo(repo)
+    repo_dict = readGermlines(repo)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define output fields
@@ -366,11 +364,10 @@ def parseIHMM(aligner_output, seq_file, repo, no_parse=True, partial=False,
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
-        parse_iter = IHMMuneReader(f, seq_dict, repo_dict,
-                                   parse_scores=parse_scores, parse_regions=parse_regions)
+        parse_iter = IHMMuneReader(f, seq_dict, repo_dict)
         #file_prefix = getFilePrefix(aligner_output, out_args)
         writeDb(parse_iter, fields, aligner_output, total_count,
-                no_parse=no_parse, partial=partial, format=format, out_args=out_args)
+                asis_id=asis_id, partial=partial, format=format, out_args=out_args)
 
     return None
 
@@ -449,12 +446,6 @@ def getArgParser():
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
-    parser_igblast.add_argument('--noparse', action='store_true', dest='no_parse',
-                                help='''Specify to prevent input sequence headers from being parsed
-                                    to add new columns to database. Parsing of sequence headers requires
-                                    headers to be in the pRESTO annotation format, so this should be specified
-                                    when sequence headers are incompatible with the pRESTO annotation scheme.
-                                    Note, unrecognized header formats will default to this behavior.''')
     parser_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file.''')
@@ -474,6 +465,17 @@ def getArgParser():
                                      should be included in the output. Adds the columns
                                      CDR3_IGBLAST_NT and CDR3_IGBLAST_AA. Requires IgBLAST
                                      version 1.5 or greater.''')
+    parser_igblast.add_argument('--asis-id', action='store_true', dest='asis_id',
+                                help='''Specify to prevent input sequence headers from being parsed
+                                    to add new columns to database. Parsing of sequence headers requires
+                                    headers to be in the pRESTO annotation format, so this should be specified
+                                    when sequence headers are incompatible with the pRESTO annotation scheme.
+                                    Note, unrecognized header formats will default to this behavior.''')
+    parser_igblast.add_argument('--asis-calls', action='store_true', dest='asis_calls',
+                                help='''Specify to prevent gene calls from being parsed into standard allele names
+                                     in both the IgBLAST output and reference database. Note, this requires
+                                     the sequence identifiers in the reference sequence set and the IgBLAST
+                                     database to be exact string matches.''')
     parser_igblast.set_defaults(func=parseIgBLAST)
 
     # IMGT aligner
@@ -492,7 +494,7 @@ def getArgParser():
                              required=False,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
-    parser_imgt.add_argument('--noparse', action='store_true', dest='no_parse', 
+    parser_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
                                   headers to be in the pRESTO annotation format, so this should be specified
@@ -533,7 +535,7 @@ def getArgParser():
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
-    parser_ihmm.add_argument('--noparse', action='store_true', dest='no_parse',
+    parser_ihmm.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
                                   headers to be in the pRESTO annotation format, so this should be specified
@@ -567,7 +569,7 @@ if __name__ == "__main__":
 
     # Set no ID parsing if sequence files are not provided
     if 'seq_files' in args_dict and not args_dict['seq_files']:
-        args_dict['no_parse'] = True
+        args_dict['asis_id'] = True
 
     # Delete
     if 'seq_files' in args_dict: del args_dict['seq_files']
