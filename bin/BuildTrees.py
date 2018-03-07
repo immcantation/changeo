@@ -27,7 +27,6 @@ def outputIgPhyML(clones, sequences, out_dir):
     Returns:
         None. Outputs alignment and partition files
     """
-    t=False
     duplicate = True # duplicate sequences in clones with only 1 sequence?
     sites = len(sequences[0])
     s=""
@@ -75,17 +74,20 @@ def outputIgPhyML(clones, sequences, out_dir):
         newgerm[-1] = newgerm[-1] + "NN"
         # print(newgerm[-1])
 
+    transtable = clones[0].sequence_id.maketrans(" ","_")
 
     # Output fasta file of masked, concatenated sequences
     outfile = out_dir+"/"+clones[0].clone+".fa"
     clonef = open(outfile, 'w')
     for j in range(0,nseqs):
-        print(">%s" % clones[j].sequence_id,file=clonef)
+        sid = clones[j].sequence_id.translate(transtable)
+        print(">%s" % sid,file=clonef)
         for i in range(0,len(newgerm)):
             print("%s" % newseqs[j][i],end='',file=clonef)
         print("\n",end='',file=clonef)
     if nseqs == 1 and duplicate:
-        print(">%s" % clones[j].sequence_id+"_1", file=clonef)
+        sid = clones[j].sequence_id.translate(transtable)
+        print(">%s" % sid, file=clonef)
         for i in range(0, len(newgerm)):
             print("%s" % newseqs[j][i], end='', file=clonef)
         print("\n", end='', file=clonef)
