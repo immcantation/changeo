@@ -1885,7 +1885,7 @@ def maskSplitCodons(receptor):
             qpos += 1
 
     qpos = 0
-    while spos < len(scodons):
+    while spos < len(scodons) and qpos < len(qcodons):
         #print(scodons[spos] + "\t" + qcodons[qpos])
         if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
             spos += 1
@@ -1904,6 +1904,9 @@ def maskSplitCodons(receptor):
                 spos = ospos
                 #print("But codon was apparently preserved")
                 log[str(spos)]="IN-FRAME"
+            elif qpos >= len(qcodons):
+                log[str(spos)] = "FAILED_MATCH_QSTRING"
+                log['PASS'] = False
             elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= len(scodons):

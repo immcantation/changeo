@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from textwrap import dedent
+
 import sys
 from time import time
 
@@ -26,17 +27,22 @@ def outputIgPhyML(clones, sequences, out_dir):
     Returns:
         None. Outputs alignment and partition files
     """
-
+    t=False
+    duplicate = True # duplicate sequences in clones with only 1 sequence?
     sites = len(sequences[0])
+    s=""
+   # transtable = s.maketrans('.', '-')
     for i in sequences:
         if len(i) != sites:
-            print("Sequences within clone %d are not the same length!" % clones[0].clone)
+            print("Sequences within clone %s are not the same length!" % clones[0].clone)
             exit(1)
+       # i.translate(transtable)
 
     nseqs = len(sequences)
     germline = clones[0].getField("germline_imgt_d_mask")
+
     if len(sequences[0]) % 3 != 0:
-        print("number of sites must be divisible by 3! %d", len(sequences))
+        print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences),clones[0].clone,sequences[0]))
         exit(1)
     tallies = []
     for i in range(0, sites, 3):
@@ -55,11 +61,20 @@ def outputIgPhyML(clones, sequences, out_dir):
                 newseqs.append([])
             if tallies[i//3] > 0:
                 newseqs[j].append(sequences[j][i:(i+3)])
-
+    lcodon = ''
     for i in range(0, sites, 3):
         if tallies[i//3] > 0:
             newgerm.append(germline[i:(i+3)])
+            lcodon=germline[i:(i+3)]
             imgt.append(i//3)
+
+    if len(lcodon) == 2:
+        newgerm[-1]=newgerm[-1]+"N"
+        # print(newgerm[-1])
+    elif len(lcodon) == 1:
+        newgerm[-1] = newgerm[-1] + "NN"
+        # print(newgerm[-1])
+
 
     # Output fasta file of masked, concatenated sequences
     outfile = out_dir+"/"+clones[0].clone+".fa"
@@ -69,6 +84,11 @@ def outputIgPhyML(clones, sequences, out_dir):
         for i in range(0,len(newgerm)):
             print("%s" % newseqs[j][i],end='',file=clonef)
         print("\n",end='',file=clonef)
+    if nseqs == 1 and duplicate:
+        print(">%s" % clones[j].sequence_id+"_1", file=clonef)
+        for i in range(0, len(newgerm)):
+            print("%s" % newseqs[j][i], end='', file=clonef)
+        print("\n", end='', file=clonef)
     print(">%s_GERM" % clones[0].clone, file=clonef)
     for i in range(0, len(newgerm)):
         print("%s" % newgerm[i], end='', file=clonef)
@@ -114,7 +134,7 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format):
     out_dir = out_args['out_dir'] # get output directory
     log_handle = open(out_args['log_file'],'w')
 
-
+    failed = open(out_dir+"/"+"failedSeqs.fa",'w')
 
     cloneseqs = {}
     clones = {}
@@ -122,13 +142,17 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format):
         if r.functional:
             mout = changeo.Parsers.maskSplitCodons(r)
             mask_seq=mout[0]
-            printLog(mout[1],handle=log_handle)
-            if r.clone in clones:
-                clones[r.clone].append(r)
-                cloneseqs[r.clone].append(mask_seq)
+
+            if mout[1]['PASS']:
+                printLog(mout[1], handle=log_handle)
+                if r.clone in clones:
+                    clones[r.clone].append(r)
+                    cloneseqs[r.clone].append(mask_seq)
+                else:
+                    clones[r.clone]=[r]
+                    cloneseqs[r.clone] = [mask_seq]
             else:
-                clones[r.clone]=[r]
-                cloneseqs[r.clone] = [mask_seq]
+                printLog(mout[1],handle=failed)
         else:
             print("Skipping %s", r.sequence_id)
 
