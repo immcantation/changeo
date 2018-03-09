@@ -1072,6 +1072,9 @@ class IgBLASTReader:
         Returns:
           str : modified sequence
         """
+        if 'subject seq' not in hits or 'query seq' not in hits:
+            return None
+
         for m in re.finditer(r'-', hits['subject seq']):
             ins = m.start()
             seq += hits['query seq'][start:ins]
@@ -1131,7 +1134,8 @@ class IgBLASTReader:
                 result['NP1_LENGTH'] = np1_len
                 np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
                 np1_end = int(d_hit['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
+                if seq_vdj is not None:
+                    seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
 
         # D alignment positions
         result.update(IgBLASTReader._parseDHitPos(d_hit, overlap))
@@ -1169,7 +1173,8 @@ class IgBLASTReader:
                 result['NP2_LENGTH'] = np2_len
                 n2_start = db['D_SEQ_START'] + db['D_SEQ_LENGTH'] - 1
                 n2_end = int(j_hit['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
+                if seq_vdj is not None:
+                    seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
         elif db['V_CALL']:
             np1_len = int(j_hit['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
             if np1_len < 0:
@@ -1179,7 +1184,8 @@ class IgBLASTReader:
                 result['NP1_LENGTH'] = np1_len
                 np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
                 np1_end = int(j_hit['q. start']) - 1
-                seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
+                if seq_vdj is not None:
+                    seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
         else:
             result['NP1_LENGTH'] = 0
 
@@ -1216,13 +1222,13 @@ class IgBLASTReader:
         except (TypeError, ValueError):  result['%s_EVALUE' % segment] = None
         # BTOP
         try:  result['%s_BTOP' % segment] = s_hit['BTOP']
-        except (TypeError, ValueError):  result['%s_BTOP' % segment] = None
+        except (KeyError, TypeError, ValueError):  result['%s_BTOP' % segment] = None
         # CIGAR
         try:
             align = decodeBTOP(s_hit['BTOP'])
             align = padAlignment(align, int(s_hit['q. start']), int(s_hit['s. start']))
             result['%s_CIGAR' % segment] = encodeCIGAR(align)
-        except (TypeError, ValueError):
+        except (KeyError, TypeError, ValueError):
             result['%s_CIGAR' % segment] = None
 
         return result
@@ -1328,7 +1334,7 @@ class IgBLASTReader:
                 db.update(self._parseHitScores(sections['hits'], 'J'))
 
         # Create IMGT-gapped sequence
-        if 'V_CALL' in db and db['V_CALL']:
+        if ('V_CALL' in db and db['V_CALL']) and ('SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']):
             db.update(gapV(db, self.repo_dict, asis_calls=self.asis_calls))
 
         # Add junction
@@ -1785,7 +1791,8 @@ class IHMMuneReader:
         db.update(IHMMuneReader._assembleVDJ(record, db))
 
         # Create IMGT-gapped sequence
-        if 'V_CALL' in db and db['V_CALL']:
+        if 'V_CALL' in db and db['V_CALL'] and \
+                'SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']:
             db.update(gapV(db, self.repo_dict))
 
         # Infer IMGT junction

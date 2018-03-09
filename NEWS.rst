@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  March 6, 2018
+Version 0.4.0.999:  March 9, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
@@ -49,6 +49,8 @@ MakeDb:
 + Changed behavior of the igblast subcommand's translation of the junction
   sequence to truncate junction that are not multiples of 3, rather than
   pad to a multiple of 3 (removes trailing X character).
++ The igblast subcommand will now fail records missing the required optional
+  fields ``subject seq``, ``query seq`` and ``BTOP``, rather than abort.
 
 
 Version 0.3.12:  February 16, 2018
