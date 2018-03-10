@@ -2151,14 +2151,15 @@ def encodeCIGAR(alignment):
     return ''.join(['%i%s' % (x, s) for s, x in alignment])
 
 
+# TODO: these positions are 0-based or 1-based?
 def padAlignment(alignment, q_start, r_start):
     """
     Pads the start of an alignment based on query and reference positions.
 
     Arguments:
       alignment : tuples of (operation, length) for each alignment operation.
-      q_start : query (input) start position
-      r_start : reference (subject) start position
+      q_start : query (input) start position (1-based)
+      r_start : reference (subject) start position (1-based)
 
     Returns:
       list : updated list of tuples of (operation, length) for the alignment.
