@@ -23,12 +23,11 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
-from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress
-from changeo.Defaults import default_csv_size, default_format
+from changeo.Defaults import default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile
+from changeo.IO import countDbFile, TSVReader
 from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema
 
@@ -45,8 +44,7 @@ default_product='immunoglobulin heavy chain'
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
-def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None, 
-                   delimiter=default_delimiter):
+def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
     """
     Parses a database record into a SeqRecord
 
@@ -55,7 +53,6 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
     id_field = the field containing identifiers
     seq_field = the field containing sequences
     meta_fields = a list of fields to add to sequence annotations
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
 
     Returns: 
     a SeqRecord
@@ -68,7 +65,7 @@ def getDbSeqRecord(db_record, id_field, seq_field, meta_fields=None,
     desc_dict = OrderedDict([('ID', db_record[id_field])])
     if meta_fields is not None:
         desc_dict.update([(f, db_record[f]) for f in meta_fields if f in db_record]) 
-    desc_str = flattenAnnotation(desc_dict, delimiter=delimiter)
+    desc_str = flattenAnnotation(desc_dict)
     
     # Create SeqRecord
     seq_record = SeqRecord(Seq(db_record[seq_field], IUPAC.ambiguous_dna),
@@ -102,12 +99,12 @@ def convertDbAIRR(db_file, out_args=default_out_args):
     fields_delete = ['v_seq_length', 'v_germ_length_vdj',
                      'd_seq_length', 'd_germ_length',
                      'j_seq_length', 'j_germ_length']
-    fields_add = ['v_start', 'v_germ_start',
-                  'd_start', 'd_germ_start',
-                  'j_start', 'j_germ_start',
-                  'v_end', 'v_germ_end',
-                  'd_end', 'd_germ_end',
-                  'j_end', 'j_germ_end']
+    fields_add = ['v_sequence_start', 'v_germline_start',
+                  'd_sequence_start', 'd_germline_start',
+                  'j_sequence_start', 'j_germline_start',
+                  'v_sequence_end', 'v_germline_end',
+                  'd_sequence_end', 'd_germline_end',
+                  'j_sequence_end', 'j_germline_end']
     fields = [ChangeoSchema.asAIRR(x) for x in db_iter.fields]
     fields = [x for x in fields if x not in fields_delete]
     fields.extend([x for x in fields_add if x not in fields])
@@ -247,7 +244,7 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     
     # Open file handles
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle, receptor=False)
+    db_iter = TSVReader(db_handle)
     pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], out_type='clip')
     # Count records
@@ -267,19 +264,16 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
         
         # Get germline SeqRecord when needed
         if cluster_field is None:
-            germ = getDbSeqRecord(rec, id_field, germ_field, meta_fields, 
-                                  delimiter=out_args['delimiter'])
+            germ = buildSeqRecord(rec, id_field, germ_field, meta_fields)
             germ.id = '>' + germ.id
         elif cluster != cluster_last:
-            germ = getDbSeqRecord(rec, cluster_field, germ_field, 
-                                  delimiter=out_args['delimiter'])
+            germ = buildSeqRecord(rec, cluster_field, germ_field)
             germ.id = '>' + germ.id            
         else:
             germ = None
 
         # Get read SeqRecord
-        seq = getDbSeqRecord(rec, id_field, seq_field, meta_fields, 
-                             delimiter=out_args['delimiter'])
+        seq = buildSeqRecord(rec, id_field, seq_field, meta_fields)
         
         # Write germline
         if germ is not None:
@@ -341,8 +335,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     # Open file handles
     out_type = 'fasta'
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle, receptor=False)
-    pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
+    db_iter = TSVReader(db_handle)
+    pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'], out_type=out_type)
     # Count records
     result_count = countDbFile(db_file)
@@ -356,7 +350,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
         rec_count += 1
 
         # Get SeqRecord
-        seq = getDbSeqRecord(rec, id_field, seq_field, meta_fields, out_args['delimiter'])
+        seq = buildSeqRecord(rec, id_field, seq_field, meta_fields)
 
         # Write sequences
         if seq is not None:
@@ -847,23 +841,8 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-    # Convert case of fields
-    if 'id_field' in args_dict:
-        args_dict['id_field'] = args_dict['id_field'].upper()
-    if 'seq_field' in args_dict:
-        args_dict['seq_field'] = args_dict['seq_field'].upper()
-    if 'germ_field' in args_dict:
-        args_dict['germ_field'] = args_dict['germ_field'].upper()
-    if 'field' in args_dict:
-        args_dict['field'] = args_dict['field'].upper()
-    if 'cluster_field' in args_dict and args_dict['cluster_field'] is not None:
-        args_dict['cluster_field'] = args_dict['cluster_field'].upper()
-    if 'meta_fields' in args_dict and args_dict['meta_fields'] is not None:
-        args_dict['meta_fields'] = [f.upper() for f in args_dict['meta_fields']]
-    if 'fields' in args_dict:
-        args_dict['fields'] = [f.upper() for f in args_dict['fields']]
 
-    # Check modify_args arguments
+    # Check argument pairs
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
         parser.error('You must specify exactly one value (-u) per field (-f)')
     elif args.command == 'rename' and len(args_dict['fields']) != len(args_dict['names']):

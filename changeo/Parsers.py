@@ -144,38 +144,38 @@ class ChangeoWriter:
             self.writeHeader()
 
     def writeHeader(self):
-            """
-            Writes the header
+        """
+        Writes the header
 
-            Returns:
-              None
-            """
-            self.writer.writeheader()
+        Returns:
+          None
+        """
+        self.writer.writeheader()
 
     def writeDict(self, record):
-            """
-            Writes a row from a Change-O dictionary
+        """
+        Writes a row from a Change-O dictionary
 
-            Arguments:
-              record : Change-O dictionary of row data
+        Arguments:
+          record : Change-O dictionary of row data
 
-            Returns:
-              None
-            """
-            self.writer.writerow(record)
+        Returns:
+          None
+        """
+        self.writer.writerow(record)
 
     def writeReceptor(self, record):
-            """
-            Writes a row from a Receptor object
+        """
+        Writes a row from a Receptor object
 
-            Arguments:
-              record : a changeo.Receptor.Receptor object to write
+        Arguments:
+          record : a changeo.Receptor.Receptor object to write
 
-            Returns:
-              None
-            """
-            row = ChangeoWriter._parseReceptor(record)
-            self.writer.writerow(row)
+        Returns:
+          None
+        """
+        row = ChangeoWriter._parseReceptor(record)
+        self.writer.writerow(row)
 
 
 class AIRRReader:
@@ -329,22 +329,22 @@ class AIRRWriter:
         self.writer.addFields('changeo', fields)
 
     def writeReceptor(self, record):
-            """
-            Writes a row from a Receptor object
+        """
+        Writes a row from a Receptor object
 
-            Arguments:
-              record : a changeo.Receptor object to write
+        Arguments:
+          record : a changeo.Receptor object to write
 
-            Returns:
-              None
-            """
-            row = AIRRWriter._parseReceptor(record)
-            # TODO: define any additional fields before writing first row
-            # if not self.writer.wroteMetadata:
-            #     self.writer.addFields("changeo", row.keys())
-            #print('\n===== RECORD START =====\n')
-            #for k, v in row.items(): print(k, v)
-            self.writer.write(row)
+        Returns:
+          None
+        """
+        row = AIRRWriter._parseReceptor(record)
+        # TODO: define any additional fields before writing first row
+        # if not self.writer.wroteMetadata:
+        #     self.writer.addFields("changeo", row.keys())
+        #print('\n===== RECORD START =====\n')
+        #for k, v in row.items(): print(k, v)
+        self.writer.write(row)
 
 
 class IMGTReader:
@@ -2158,8 +2158,8 @@ def padAlignment(alignment, q_start, r_start):
 
     Arguments:
       alignment : tuples of (operation, length) for each alignment operation.
-      q_start : query (input) start position (1-based)
-      r_start : reference (subject) start position (1-based)
+      q_start : query (input) start position
+      r_start : reference (subject) start position
 
     Returns:
       list : updated list of tuples of (operation, length) for the alignment.

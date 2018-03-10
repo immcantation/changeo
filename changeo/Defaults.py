@@ -15,17 +15,11 @@ default_d_field = 'D_CALL'
 default_j_field = 'J_CALL'
 default_clone_field = 'CLONE'
 
-# Annotation parameters
-default_delimiter = ('|', '=', ',')
-default_separator = default_delimiter[2]
-
 # Commandline arguments
 choices_format = ('changeo', 'airr')
 default_format = 'changeo'
-default_out_args = {'log_file':None,
-                    'delimiter':default_delimiter,
-                    'separator':default_separator,
-                    'out_dir':None,
-                    'out_name':None,
-                    'out_type':None,
-                    'failed':True}
+default_out_args = {'log_file': None,
+                    'out_dir': None,
+                    'out_name': None,
+                    'out_type': None,
+                    'failed': True}

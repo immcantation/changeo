@@ -200,8 +200,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
             sys.exit('ERROR:  Directory %s exists but it is not a directory' % args_dict['out_dir'])
 
     # Redefine common output options as out_args dictionary
-    out_args = ['log_file', 'delimiter', 'separator', 
-                'out_dir', 'out_name', 'out_type', 'failed']
+    out_args = ['log_file', 'out_dir', 'out_name', 'out_type', 'failed']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     

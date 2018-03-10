@@ -25,6 +25,106 @@ from presto.IO import getFileType
 csv.field_size_limit(default_csv_size)
 
 
+class TSVReader:
+    """
+    Simple csv.DictReader wrapper to read format agnostic TSV files.
+    """
+    @property
+    def fields(self):
+        """
+        Get list fields
+
+        Returns:
+          list : field names
+        """
+        return self.reader.fieldnames
+
+    def __init__(self, handle):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open TSV file
+
+        Returns:
+          changeo.IO.TSVReader
+        """
+        # Arguments
+        self.handle = handle
+        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+
+    def __iter__(self):
+        """
+        Iterator initializer.
+
+        Returns:
+          changeo.IO.TSVReader
+        """
+        return self
+
+    def __next__(self):
+        """
+        Next method.
+
+        Returns:
+          changeo.Receptor.Receptor : Parsed Change-O data
+        """
+        # Get next row from reader iterator
+        try:
+            row = next(self.reader)
+        except StopIteration:
+            self.handle.close()
+            raise StopIteration
+
+        return row
+
+
+class TSVWriter:
+    """
+    Simple csv.DictWriter wrapper to write format agnostic TSV files.
+    """
+    def __init__(self, handle, fields, header=True):
+        """
+        Initializer
+
+        Arguments:
+          handle : handle to an open output file
+          fields : list of output field names
+          header : if True write the header on initialization.
+
+        Returns:
+          changeo.IO.TSVWriter
+        """
+        # Arguments
+        self.handle = handle
+        self.fields = fields
+        self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
+                                     dialect='excel-tab', extrasaction='ignore')
+        if header:
+            self.writeHeader()
+
+    def writeHeader(self):
+        """
+        Writes the header
+
+        Returns:
+          None
+        """
+        self.writer.writeheader()
+
+    def writeDict(self, record):
+        """
+        Writes a row from a dictionary
+
+        Arguments:
+          record : dictionary of row data
+
+        Returns:
+          None
+        """
+        self.writer.writerow(record)
+
+
 def readGermlines(repo, asis=False):
     """
     Parses germline repositories
