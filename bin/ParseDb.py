@@ -742,7 +742,7 @@ def mergeDbFiles(db_files, drop=False, out_args=default_out_args):
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = 0
+    rec_count = 0
     for db in db_iters:
         for rec in db:
             # Print progress for previous iteration
