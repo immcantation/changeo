@@ -101,7 +101,7 @@ def getCommonArgParser(db_in=True, db_out=True, failed=True, log=True,
     return parser
 
 
-def parseCommonArgs(args, in_arg=None, in_types=None):
+def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
     """
     Checks common arguments from getCommonArgParser and transforms output options to a dictionary
 
@@ -112,6 +112,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                are supported in that order
       in_types : List of types (file extensions as strings) to allow for files in file_arg
                  if None do not check type
+      in_list : if True allow multiple input files with the out_name and log arguments.
                     
     Returns:
       dict : Dictionary copy of args with output arguments embedded in the dictionary out_args
@@ -137,9 +138,11 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         sys.exit('ERROR:  Cannot determine input file argument')
     
     # Exit if output names or log files are specified with multiple input files    
-    if args_dict.get('out_name', None) is not None and input_count > 1:
+    if args_dict.get('out_name', None) is not None \
+            and input_count > 1 and not in_list:
         sys.exit('ERROR:  The --outname argument may not be specified with multiple input files')
-    if args_dict.get('log_file', None) is not None and input_count > 1:
+    if args_dict.get('log_file', None) is not None \
+            and input_count > 1 and not in_list:
         sys.exit('ERROR:  The --log argument may not be specified with multiple input files')
         
     # Verify database files

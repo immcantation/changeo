@@ -12,7 +12,7 @@ import os
 import re
 from argparse import ArgumentParser
 from collections import OrderedDict
-
+from itertools import chain
 from textwrap import dedent
 from time import time
 
@@ -702,6 +702,71 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
+def mergeDbFiles(db_files, drop=False, out_args=default_out_args):
+    """
+    Updates field and value pairs to a database file
+
+    Arguments:
+    db_files = list of database file names
+    drop = if True drop columns not present in all files
+    out_args = common output argument dictionary from parseCommonArgs
+
+    Returns:
+    the output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ParseDb'
+    log['COMMAND'] = 'merge'
+    log['FILES'] = ','.join([os.path.basename(f) for f in db_files])
+    log['DROP'] = drop
+    printLog(log)
+
+    # Open input
+    db_handles = [open(f, 'rt') for f in db_files]
+    db_iters = [TSVReader(x) for x in db_handles]
+    result_count = sum([countDbFile(f) for f in db_files])
+
+    # Define output fields
+    field_list = [x.fields for x in db_iters]
+    if drop:
+        field_set = set.intersection(*map(set, field_list))
+    else:
+        field_set = set.union(*map(set, field_list))
+    field_order = OrderedDict([(f, None) for f in chain(*field_list)])
+    out_fields = [f for f in field_order if f in field_set]
+
+    # Open output file
+    pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type='tsv')
+    pass_writer = TSVWriter(pass_handle, out_fields)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = 0
+    for db in db_iters:
+        for rec in db:
+            # Print progress for previous iteration
+            printProgress(rec_count, result_count, 0.05, start_time)
+            rec_count += 1
+
+            # Write records
+            pass_writer.writeDict(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ParseDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    for x in db_handles: x.close()
+
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -798,6 +863,17 @@ def getArgParser():
                               help='The name of the index field to add to the database.')
     parser_index.set_defaults(func=indexDbFile)
 
+    # Subparser to merge files
+    parser_merge = subparsers.add_parser('merge', parents=[parser_parent],
+                                         formatter_class=CommonHelpFormatter,
+                                         help='Merges files.',
+                                         description='Merges files.')
+    parser_merge.add_argument('--drop', action='store_true', dest='drop',
+                              help='''If specified, drop fields that do not exist in all input files.
+                                   Otherwise, include all columns in all files and fill missing data 
+                                   with empty strings.''')
+    parser_merge.set_defaults(func=mergeDbFiles)
+
     # Subparser to rename fields
     parser_rename = subparsers.add_parser('rename', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
@@ -880,7 +956,13 @@ if __name__ == '__main__':
     parser = getArgParser()
     checkArgs(parser)
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args)
+    if args.command == 'merge':
+        args_dict = parseCommonArgs(args, in_list=True)
+    else:
+        args_dict = parseCommonArgs(args)
+    # Delete command declaration from argument dictionary
+    del args_dict['command']
+    del args_dict['func']
 
     # Check argument pairs
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
@@ -891,10 +973,11 @@ if __name__ == '__main__':
         parser.error('You must specify exactly one value (-u) per replacement (-t)')
 
     # Call parser function for each database file
-    del args_dict['command']
-    del args_dict['func']
-    del args_dict['db_files']
-    for f in args.__dict__['db_files']:
-        args_dict['db_file'] = f
+    if args.command == 'merge':
         args.func(**args_dict)
+    else:
+        del args_dict['db_files']
+        for f in args.__dict__['db_files']:
+            args_dict['db_file'] = f
+            args.func(**args_dict)
  

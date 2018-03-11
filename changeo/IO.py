@@ -243,7 +243,7 @@ def countDbFile(file):
     return db_count
 
 
-def getDbFields(file, add=None, exclude=None, reader=ChangeoReader):
+def getDbFields(file, add=None, exclude=None, reader=TSVReader):
     """
     Get field names from a db file
 
