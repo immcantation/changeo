@@ -1226,7 +1226,7 @@ class IgBLASTReader:
         # CIGAR
         try:
             align = decodeBTOP(s_hit['BTOP'])
-            align = padAlignment(align, int(s_hit['q. start']), int(s_hit['s. start']))
+            align = padAlignment(align, int(s_hit['q. start']) - 1, int(s_hit['s. start']) - 1)
             result['%s_CIGAR' % segment] = encodeCIGAR(align)
         except (KeyError, TypeError, ValueError):
             result['%s_CIGAR' % segment] = None
@@ -2151,15 +2151,14 @@ def encodeCIGAR(alignment):
     return ''.join(['%i%s' % (x, s) for s, x in alignment])
 
 
-# TODO: these positions are 0-based or 1-based?
 def padAlignment(alignment, q_start, r_start):
     """
     Pads the start of an alignment based on query and reference positions.
 
     Arguments:
       alignment : tuples of (operation, length) for each alignment operation.
-      q_start : query (input) start position
-      r_start : reference (subject) start position
+      q_start : query (input) start position (0-based)
+      r_start : reference (subject) start position (0-based)
 
     Returns:
       list : updated list of tuples of (operation, length) for the alignment.
