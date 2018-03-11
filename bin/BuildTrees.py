@@ -34,6 +34,8 @@ def outputIgPhyML(clones, sequences, out_dir):
     for i in sequences:
         if len(i) != sites:
             print("Sequences within clone %s are not the same length!" % clones[0].clone)
+            for s in sequences:
+                print(s)
             exit(1)
        # i.translate(transtable)
 
@@ -252,3 +254,5 @@ if __name__ == '__main__':
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
         buildTrees(**args_dict)
+    print("Finished!")
+    exit(0)

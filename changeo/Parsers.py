@@ -1893,7 +1893,7 @@ def maskSplitCodons(receptor):
             spos += 1
             qpos += 1
         else: # if not the same, mask IMGT at that site and scan foward until you find a codon that matches next site
-            print("checking %s at position %d" % (scodons[spos], spos))
+            #print("checking %s at position %d" % (scodons[spos], spos))
             ospos=spos
             spos += 1
             qpos += 1
@@ -1925,6 +1925,13 @@ def maskSplitCodons(receptor):
                 #print("Something weird happened")
                 log['PASS'] = False
                 #exit(1)
+
+    #if scodons[-1] == "." or scodons[-1] == ".." or scodons[-1] == "...":
+    #    scodons[-1] = "NNN"
+    #    log[str(len(scodons))] = "MASKED"
+    if len(scodons[-1]) != 3:
+        scodons[-1] = "NNN"
+        log[str(len(scodons))] = "MASKED"
 
     concatenated_seq = Seq("")
     for i in scodons:
