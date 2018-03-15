@@ -99,10 +99,10 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
     # Set pass criteria
     _pass = _gentle if partial else _strict
 
-    # Initiate handles, writers and counters
+    # Initialize handles, writers and counters
     pass_handle = None
-    fail_handle = None
     pass_writer = None
+    fail_handle = None
     fail_writer = None
     start_time = time()
     pass_count = fail_count = 0
@@ -142,8 +142,6 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
                 pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'], out_type='tsv')
                 pass_writer = format_writer(pass_handle, fields)
-                #pass_handle = open(pass_file, 'wt')
-                #pass_writer = getDbWriter(pass_handle, add_fields=fields)
 
             # Write row to pass file
             pass_count += 1
@@ -154,8 +152,6 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
                 fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'], out_type='tsv')
                 fail_writer = format_writer(fail_handle, fields)
-                #fail_handle = open(fail_file, 'wt')
-                #fail_writer = getDbWriter(fail_handle, add_fields=fields)
 
             # Write row to fail file if specified
             fail_count += 1
@@ -167,14 +163,17 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
 
     # Print consol log
     log = OrderedDict()
-    log['OUTPUT'] = pass_handle.name if pass_handle is not None else None
+    log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     log['END'] = 'MakeDb'
     printLog(log)
-    
+
+    # Close file handles
     if pass_handle is not None: pass_handle.close()
     if fail_handle is not None: fail_handle.close()
+
+    return None
 
 
 # TODO:  may be able to merge with other mains

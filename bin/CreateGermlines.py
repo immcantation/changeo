@@ -474,39 +474,20 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     db_handle = open(db_file, 'rt')
     reader = reader(db_handle)
 
+    # Count input
+    total_count = countDbFile(db_file)
+
     # Check for existence of fields
     for f in [v_field, d_field, j_field, seq_field]:
         if f not in reader.fields:
             sys.exit('Error: %s field does not exist in input database file.' % f)
+
     #  Translate to Receptor attribute names
     v_field = schema.asReceptor(v_field)
     d_field = schema.asReceptor(d_field)
     j_field = schema.asReceptor(j_field)
     seq_field = schema.asReceptor(seq_field)
     clone_field = schema.asReceptor(clone_field)
-
-    # Define log handle
-    if out_args['log_file'] is None:  log_handle = None
-    else:  log_handle = open(out_args['log_file'], 'w')
-
-    # Create output file handle and Db writer
-    pass_handle = getOutputHandle(db_file,
-                                  out_label='germ-pass',
-                                  out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'],
-                                  out_type='tsv')
-    pass_writer = writer(pass_handle, fields=out_fields)
-
-    if out_args['failed']:
-        fail_handle = getOutputHandle(db_file,
-                                      out_label='germ-fail',
-                                      out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'],
-                                      out_type='tsv')
-        fail_writer = writer(fail_handle, fields=out_fields)
-    else:
-        fail_handle = None
-        fail_writer = None
 
     # Define Receptor iterator
     if cloned:
@@ -515,14 +496,21 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         sorted_records = sorted(reader, key=lambda x: x.getField(clone_field))
         printMessage('Done', start_time=start_time, end=True, width=20)
         receptor_iter = groupby(sorted_records, lambda x: x.getField(clone_field))
-        #receptor_iter = groupby(reader, lambda x: x.getField(clone_field))
     else:
         receptor_iter = ((x.sequence_id, [x]) for x in reader)
 
-    # Initialize time and total count for progress bar
-    start_time = time()
-    total_count = countDbFile(db_file)
+    # Define log handle
+    if out_args['log_file'] is None:
+        log_handle = None
+    else:
+        log_handle = open(out_args['log_file'], 'w')
+
+    # Initialize handles, writers and counters
+    pass_handle, pass_writer = None, None
+    fail_handle, fail_writer = None, None
     rec_count = pass_count = fail_count = 0
+    start_time = time()
+
     # Iterate over rows
     for key, records in receptor_iter:
         # Print progress
@@ -544,7 +532,14 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
 
         # Write row to pass or fail file
         if germlines is not None:
-            pass_count += len(records)
+            # Create output file handle and writer
+            if pass_writer is None:
+                pass_handle = getOutputHandle(db_file,
+                                              out_label='germ-pass',
+                                              out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'],
+                                              out_type='tsv')
+                pass_writer = writer(pass_handle, fields=out_fields)
 
             # Add germlines to Receptor record
             annotations = {}
@@ -558,10 +553,19 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                 annotations[germline_fields['j']] = genes['j']
 
             # Write records
+            pass_count += len(records)
             for r in records:
                 r.setDict(annotations)
                 pass_writer.writeReceptor(r)
         else:
+            if out_args['failed'] and fail_writer is None:
+                fail_handle = getOutputHandle(db_file,
+                                              out_label='germ-fail',
+                                              out_dir=out_args['out_dir'],
+                                              out_name=out_args['out_name'],
+                                              out_type='tsv')
+                fail_writer = writer(fail_handle, fields=out_fields)
+
             fail_count += len(records)
             if fail_writer is not None:
                 for r in records: fail_writer.writeReceptor(r)
@@ -572,7 +576,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Print log
     printProgress(rec_count, total_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
     log['RECORDS'] = rec_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
@@ -581,7 +585,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
 
     # Close file handles
     db_handle.close()
-    pass_handle.close()
+    if pass_handle is not None: pass_handle.close()
     if fail_handle is not None: fail_handle.close()
     if log_handle is not None:  log_handle.close()
 

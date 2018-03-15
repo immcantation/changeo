@@ -351,30 +351,19 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
     Returns:
       None
     """
-    # Open output files
+    # Wrapper for opening handles and writers
+    def _open(x, fields=fields, writer=writer):
+        handle = getOutputHandle(db_file,
+                                 out_label='clone-%s' % x,
+                                 out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'],
+                                 out_type='tsv')
+        return handle, writer(handle, fields=fields)
+
+    # Open log file
     try:
-        # Count records and define output format
+        # Count input records
         result_count = countDbFile(db_file)
-
-        # Defined successful output handle
-        pass_handle = getOutputHandle(db_file, 
-                                      out_label='clone-pass', 
-                                      out_dir=out_args['out_dir'], 
-                                      out_name=out_args['out_name'], 
-                                      out_type='tsv')
-        pass_writer = writer(pass_handle, fields=fields)
-
-        # Defined failed alignment output handle
-        if out_args['failed']:
-            fail_handle = getOutputHandle(db_file,
-                                          out_label='clone-fail', 
-                                          out_dir=out_args['out_dir'], 
-                                          out_name=out_args['out_name'], 
-                                          out_type='tsv')
-            fail_writer = writer(fail_handle, fields=fields)
-        else:
-            fail_handle = None
-            fail_writer = None
 
         # Define log handle
         if out_args['log_file'] is None:  
@@ -388,9 +377,13 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
 
     # Get results from queue and write to files
     try:
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
+        # Initialize handles, writers and counters
+        pass_handle, pass_writer = None, None
+        fail_handle, fail_writer = None, None
         rec_count = clone_count = pass_count = fail_count = 0
+        start_time = time()
+
+        # Iterator over results queue until sentinel object reached
         while alive.value:
             # Get result from queue
             if result_queue.empty():  continue
@@ -404,6 +397,10 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
             
             # Write passed and failed records
             if result:
+                # Open pass file and define writer object
+                if pass_writer is None:
+                    pass_handle, pass_writer = _open('pass')
+
                 # Writing passing sequences
                 for clone in result.results.values():
                     clone_count += 1
@@ -412,13 +409,25 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
                         pass_writer.writeReceptor(rec)
                         pass_count += 1
                         result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
+
                 # Write failed sequences from passing sets
                 if result.data_fail:
+                    # Open fail file and define writer object
+                    if out_args['failed'] and fail_handle is None:
+                        fail_handle, fail_writer = _open('fail')
+
+                    # Write failed sequences
                     for i, rec in enumerate(result.data_fail, start=1):
                         fail_count += 1
-                        if fail_writer is not None: fail_writer.writeReceptor(rec)
+                        if fail_writer is not None:
+                            fail_writer.writeReceptor(rec)
                         result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
             else:
+                # Open fail file and define writer object
+                if out_args['failed'] and fail_handle is None:
+                    fail_handle, fail_writer = _open('fail')
+
+                # Write failing records
                 for i, rec in enumerate(result.data, start=1):
                     if fail_writer is not None: fail_writer.writeReceptor(rec)
                     fail_count += 1
@@ -434,20 +443,20 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
         # Print total counts
         printProgress(rec_count, result_count, 0.05, start_time, task='Assigning clones')
 
-        # Close file handles
-        pass_handle.close()
-        if fail_handle is not None:  fail_handle.close()
-        if log_handle is not None:  log_handle.close()
-                
         # Update return list
         log = OrderedDict()
-        log['OUTPUT'] = os.path.basename(pass_handle.name)
+        log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
         log['CLONES'] = clone_count
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
         collect_dict = {'log':log, 'out_files': [pass_handle.name]}
         collect_queue.put(collect_dict)
+
+        # Close file handles
+        if pass_handle is not None:  pass_handle.close()
+        if fail_handle is not None:  fail_handle.close()
+        if log_handle is not None:  log_handle.close()
     except:
         #sys.stderr.write('Exception in collector result processing step\n')
         alive.value = False

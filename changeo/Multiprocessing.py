@@ -218,27 +218,18 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
             'log' defining a log object,
             'out_files' defining the output file names
     """
+    # Wrapper for opening handles and writers
+    def _open(x, fields=fields, writer=writer, label=label):
+        handle = getOutputHandle(db_file,
+                                 out_label='%s-%s' % (label, x),
+                                 out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'],
+                                 out_type='tsv')
+        return handle, writer(handle, fields=fields)
+
     try:
+        # Count input
         result_count = countDbFile(db_file)
-
-        # Defined valid alignment output handle
-        pass_handle = getOutputHandle(db_file,
-                                      out_label='%s-pass' % label,
-                                      out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'],
-                                      out_type='tsv')
-        pass_writer = writer(pass_handle, fields=fields)
-
-        # Defined failed alignment output handle
-        if out_args['failed']:
-            fail_handle = getOutputHandle(db_file,
-                                          out_label='%s-fail'  % label,
-                                          out_dir=out_args['out_dir'],
-                                          out_name=out_args['out_name'],
-                                          out_type='tsv')
-            fail_writer = writer(fail_handle, fields=fields)
-        else:
-            fail_handle = None
 
         # Define log handle
         if out_args['log_file'] is None:
@@ -250,9 +241,13 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
         raise
 
     try:
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
+        # Initialize handles, writers and counters
+        pass_handle, pass_writer = None, None
+        fail_handle, fail_writer = None, None
         set_count = rec_count = pass_count = fail_count = 0
+        start_time = time()
+
+        # Iterator over results queue until sentinel object reached
         while alive.value:
             # Get result from queue
             if result_queue.empty():  continue
@@ -271,16 +266,26 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
             if result.log is not None:
                 printLog(result.log, handle=log_handle)
 
-            # Write alignments
+            # Write passing results
             if result:
+                # Open pass file and define writer object
+                if pass_writer is None:
+                    pass_handle, pass_writer = _open('pass')
+
+                # Write to pass file
                 pass_count += result.data_count
                 if isinstance(result.results, Receptor):
                     pass_writer.writeReceptor(result.results)
                 else:
                     for rec in result.results:  pass_writer.writeReceptor(rec)
             else:
+                # Open fail file and define writer object
+                if out_args['failed'] and fail_handle is None:
+                    fail_handle, fail_writer = _open('fail')
+
+                # Write to fail file
                 fail_count += result.data_count
-                if fail_handle is not None:
+                if fail_writer is not None:
                     if isinstance(result.data, Receptor):
                         pass_writer.writeReceptor(result.data)
                     else:
@@ -295,7 +300,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
 
         # Update return values
         log = OrderedDict()
-        log['OUTPUT'] = os.path.basename(pass_handle.name)
+        log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
         log['RECORDS'] = rec_count
         log['GROUPS'] = set_count
         log['PASS'] = pass_count
@@ -304,7 +309,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
         collect_queue.put(collect_dict)
 
         # Close file handles
-        pass_handle.close()
+        if pass_handle is not None:  pass_handle.close()
         if fail_handle is not None:  fail_handle.close()
         if log_handle is not None:  log_handle.close()
     except:
