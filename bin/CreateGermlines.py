@@ -482,7 +482,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         if f not in reader.fields:
             sys.exit('Error: %s field does not exist in input database file.' % f)
 
-    #  Translate to Receptor attribute names
+    # Translate to Receptor attribute names
     v_field = schema.asReceptor(v_field)
     d_field = schema.asReceptor(d_field)
     j_field = schema.asReceptor(j_field)
@@ -611,7 +611,7 @@ def getArgParser():
 
              required fields:
                  SEQUENCE_ID, SEQUENCE_VDJ or SEQUENCE_IMGT,
-                 V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL,
+                 V_CALL, D_CALL, J_CALL,
                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
                  J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
@@ -652,13 +652,13 @@ def getArgParser():
                              used for the entire clone within the
                              GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
     parser.add_argument('--sf', action='store', dest='seq_field', default=None,
-                        help='Field containing the alinged sequence.')
+                        help='Field containing the aligned sequence. Defaults to SEQUENCE_IMGT.')
     parser.add_argument('--vf', action='store', dest='v_field', default=None,
-                        help='Field containing the germline V segment call.')
+                        help='Field containing the germline V segment call. Defaults to V_CALL.')
     parser.add_argument('--df', action='store', dest='d_field', default=None,
-                        help='Field containing the germline D segment call.')
+                        help='Field containing the germline D segment call. Defaults to D_CALL.')
     parser.add_argument('--jf', action='store', dest='j_field', default=None,
-                        help='Field containing the germline J segment call.')
+                        help='Field containing the germline J segment call. Defaults to J_CALL.')
 
     return parser
 

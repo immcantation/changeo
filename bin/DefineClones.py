@@ -21,7 +21,7 @@ from Bio.Seq import translate
 from presto.Defaults import default_out_args
 from presto.IO import getOutputHandle, printLog, printProgress
 from presto.Multiprocessing import manageProcesses
-from changeo.Defaults import default_format
+from changeo.Defaults import default_format, default_v_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields
@@ -44,15 +44,18 @@ choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f',
                           'hs1f_compat', 'm1n_compat')
 
 
-def filterMissing(data, seq_field=default_seq_field, max_missing=default_max_missing):
+def filterMissing(data, seq_field=default_seq_field, v_field=default_v_field,
+                  j_field=default_j_field, max_missing=default_max_missing):
     """
     Splits a set of sequence into passed and failed groups based on the number
     of missing characters in the sequence
 
     Arguments:
-        data : changeo.Multiprocessing.DbData object
-        seq_field : sequence field to filter on
-        max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record
+        data : changeo.Multiprocessing.DbData object.
+        seq_field : sequence field to filter on.
+        v_field : field containing the V call.
+        j_field : field containing the J call.
+        max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record.
 
     Returns:
         changeo.Multiprocessing.DbResult : objected containing filtered records.
@@ -76,9 +79,8 @@ def filterMissing(data, seq_field=default_seq_field, max_missing=default_max_mis
 
     # Add V(D)J to log
     result.log['ID'] = ','.join([str(x) for x in data.id])
-    result.log['VALLELE'] = ','.join(set([(r.getVAllele() or '') for r in data.data]))
-    result.log['DALLELE'] = ','.join(set([(r.getDAllele() or '') for r in data.data]))
-    result.log['JALLELE'] = ','.join(set([(r.getJAllele() or '') for r in data.data]))
+    result.log['VCALL'] = ','.join(set([(r.getVAllele(field=v_field) or '') for r in data.data]))
+    result.log['JCALL'] = ','.join(set([(r.getJAllele(field=j_field) or '') for r in data.data]))
     result.log['JUNCLEN'] = ','.join(set([(str(len(r.junction)) or '0') for r in data.data]))
     result.log['CLONED'] = len(result.data_pass)
     result.log['FILTERED'] = len(result.data_fail)
@@ -165,8 +167,8 @@ def indexByUnion(index, key, rec, group_fields=None):
         outer_dict[key[1]] = {key[0]: val}
 
 
-def groupByGene(db_iter, group_fields=None, mode=default_index_mode,
-                action=default_index_action):
+def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=default_j_field,
+                mode=default_index_mode, action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
 
@@ -186,21 +188,21 @@ def groupByGene(db_iter, group_fields=None, mode=default_index_mode,
     # Define functions for grouping keys
     if mode == 'allele' and group_fields is None:
         def _get_key(rec, act):
-            return [rec.getVAllele(act), rec.getJAllele(act),
+            return [rec.getVAllele(act, field=v_field), rec.getJAllele(act, field=j_field),
                     None if rec.junction is None else len(rec.junction)]
     elif mode == 'gene' and group_fields is None:
         def _get_key(rec, act):  
-            return [rec.getVGene(act), rec.getJGene(act),
+            return [rec.getVGene(act, field=v_field), rec.getJGene(act, field=j_field),
                     None if rec.junction is None else len(rec.junction)]
     elif mode == 'allele' and group_fields is not None:
         def _get_key(rec, act):
-            vdj = [rec.getVAllele(act), rec.getJAllele(act),
+            vdj = [rec.getVAllele(act, field=v_field), rec.getJAllele(act, field=j_field),
                     None if rec.junction is None else len(rec.junction)]
             ann = [rec.getField(k) for k in group_fields]
             return list(chain(vdj, ann))
     elif mode == 'gene' and group_fields is not None:
         def _get_key(rec, act):
-            vdj = [rec.getVGene(act), rec.getJGene(act),
+            vdj = [rec.getVGene(act, field=v_field), rec.getJGene(act, field=j_field),
                     None if rec.junction is None else len(rec.junction)]
             ann = [rec.getField(k) for k in group_fields]
             return list(chain(vdj, ann))
@@ -465,7 +467,8 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
     return None
 
 
-def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
+def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
+                 j_field=default_j_field, group_fields=None,
                  group_func=groupByGene, group_args={},
                  clone_func=distanceClones, clone_args={},
                  max_missing=default_max_missing, format=default_format,
@@ -476,6 +479,8 @@ def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
     Arguments:
       db_file : filename of input database.
       seq_field : sequence field used to determine clones.
+      v_field : field containing the V call.
+      j_field : field containing the J call.
       group_fields : additional annotation fields to use to group preclones;
                      if None use only V and J.
       group_func : the function to use for assigning preclones.
@@ -498,17 +503,14 @@ def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
     log['START'] = 'DefineClones'
     log['DB_FILE'] = os.path.basename(db_file)
     log['SEQ_FIELD'] = seq_field
-    log['GROUP_FIELDS'] = group_fields
+    log['V_FIELD'] = v_field
+    log['J_FIELD'] = j_field
+    log['GROUP_FIELDS'] = ','.join(group_fields)
     log['MAX_MISSING'] = max_missing
-    log['GROUP_FUNC'] = group_func.__name__
-    log['GROUP_ARGS'] = group_args
-    log['CLONE_FUNC'] = clone_func.__name__
-
-    # TODO:  this is yucky, but can be fixed by using a model class
-    clone_log = clone_args.copy()
-    if 'dist_mat' in clone_log:  del clone_log['dist_mat']
-    log['CLONE_ARGS'] = clone_log
-
+    for k in sorted(group_args):
+        log[k.upper()] = group_args[k]
+    for k in sorted(clone_args):
+        if k != 'dist_mat':  log[k.upper()] = clone_args[k]
     log['NPROC'] = nproc
     printLog(log)
 
@@ -516,27 +518,36 @@ def defineClones(db_file, seq_field=default_seq_field, group_fields=None,
     if format == 'changeo':
         reader = ChangeoReader
         writer = ChangeoWriter
-        if group_fields is not None:
-            group_fields = [ChangeoSchema.asReceptor(f) for f in group_fields]
+        schema = ChangeoSchema
         out_fields = getDbFields(db_file, add='CLONE', reader=reader)
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
-        if group_fields is not None:
-            group_fields = [AIRRSchema.asReceptor(f) for f in group_fields]
+        schema = AIRRSchema
         out_fields = getDbFields(db_file, add='clone', reader=reader)
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
+    # Translate to Receptor attribute names
+    seq_field = schema.asReceptor(seq_field)
+    v_field = schema.asReceptor(v_field)
+    j_field = schema.asReceptor(j_field)
+    if group_fields is not None:
+        group_fields = [schema.asReceptor(f) for f in group_fields]
+
     # Define feeder function and arguments
     group_args['group_fields'] = group_fields
+    group_args['v_field'] = v_field
+    group_args['j_field'] = j_field
     feed_args = {'db_file': db_file,
                  'reader': reader,
                  'group_func': group_func, 
                  'group_args': group_args}
     # Define worker function and arguments
-    filter_args = {'max_missing': max_missing,
-                   'seq_field': seq_field}
+    filter_args = {'seq_field': seq_field,
+                   'v_field': 'v_field',
+                   'j_field': 'j_field',
+                   'max_missing': max_missing}
     clone_args['seq_field'] = seq_field
     work_args = {'process_func': clone_func,
                  'process_args': clone_args,
@@ -581,10 +592,7 @@ def getArgParser():
                      database with records failing clonal grouping.
 
              required fields:
-                 SEQUENCE_ID, V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL, JUNCTION
-
-                 <field>
-                     sequence field specified by the --sf parameter
+                 SEQUENCE_ID, V_CALL, J_CALL, JUNCTION
                 
              output fields:
                  CLONE
@@ -601,55 +609,57 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     # Distance cloning method
-    parser.add_argument('--sf', action='store', dest='seq_field',
-                                default=default_seq_field,
-                                help='''The name of the field to be used to calculate
-                                     distance between records''')
+    parser.add_argument('--sf', action='store', dest='seq_field', default=None,
+                        help='Field to be used to calculate distance between records. Defaults to JUNCTION.')
+    parser.add_argument('--vf', action='store', dest='v_field', default=None,
+                        help='Field containing the germline V segment call. Defaults to V_CALL.')
+    parser.add_argument('--jf', action='store', dest='j_field', default=None,
+                        help='Field containing the germline J segment call. Defaults to J_CALL.')
     parser.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
-                             help='Additional fields to use for grouping clones (non-VDJ)')
+                        help='Additional fields to use for grouping clones (non-VDJ)')
     parser.add_argument('--mode', action='store', dest='mode',
-                             choices=('allele', 'gene'), default=default_index_mode,
-                             help='''Specifies whether to use the V(D)J allele or gene for
-                                  initial grouping.''')
+                        choices=('allele', 'gene'), default=default_index_mode,
+                        help='''Specifies whether to use the V(D)J allele or gene for
+                             initial grouping.''')
     parser.add_argument('--act', action='store', dest='action',
-                             choices=('first', 'set'), default=default_index_action,
-                             help='''Specifies how to handle multiple V(D)J assignments
-                                  for initial grouping.''')
+                        choices=('first', 'set'), default=default_index_action,
+                        help='''Specifies how to handle multiple V(D)J assignments
+                             for initial grouping.''')
     parser.add_argument('--model', action='store', dest='model',
-                             choices=choices_distance_model,
-                             default=default_distance_model,
-                             help='''Specifies which substitution model to use for calculating distance
-                                  between sequences. The "ham" model is nucleotide Hamming distance and
-                                  "aa" is amino acid Hamming distance. The "hh_s1f" and "hh_s5f" models are
-                                  human specific single nucleotide and 5-mer content models, respectively,
-                                  from Yaari et al, 2013. The "mk_rs1nf" and "mk_rs5nf" models are
-                                  mouse specific single nucleotide and 5-mer content models, respectively,
-                                  from Cui et al, 2016. The "m1n_compat" and "hs1f_compat" models are
-                                  deprecated models provided backwards compatibility with the "m1n" and
-                                  "hs1f" models in Change-O v0.3.3 and SHazaM v0.1.4. Both
-                                  5-mer models should be considered experimental.''')
+                        choices=choices_distance_model,
+                        default=default_distance_model,
+                        help='''Specifies which substitution model to use for calculating distance
+                             between sequences. The "ham" model is nucleotide Hamming distance and
+                             "aa" is amino acid Hamming distance. The "hh_s1f" and "hh_s5f" models are
+                             human specific single nucleotide and 5-mer content models, respectively,
+                             from Yaari et al, 2013. The "mk_rs1nf" and "mk_rs5nf" models are
+                             mouse specific single nucleotide and 5-mer content models, respectively,
+                             from Cui et al, 2016. The "m1n_compat" and "hs1f_compat" models are
+                             deprecated models provided backwards compatibility with the "m1n" and
+                             "hs1f" models in Change-O v0.3.3 and SHazaM v0.1.4. Both
+                             5-mer models should be considered experimental.''')
     parser.add_argument('--dist', action='store', dest='distance', type=float,
-                             default=default_distance,
-                             help='The distance threshold for clonal grouping')
+                        default=default_distance,
+                        help='The distance threshold for clonal grouping')
     parser.add_argument('--norm', action='store', dest='norm',
-                             choices=('len', 'mut', 'none'), default=default_norm,
-                             help='''Specifies how to normalize distances. One of none
-                                  (do not normalize), len (normalize by length),
-                                  or mut (normalize by number of mutations between sequences).''')
+                        choices=('len', 'mut', 'none'), default=default_norm,
+                        help='''Specifies how to normalize distances. One of none
+                             (do not normalize), len (normalize by length),
+                             or mut (normalize by number of mutations between sequences).''')
     parser.add_argument('--sym', action='store', dest='sym',
-                             choices=('avg', 'min'), default=default_sym,
-                             help='''Specifies how to combine asymmetric distances. One of avg
-                                  (average of A->B and B->A) or min (minimum of A->B and B->A).''')
+                        choices=('avg', 'min'), default=default_sym,
+                        help='''Specifies how to combine asymmetric distances. One of avg
+                             (average of A->B and B->A) or min (minimum of A->B and B->A).''')
     parser.add_argument('--link', action='store', dest='linkage',
-                             choices=('single', 'average', 'complete'), default=default_linkage,
-                             help='''Type of linkage to use for hierarchical clustering.''')
+                        choices=('single', 'average', 'complete'), default=default_linkage,
+                        help='''Type of linkage to use for hierarchical clustering.''')
     parser.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
-                                default=default_max_missing,
-                                help='''The maximum number of non-ACGT characters (gaps or Ns) to 
-                                     permit in the junction sequence before excluding the record 
-                                     from clonal assignment. Warning, under single linkage 
-                                     non-informative positions can create artifactual links 
-                                     between unrelated sequences. Use with caution.''')
+                        default=default_max_missing,
+                        help='''The maximum number of non-ACGT characters (gaps or Ns) to 
+                             permit in the junction sequence before excluding the record 
+                             from clonal assignment. Warning, under single linkage 
+                             non-informative positions can create artifactual links 
+                             between unrelated sequences. Use with caution.''')
     parser.set_defaults(group_func=groupByGene)
     parser.set_defaults(clone_func=distanceClones)
         
@@ -666,12 +676,23 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
-    # Convert case of fields
-    # if 'seq_field' in args_dict:
-    #     args_dict['seq_field'] = args_dict['seq_field'].upper()
-    # if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
-    #     args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]
-    
+    # Set default fields if not specified.
+    default_fields = {'seq_field': default_seq_field,
+                      'v_field': default_v_field,
+                      'j_field': default_j_field}
+
+    # Default Change-O fields
+    if args_dict['format'] == 'changeo':
+        for f in default_fields:
+            if args_dict[f] is None:  args_dict[f] = default_fields[f]
+            else: args_dict[f] = args_dict[f].upper()
+
+    # Default AIRR fields
+    if args_dict['format'] == 'airr':
+        for f in default_fields:
+            if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
+            else: args_dict[f] = args_dict[f].lower()
+
     # Define grouping and cloning function arguments
     args_dict['group_args'] = {'action': args_dict['action'],
                                'mode':args_dict['mode']}
