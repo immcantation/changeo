@@ -13,29 +13,29 @@ All methods provided by :ref:`DefineClones` first partition sequences based on
 common IGHV gene, IGHJ gene, and junction region length. These groups are then
 further subdivided into clonally related groups based on the following distance
 metrics on the junction region. The specified distance metric
-(:option:`--model <DefineClones bygroup --model>`) is then
+(:option:`--model <DefineClones --model>`) is then
 used to perform hierarchical clustering under the specified linkage
-(:option:`--link <DefineClones bygroup --link>`) clustering. Clonal groups are
+(:option:`--link <DefineClones --link>`) clustering. Clonal groups are
 defined by trimming the resulting dendrogram at the specified threshold
-(:option:`--dist <DefineClones bygroup --dist>`).
+(:option:`--dist <DefineClones --dist>`).
 
 Amino acid model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`aa <DefineClones bygroup --model>` distance model is the Hamming distance
+The :option:`aa <DefineClones --model>` distance model is the Hamming distance
 between junction amino acid sequences.
 
 Hamming distance model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`ham <DefineClones bygroup --model>` distance model is the Hamming
+The :option:`ham <DefineClones --model>` distance model is the Hamming
 distance between junction nucleotide sequences.
 
 Human and mouse 1-mer models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`hh_s1f <DefineClones bygroup --model>` and
-:option:`mk_rs5nf <DefineClones bygroup --model>` distance models are single
+The :option:`hh_s1f <DefineClones --model>` and
+:option:`mk_rs5nf <DefineClones --model>` distance models are single
 nucleotide distance matrices derived from averaging and symmetrizing the human 5-mer
 targeting model in :cite:`Yaari2013` and the mouse 5-mer targeting model in
 :cite:`Cui2016`. The are broadly similar to a transition/transversion model.
@@ -65,8 +65,8 @@ Mouse 1-mer substitution matrix:
 Human and mouse 5-mer models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :option:`hh_s5f <DefineClones bygroup --model>` and
-:option:`mk_rs5nf <DefineClones bygroup --model>` distance models are based on
+The :option:`hh_s5f <DefineClones --model>` and
+:option:`mk_rs5nf <DefineClones --model>` distance models are based on
 the human 5-mer targeting model in :cite:`Yaari2013` and mouse 5-mer
 argeting models in :cite:`Cui2016`, respectively. The targeting
 matrix :math:`T` has 5-mers across the columns and the nucleotide to
@@ -85,7 +85,7 @@ into a distance matrix :math:`D` via the following steps:
    distances on the diagonal (no change), and NA distances are set to 0.
 
 Since the distance matrix :math:`D` is not symmetric, the
-:option:`--sym <DefineClones bygroup --sym>` argument
+:option:`--sym <DefineClones --sym>` argument
 can be specified to calculate either the average (avg) or minimum (min)
 of :math:`D(j\rightarrow i)` and :math:`D(i\rightarrow j)`.
 The distances defined by :math:`D` for each nucleotide difference are
