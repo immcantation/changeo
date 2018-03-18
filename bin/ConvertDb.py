@@ -415,18 +415,6 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     start_trim = 0 if start is None else start
     end_trim = 0 if end is None else len(record.sequence_input) - end
 
-    # Define junction boundaries and check for valid translation
-    junction_start = record.junction_start - start_trim
-    junction_end = record.junction_end - start_trim
-
-    junction_seq = record.sequence_input[(junction_start - 1):junction_end]
-    if len(junction_seq) % 3 > 0:  junction_seq = junction_seq + 'N' * (3 - len(junction_seq) % 3)
-    junction_aa = junction_seq.translate()
-
-    # Return invalid record upon junction stop codon
-    if '*' in junction_aa and not keep_stop:
-        return None
-
     # Define return object
     result = OrderedDict()
 
@@ -504,19 +492,33 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #     codon_start (must indicate codon offset)
     #     function = JUNCTION
     #     inference
-    cds_start = '<%i' % junction_start
-    cds_end = '>%i' % junction_end
-    cds_record = [('function', 'JUNCTION')]
-    if inference is not None:
-        cds_record.append(('inference', 'COORDINATES:protein motif:%s' % inference))
+    if record.junction_start is not None and record.junction_end is not None:
+        # Define junction boundaries
+        junction_start = record.junction_start - start_trim
+        junction_end = record.junction_end - start_trim
 
-    if '*' in junction_aa:
-        cds_record.append(('note', '%s junction region' % product))
-        result[(cds_start, cds_end, 'misc_feature')] = cds_record
-    else:
-        cds_record.append(('product', '%s junction region' % product))
-        cds_record.append(('codon_start', 1))
-        result[(cds_start, cds_end, 'CDS')] = cds_record
+        # CDS record
+        cds_start = '<%i' % junction_start
+        cds_end = '>%i' % junction_end
+        cds_record = [('function', 'JUNCTION')]
+        if inference is not None:
+            cds_record.append(('inference', 'COORDINATES:protein motif:%s' % inference))
+
+        # Check for valid translation
+        junction_seq = record.sequence_input[(junction_start - 1):junction_end]
+        if len(junction_seq) % 3 > 0:  junction_seq = junction_seq + 'N' * (3 - len(junction_seq) % 3)
+        junction_aa = junction_seq.translate()
+
+        # Return invalid record upon junction stop codon
+        if '*' in junction_aa and not keep_stop:
+            return None
+        elif '*' in junction_aa:
+            cds_record.append(('note', '%s junction region' % product))
+            result[(cds_start, cds_end, 'misc_feature')] = cds_record
+        else:
+            cds_record.append(('product', '%s junction region' % product))
+            cds_record.append(('codon_start', 1))
+            result[(cds_start, cds_end, 'CDS')] = cds_record
 
     return result
 
