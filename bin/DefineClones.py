@@ -505,7 +505,7 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     log['SEQ_FIELD'] = seq_field
     log['V_FIELD'] = v_field
     log['J_FIELD'] = j_field
-    log['GROUP_FIELDS'] = ','.join(group_fields)
+    log['GROUP_FIELDS'] = ','.join(group_fields) if group_fields is not None else None
     log['MAX_MISSING'] = max_missing
     for k in sorted(group_args):
         log[k.upper()] = group_args[k]
