@@ -1,12 +1,15 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  March 9, 2018
+Version 0.4.0.999:  March 21, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
   all relevant tools.
++ All tools will no longer create empty pass or fail files if there are no
+  records meeting the appropriate criteria for output.
 + Numerous API changes and internal structural changes to commandline tools.
+
 
 AlignRecords:
 
@@ -38,6 +41,8 @@ DefineClones:
 + Removed the chen2010 and ademokun2011 and made the previous bygroup
   subcommand the default behavior.
 + Renamed the ``--f`` argument to ``--gf`` for consistency with other tools.
++ Added the arguments ``--vf`` and ``-jf`` to allow specification of
+  V and J call fields, respectively.
 
 MakeDb:
 
@@ -51,6 +56,12 @@ MakeDb:
   pad to a multiple of 3 (removes trailing X character).
 + The igblast subcommand will now fail records missing the required optional
   fields ``subject seq``, ``query seq`` and ``BTOP``, rather than abort.
+
+ParseDb:
+
++ Added the merge subcommand which will combine TSV files.
++ All field arguments are now case sensitive to provide support for both
+  the Change-O and AIRR data standards.
 
 
 Version 0.3.12:  February 16, 2018
