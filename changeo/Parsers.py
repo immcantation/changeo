@@ -2166,21 +2166,21 @@ def padAlignment(alignment, q_start, r_start):
     # Copy list to avoid weirdness
     result = alignment[:]
 
-    # Add reference padding if present
-    if result [0][0] == 'N':
-        result[0] = ('N', result[0][1] + r_start)
-    elif r_start > 0:
-        result.insert(0, ('N', r_start))
-
-    # Add query deletions if present
-    if result[0][0] == 'S':
+    # Add query deletions
+    if result [0][0] == 'S':
         result[0] = ('S', result[0][1] + q_start)
-    elif result [0][0] == 'N' and result[1][0] == 'S':
-        result[1] = ('S', result[1][1] + q_start)
-    elif result[0][0] == 'N' and q_start > 0:
-        result.insert(1, ('S', q_start))
     elif q_start > 0:
         result.insert(0, ('S', q_start))
+
+    # Add reference padding if present
+    if result[0][0] == 'N':
+        result[0] = ('N', result[0][1] + r_start)
+    elif result [0][0] == 'S' and result[1][0] == 'N':
+        result[1] = ('N', result[1][1] + r_start)
+    elif result[0][0] == 'S' and r_start > 0:
+        result.insert(1, ('N', r_start))
+    elif r_start > 0:
+        result.insert(0, ('N', r_start))
 
     return result
 
@@ -2202,15 +2202,15 @@ def alignmentPositions(alignment):
               'r_start': 0,
               'r_length': 0}
 
-    # Reference start
-    if alignment[0][0] == 'N':
-        result['r_start'] = alignment[0][1]
-
     # Query start
     if alignment[0][0] == 'S':
         result['q_start'] = alignment[0][1]
-    elif alignment[0][0] == 'N' and alignment[1][0] == 'S':
-        result['q_start'] = alignment[1][1]
+
+    # Reference start
+    if alignment[0][0] == 'N':
+        result['r_start'] = alignment[0][1]
+    elif alignment[0][0] == 'S' and alignment[1][0] == 'N':
+        result['r_start'] = alignment[1][1]
 
     # Reference length
     for x, i in alignment:
