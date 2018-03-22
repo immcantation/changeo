@@ -21,5 +21,5 @@ default_format = 'changeo'
 default_out_args = {'log_file': None,
                     'out_dir': None,
                     'out_name': None,
-                    'out_type': None,
+                    'out_type': 'tab',
                     'failed': True}

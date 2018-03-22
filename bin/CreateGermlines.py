@@ -450,6 +450,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
             germline_fields['d'] = 'GERMLINE_D_CALL'
             germline_fields['j'] = 'GERMLINE_J_CALL'
         out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
+        out_args['out_type'] = 'tab'
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
@@ -466,6 +467,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
             germline_fields['d'] = 'germline_d_call'
             germline_fields['j'] = 'germline_j_call'
         out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
+        out_args['out_type'] = 'tsv'
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
@@ -556,7 +558,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                                               out_label='germ-pass',
                                               out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'],
-                                              out_type='tsv')
+                                              out_type=out_args['out_type'])
                 pass_writer = writer(pass_handle, fields=out_fields)
                 for r in records:
                     r.setDict(annotations)
@@ -571,7 +573,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                                                   out_label='germ-fail',
                                                   out_dir=out_args['out_dir'],
                                                   out_name=out_args['out_name'],
-                                                  out_type='tsv')
+                                                  out_type=out_args['out_type'])
                     fail_writer = writer(fail_handle, fields=out_fields)
                     fail_writer.writeReceptor(records)
 

@@ -242,6 +242,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
         if 'group_fields' in group_args and group_args['group_fields'] is not None:
             group_args['group_fields'] = [ChangeoSchema.asReceptor(f) for f in group_args['group_fields']]
         out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
+        out_args['out_type'] = 'tab'
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
@@ -249,6 +250,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
         if 'group_fields' in group_args and group_args['group_fields'] is not None:
             group_args['group_fields'] = [AIRRSchema.asReceptor(f) for f in group_args['group_fields']]
         out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
+        out_args['out_type'] = 'tsv'
     else:
         sys.exit('Error:  Invalid format %s' % format)
 

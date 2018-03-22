@@ -20,7 +20,7 @@ from time import time
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, TSVReader, TSVWriter
+from changeo.IO import countDbFile, getFileExt, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -33,7 +33,6 @@ default_index_field = 'INDEX'
 
 
 # TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
-
 def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     """
     Divides a tab-delimited database file into segments by description tags
@@ -60,6 +59,8 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
+    out_args['out_type'] = getFileExt(db_file)
+
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
 
@@ -87,7 +88,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
                                              out_label='%s-%s' % (field, label),
                                              out_name=out_args['out_name'],
                                              out_dir=out_args['out_dir'],
-                                             out_type='tsv')
+                                             out_type=out_args['out_type'])
                         for tag, label in tag_dict.items()}
 
         # Create Db writer instances
@@ -111,12 +112,12 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
                                                  out_label='under-%.1f' % num_split,
                                                  out_name=out_args['out_name'],
                                                  out_dir=out_args['out_dir'],
-                                                 out_type='tsv'),
+                                                 out_type=out_args['out_type']),
                         'atleast': getOutputHandle(db_file,
                                                    out_label='atleast-%.1f' % num_split,
                                                    out_name=out_args['out_name'],
                                                    out_dir=out_args['out_dir'],
-                                                   out_type='tsv')}
+                                                   out_type=out_args['out_type'])}
 
         # Create Db writer instances
         writers_dict = {'under': TSVWriter(handles_dict['under'], fields=out_fields),
@@ -171,6 +172,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     # Open inut
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
+    out_args['out_type'] = getFileExt(db_file)
 
     # Add fields
     out_fields = list(db_iter.fields)
@@ -178,7 +180,7 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
 
     # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -235,6 +237,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
+    out_args['out_type'] = getFileExt(db_file)
 
     # Append index field
     out_fields = list(db_iter.fields)
@@ -242,7 +245,7 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
 
     # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -297,13 +300,14 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
+    out_args['out_type'] = getFileExt(db_file)
 
     # Exclude dropped field from output
     out_fields = [f for f in db_iter.fields if f not in fields]
 
     # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -369,13 +373,17 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     log['VALUES'] = ','.join(values)
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
+    out_args['out_type'] = getFileExt(db_file)
+
+    # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
+
     # Count records
     result_count = countDbFile(db_file)
 
@@ -437,6 +445,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
     # Open file handles
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
+    out_args['out_type'] = getFileExt(db_file)
 
     # Get header and rename fields
     out_fields = list(db_iter.fields)
@@ -446,7 +455,7 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
 
     # Open writer
     pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -519,13 +528,17 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     log['REGEX'] =regex
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
+    out_args['out_type'] = getFileExt(db_file)
+
+    # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
+
     # Count records
     result_count = countDbFile(db_file)
 
@@ -590,12 +603,15 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     log['NUMERIC'] = numeric
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
     out_fields = db_iter.fields
+    out_args['out_type'] = getFileExt(db_file)
+
+    # Open output
+    pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Store all records in a dictionary
@@ -659,13 +675,17 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     log['UPDATES'] = ','.join(updates)
     printLog(log)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
+    out_args['out_type'] = getFileExt(db_file)
+
+    # Open output
     pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
+
     # Count records
     result_count = countDbFile(db_file)
 
@@ -736,8 +756,9 @@ def mergeDbFiles(db_files, drop=False, out_args=default_out_args):
     out_fields = [f for f in field_order if f in field_set]
 
     # Open output file
+    out_args['out_type'] = getFileExt(db_files[0])
     pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Iterate over records

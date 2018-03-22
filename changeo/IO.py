@@ -277,3 +277,18 @@ def getDbFields(file, add=None, exclude=None, reader=TSVReader):
         fields = [f for f in fields if f not in exclude]
 
     return fields
+
+
+def getFileExt(filename):
+    """
+    Extract the extension from a file name
+
+    Arguments:
+      filename : file name
+
+    Returns:
+      str : file extension
+    """
+    file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+
+    return file_type

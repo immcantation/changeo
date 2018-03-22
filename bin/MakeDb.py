@@ -142,7 +142,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
             except AttributeError:
                 # Open pass file and writer
                 pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
-                                              out_name=out_args['out_name'], out_type='tsv')
+                                              out_name=out_args['out_name'], out_type=out_args['out_type'])
                 pass_writer = format_writer(pass_handle, fields)
                 pass_writer.writeReceptor(record)
 
@@ -156,7 +156,7 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
                     # Open fail file and writer
 
                     fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
-                                                  out_name=out_args['out_name'], out_type='tsv')
+                                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
                     fail_writer = format_writer(fail_handle, fields)
                     fail_writer.writeReceptor(record)
 
@@ -226,10 +226,12 @@ def parseIMGT(aligner_output, seq_file=None, partial=False,
         fields = ChangeoSchema.fields(imgt_score=parse_scores,
                                       region=parse_regions,
                                       junction=parse_junction)
+        out_args['out_type'] = 'tab'
     elif format == 'airr':
         fields = AIRRSchema.fields(imgt_score=True,
                                    region=parse_regions,
                                    junction=parse_junction)
+        out_args['out_type'] = 'tsv'
 
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
@@ -297,10 +299,12 @@ def parseIgBLAST(aligner_output, seq_file, repo, partial=False,
         fields = ChangeoSchema.fields(igblast_score=parse_scores,
                                       region=parse_regions,
                                       igblast_cdr3=parse_igblast_cdr3)
+        out_args['out_type'] = 'tab'
     elif format == 'airr':
         fields = AIRRSchema.fields(igblast_score=True,
                                    region=parse_regions,
                                    igblast_cdr3=parse_igblast_cdr3)
+        out_args['out_type'] = 'tsv'
 
     # Parse and write output
     with open(aligner_output, 'r') as f:
@@ -358,9 +362,11 @@ def parseIHMM(aligner_output, seq_file, repo, partial=False,
     if format == 'changeo':
         fields = ChangeoSchema.fields(ihmm_score=parse_scores,
                                       region=parse_regions)
+        out_args['out_type'] = 'tab'
     if format == 'airr':
         fields = AIRRSchema.fields(ihmm_score=True,
                                    region=parse_regions)
+        out_args['out_type'] = 'tsv'
 
     # Parse and write output
     with open(aligner_output, 'r') as f:

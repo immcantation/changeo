@@ -336,7 +336,8 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
     return result
 
 
-def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=ChangeoWriter, out_args=default_out_args):
+def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=ChangeoWriter,
+                 out_args=default_out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -359,7 +360,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
                                  out_label='clone-%s' % x,
                                  out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'],
-                                 out_type='tsv')
+                                 out_type=out_args['out_type'])
         return handle, writer(handle, fields=fields)
 
     # Open log file
@@ -524,11 +525,13 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
         writer = ChangeoWriter
         schema = ChangeoSchema
         out_fields = getDbFields(db_file, add='CLONE', reader=reader)
+        out_args['out_type'] = 'tab'
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
         schema = AIRRSchema
         out_fields = getDbFields(db_file, add='clone', reader=reader)
+        out_args['out_type'] = 'tsv'
     else:
         sys.exit('Error:  Invalid format %s' % format)
 

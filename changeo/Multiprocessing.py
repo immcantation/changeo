@@ -224,7 +224,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
                                  out_label='%s-%s' % (label, x),
                                  out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'],
-                                 out_type='tsv')
+                                 out_type=out_args['out_type'])
         return handle, writer(handle, fields=fields)
 
     try:

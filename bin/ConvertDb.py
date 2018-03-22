@@ -179,7 +179,7 @@ def convertDbChangeo(db_file, out_args=default_out_args):
 
     # Open output writer
     pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+                                  out_name=out_args['out_name'], out_type='tab')
     pass_writer = ChangeoWriter(pass_handle, fields=fields)
 
     # Count records
