@@ -152,30 +152,37 @@ class ChangeoWriter:
         """
         self.writer.writeheader()
 
-    def writeDict(self, record):
+    def writeDict(self, records):
         """
         Writes a row from a Change-O dictionary
 
         Arguments:
-          record : Change-O dictionary of row data
+          records : Change-O dictionary of row data or an interable of such objects.
 
         Returns:
           None
         """
-        self.writer.writerow(record)
+        if isinstance(records, dict):
+            self.writer.writerow(records)
+        else:
+            self.writer.writerows(records)
 
-    def writeReceptor(self, record):
+    def writeReceptor(self, records):
         """
         Writes a row from a Receptor object
 
         Arguments:
-          record : a changeo.Receptor.Receptor object to write
+          records : a changeo.Receptor.Receptor object to write or an iterable of such objects.
 
         Returns:
           None
         """
-        row = ChangeoWriter._parseReceptor(record)
-        self.writer.writerow(row)
+        if isinstance(records, Receptor):
+            row = ChangeoWriter._parseReceptor(records)
+            self.writer.writerow(row)
+        else:
+            rows = (ChangeoWriter._parseReceptor(r) for r in records)
+            self.writer.writerows(rows)
 
 
 class AIRRReader:
@@ -328,23 +335,28 @@ class AIRRWriter:
         fields = [f.lower() for f in fields]
         self.writer.addFields('changeo', fields)
 
-    def writeReceptor(self, record):
+    def writeReceptor(self, records):
         """
         Writes a row from a Receptor object
 
         Arguments:
-          record : a changeo.Receptor object to write
+          records : a changeo.Receptor object to write or iterable of such objects.
 
         Returns:
           None
         """
-        row = AIRRWriter._parseReceptor(record)
         # TODO: define any additional fields before writing first row
         # if not self.writer.wroteMetadata:
         #     self.writer.addFields("changeo", row.keys())
         #print('\n===== RECORD START =====\n')
         #for k, v in row.items(): print(k, v)
-        self.writer.write(row)
+
+        if isinstance(records, Receptor):
+            row = AIRRWriter._parseReceptor(records)
+            self.writer.write(row)
+        else:
+            rows = (AIRRWriter._parseReceptor(r) for r in records)
+            for r in rows:  self.writer.write(r)
 
 
 class IMGTReader:

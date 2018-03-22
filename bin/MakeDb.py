@@ -100,10 +100,8 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
     _pass = _gentle if partial else _strict
 
     # Initialize handles, writers and counters
-    pass_handle = None
-    pass_writer = None
-    fail_handle = None
-    fail_writer = None
+    pass_handle, pass_writer = None, None
+    fail_handle, fail_writer = None, None
     start_time = time()
     pass_count = fail_count = 0
 
@@ -137,26 +135,30 @@ def writeDb(db, fields, in_file, total_count, id_dict=None, partial=False, asis_
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
-            # Open pass file
-            if pass_writer is None:
+            pass_count += 1
+            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
                 pass_handle = getOutputHandle(in_file, out_label='db-pass', out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'], out_type='tsv')
                 pass_writer = format_writer(pass_handle, fields)
+                pass_writer.writeReceptor(record)
 
-            # Write row to pass file
-            pass_count += 1
-            pass_writer.writeReceptor(record)
         else:
-            # Open failed file
-            if out_args['failed'] and fail_writer is None:
-                fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
-                                              out_name=out_args['out_name'], out_type='tsv')
-                fail_writer = format_writer(fail_handle, fields)
-
-            # Write row to fail file if specified
             fail_count += 1
-            if fail_writer is not None:
-                fail_writer.writeReceptor(record)
+            # Write row to fail file if specified
+            if out_args['failed']:
+                try:
+                    fail_writer.writeReceptor(record)
+                except AttributeError:
+                    # Open fail file and writer
+
+                    fail_handle = getOutputHandle(in_file, out_label='db-fail', out_dir=out_args['out_dir'],
+                                                  out_name=out_args['out_name'], out_type='tsv')
+                    fail_writer = format_writer(fail_handle, fields)
+                    fail_writer.writeReceptor(record)
 
         # Print progress
         printProgress(i, total_count, 0.05, start_time)

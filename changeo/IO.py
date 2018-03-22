@@ -112,17 +112,20 @@ class TSVWriter:
         """
         self.writer.writeheader()
 
-    def writeDict(self, record):
+    def writeDict(self, records):
         """
         Writes a row from a dictionary
 
         Arguments:
-          record : dictionary of row data
+          records : dictionary of row data or an iterable of such objects.
 
         Returns:
           None
         """
-        self.writer.writerow(record)
+        if isinstance(records, dict):
+            self.writer.writerow(records)
+        else:
+            self.writer.writerows(records)
 
 
 def readGermlines(repo, asis=False):

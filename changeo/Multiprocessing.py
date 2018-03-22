@@ -266,30 +266,26 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
             if result.log is not None:
                 printLog(result.log, handle=log_handle)
 
-            # Write passing results
+            # Write output
             if result:
-                # Open pass file and define writer object
-                if pass_writer is None:
-                    pass_handle, pass_writer = _open('pass')
-
-                # Write to pass file
+                # Write passing results
                 pass_count += result.data_count
-                if isinstance(result.results, Receptor):
+                try:
                     pass_writer.writeReceptor(result.results)
-                else:
-                    for rec in result.results:  pass_writer.writeReceptor(rec)
+                except AttributeError:
+                    # Open pass file and define writer object
+                    pass_handle, pass_writer = _open('pass')
+                    pass_writer.writeReceptor(result.results)
             else:
-                # Open fail file and define writer object
-                if out_args['failed'] and fail_handle is None:
-                    fail_handle, fail_writer = _open('fail')
-
-                # Write to fail file
+                # Write failing data
                 fail_count += result.data_count
-                if fail_writer is not None:
-                    if isinstance(result.data, Receptor):
-                        pass_writer.writeReceptor(result.data)
-                    else:
-                        for rec in result.data:  fail_writer.writeReceptor(rec)
+                if out_args['failed']:
+                    try:
+                        fail_writer.writeReceptor(result.data)
+                    except AttributeError:
+                        # Open fail file and define writer object
+                        fail_handle, fail_writer = _open('fail')
+                        fail_writer.writeReceptor(result.data)
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())

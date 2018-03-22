@@ -399,41 +399,45 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
             
             # Write passed and failed records
             if result:
-                # Open pass file and define writer object
-                if pass_writer is None:
-                    pass_handle, pass_writer = _open('pass')
-
                 # Writing passing sequences
                 for clone in result.results.values():
                     clone_count += 1
                     for i, rec in enumerate(clone, start=1):
-                        rec.annotations['clone'] = clone_count
-                        pass_writer.writeReceptor(rec)
                         pass_count += 1
+                        rec.annotations['clone'] = clone_count
                         result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
+                        try:
+                            pass_writer.writeReceptor(rec)
+                        except AttributeError:
+                            # Open pass file and define writer object
+                            pass_handle, pass_writer = _open('pass')
+                            pass_writer.writeReceptor(rec)
 
                 # Write failed sequences from passing sets
                 if result.data_fail:
-                    # Open fail file and define writer object
-                    if out_args['failed'] and fail_handle is None:
-                        fail_handle, fail_writer = _open('fail')
-
                     # Write failed sequences
                     for i, rec in enumerate(result.data_fail, start=1):
                         fail_count += 1
-                        if fail_writer is not None:
-                            fail_writer.writeReceptor(rec)
                         result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
+                        if out_args['failed']:
+                            try:
+                                fail_writer.writeReceptor(rec)
+                            except AttributeError:
+                                # Open fail file and define writer object
+                                fail_handle, fail_writer = _open('fail')
+                                fail_writer.writeReceptor(rec)
             else:
-                # Open fail file and define writer object
-                if out_args['failed'] and fail_handle is None:
-                    fail_handle, fail_writer = _open('fail')
-
                 # Write failing records
                 for i, rec in enumerate(result.data, start=1):
-                    if fail_writer is not None: fail_writer.writeReceptor(rec)
                     fail_count += 1
                     result.log['CLONE0-%i' % (i)] = str(rec.junction)
+                    if out_args['failed']:
+                        try:
+                            fail_writer.writeReceptor(rec)
+                        except AttributeError:
+                            # Open fail file and define writer object
+                            fail_handle, fail_writer = _open('fail')
+                            fail_writer.writeReceptor(rec)
                     
             # Write log
             printLog(result.log, handle=log_handle)

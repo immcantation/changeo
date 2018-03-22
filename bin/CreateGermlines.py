@@ -532,14 +532,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
 
         # Write row to pass or fail file
         if germlines is not None:
-            # Create output file handle and writer
-            if pass_writer is None:
-                pass_handle = getOutputHandle(db_file,
-                                              out_label='germ-pass',
-                                              out_dir=out_args['out_dir'],
-                                              out_name=out_args['out_name'],
-                                              out_type='tsv')
-                pass_writer = writer(pass_handle, fields=out_fields)
+            pass_count += len(records)
 
             # Add germlines to Receptor record
             annotations = {}
@@ -553,22 +546,34 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                 annotations[germline_fields['j']] = genes['j']
 
             # Write records
-            pass_count += len(records)
-            for r in records:
-                r.setDict(annotations)
-                pass_writer.writeReceptor(r)
-        else:
-            if out_args['failed'] and fail_writer is None:
-                fail_handle = getOutputHandle(db_file,
-                                              out_label='germ-fail',
+            try:
+                for r in records:
+                    r.setDict(annotations)
+                    pass_writer.writeReceptor(r)
+            except AttributeError:
+                # Create output file handle and writer
+                pass_handle = getOutputHandle(db_file,
+                                              out_label='germ-pass',
                                               out_dir=out_args['out_dir'],
                                               out_name=out_args['out_name'],
                                               out_type='tsv')
-                fail_writer = writer(fail_handle, fields=out_fields)
-
+                pass_writer = writer(pass_handle, fields=out_fields)
+                for r in records:
+                    r.setDict(annotations)
+                    pass_writer.writeReceptor(r)
+        else:
             fail_count += len(records)
-            if fail_writer is not None:
-                for r in records: fail_writer.writeReceptor(r)
+            if out_args['failed']:
+                try:
+                    fail_writer.writeReceptor(records)
+                except AttributeError:
+                    fail_handle = getOutputHandle(db_file,
+                                                  out_label='germ-fail',
+                                                  out_dir=out_args['out_dir'],
+                                                  out_name=out_args['out_name'],
+                                                  out_type='tsv')
+                    fail_writer = writer(fail_handle, fields=out_fields)
+                    fail_writer.writeReceptor(records)
 
         # Write log
         printLog(rec_log, handle=log_handle)
