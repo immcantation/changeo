@@ -620,15 +620,18 @@ def getArgParser():
     parser.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='Field containing the germline J segment call. Defaults to J_CALL.')
     parser.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
-                        help='Additional fields to use for grouping clones (non-VDJ)')
+                        help='Additional fields to use for grouping clones aside from V, J and junction length.')
     parser.add_argument('--mode', action='store', dest='mode',
                         choices=('allele', 'gene'), default=default_index_mode,
                         help='''Specifies whether to use the V(D)J allele or gene for
                              initial grouping.''')
     parser.add_argument('--act', action='store', dest='action',
                         choices=('first', 'set'), default=default_index_action,
-                        help='''Specifies how to handle multiple V(D)J assignments
-                             for initial grouping.''')
+                        help='''Specifies how to handle multiple V(D)J assignments for initial grouping. 
+                             The "first" action will use only the first gene listed.
+                             The "set" action will use all gene assignments and construct a larger gene
+                             grouping composed of any sequences sharing an assignment or linked to another
+                             sequence by a common assignment (similar to single-linkage).''')
     parser.add_argument('--model', action='store', dest='model',
                         choices=choices_distance_model,
                         default=default_distance_model,
