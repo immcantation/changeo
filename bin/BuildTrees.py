@@ -16,7 +16,7 @@ import changeo.Parsers
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
-def outputIgPhyML(clones, sequences, out_dir):
+def outputIgPhyML(clones, sequences, out_dir, collapse):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -78,21 +78,32 @@ def outputIgPhyML(clones, sequences, out_dir):
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
+
+    useqs = {}
+    conseqs = []
+    for j in range(0, nseqs):
+        conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
+       # print(conseq)
+        useqs[conseq] = j
+        conseqs.append(conseq)
+
     # Output fasta file of masked, concatenated sequences
-    outfile = out_dir+"/"+clones[0].clone+".fa"
+    outfile = out_dir + "/" + clones[0].clone + ".fa"
     clonef = open(outfile, 'w')
-    for j in range(0,nseqs):
-        sid = clones[j].sequence_id.translate(transtable)
-        print(">%s" % sid,file=clonef)
-        for i in range(0,len(newgerm)):
-            print("%s" % newseqs[j][i],end='',file=clonef)
-        print("\n",end='',file=clonef)
-    if nseqs == 1 and duplicate:
-        sid = clones[j].sequence_id.translate(transtable)
-        print(">%s" % sid, file=clonef)
-        for i in range(0, len(newgerm)):
-            print("%s" % newseqs[j][i], end='', file=clonef)
-        print("\n", end='', file=clonef)
+    if collapse:
+        for seq, num in useqs.items():
+            sid = clones[num].sequence_id.translate(transtable)
+            print(">%s\n%s" % (sid, seq), file=clonef)
+            if len(useqs) == 1 and duplicate:
+                print(">%s_1\n%s" % (sid, seq), file=clonef)
+    else:
+        for j in range(0, nseqs):
+            sid = clones[j].sequence_id.translate(transtable)
+            print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
+        if nseqs == 1 and duplicate:
+            sid = clones[j].sequence_id.translate(transtable)
+            print(">%s_1\n%s" % (sid, conseqs[j]), file=clonef)
+
     print(">%s_GERM" % clones[0].clone, file=clonef)
     for i in range(0, len(newgerm)):
         print("%s" % newgerm[i], end='', file=clonef)
@@ -109,9 +120,14 @@ def outputIgPhyML(clones, sequences, out_dir):
     print("%s" % (clones[0].j_call.split("*")[0]),file=partf)
     print(",".join(map(str,imgt)), file=partf)
 
+    if collapse:
+        return len(useqs)
+    else:
+        return nseqs
 
 
-def buildTrees(db_file, out_args=default_out_args,format=default_format):
+
+def buildTrees(db_file, out_args=default_out_args,format=default_format,collapse=False):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -162,8 +178,7 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format):
 
     clonesizes={}
     for k in clones.keys():
-        outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir)
-        clonesizes[str(k)] = len(cloneseqs[str(k)])
+        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir, collapse)
 
     repfile1 = out_dir + "/repFile.tsv"
     repfile2 = out_dir + "/repFile.N.tsv"
@@ -171,7 +186,7 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format):
     rout2 = open(repfile2, 'w')
     print(len(clonesizes),file=rout1)
     print(len(clonesizes),file=rout2)
-    for key in sorted(clonesizes, key=clonesizes.get,reverse=True):
+    for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         print(key + "\t"+str(clonesizes[key]))
         outfile = out_dir + "/" + key + ".fa"
         partfile = out_dir + "/" + key + ".part.txt"
@@ -227,7 +242,8 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
-
+    parser.add_argument('--collapse', action='store_true', dest='collapse',
+                        help='''Collapse identical sequences''')
     # parser.add_argument('--version', action='version',
     #                    version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
