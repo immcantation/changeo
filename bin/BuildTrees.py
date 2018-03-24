@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from textwrap import dedent
+from collections import OrderedDict
 
 import sys
 from time import time
@@ -16,7 +17,7 @@ import changeo.Parsers
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
-def outputIgPhyML(clones, sequences, out_dir, collapse):
+def outputIgPhyML(clones, sequences, out_dir, collapse, failed):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -71,10 +72,8 @@ def outputIgPhyML(clones, sequences, out_dir, collapse):
 
     if len(lcodon) == 2:
         newgerm[-1]=newgerm[-1]+"N"
-        # print(newgerm[-1])
     elif len(lcodon) == 1:
         newgerm[-1] = newgerm[-1] + "NN"
-        # print(newgerm[-1])
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
@@ -83,8 +82,16 @@ def outputIgPhyML(clones, sequences, out_dir, collapse):
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
-       # print(conseq)
-        useqs[conseq] = j
+        if conseq in useqs:
+            log = OrderedDict()
+            log['ID'] = clones[j].sequence_id
+            log['CLONE'] = clones[j].clone
+            log['SEQ_IMGT'] = conseq
+            log['FAIL'] = "Duplication of " + clones[useqs[conseq]].sequence_id
+            if collapse:
+                printLog(log, handle=failed)
+        else:
+            useqs[conseq] = j
         conseqs.append(conseq)
 
     # Output fasta file of masked, concatenated sequences
@@ -172,13 +179,13 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format,collapse
                     clones[r.clone]=[r]
                     cloneseqs[r.clone] = [mask_seq]
             else:
-                printLog(mout[1],handle=failed)
+                printLog(mout[1], handle=failed)
         else:
             print("Skipping %s", r.sequence_id)
 
     clonesizes={}
     for k in clones.keys():
-        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir, collapse)
+        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir, collapse,failed)
 
     repfile1 = out_dir + "/repFile.tsv"
     repfile2 = out_dir + "/repFile.N.tsv"
