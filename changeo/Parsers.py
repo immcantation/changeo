@@ -253,7 +253,7 @@ class AIRRReader:
 
     def __iter__(self):
         """
-        Iterator initializer.
+        Iterator initializer
 
         Returns:
           changeo.Parsers.AIRRReader
@@ -262,7 +262,7 @@ class AIRRReader:
 
     def __next__(self):
         """
-        Next method.
+        Next method
 
         Returns:
           changeo.Receptor.Receptor : Parsed Change-O data

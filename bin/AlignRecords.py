@@ -199,7 +199,7 @@ def alignWithin(data, field_map, muscle_exec=default_muscle_exec):
 
 
 def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, align_args={},
-                 format='changeo', out_args=default_out_args, nproc=None, queue_size=None):
+                 format='changeo', out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
     """
     Performs a multiple alignment on sets of sequences
 
@@ -210,6 +210,8 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
       align_func : function to use to multiple align sequence groups.
       group_args : dictionary of arguments to pass to group_func.
       align_args : dictionary of arguments to pass to align_func.
+      format : output format. One of 'changeo' or 'airr'.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
       nproc : the number of processQueue processes.
               if None defaults to the number of CPUs.
@@ -217,7 +219,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
                    if None defaults to 2*nproc.
                       
     Returns: 
-      tuple : a tuple of (align-pass, align-fail) filenames.
+      dict : names of the 'pass' and 'fail' output files.
     """
     # Define subcommand label dictionary
     cmd_dict = {alignAcross: 'across', alignWithin: 'within', alignBlocks: 'block'}
@@ -271,6 +273,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
                     'label': 'align',
                     'fields': out_fields,
                     'writer': writer,
+                    'out_file': out_file,
                     'out_args': out_args}
     
     # Call process manager
@@ -281,8 +284,9 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
     # Print log
     result['log']['END'] = 'AlignRecords'
     printLog(result['log'])
-        
-    return result['out_files']
+    output = {k: v for k, v in result.items() if k in ('pass', 'fail')}
+
+    return output
 
 
 def getArgParser():
@@ -316,38 +320,41 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Gapping method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(format=True, multiproc=True)
+    parser_parent = getCommonArgParser(multiproc=True)
 
     # Argument parser for column-wise alignment across records
     parser_across = subparsers.add_parser('across', parents=[parser_parent],
-                                           formatter_class=CommonHelpFormatter,
+                                           formatter_class=CommonHelpFormatter, add_help=False,
                                            help='''Multiple aligns sequence columns within groups 
                                                  and across rows using MUSCLE.''')
-    parser_across.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
+    group_across = parser_across.add_argument_group('alignment arguments')
+    group_across.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each group.')
-    parser_across.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
+    group_across.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                                help='Additional (not allele call) fields to use for grouping.')
-    parser_across.add_argument('--calls', nargs='+', action='store', dest='calls',
+    group_across.add_argument('--calls', nargs='+', action='store', dest='calls',
                                choices=('v', 'd', 'j'), default=['v', 'j'],
                                help='Segment calls (allele assignments) to use for grouping.')
-    parser_across.add_argument('--mode', action='store', dest='mode',
+    group_across.add_argument('--mode', action='store', dest='mode',
                               choices=('allele', 'gene'), default='gene',
                               help='''Specifies whether to use the V(D)J allele or gene when
                                    an allele call field (--calls) is specified.''')
-    parser_across.add_argument('--act', action='store', dest='action', default='first',
+    group_across.add_argument('--act', action='store', dest='action', default='first',
                                choices=('first', ),
                                help='''Specifies how to handle multiple values within default
                                      allele call fields. Currently, only "first" is supported.''')
-    parser_across.add_argument('--exec', action='store', dest='muscle_exec',
+    group_across.add_argument('--exec', action='store', dest='muscle_exec',
                                default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
     parser_across.set_defaults(group_func=groupRecords, align_func=alignAcross)
@@ -355,36 +362,38 @@ def getArgParser():
 
     # Argument parser for alignment of fields within records
     parser_within = subparsers.add_parser('within', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Multiple aligns sequence fields within rows using MUSCLE')
-    parser_within.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
+    group_within = parser_within.add_argument_group('alignment arguments')
+    group_within.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each record.')
-    parser_within.add_argument('--exec', action='store', dest='muscle_exec',
+    group_within.add_argument('--exec', action='store', dest='muscle_exec',
                               default=default_muscle_exec,
                               help='The location of the MUSCLE executable')
     parser_within.set_defaults(group_func=None, align_func=alignWithin)
 
     # Argument parser for column-wise alignment across records
     parser_block = subparsers.add_parser('block', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='''Multiple aligns sequence groups across both 
                                              columns and rows using MUSCLE.''')
-    parser_block.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
+    group_block = parser_block.add_argument_group('alignment arguments')
+    group_block.add_argument('--sf', nargs='+', action='store', dest='seq_fields', required=True,
                                help='The sequence fields to multiple align within each group.')
-    parser_block.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
+    group_block.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                                help='Additional (not allele call) fields to use for grouping.')
-    parser_block.add_argument('--calls', nargs='+', action='store', dest='calls',
+    group_block.add_argument('--calls', nargs='+', action='store', dest='calls',
                                choices=('v', 'd', 'j'), default=['v', 'j'],
                                help='Segment calls (allele assignments) to use for grouping.')
-    parser_block.add_argument('--mode', action='store', dest='mode',
+    group_block.add_argument('--mode', action='store', dest='mode',
                               choices=('allele', 'gene'), default='gene',
                               help='''Specifies whether to use the V(D)J allele or gene when
                                    an allele call field (--calls) is specified.''')
-    parser_block.add_argument('--act', action='store', dest='action', default='first',
+    group_block.add_argument('--act', action='store', dest='action', default='first',
                                choices=('first', ),
                                help='''Specifies how to handle multiple values within default
                                      allele call fields. Currently, only "first" is supported.''')
-    parser_block.add_argument('--exec', action='store', dest='muscle_exec',
+    group_block.add_argument('--exec', action='store', dest='muscle_exec',
                                default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
     parser_block.set_defaults(group_func=groupRecords, align_func=alignBlocks)
@@ -426,10 +435,15 @@ if __name__ == '__main__':
         del args_dict['mode']
         del args_dict['action']
 
-    # Call main function for each input file
+    # Clean arguments dictionary
     del args_dict['command']
     del args_dict['db_files']
-    for f in args.__dict__['db_files']:
+    if 'out_files' in args_dict: del args_dict['out_files']
+
+    # Call main function for each input file
+    for i, f in enumerate(args.__dict__['db_files']):
         args_dict['db_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         alignRecords(**args_dict)
 

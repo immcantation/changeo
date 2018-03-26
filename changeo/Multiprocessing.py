@@ -198,7 +198,7 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
 
 
 def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
-                   writer=ChangeoWriter, out_args=default_out_args):
+                   writer=ChangeoWriter, out_file=None, out_args=default_out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
@@ -211,20 +211,23 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
       label : task label used to tag the output files.
       fields : list of output fields.
       writer : writer class.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       None : Adds a dictionary with key value pairs to collect_queue containing
-            'log' defining a log object,
-            'out_files' defining the output file names
+            'log' defining a log object along with the 'pass' and 'fail' output file names.
     """
     # Wrapper for opening handles and writers
-    def _open(x, fields=fields, writer=writer, label=label):
-        handle = getOutputHandle(db_file,
-                                 out_label='%s-%s' % (label, x),
-                                 out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'],
-                                 out_type=out_args['out_type'])
+    def _open(x, fields=fields, writer=writer, label=label, out_file=out_file):
+        if out_file is not None and x == 'pass':
+            handle = open(out_file, 'w')
+        else:
+            handle = getOutputHandle(db_file,
+                                     out_label='%s-%s' % (label, x),
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type=out_args['out_type'])
         return handle, writer(handle, fields=fields)
 
     try:
@@ -294,20 +297,25 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
         # Print total counts
         printProgress(rec_count, result_count, 0.05, start_time)
 
-        # Update return values
+        # Update log
         log = OrderedDict()
         log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
         log['RECORDS'] = rec_count
         log['GROUPS'] = set_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
-        collect_queue.put(collect_dict)
 
-        # Close file handles
-        if pass_handle is not None:  pass_handle.close()
-        if fail_handle is not None:  fail_handle.close()
-        if log_handle is not None:  log_handle.close()
+        # Close file handles and generate return data
+        collect_dict = {'log': log, 'pass': None, 'fail': None}
+        if pass_handle is not None:
+            collect_dict['pass'] = pass_handle.name
+            pass_handle.close()
+        if fail_handle is not None:
+            collect_dict['fail'] = fail_handle.name
+            fail_handle.close()
+        if log_handle is not None:
+            log_handle.close()
+        collect_queue.put(collect_dict)
     except:
         alive.value = False
         raise

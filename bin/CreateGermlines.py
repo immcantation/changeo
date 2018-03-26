@@ -401,7 +401,7 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
 def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
                     d_field=default_d_field, j_field=default_j_field,
                     cloned=False, clone_field=default_clone_field, germ_types=default_germ_types,
-                    format=default_format, out_args=default_out_args):
+                    format=default_format, out_file=None, out_args=default_out_args):
     """
     Write germline sequences to tab-delimited database file
 
@@ -416,10 +416,11 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
       clone_field : field containing clone identifiers; ignored if cloned=False.
       germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
       format : input and output format
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : arguments for output preferences
 
     Returns:
-      None
+      dict : names of the 'pass', 'fail' and 'log' output files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -554,11 +555,14 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                     pass_writer.writeReceptor(r)
             except AttributeError:
                 # Create output file handle and writer
-                pass_handle = getOutputHandle(db_file,
-                                              out_label='germ-pass',
-                                              out_dir=out_args['out_dir'],
-                                              out_name=out_args['out_name'],
-                                              out_type=out_args['out_type'])
+                if out_file is not None:
+                    handle = open(out_file, 'w')
+                else:
+                    pass_handle = getOutputHandle(db_file,
+                                                  out_label='germ-pass',
+                                                  out_dir=out_args['out_dir'],
+                                                  out_name=out_args['out_name'],
+                                                  out_type=out_args['out_type'])
                 pass_writer = writer(pass_handle, fields=out_fields)
                 for r in records:
                     r.setDict(annotations)
@@ -592,9 +596,17 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
 
     # Close file handles
     db_handle.close()
-    if pass_handle is not None: pass_handle.close()
-    if fail_handle is not None: fail_handle.close()
-    if log_handle is not None:  log_handle.close()
+    output = {'pass': None, 'fail': None}
+    if pass_handle is not None:
+        output['pass'] = pass_handle.name
+        pass_handle.close()
+    if fail_handle is not None:
+        output['fail'] = fail_handle.name
+        fail_handle.close()
+    if log_handle is not None:
+        log_handle.close()
+
+    return output
 
 
 def getArgParser():
@@ -635,36 +647,32 @@ def getArgParser():
                  GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
                  GERMLINE_REGIONS
               ''')
-
-    # Parent parser
-    parser_parent = getCommonArgParser(format=True)
-
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[parser_parent],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            parents=[getCommonArgParser()],
+                            formatter_class=CommonHelpFormatter, add_help=False)
 
-    parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+    # Germlines arguments
+    group = parser.add_argument_group('germline construction arguments')
+    group.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                         help='''List of folders and/or fasta files (with .fasta, .fna or .fa
                          extension) with germline sequences.''')
-    parser.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
+    group.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly', 'regions'),
                         help='''Specify type(s) of germlines to include full germline,
                              germline with D segment masked, or germline for V segment only.''')
-    parser.add_argument('--cloned', action='store_true', dest='cloned',
+    group.add_argument('--cloned', action='store_true', dest='cloned',
                         help='''Specify to create only one germline per clone. Note, if allele 
                              calls are ambiguous within a clonal group, this will place the germline call 
                              used for the entire clone within the
                              GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
-    parser.add_argument('--sf', action='store', dest='seq_field', default=None,
+    group.add_argument('--sf', action='store', dest='seq_field', default=None,
                         help='Field containing the aligned sequence. Defaults to SEQUENCE_IMGT.')
-    parser.add_argument('--vf', action='store', dest='v_field', default=None,
+    group.add_argument('--vf', action='store', dest='v_field', default=None,
                         help='Field containing the germline V segment call. Defaults to V_CALL.')
-    parser.add_argument('--df', action='store', dest='d_field', default=None,
+    group.add_argument('--df', action='store', dest='d_field', default=None,
                         help='Field containing the germline D segment call. Defaults to D_CALL.')
-    parser.add_argument('--jf', action='store', dest='j_field', default=None,
+    group.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='Field containing the germline J segment call. Defaults to J_CALL.')
 
     return parser
@@ -700,7 +708,13 @@ if __name__ == '__main__':
             if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
             else: args_dict[f] = args_dict[f].lower()
 
-    # Call main for each input file
-    for f in args.__dict__['db_files']:
+    # Clean arguments dictionary
+    del args_dict['db_files']
+    if 'out_files' in args_dict: del args_dict['out_files']
+
+    # Call main function for each input file
+    for i, f in enumerate(args.__dict__['db_files']):
         args_dict['db_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         createGermlines(**args_dict)

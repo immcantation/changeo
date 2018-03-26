@@ -336,8 +336,8 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
     return result
 
 
-def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=ChangeoWriter,
-                 out_args=default_out_args):
+def collectQueue(alive, result_queue, collect_queue, db_file, fields,
+                 writer=ChangeoWriter, out_file=None, out_args=default_out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
@@ -349,18 +349,23 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
       db_file : the input database file name
       fields : list of output field names
       writer : writer class.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs
     
     Returns:
-      None
+       None : Adds a dictionary with key value pairs to collect_queue containing
+            'log' defining a log object along with the 'pass' and 'fail' output file names.
     """
     # Wrapper for opening handles and writers
-    def _open(x, fields=fields, writer=writer):
-        handle = getOutputHandle(db_file,
-                                 out_label='clone-%s' % x,
-                                 out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'],
-                                 out_type=out_args['out_type'])
+    def _open(x, fields=fields, writer=writer, out_file=out_file):
+        if out_file is not None and x == 'pass':
+            handle = open(out_file, 'w')
+        else:
+            handle = getOutputHandle(db_file,
+                                     out_label='clone-%s' % x,
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type=out_args['out_type'])
         return handle, writer(handle, fields=fields)
 
     # Open log file
@@ -457,15 +462,19 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
         log['RECORDS'] = rec_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
-        collect_queue.put(collect_dict)
 
-        # Close file handles
-        if pass_handle is not None:  pass_handle.close()
-        if fail_handle is not None:  fail_handle.close()
-        if log_handle is not None:  log_handle.close()
+        # Close file handles and generate return data
+        collect_dict = {'log': log, 'pass': None, 'fail': None}
+        if pass_handle is not None:
+            collect_dict['pass'] = pass_handle.name
+            pass_handle.close()
+        if fail_handle is not None:
+            collect_dict['fail'] = fail_handle.name
+            fail_handle.close()
+        if log_handle is not None:
+            log_handle.close()
+        collect_queue.put(collect_dict)
     except:
-        #sys.stderr.write('Exception in collector result processing step\n')
         alive.value = False
         raise
 
@@ -473,11 +482,11 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields, writer=Cha
 
 
 def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
-                 j_field=default_j_field, group_fields=None,
-                 group_func=groupByGene, group_args={},
+                 j_field=default_j_field, max_missing=default_max_missing,
+                 group_fields=None, group_func=groupByGene, group_args={},
                  clone_func=distanceClones, clone_args={},
-                 max_missing=default_max_missing, format=default_format,
-                 out_args=default_out_args, nproc=None, queue_size=None):
+                 format=default_format, out_file=None, out_args=default_out_args,
+                 nproc=None, queue_size=None):
     """
     Define clonally related sequences
     
@@ -486,14 +495,15 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
       seq_field : sequence field used to determine clones.
       v_field : field containing the V call.
       j_field : field containing the J call.
+      max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
       group_fields : additional annotation fields to use to group preclones;
                      if None use only V and J.
       group_func : the function to use for assigning preclones.
       group_args : a dictionary of arguments to pass to group_func.
       clone_func : the function to use for determining clones within preclonal groups.
       clone_args : a dictionary of arguments to pass to clone_func.
-      max_missing : maximum number of non-ACGT characters to allow in the junction sequence.
       format : input and output format.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
       nproc : the number of processQueue processes;
               if None defaults to the number of CPUs.
@@ -510,8 +520,8 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     log['SEQ_FIELD'] = seq_field
     log['V_FIELD'] = v_field
     log['J_FIELD'] = j_field
-    log['GROUP_FIELDS'] = ','.join(group_fields) if group_fields is not None else None
     log['MAX_MISSING'] = max_missing
+    log['GROUP_FIELDS'] = ','.join(group_fields) if group_fields is not None else None
     for k in sorted(group_args):
         log[k.upper()] = group_args[k]
     for k in sorted(clone_args):
@@ -565,6 +575,7 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     collect_args = {'db_file': db_file,
                     'fields': out_fields,
                     'writer': writer,
+                    'out_file': out_file,
                     'out_args': out_args}
 
     # Call process manager
@@ -575,8 +586,9 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     # Print log
     result['log']['END'] = 'DefineClones'
     printLog(result['log'])
-    
-    return result['out_files']
+    output = {k: v for k, v in result.items() if k in ('pass', 'fail')}
+
+    return output
 
 
 def getArgParser():
@@ -604,38 +616,33 @@ def getArgParser():
              output fields:
                  CLONE
               ''')
-
-    # Parent parser
-    parser_parent = getCommonArgParser(format=True, multiproc=True)
-
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[parser_parent],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            parents=[getCommonArgParser(multiproc=True)],
+                            formatter_class=CommonHelpFormatter, add_help=False)
 
     # Distance cloning method
-    parser.add_argument('--sf', action='store', dest='seq_field', default=None,
+    group = parser.add_argument_group('cloning arguments')
+    group.add_argument('--sf', action='store', dest='seq_field', default=None,
                         help='Field to be used to calculate distance between records. Defaults to JUNCTION.')
-    parser.add_argument('--vf', action='store', dest='v_field', default=None,
+    group.add_argument('--vf', action='store', dest='v_field', default=None,
                         help='Field containing the germline V segment call. Defaults to V_CALL.')
-    parser.add_argument('--jf', action='store', dest='j_field', default=None,
+    group.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='Field containing the germline J segment call. Defaults to J_CALL.')
-    parser.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
+    group.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                         help='Additional fields to use for grouping clones aside from V, J and junction length.')
-    parser.add_argument('--mode', action='store', dest='mode',
+    group.add_argument('--mode', action='store', dest='mode',
                         choices=('allele', 'gene'), default=default_index_mode,
                         help='''Specifies whether to use the V(D)J allele or gene for
                              initial grouping.''')
-    parser.add_argument('--act', action='store', dest='action',
+    group.add_argument('--act', action='store', dest='action',
                         choices=('first', 'set'), default=default_index_action,
                         help='''Specifies how to handle multiple V(D)J assignments for initial grouping. 
                              The "first" action will use only the first gene listed.
                              The "set" action will use all gene assignments and construct a larger gene
                              grouping composed of any sequences sharing an assignment or linked to another
                              sequence by a common assignment (similar to single-linkage).''')
-    parser.add_argument('--model', action='store', dest='model',
+    group.add_argument('--model', action='store', dest='model',
                         choices=choices_distance_model,
                         default=default_distance_model,
                         help='''Specifies which substitution model to use for calculating distance
@@ -648,22 +655,22 @@ def getArgParser():
                              deprecated models provided backwards compatibility with the "m1n" and
                              "hs1f" models in Change-O v0.3.3 and SHazaM v0.1.4. Both
                              5-mer models should be considered experimental.''')
-    parser.add_argument('--dist', action='store', dest='distance', type=float,
+    group.add_argument('--dist', action='store', dest='distance', type=float,
                         default=default_distance,
                         help='The distance threshold for clonal grouping')
-    parser.add_argument('--norm', action='store', dest='norm',
+    group.add_argument('--norm', action='store', dest='norm',
                         choices=('len', 'mut', 'none'), default=default_norm,
                         help='''Specifies how to normalize distances. One of none
                              (do not normalize), len (normalize by length),
                              or mut (normalize by number of mutations between sequences).''')
-    parser.add_argument('--sym', action='store', dest='sym',
+    group.add_argument('--sym', action='store', dest='sym',
                         choices=('avg', 'min'), default=default_sym,
                         help='''Specifies how to combine asymmetric distances. One of avg
                              (average of A->B and B->A) or min (minimum of A->B and B->A).''')
-    parser.add_argument('--link', action='store', dest='linkage',
+    group.add_argument('--link', action='store', dest='linkage',
                         choices=('single', 'average', 'complete'), default=default_linkage,
                         help='''Type of linkage to use for hierarchical clustering.''')
-    parser.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
+    group.add_argument('--maxmiss', action='store', dest='max_missing', type=int,
                         default=default_max_missing,
                         help='''The maximum number of non-ACGT characters (gaps or Ns) to 
                              permit in the junction sequence before excluding the record 
@@ -727,8 +734,13 @@ if __name__ == '__main__':
     del args_dict['sym']
     del args_dict['linkage']
 
-    # Call defineClones
+    # Clean arguments dictionary
     del args_dict['db_files']
-    for f in args.__dict__['db_files']:
+    if 'out_files' in args_dict: del args_dict['out_files']
+
+    # Call main function for each input file
+    for i, f in enumerate(args.__dict__['db_files']):
         args_dict['db_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         defineClones(**args_dict)

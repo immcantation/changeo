@@ -38,14 +38,14 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     Divides a tab-delimited database file into segments by description tags
 
     Arguments:
-    db_file = filename of the tab-delimited database file to split
-    field = the field name by which to split db_file
-    num_split = the numerical threshold by which to group sequences;
-                if None treat field as textual
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : filename of the tab-delimited database file to split
+      field : the field name by which to split db_file
+      num_split : the numerical threshold by which to group sequences;
+                  if None treat field as textual
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns:
-    a list of output file names
+      list : a list of output file names.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -148,18 +148,19 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     return [handles_dict[t].name for t in handles_dict]
 
 
-def addDbFile(db_file, fields, values, out_args=default_out_args):
+def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args):
     """
     Adds field and value pairs to a database file
 
     Arguments:
-    db_file = the database file name
-    fields = a list of fields to add
-    values = a list of values to assign to all rows of each field
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      fields : a list of fields to add.
+      values : a list of values to assign to all rows of each field.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -179,8 +180,11 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     out_fields.extend(fields)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -215,17 +219,18 @@ def addDbFile(db_file, fields, values, out_args=default_out_args):
     return pass_handle.name
 
 
-def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
+def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=default_out_args):
     """
     Adds an index column to a database file
 
     Arguments:
-    db_file = the database file name
-    field = the name of the index field to add
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      field : the name of the index field to add.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -244,8 +249,11 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
     out_fields.append(field)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -278,17 +286,18 @@ def indexDbFile(db_file, field=default_index_field, out_args=default_out_args):
     return pass_handle.name
 
 
-def dropDbFile(db_file, fields, out_args=default_out_args):
+def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     """
     Deletes entire fields from a database file
 
     Arguments:
-    db_file = the database file name
-    fields = a list of fields to drop
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      fields : a list of fields to drop.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns:
-    the output file name
+     str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -306,8 +315,11 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
     out_fields = [f for f in db_iter.fields if f not in fields]
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -338,20 +350,21 @@ def dropDbFile(db_file, fields, out_args=default_out_args):
 
 
 def deleteDbFile(db_file, fields, values, logic='any', regex=False,
-                 out_args=default_out_args):
+                 out_file=None, out_args=default_out_args):
     """
     Deletes records from a database file
 
     Arguments: 
-    db_file = the database file name
-    fields = a list of fields to check for deletion criteria
-    values = a list of values defining deletion targets
-    logic = one of 'any' or 'all' defining whether one or all fields must have a match.
-    regex = if False do exact full string matches; if True allow partial regex matches.
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      fields : a list of fields to check for deletion criteria.
+      values : a list of values defining deletion targets.
+      logic : one of 'any' or 'all' defining whether one or all fields must have a match.
+      regex : if False do exact full string matches; if True allow partial regex matches.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-    the output file name
+      str : output file name.
     """
     # Define string match function
     if regex:
@@ -380,8 +393,11 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     out_args['out_type'] = getFileExt(db_file)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -421,18 +437,19 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     return pass_handle.name
 
 
-def renameDbFile(db_file, fields, names, out_args=default_out_args):
+def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_args):
     """
     Renames fields in a database file
 
     Arguments:
-    db_file = the database file name
-    fields = a list of fields to rename
-    values = a list of new names for fields
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      fields : a list of fields to rename.
+      values : a list of new names for fields.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -454,8 +471,11 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
         out_fields[i] = n
 
     # Open writer
-    pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -491,20 +511,21 @@ def renameDbFile(db_file, fields, names, out_args=default_out_args):
 
 
 def selectDbFile(db_file, fields, values, logic='any', regex=False,
-                 out_args=default_out_args):
+                 out_file=None, out_args=default_out_args):
     """
     Selects records from a database file
 
     Arguments:
-    db_file = the database file name
-    fields = a list of fields to check for selection criteria
-    values = a list of values defining selection targets
-    logic = one of 'any' or 'all' defining whether one or all fields must have a match.
-    regex = if False do exact full string matches; if True allow partial regex matches.
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name
+      fields : a list of fields to check for selection criteria
+      values : a list of values defining selection targets
+      logic : one of 'any' or 'all' defining whether one or all fields must have a match.
+      regex : if False do exact full string matches; if True allow partial regex matches.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns:
-    the output file name
+      str : output file name.
     """
     # Define string match function
     if regex:
@@ -535,8 +556,11 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     out_args['out_type'] = getFileExt(db_file)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -578,22 +602,22 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
 
 
 def sortDbFile(db_file, field, numeric=False, descend=False,
-               out_args=default_out_args):
+               out_file=None, out_args=default_out_args):
     """
     Sorts records by values in an annotation field
 
     Arguments:
-    db_file = the database filename
-    field = the field name to sort by
-    numeric = if True sort field numerically;
-              if False sort field alphabetically
-    descend = if True sort in descending order;
-              if False sort in ascending order
-
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database filename
+      field : the field name to sort by
+      numeric : if True sort field numerically;
+                if False sort field alphabetically
+      descend : if True sort in descending order;
+                if False sort in ascending order
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns:
-    the output file name
+      str : output file name
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -610,8 +634,11 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     out_args['out_type'] = getFileExt(db_file)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Store all records in a dictionary
@@ -652,19 +679,20 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     return pass_handle.name
 
 
-def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
+def updateDbFile(db_file, field, values, updates, out_file=None, out_args=default_out_args):
     """
     Updates field and value pairs to a database file
 
     Arguments:
-    db_file = the database file name
-    field = the field to update
-    values = a list of values to specifying which rows to update
-    updates = a list of values to update each value with
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      field : the field to update.
+      values : a list of values to specifying which rows to update.
+      updates : a list of values to update each value with.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -682,8 +710,11 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     out_args['out_type'] = getFileExt(db_file)
 
     # Open output
-    pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -722,17 +753,18 @@ def updateDbFile(db_file, field, values, updates, out_args=default_out_args):
     return pass_handle.name
 
 
-def mergeDbFiles(db_files, drop=False, out_args=default_out_args):
+def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args):
     """
     Updates field and value pairs to a database file
 
     Arguments:
-    db_files = list of database file names
-    drop = if True drop columns not present in all files
-    out_args = common output argument dictionary from parseCommonArgs
+      db_files : list of database file names.
+      drop : if True drop columns not present in all files.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ParseDb'
@@ -756,9 +788,12 @@ def mergeDbFiles(db_files, drop=False, out_args=default_out_args):
     out_fields = [f for f in field_order if f in field_set]
 
     # Open output file
-    out_args['out_type'] = getFileExt(db_files[0])
-    pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        out_args['out_type'] = getFileExt(db_files[0])
+        pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Iterate over records
@@ -824,147 +859,163 @@ def getArgParser():
     
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Database operation')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
-    # Define parent parser
-    parser_parent = getCommonArgParser(failed=False, log=False)
+    # Define parent parsers
+    default_parent = getCommonArgParser(failed=False, log=False, format=False)
+    multi_parent = getCommonArgParser(db_out=False, failed=False, log=False, format=False)
 
     # Subparser to add records
-    parser_add = subparsers.add_parser('add', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
+    parser_add = subparsers.add_parser('add', parents=[default_parent],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Adds field and value pairs.',
                                        description='Adds field and value pairs.')
-    parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+    group_add = parser_add.add_argument_group('parsing arguments')
+    group_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to add.')
-    parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+    group_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
                                help='The value to assign to all rows for each field.')
     parser_add.set_defaults(func=addDbFile)
 
     # Subparser to delete records
-    parser_delete = subparsers.add_parser('delete', parents=[parser_parent], 
-                                          formatter_class=CommonHelpFormatter,
+    parser_delete = subparsers.add_parser('delete', parents=[default_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Deletes specific records.',
                                           description='Deletes specific records.')
-    parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+    group_delete = parser_delete.add_argument_group('parsing arguments')
+    group_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for deletion criteria.')
-    parser_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
+    group_delete.add_argument('-u', nargs='+', action='store', dest='values', default=['', 'NA'],
                                help='''The values defining which records to delete. A value
                                     may appear in any of the fields specified with -f.''')
-    parser_delete.add_argument('--logic', action='store', dest='logic',
+    group_delete.add_argument('--logic', action='store', dest='logic',
                                choices=('any', 'all'), default='any',
                                help='''Defines whether a value may appear in any field (any)
                                     or whether it must appear in all fields (all).''')
-    parser_delete.add_argument('--regex', action='store_true', dest='regex',
+    group_delete.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
     parser_delete.set_defaults(func=deleteDbFile)
 
     # Subparser to drop fields
-    parser_drop = subparsers.add_parser('drop', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
+    parser_drop = subparsers.add_parser('drop', parents=[default_parent],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Deletes entire fields.',
                                         description='Deletes entire fields.')
-    parser_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+    group_drop = parser_drop.add_argument_group('parsing arguments')
+    group_drop.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to delete from the database.')
     parser_drop.set_defaults(func=dropDbFile)
 
     # Subparser to index fields
-    parser_index = subparsers.add_parser('index', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
+    parser_index = subparsers.add_parser('index', parents=[default_parent],
+                                         formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Adds a numeric index field.',
                                          description='Adds a numeric index field.')
-    parser_index.add_argument('-f', action='store', dest='field',
+    group_index = parser_index.add_argument_group('parsing arguments')
+    group_index.add_argument('-f', action='store', dest='field',
                               default=default_index_field,
                               help='The name of the index field to add to the database.')
     parser_index.set_defaults(func=indexDbFile)
 
-    # Subparser to merge files
-    parser_merge = subparsers.add_parser('merge', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
-                                         help='Merges files.',
-                                         description='Merges files.')
-    parser_merge.add_argument('--drop', action='store_true', dest='drop',
-                              help='''If specified, drop fields that do not exist in all input files.
-                                   Otherwise, include all columns in all files and fill missing data 
-                                   with empty strings.''')
-    parser_merge.set_defaults(func=mergeDbFiles)
-
     # Subparser to rename fields
-    parser_rename = subparsers.add_parser('rename', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
+    parser_rename = subparsers.add_parser('rename', parents=[default_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Renames fields.',
                                           description='Renames fields.')
-    parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+    group_rename = parser_rename.add_argument_group('parsing arguments')
+    group_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to rename.')
-    parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
+    group_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
                                help='List of new names for each field.')
     parser_rename.set_defaults(func=renameDbFile)
 
     # Subparser to select records
-    parser_select = subparsers.add_parser('select', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
+    parser_select = subparsers.add_parser('select', parents=[default_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Selects specific records.',
                                           description='Selects specific records.')
-    parser_select.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+    group_select = parser_select.add_argument_group('parsing arguments')
+    group_select.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='The name of the fields to check for selection criteria.')
-    parser_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+    group_select.add_argument('-u', nargs='+', action='store', dest='values', required=True,
                                help='''The values defining with records to select. A value
                                     may appear in any of the fields specified with -f.''')
-    parser_select.add_argument('--logic', action='store', dest='logic',
+    group_select.add_argument('--logic', action='store', dest='logic',
                                choices=('any', 'all'), default='any',
                                help='''Defines whether a value may appear in any field (any)
                                     or whether it must appear in all fields (all).''')
-    parser_select.add_argument('--regex', action='store_true', dest='regex',
+    group_select.add_argument('--regex', action='store_true', dest='regex',
                                help='''If specified, treat values as regular expressions
                                     and allow partial string matches.''')
     parser_select.set_defaults(func=selectDbFile)
 
     # Subparser to sort file by records
-    parser_sort = subparsers.add_parser('sort', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
+    parser_sort = subparsers.add_parser('sort', parents=[default_parent],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Sorts records by field values.',
                                         description='Sorts records by field values.')
-    parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
+    group_sort = parser_sort.add_argument_group('parsing arguments')
+    group_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
                              help='The annotation field by which to sort records.')
-    parser_sort.add_argument('--num', action='store_true', dest='numeric', default=False,
+    group_sort.add_argument('--num', action='store_true', dest='numeric', default=False,
                              help='''Specify to define the sort column as numeric rather
                                   than textual.''')
-    parser_sort.add_argument('--descend', action='store_true', dest='descend',
+    group_sort.add_argument('--descend', action='store_true', dest='descend',
                              help='''If specified, sort records in descending, rather
                              than ascending, order by values in the target field.''')
     parser_sort.set_defaults(func=sortDbFile)
 
+    # Subparser to update records
+    parser_update = subparsers.add_parser('update', parents=[default_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
+                                          help='Updates field and value pairs.',
+                                          description='Updates field and value pairs.')
+    group_update = parser_update.add_argument_group('parsing arguments')
+    group_update.add_argument('-f', action='store', dest='field', required=True,
+                               help='The name of the field to update.')
+    group_update.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+                               help='The values that will be replaced.')
+    group_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
+                               help='''The new value to assign to each selected row.''')
+    parser_update.set_defaults(func=updateDbFile)
+
+    # Subparser to merge files
+    parser_merge = subparsers.add_parser('merge', parents=[multi_parent],
+                                         formatter_class=CommonHelpFormatter, add_help=False,
+                                         help='Merges files.',
+                                         description='Merges files.')
+    group_merge = parser_merge.add_argument_group('parsing arguments')
+    group_merge.add_argument('-o', action='store', dest='out_file', default=None,
+                              help='''Explicit output file name. Note, this argument cannot be used with 
+                                   the --failed, --outdir or --outname arguments.''')
+    group_merge.add_argument('--drop', action='store_true', dest='drop',
+                              help='''If specified, drop fields that do not exist in all input files.
+                                   Otherwise, include all columns in all files and fill missing data 
+                                   with empty strings.''')
+    parser_merge.set_defaults(func=mergeDbFiles)
+
     # Subparser to partition files by annotation values
-    parser_split = subparsers.add_parser('split', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
+    parser_split = subparsers.add_parser('split', parents=[multi_parent],
+                                         formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Splits database files by field values.',
                                          description='Splits database files by field values')
-    parser_split.add_argument('-f', action='store', dest='field', type=str, required=True,
+    group_split = parser_split.add_argument_group('parsing arguments')
+    group_split.add_argument('-f', action='store', dest='field', type=str, required=True,
                               help='Annotation field by which to split database files.')
-    parser_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
+    group_split.add_argument('--num', action='store', dest='num_split', type=float, default=None,
                               help='''Specify to define the field as numeric and group
                                    records by whether they are less than or at least
                                    (greater than or equal to) the specified value.''')
     parser_split.set_defaults(func=splitDbFile)
-
-    # Subparser to update records
-    parser_update = subparsers.add_parser('update', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
-                                          help='Updates field and value pairs.',
-                                          description='Updates field and value pairs.')
-    parser_update.add_argument('-f', action='store', dest='field', required=True,
-                               help='The name of the field to update.')
-    parser_update.add_argument('-u', nargs='+', action='store', dest='values', required=True,
-                               help='The values that will be replaced.')
-    parser_update.add_argument('-t', nargs='+', action='store', dest='updates', required=True,
-                               help='''The new value to assign to each selected row.''')
-    parser_update.set_defaults(func=updateDbFile)
 
     return parser
 
@@ -996,9 +1047,17 @@ if __name__ == '__main__':
     # Call parser function for each database file
     if args.command == 'merge':
         args.func(**args_dict)
-    else:
+    elif args.command == 'split':
         del args_dict['db_files']
         for f in args.__dict__['db_files']:
             args_dict['db_file'] = f
+            args.func(**args_dict)
+    else:
+        del args_dict['db_files']
+        del args_dict['out_files']
+        for i, f in enumerate(args.__dict__['db_files']):
+            args_dict['db_file'] = f
+            args_dict['out_file'] = args.__dict__['out_files'][i] \
+                if args.__dict__['out_files'] else None
             args.func(**args_dict)
  

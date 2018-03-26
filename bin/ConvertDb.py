@@ -74,16 +74,17 @@ def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
     return seq_record
 
 
-def convertDbAIRR(db_file, out_args=default_out_args):
+def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     """
     Converts a Change-O formatted file into an AIRR formatted file
 
     Arguments:
-    db_file = the database file name
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+     str : output file name
     """
     log = OrderedDict()
     log['START'] = 'ConvertDb'
@@ -110,8 +111,11 @@ def convertDbAIRR(db_file, out_args=default_out_args):
     fields.extend([x for x in fields_add if x not in fields])
 
     # Open output writer
-    pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tsv')
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type='tsv')
     pass_writer = AIRRWriter(pass_handle, fields=fields)
 
     # Count records
@@ -142,16 +146,17 @@ def convertDbAIRR(db_file, out_args=default_out_args):
     return pass_handle.name
 
 
-def convertDbChangeo(db_file, out_args=default_out_args):
+def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     """
     Converts a AIRR formatted file into an Change-O formatted file
 
     Arguments:
-    db_file = the database file name
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file = the database file name.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args = common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ConvertDb'
@@ -178,8 +183,11 @@ def convertDbChangeo(db_file, out_args=default_out_args):
     fields.extend([x for x in fields_add if x not in fields])
 
     # Open output writer
-    pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type='tab')
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type='tab')
     pass_writer = ChangeoWriter(pass_handle, fields=fields)
 
     # Count records
@@ -214,22 +222,23 @@ def convertDbChangeo(db_file, out_args=default_out_args):
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
 def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
                       germ_field=default_germ_field, cluster_field=None,
-                      meta_fields=None, out_args=default_out_args):
+                      meta_fields=None, out_file=None, out_args=default_out_args):
     """
     Builds fasta files from database records
 
     Arguments: 
-    db_file = the database file name
-    id_field = the field containing identifiers
-    seq_field = the field containing sample sequences
-    germ_field = the field containing germline sequences
-    cluster_field = the field containing clonal groupings
-                    if None write the germline for each record
-    meta_fields = a list of fields to add to sequence annotations
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      id_field : the field containing identifiers.
+      seq_field : the field containing sample sequences.
+      germ_field : the field containing germline sequences.
+      cluster_field : the field containing clonal groupings;
+                    if None write the germline for each record.
+      meta_fields : a list of fields to add to sequence annotations.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-    the output file name
+     str : output file name
     """
     log = OrderedDict()
     log['START'] = 'ConvertDb'
@@ -242,14 +251,17 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     if meta_fields is not None:  log['META_FIELDS'] = ','.join(meta_fields)
     printLog(log)
     
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], out_type='clip')
-    # Count records
     result_count = countDbFile(db_file)
-    
+
+    # Open output
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type='clip')
     # Iterate over records
     start_time = time()
     rec_count = germ_count = pass_count = fail_count = 0
@@ -309,19 +321,20 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
 
 
 def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_field,
-                 meta_fields=None, out_args=default_out_args):
+                 meta_fields=None, out_file=None, out_args=default_out_args):
     """
     Builds fasta files from database records
 
     Arguments: 
-    db_file = the database file name
-    id_field = the field containing identifiers
-    seq_field = the field containing sequences
-    meta_fields = a list of fields to add to sequence annotations
-    out_args = common output argument dictionary from parseCommonArgs
+      db_file : the database file name.
+      id_field : the field containing identifiers.
+      seq_field : the field containing sequences.
+      meta_fields : a list of fields to add to sequence annotations.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-    the output file name
+      str : output file name.
     """
     log = OrderedDict()
     log['START'] = 'ConvertDb'
@@ -332,15 +345,19 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     if meta_fields is not None:  log['META_FIELDS'] = ','.join(meta_fields)
     printLog(log)
     
-    # Open file handles
+    # Open input
     out_type = 'fasta'
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], out_type=out_type)
-    # Count records
     result_count = countDbFile(db_file)
-    
+
+    # Open output
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=out_type)
+
     # Iterate over records
     start_time = time()
     rec_count = pass_count = fail_count = 0
@@ -584,7 +601,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
                      isolate=None, tissue=None, cell=None, molecule=default_molecule,
                      product=default_product, cregion_field=None, label=None,
                      keep_id=False, keep_stop=False,
-                     format=default_format, out_args=default_out_args):
+                     format=default_format, out_file=None, out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -604,6 +621,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       keep_id : if True use the original sequence ID for the output IDs
       keep_stop : if True retain records with junctions having stop codons.
       format : input and output format.
+      out_file : output file name without extension. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -623,13 +641,20 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
-    # Open file handles
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = reader(db_handle)
-    fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type='fsa')
-    tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type='tbl')
+
+    # Open output
+    if out_file is not None:
+        out_name, __ = os.path.splitext(out_file)
+        fsa_handle = open('%s.fsa' % out_name, 'w')
+        tbl_handle = open('%s.tbl' % out_name, 'w')
+    else:
+        fsa_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'], out_type='fsa')
+        tbl_handle = getOutputHandle(db_file, out_label='genbank', out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'], out_type='tbl')
 
     # Count records
     result_count = countDbFile(db_file)
@@ -723,109 +748,115 @@ def getArgParser():
     
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Database operation')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
-    # Define parent parser
-    parser_parent = getCommonArgParser(failed=False, log=False)
+    # Define parent parsers
+    default_parent = getCommonArgParser(failed=False, log=False, format=False)
+    genbank_parent = getCommonArgParser(failed=False, log=False)
 
     # Subparser to convert changeo to AIRR files
-    parser_airr = subparsers.add_parser('airr', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
+    parser_airr = subparsers.add_parser('airr', parents=[default_parent],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Converts a Change-O database to an AIRR database.',
                                        description='Converts a Change-O database to an AIRR database.')
     parser_airr.set_defaults(func=convertDbAIRR)
 
     # Subparser to convert AIRR to changeo files
-    parser_airr = subparsers.add_parser('changeo', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
+    parser_airr = subparsers.add_parser('changeo', parents=[default_parent],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Converts an AIRR database to a Change-O database.',
                                        description='Converts an AIRR database to a Change-O database.')
     parser_airr.set_defaults(func=convertDbChangeo)
 
     # Subparser to convert database entries to sequence file
-    parser_fasta = subparsers.add_parser('fasta', parents=[parser_parent],
-                                       formatter_class=CommonHelpFormatter,
+    parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Creates a fasta file from database records.',
                                        description='Creates a fasta file from database records.')
-    parser_fasta.add_argument('--if', action='store', dest='id_field',
+    group_fasta = parser_fasta.add_argument_group('conversion arguments')
+    group_fasta.add_argument('--if', action='store', dest='id_field',
                               default=default_id_field,
                               help='The name of the field containing identifiers')
-    parser_fasta.add_argument('--sf', action='store', dest='seq_field',
+    group_fasta.add_argument('--sf', action='store', dest='seq_field',
                               default=default_seq_field,
                               help='The name of the field containing sequences')
-    parser_fasta.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
+    group_fasta.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                               help='List of annotation fields to add to the sequence description')
     parser_fasta.set_defaults(func=convertDbFasta)
     
     # Subparser to convert database entries to clip-fasta file
-    parser_baseln = subparsers.add_parser('baseline', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
+    parser_baseln = subparsers.add_parser('baseline', parents=[default_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           description='Creates a BASELINe fasta file from database records.',
                                           help='''Creates a specially formatted fasta file
                                                from database records for input into the BASELINe
                                                website. The format groups clonally related sequences
                                                sequentially, with the germline sequence preceding
                                                each clone and denoted by headers starting with ">>".''')
-    parser_baseln.add_argument('--if', action='store', dest='id_field',
+    group_baseln = parser_baseln.add_argument_group('conversion arguments')
+    group_baseln.add_argument('--if', action='store', dest='id_field',
                                default=default_id_field,
                                help='The name of the field containing identifiers')
-    parser_baseln.add_argument('--sf', action='store', dest='seq_field',
+    group_baseln.add_argument('--sf', action='store', dest='seq_field',
                                default=default_seq_field,
                                help='The name of the field containing reads')
-    parser_baseln.add_argument('--gf', action='store', dest='germ_field',
+    group_baseln.add_argument('--gf', action='store', dest='germ_field',
                                default=default_germ_field,
                                help='The name of the field containing germline sequences')
-    parser_baseln.add_argument('--cf', action='store', dest='cluster_field', default=None,
+    group_baseln.add_argument('--cf', action='store', dest='cluster_field', default=None,
                                help='The name of the field containing containing sorted clone IDs')
-    parser_baseln.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
+    group_baseln.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                                help='List of annotation fields to add to the sequence description')
     parser_baseln.set_defaults(func=convertDbBaseline)
 
     # Subparser to convert database entries to a GenBank fasta and feature table file
-    parser_gb = subparsers.add_parser('genbank', parents=[getCommonArgParser(failed=False, log=False, format=True)],
-                                       formatter_class=CommonHelpFormatter,
+    parser_gb = subparsers.add_parser('genbank', parents=[genbank_parent],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Creates a fasta and feature table file for GenBank submissions.',
                                        description='Creates a fasta and feature table file for GenBank submissions.')
-    parser_gb.add_argument('--product', action='store', dest='product', default=default_product,
+    group_gb = parser_gb.add_argument_group('conversion arguments')
+    group_gb.add_argument('--product', action='store', dest='product', default=default_product,
                             help='''The product name, such as "immunoglobulin heavy chain".''')
-    parser_gb.add_argument('--inf', action='store', dest='inference', default=None,
+    group_gb.add_argument('--inf', action='store', dest='inference', default=None,
                             help='''Name and version of the inference tool used for reference alignment in the 
                                  form tool:version.''')
-    parser_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
+    group_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                             help='Name of the reference database used for alignment.')
-    parser_gb.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
+    group_gb.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
                             help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
-    parser_gb.add_argument('--organism', action='store', dest='organism', default=None,
+    group_gb.add_argument('--organism', action='store', dest='organism', default=None,
                             help='The scientific name of the organism.')
-    parser_gb.add_argument('--sex', action='store', dest='sex', default=None,
+    group_gb.add_argument('--sex', action='store', dest='sex', default=None,
                             help='''If specified, adds the given sex annotation 
                                  to the fasta headers.''')
-    parser_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
+    group_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
                             help='''If specified, adds the given isolate annotation 
                                  (sample label) to the fasta headers.''')
-    parser_gb.add_argument('--tissue', action='store', dest='tissue', default=None,
+    group_gb.add_argument('--tissue', action='store', dest='tissue', default=None,
                             help='''If specified, adds the given tissue-type annotation 
                                  to the fasta headers.''')
-    parser_gb.add_argument('--cell', action='store', dest='cell', default=None,
+    group_gb.add_argument('--cell', action='store', dest='cell', default=None,
                             help='''If specified, adds the given cell-type annotation 
                                  to the fasta headers.''')
-    parser_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
+    group_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
                             help='''Field containing the C region call. If unspecified, the C region gene 
                                  call will be excluded from the feature table.''')
-    parser_gb.add_argument('--label', action='store', dest='label', default=None,
+    group_gb.add_argument('--label', action='store', dest='label', default=None,
                             help='''If specified, add a field name to the sequence identifier. 
                                  Sequence identifiers will be output in the form <label>=<id>.''')
-    parser_gb.add_argument('--id', action='store_true', dest='keep_id',
+    group_gb.add_argument('--id', action='store_true', dest='keep_id',
                             help='''If specified, use the existing sequence identifier for the output identifier. 
                                  By default, only the row number will be used as the identifier to avoid
                                  the 50 character limit.''')
-    parser_gb.add_argument('--stop', action='store_true', dest='keep_stop',
+    group_gb.add_argument('--stop', action='store_true', dest='keep_stop',
                             help='''If specified, retain records in the output with stop codons in the junction region.
                                  In such records the CDS will be removed and replaced with a similar misc_feature in 
                                  the feature table.''')
@@ -852,11 +883,16 @@ if __name__ == '__main__':
     elif args.command == 'update' and len(args_dict['values']) != len(args_dict['updates']):
         parser.error('You must specify exactly one value (-u) per replacement (-t)')
 
-    # Call parser function for each database file
+    # Clean arguments dictionary
     del args_dict['command']
     del args_dict['func']
     del args_dict['db_files']
-    for f in args.__dict__['db_files']:
+    if 'out_files' in args_dict: del args_dict['out_files']
+
+    # Call main function for each input file
+    for i, f in enumerate(args.__dict__['db_files']):
         args_dict['db_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         args.func(**args_dict)
- 
+
