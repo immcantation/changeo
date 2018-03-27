@@ -17,7 +17,6 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from changeo.Defaults import default_csv_size
-from changeo.Parsers import AIRRReader, ChangeoReader
 from changeo.Receptor import parseAllele, allele_regex
 from presto.IO import getFileType
 

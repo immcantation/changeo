@@ -15,6 +15,7 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
+from changeo.IO import TSVReader, TSVWriter
 from changeo.Receptor import ChangeoSchema, AIRRSchema, Receptor, parseAllele, \
                              v_allele_regex, d_allele_regex, j_allele_regex
 
@@ -197,7 +198,7 @@ class AIRRReader:
         Returns:
           list : field names
         """
-        return self.reader._inputFieldNames
+        return self.reader.fields
 
     @staticmethod
     def _receptor(record):
@@ -241,15 +242,13 @@ class AIRRReader:
         self.handle = handle
         self.receptor = receptor
 
-        # Import AIRR standard library
+        # Define reader
         try:
             import airr
-            #from airr.specs import rearrangements
+            self.reader = airr.read(self.handle, debug=False)
         except ImportError:
-            sys.exit('AIRR standard library is not available.')
-
-        # Define reader
-        self.reader = airr.read(handle=handle, debug=False)
+            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
+            self.reader = TSVReader(self.handle)
 
     def __iter__(self):
         """
@@ -321,19 +320,15 @@ class AIRRWriter:
         """
         # Arguments
         self.handle = handle
-
-        # Import AIRR standard library
-        try:
-            import airr
-            #from airr.specs import rearrangements
-        except ImportError:
-            sys.exit('AIRR standard library is not available.')
+        fields = [f.lower() for f in fields]
 
         # Define writer
-        self.writer = airr.create(handle=handle, debug=False)
-        # TODO: we really want to tell AIRR about all the fields here
-        fields = [f.lower() for f in fields]
-        self.writer.addFields('changeo', fields)
+        try:
+            import airr
+            self.writer = airr.create(self.handle, fields=fields, debug=False)
+        except ImportError:
+            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
+            self.writer = TSVWriter(self.handle, fields=fields)
 
     def writeReceptor(self, records):
         """

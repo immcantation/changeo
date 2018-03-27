@@ -688,7 +688,6 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-    del args_dict['db_files']
 
     # Set default fields if not specified.
     default_fields = {'seq_field': default_seq_field,
