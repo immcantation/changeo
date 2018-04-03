@@ -1,44 +1,153 @@
 #!/usr/bin/env python3
+"""
+Converts TSV files into IgPhyML input files
+"""
 
+# Imports
+import os
+import sys
 from argparse import ArgumentParser
 from textwrap import dedent
 from collections import OrderedDict
 
-import sys
-from time import time
 
-# Presto and change imports
+# Presto and changeo imports
 from presto.Defaults import default_out_args
 from presto.IO import  printLog
 from changeo.Defaults import default_format
-
-import changeo
-import changeo.Parsers
+from changeo.Parsers import AIRRReader, ChangeoReader
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
-def outputIgPhyML(clones, sequences, out_dir, collapse, failed):
+def maskSplitCodons(receptor):
+    """
+    Identify junction region by IMGT definition.
+
+    Arguments:
+      receptor : Receptor object.
+
+    Returns:
+      str : modified IMGT gapped sequence.
+    """
+
+    qi = receptor.sequence_input
+    si = receptor.sequence_imgt
+    log = OrderedDict()
+    log['ID']=receptor.sequence_id
+    log['CLONE']=receptor.clone
+    log['PASS'] = True
+
+    # adjust starting position of query sequence
+    qi = qi[(receptor.v_seq_start - 1):]
+
+    # deal with the fact that it's possible to start mid-codon
+    scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
+    for i in range(0, len(scodons)):
+        if scodons[i] != '...':
+            if scodons[i][0:2] == '..':
+                scodons[i] = "NN"+scodons[i][2]
+                qi = "NN" + qi
+                spos = i
+                break
+            elif scodons[i][0] == '.':
+                scodons[i] = "N" + scodons[i][1:3]
+                qi = "N" + qi
+                spos = i
+                break
+            else:
+                spos = i
+                break
+
+    qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
+
+
+    qpos = 0
+    for i in range(spos, len(scodons)):
+        if scodons[i] != '...':
+            qpos += 1
+
+    qpos = 0
+    # TODO: for loop with zip()
+    while spos < len(scodons) and qpos < len(qcodons):
+        #print(scodons[spos] + "\t" + qcodons[qpos])
+        if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
+            spos += 1
+        elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
+            spos += 1
+            qpos += 1
+        else: # if not the same, mask IMGT at that site and scan foward until you find a codon that matches next site
+            #print("checking %s at position %d" % (scodons[spos], spos))
+            ospos=spos
+            spos += 1
+            qpos += 1
+            while qpos < len(qcodons) and spos < len(scodons) and scodons[spos] != qcodons[qpos]:
+                qpos += 1
+            if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
+                qpos -= 1
+                spos = ospos
+                #print("But codon was apparently preserved")
+                log[str(spos)]="IN-FRAME"
+            elif qpos >= len(qcodons):
+                log[str(spos)] = "FAILED_MATCH_QSTRING"
+                log['PASS'] = False
+            elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
+                scodons[ospos] = "NNN"
+                if spos >= len(scodons):
+                    #print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                    log[str(spos)] = "END"
+                else:
+                    #print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                    log[str(spos)] = "FAILED_MATCH"
+                    log['PASS']=False
+                    #exit(1)
+            elif qcodons[qpos] == scodons[spos]:
+                #print("Masked %s at position %d" % (scodons[ospos], ospos))
+                scodons[ospos] = "NNN"
+                log[str(spos)] = "MASKED"
+            else:
+                #print("Something weird happened")
+                log['PASS'] = False
+                #exit(1)
+
+    #if scodons[-1] == "." or scodons[-1] == ".." or scodons[-1] == "...":
+    #    scodons[-1] = "NNN"
+    #    log[str(len(scodons))] = "MASKED"
+    if len(scodons[-1]) != 3:
+        scodons[-1] = "NNN"
+        log[str(len(scodons))] = "MASKED"
+
+    concatenated_seq = Seq("")
+    for i in scodons:
+        concatenated_seq += i
+
+    log['INSEQ'] = receptor.sequence_input
+    log['IMGTSEQ'] = receptor.sequence_imgt
+    log["MASKED"] = concatenated_seq
+
+    return concatenated_seq, log
+
+def outputIgPhyML(clones, sequences, collapse=False, failed=None, out_dir=None):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
     Arguments:
-        clones (list): receptor objects within the same clone
-        sequences (list): sequences within the same clone (share indexes with clones parameter)
-        out_dir (string): directory for output files
+        clones (list): receptor objects within the same clone.
+        sequences (list): sequences within the same clone (share indexes with clones parameter).
+        collapse (bool): if True collapse identical sequences.
+        failed (file): file handle for output of failed records. if None do not output failed records.
+        out_dir (str): directory for output files.
     Returns:
-        None. Outputs alignment and partition files
+        int: number of clones.
     """
     duplicate = True # duplicate sequences in clones with only 1 sequence?
     sites = len(sequences[0])
     s=""
-   # transtable = s.maketrans('.', '-')
     for i in sequences:
         if len(i) != sites:
             print("Sequences within clone %s are not the same length!" % clones[0].clone)
             for s in sequences:
                 print(s)
             exit(1)
-       # i.translate(transtable)
 
     nseqs = len(sequences)
     germline = clones[0].getField("germline_imgt_d_mask")
@@ -125,7 +234,7 @@ def outputIgPhyML(clones, sequences, out_dir, collapse, failed):
     print("CDR:IMGT", file=partf)
     print("%s" % (clones[0].v_call.split("*")[0]),file=partf)
     print("%s" % (clones[0].j_call.split("*")[0]),file=partf)
-    print(",".join(map(str,imgt)), file=partf)
+    print(",".join(map(str, imgt)), file=partf)
 
     if collapse:
         return len(useqs)
@@ -133,42 +242,45 @@ def outputIgPhyML(clones, sequences, out_dir, collapse, failed):
         return nseqs
 
 
-
-def buildTrees(db_file, out_args=default_out_args,format=default_format,collapse=False):
+def buildTrees(db_file, collapse=False, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
     Arguments:
-        db_file : input tab-delimited database file
-        out_dir (string): directory to contain output files
-        out_args: unused
-        format: ununsed
+        db_file (str): input tab-delimited database file.
+        collapse (bool): if True collapse identical sequences.
+        format (str): input and output format.
+        out_args (dict): arguments for output preferences.
     Returns:
-        Nothing. Outputs files for IgPhyML
+        None: outputs files for IgPhyML.
 
     """
+    # TODO: changeo console log
 
     # Format options
     if format == 'changeo':
-        reader = changeo.Parsers.ChangeoReader
+        reader = ChangeoReader
     elif format == 'airr':
-        reader = changeo.Parsers.AIRRReader
+        reader = AIRRReader
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
-    handle = open(db_file,'r')
-    records = reader(handle) # open input file
-    out_dir = out_args['out_dir'] # get output directory
-    log_handle = open(out_args['log_file'],'w')
+    # open input file
+    handle = open(db_file, 'r')
+    records = reader(handle)
 
-    failed = open(out_dir+"/"+"failedSeqs.fa",'w')
+    # TODO: make consistent with changeo behavior regarding --log and --failed
+    # get output directory
+    out_dir = out_args['out_dir']
+    log_handle = open(out_args['log_file'], 'w')
+    failed = open(os.path.join(out_dir, "failedSeqs.fa"), 'w')
 
     cloneseqs = {}
     clones = {}
     for r in records:
         if r.functional:
             mout = changeo.Parsers.maskSplitCodons(r)
-            mask_seq=mout[0]
+            mask_seq = mout[0]
 
             if mout[1]['PASS']:
                 printLog(mout[1], handle=log_handle)
@@ -176,7 +288,7 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format,collapse
                     clones[r.clone].append(r)
                     cloneseqs[r.clone].append(mask_seq)
                 else:
-                    clones[r.clone]=[r]
+                    clones[r.clone] = [r]
                     cloneseqs[r.clone] = [mask_seq]
             else:
                 printLog(mout[1], handle=failed)
@@ -185,18 +297,23 @@ def buildTrees(db_file, out_args=default_out_args,format=default_format,collapse
 
     clonesizes={}
     for k in clones.keys():
-        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], out_dir, collapse,failed)
+        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], collapse=False, failed=failed,
+                                           out_dir=out_dir)
 
-    repfile1 = out_dir + "/repFile.tsv"
-    repfile2 = out_dir + "/repFile.N.tsv"
+    # TODO: make consistent with changeo behavior and naming scheme
+    repfile1 = os.path.join(out_dir, "repFile.tsv")
+    repfile2 = os.path.join(out_dir, "repFile.N.tsv")
     rout1 = open(repfile1, 'w')
     rout2 = open(repfile2, 'w')
-    print(len(clonesizes),file=rout1)
-    print(len(clonesizes),file=rout2)
+
+    # TODO: changeo console log
+    print(len(clonesizes), file=rout1)
+    print(len(clonesizes), file=rout2)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
-        print(key + "\t"+str(clonesizes[key]))
+        print(key + "\t" + str(clonesizes[key]))
         outfile = out_dir + "/" + key + ".fa"
         partfile = out_dir + "/" + key + ".part.txt"
+        # TODO: use file.write()
         print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=rout1)
         print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", "N"), file=rout2)
 
@@ -207,11 +324,8 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments:
-    None
-
     Returns:
-    an ArgumentParser object
+        argparse.ArgumentParser: argument parsers.
     """
     # Define input and output field help message
     fields = dedent(
@@ -250,13 +364,7 @@ def getArgParser():
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter)
     parser.add_argument('--collapse', action='store_true', dest='collapse',
-                        help='''Collapse identical sequences''')
-    # parser.add_argument('--version', action='version',
-    #                    version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
-
-    # parser.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
-    #                   help='''List of folders and/or fasta files (with .fasta, .fna or .fa
-    #                     extension) with germline sequences.''')
+                        help='''Collapse identical sequences.''')
 
     return parser
 
@@ -271,11 +379,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     del args_dict['db_files']
-    #print(args_dict['out_dir'])
 
     # Call main for each input file
     for f in args.__dict__['db_files']:
         args_dict['db_file'] = f
         buildTrees(**args_dict)
-    print("Finished!")
-    exit(0)
