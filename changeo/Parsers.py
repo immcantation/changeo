@@ -12,6 +12,8 @@ import sys
 from itertools import chain, groupby
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from collections import OrderedDict
+
 
 # Presto and changeo imports
 from presto.IO import readSeqFile
