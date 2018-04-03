@@ -362,8 +362,10 @@ def getArgParser():
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[parser_parent],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--collapse', action='store_true', dest='collapse',
+                            formatter_class=CommonHelpFormatter, add_help=False)
+
+    group = parser.add_argument_group('tree building arguments')
+    group.add_argument('--collapse', action='store_true', dest='collapse',
                         help='''Collapse identical sequences.''')
 
     return parser

@@ -420,7 +420,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
       out_args : arguments for output preferences
 
     Returns:
-      dict : names of the 'pass', 'fail' and 'log' output files.
+      dict : names of the 'pass' and 'fail' output files.
     """
     # Print parameter info
     log = OrderedDict()
