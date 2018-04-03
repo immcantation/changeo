@@ -15,7 +15,7 @@ from collections import OrderedDict
 from presto.Defaults import default_out_args
 from presto.IO import  printLog
 from changeo.Defaults import default_format
-from changeo.Parsers import AIRRReader, ChangeoReader
+from changeo.IO import AIRRReader, ChangeoReader
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
@@ -279,7 +279,7 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     clones = {}
     for r in records:
         if r.functional:
-            mout = changeo.Parsers.maskSplitCodons(r)
+            mout = maskSplitCodons(r)
             mask_seq = mout[0]
 
             if mout[1]['PASS']:

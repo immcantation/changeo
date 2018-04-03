@@ -14,9 +14,8 @@ from time import time
 # Presto and changeo imports
 from presto.IO import getOutputHandle, printProgress, printLog
 from changeo.Defaults import default_out_args
-from changeo.IO import countDbFile, getDbFields
+from changeo.IO import countDbFile, ChangeoReader, ChangeoWriter
 from changeo.Receptor import Receptor
-from changeo.Parsers import AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 
 
 class DbData:

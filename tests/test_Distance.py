@@ -14,6 +14,7 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 import changeo.Distance as Distance
+
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(test_path, 'data')

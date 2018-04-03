@@ -21,8 +21,9 @@ from presto.IO import getOutputHandle, printLog, printMessage, printProgress
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields, readGermlines
-from changeo.Parsers import AIRRReader, AIRRWriter, AIRRSchema, ChangeoReader, ChangeoWriter, ChangeoSchema
+from changeo.IO import countDbFile, getDbFields, readGermlines, AIRRReader, AIRRWriter, \
+                       ChangeoReader, ChangeoWriter
+from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # Defaults
 default_seq_field = 'SEQUENCE_IMGT'

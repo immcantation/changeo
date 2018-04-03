@@ -8,6 +8,7 @@ from changeo import __version__, __date__
 
 # Imports
 import os
+import re
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -20,9 +21,32 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, readGermlines
-from changeo.Parsers import IgBLASTReader, IMGTReader, IHMMuneReader, getIDforIMGT, ChangeoWriter, AIRRWriter
+from changeo.IO import countDbFile, extractIMGT, readGermlines, AIRRWriter, ChangeoWriter, \
+                       IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
+
+
+def getIDforIMGT(seq_file):
+    """
+    Create a sequence ID translation using IMGT truncation.
+
+    Arguments:
+      seq_file : a fasta file of sequences input to IMGT.
+
+    Returns:
+      dict : a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
+    """
+
+    # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
+    ids = {}
+    for rec in readSeqFile(seq_file):
+        if len(rec.description) <= 50:
+            id_key = rec.description
+        else:
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:50])
+        ids.update({id_key: rec.description})
+
+    return ids
 
 
 def getSeqDict(seq_file):

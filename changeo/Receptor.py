@@ -1200,3 +1200,279 @@ def parseAllele(alleles, regex, action='first'):
         return tuple(sorted(match)) if match else None
     else:
         return None
+
+
+def gapV(db, repo_dict, asis_calls=False):
+    """
+    Construction IMGT-gapped V-region sequences.
+
+    Arguments:
+      db : database dictionary of parsed IgBLAST.
+      repo_dict : dictionary of IMGT-gapped reference sequences.
+      asis_calls : if True do not parse V_CALL for allele names and just split by comma.
+
+    Returns:
+      dict : database entries containing IMGT-gapped query sequences and germline positions.
+    """
+    # Initialize return object
+    imgt_dict = {'SEQUENCE_IMGT': None,
+                 'V_GERM_START_IMGT': None,
+                 'V_GERM_LENGTH_IMGT': None}
+
+    # Initialize imgt gapped sequence
+    seq_imgt = '.' * (int(db['V_GERM_START_VDJ']) - 1) + db['SEQUENCE_VDJ']
+
+    # Extract first V call
+    if not asis_calls:
+        vgene = parseAllele(db['V_CALL'], v_allele_regex, 'first')
+    else:
+        vgene = db['V_CALL'].split(',')[0]
+
+    # Find gapped germline V segment
+    if vgene in repo_dict:
+        vgap = repo_dict[vgene]
+        # Iterate over gaps in the germline segment
+        gaps = re.finditer(r'\.', vgap)
+        gapcount = int(db['V_GERM_START_VDJ']) - 1
+        for gap in gaps:
+            i = gap.start()
+            # Break if gap begins after V region
+            if i >= db['V_GERM_LENGTH_VDJ'] + gapcount:
+                break
+            # Insert gap into IMGT sequence
+            seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
+            # Update gap counter
+            gapcount += 1
+
+        imgt_dict['SEQUENCE_IMGT'] = seq_imgt
+        # Update IMGT positioning information for V
+        imgt_dict['V_GERM_START_IMGT'] = 1
+        imgt_dict['V_GERM_LENGTH_IMGT'] = db['V_GERM_LENGTH_VDJ'] + gapcount
+    else:
+        sys.stderr.write('\nWARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined for %s.\n' \
+                         % (vgene, db['SEQUENCE_ID']))
+
+    return imgt_dict
+
+
+def inferJunction(db, repo_dict, asis_calls=False):
+    """
+    Identify junction region by IMGT definition.
+
+    Arguments:
+      db : database dictionary of changeo data.
+      repo_dict : dictionary of IMGT-gapped reference sequences.
+      asis_calls : if True do not parse V_CALL for allele names and just split by comma.
+
+    Returns:
+      dict : database entries containing junction sequence and length.
+    """
+    junc_dict = {'JUNCTION': None,
+                 'JUNCTION_AA': None,
+                 'JUNCTION_LENGTH': None}
+
+    # Find germline J segment
+    if not asis_calls:
+        jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
+    else:
+        jgene = db['J_CALL'].split(',')[0]
+    jgerm = repo_dict.get(jgene, None)
+
+    if jgerm is not None:
+        # Look for (F|W)GXG amino acid motif in germline nucleotide sequence
+        motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
+
+        # Define junction end position
+        seq_len = len(db['SEQUENCE_IMGT'])
+        if motif:
+            j_start = seq_len - db['J_GERM_LENGTH']
+            motif_pos = max(motif.start() - db['J_GERM_START'] + 1, -1)
+            junc_end = j_start + motif_pos + 3
+        else:
+            junc_end = seq_len
+
+        # Extract junction
+        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:junc_end]
+        junc_len = len(junc_dict['JUNCTION'])
+        junc_dict['JUNCTION_LENGTH'] = junc_len
+
+        # Translation
+        junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
+        if junc_len % 3 > 0:  junc_tmp = junc_tmp[:junc_len - junc_len % 3]
+        junc_dict['JUNCTION_AA'] = str(Seq(junc_tmp).translate())
+
+    return junc_dict
+
+
+def getRegions(db):
+    """
+    Identify FWR and CDR regions by IMGT definition.
+
+    Arguments:
+      db : database dictionary of parsed alignment output.
+
+    Returns:
+      dict : database entries containing FWR and CDR sequences.
+    """
+    region_dict = {'FWR1_IMGT': None,
+                   'FWR2_IMGT': None,
+                   'FWR3_IMGT': None,
+                   'FWR4_IMGT': None,
+                   'CDR1_IMGT': None,
+                   'CDR2_IMGT': None,
+                   'CDR3_IMGT': None}
+    try:
+        seq_len = len(db['SEQUENCE_IMGT'])
+        region_dict['FWR1_IMGT'] = db['SEQUENCE_IMGT'][0:min(78, seq_len)]
+    except (KeyError, IndexError, TypeError):
+        return region_dict
+
+    try: region_dict['CDR1_IMGT'] = db['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    except (IndexError): return region_dict
+
+    try: region_dict['FWR2_IMGT'] = db['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    except (IndexError): return region_dict
+
+    try: region_dict['CDR2_IMGT'] = db['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    except (IndexError): return region_dict
+
+    try: region_dict['FWR3_IMGT'] = db['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    except (IndexError): return region_dict
+
+    try:
+        # CDR3
+        cdr3_end = 306 + db['JUNCTION_LENGTH']
+        region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
+        # FWR4
+        region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
+    except (KeyError, IndexError, TypeError):
+        return region_dict
+
+    return region_dict
+
+
+def decodeBTOP(btop):
+    """
+    Parse a BTOP string into a list of tuples in CIGAR annotation.
+
+    Arguments:
+      btop : BTOP string.
+
+    Returns:
+      list : tuples of (operation, length) for each operation in the BTOP string using CIGAR annotation.
+    """
+    # Determine chunk type and length
+    def _recode(m):
+        if m.isdigit():  return ('=', int(m))
+        elif m[0] == '-':  return ('I', len(m) // 2)
+        elif m[1] == '-':  return ('D', len(m) // 2)
+        else:  return ('X', len(m) // 2)
+
+    # Split BTOP string into sections
+    btop_split = re.sub(r'(\d+|[-A-Z]{2})', r'\1;', btop)
+    # Parse each chunk of encoding
+    matches = re.finditer(r'(\d+)|([A-Z]{2};)+|(-[A-Z];)+|([A-Z]-;)+', btop_split)
+
+    return [_recode(m.group().replace(';', '')) for m in matches]
+
+
+def decodeCIGAR(cigar):
+    """
+    Parse a CIGAR string into a list of tuples.
+
+    Arguments:
+      cigar : CIGAR string.
+
+    Returns:
+      list : tuples of (operation, length) for each operation in the CIGAR string.
+    """
+    matches = re.findall(r'(\d+)([A-Z])', cigar)
+
+    return [(m[1], int(m[0])) for m in matches]
+
+
+def encodeCIGAR(alignment):
+    """
+    Encodes a list of tuple with alignment information into a CIGAR string.
+
+    Arguments:
+      tuple : tuples of (type, length) for each alignment operation.
+
+    Returns:
+      str : CIGAR string.
+    """
+    return ''.join(['%i%s' % (x, s) for s, x in alignment])
+
+
+def padAlignment(alignment, q_start, r_start):
+    """
+    Pads the start of an alignment based on query and reference positions.
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+      q_start : query (input) start position (0-based)
+      r_start : reference (subject) start position (0-based)
+
+    Returns:
+      list : updated list of tuples of (operation, length) for the alignment.
+    """
+    # Copy list to avoid weirdness
+    result = alignment[:]
+
+    # Add query deletions
+    if result [0][0] == 'S':
+        result[0] = ('S', result[0][1] + q_start)
+    elif q_start > 0:
+        result.insert(0, ('S', q_start))
+
+    # Add reference padding if present
+    if result[0][0] == 'N':
+        result[0] = ('N', result[0][1] + r_start)
+    elif result [0][0] == 'S' and result[1][0] == 'N':
+        result[1] = ('N', result[1][1] + r_start)
+    elif result[0][0] == 'S' and r_start > 0:
+        result.insert(1, ('N', r_start))
+    elif r_start > 0:
+        result.insert(0, ('N', r_start))
+
+    return result
+
+
+def alignmentPositions(alignment):
+    """
+    Extracts start position and length from an alignment
+
+    Arguments:
+      alignment : tuples of (operation, length) for each alignment operation.
+
+    Returns:
+      dict : query (q) and reference (r) start and length information with keys
+             {q_start, q_length, r_start, r_length}.
+    """
+    # Return object
+    result = {'q_start': 0,
+              'q_length': 0,
+              'r_start': 0,
+              'r_length': 0}
+
+    # Query start
+    if alignment[0][0] == 'S':
+        result['q_start'] = alignment[0][1]
+
+    # Reference start
+    if alignment[0][0] == 'N':
+        result['r_start'] = alignment[0][1]
+    elif alignment[0][0] == 'S' and alignment[1][0] == 'N':
+        result['r_start'] = alignment[1][1]
+
+    # Reference length
+    for x, i in alignment:
+        if x in ('M', '=', 'X'):
+            result['r_length'] += i
+            result['q_length'] += i
+        elif x == 'D':
+            result['r_length'] += i
+        elif x == 'I':
+            result['q_length'] += i
+
+    return result

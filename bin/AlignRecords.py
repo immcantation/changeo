@@ -22,9 +22,9 @@ from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbFields
+from changeo.IO import getDbFields, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
-from changeo.Parsers import AIRRSchema, AIRRReader, AIRRWriter, ChangeoSchema, ChangeoReader, ChangeoWriter
+from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 
 # TODO:  maybe not bothering with 'set' is best. can just work off field identity

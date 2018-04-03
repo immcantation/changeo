@@ -24,9 +24,9 @@ from presto.Multiprocessing import manageProcesses
 from changeo.Defaults import default_format, default_v_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
-from changeo.IO import countDbFile, getDbFields
+from changeo.IO import countDbFile, getDbFields, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
-from changeo.Parsers import AIRRSchema, AIRRReader, AIRRWriter, ChangeoSchema, ChangeoReader, ChangeoWriter
+from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # Defaults
 default_translate = False

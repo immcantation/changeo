@@ -12,13 +12,17 @@ import time
 import unittest
 from Bio import SeqIO
 
+# Presto and changeo imports
+from changeo.IO import getDbFields, extractIMGT, readGermlines, ChangeoReader, \
+                       IgBLASTReader, IHMMuneReader, IMGTReader
+
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(test_path, 'data')
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
-from changeo.IO import extractIMGT, readGermlines, countDbFile, getDbFields
+import MakeDb
 
 
 class Test_MakeDb(unittest.TestCase):
@@ -28,7 +32,13 @@ class Test_MakeDb(unittest.TestCase):
         # Germline files
         self.ig_repo_dir = '/usr/local/share/germlines/imgt/human/vdj'
         # Read files
+        self.ig_read_file = os.path.join(data_path, 'reads_ig.fasta')
+        # IMGT output
         self.ig_imgt_file = os.path.join(data_path, 'imgt_ig.txz')
+        # IgBLAST output
+        self.ig_igblast_file = os.path.join(data_path, 'igblast1.7_ig.fmt7')
+        # iHMMune-Align output
+        self.ig_ihmmune_file = os.path.join(data_path, 'ihmmune_ig.csv')
         # Change-O files
         self.ig_db_file = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
 
@@ -59,6 +69,62 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
+    @unittest.skip("-> ChangeoReader() skipped\n")
+    def test_ChangeoReader(self):
+        # Parse
+        with open(self.ig_db_file, 'r') as f:
+            result = ChangeoReader(f, receptor=False)
+            for x in result: print(x)
+
+        with open(self.ig_db_file, 'r') as f:
+            result = ChangeoReader(f, receptor=True)
+            for x in result: print(x.toDict())
+
+        self.fail('TODO')
+
+    @unittest.skip("-> IMGTReader() skipped\n")
+    def test_IMGTReader(self):
+        # Extract IMGT files
+        temp_dir, files = extractIMGT(self.ig_imgt_file)
+
+        # Parse
+        with open(files['summary'], 'r') as summary, \
+                open(files['gapped'], 'r') as gapped, \
+                open(files['ntseq'], 'r') as ntseq, \
+                open(files['junction'], 'r') as junction:
+            result = IMGTReader(summary, gapped, ntseq, junction, receptor=False)
+            for x in result: print(x)
+
+        # Remove IMGT temporary directory
+        temp_dir.cleanup()
+
+        self.fail('TODO')
+
+    @unittest.skip("-> IgBLASTReader() skipped\n")
+    def test_IgBLASTReader(self):
+        # Load germlines and sequences
+        seq_dict = MakeDb.getSeqDict(self.ig_read_file)
+        repo_dict = readGermlines([self.ig_repo_dir])
+
+        # Parse
+        with open(self.ig_igblast_file, 'r') as f:
+            result = IgBLASTReader(f, seq_dict, repo_dict, receptor=False)
+            for x in result: print(x)
+
+        self.fail('TODO')
+
+    @unittest.skip("-> IHMMReader() skipped\n")
+    def test_IHMMReader(self):
+        # Load germlines and sequences
+        seq_dict = MakeDb.getSeqDict(self.ig_read_file)
+        repo_dict = readGermlines([self.ig_repo_dir])
+
+        # Parse
+        with open(self.ig_ihmmune_file, 'r') as f:
+            result = IHMMuneReader(f, seq_dict, repo_dict, receptor=False)
+            for x in result: print(x)
+
+        self.fail('TODO')
 
 if __name__ == '__main__':
     unittest.main()

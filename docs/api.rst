@@ -10,5 +10,4 @@ API
    modules/Distance
    modules/IO
    modules/Multiprocessing
-   modules/Parsers
    modules/Receptor
