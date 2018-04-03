@@ -136,7 +136,7 @@ class AIRRSchema:
     # Grouping and counting fields
     count = OrderedDict([('duplicate_count', 'dupcount'),
                          ('consensus_count', 'conscount'),
-                         ('clone', 'clone')])
+                         ('clone_id', 'clone')])
     count_fields = list(count.keys())
 
     # Mapping of AIRR column names to Receptor attributes
