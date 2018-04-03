@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  March 21, 2018
+Version 0.4.0.999:  April 3, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
@@ -15,6 +15,11 @@ AlignRecords:
 
 + Fixed a bug arising when space characters are present in the sequence
   identifiers.
+
+BuildTrees:
+
++ New tool.
++ Converts tab-delimited database files into IgPhyML inputs.
 
 ConvertDb:
 

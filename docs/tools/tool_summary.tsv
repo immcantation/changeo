@@ -1,18 +1,19 @@
 Tool	Subcommand	Description
-:ref:`MakeDb`		Creates standardized databases from germline alignment results
-	imgt	Parses IMGT/HighV-QUEST output
-	igblast	Parses IgBLAST output and adds IMGT-gapping to the V-segment
-	ihmm	Parses Ihmmune-Align output
 :ref:`AlignRecords`		Multiple aligns sequences in a database
 	across	Aligns sequence columns within groups and across rows
 	within	Aligns sequence fields within rows
 	block	Aligns sequence groups across both columns and rows
-:ref:`DefineClones`		Assigns clones by V gene, J gene and junction distance
-:ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
+:ref:`BuildTrees`		Converts tab-delimited database file into IgPhyML input files.
 :ref:`ConvertDb`		Converts tab delimited database files
 	fasta	Creates a fasta file from database records
 	baseline	Creates a special BASELINe formatted fasta file from a database
 	genbank	Creates fasta and feature table files for input to tbl2asn
+:ref:`CreateGermlines`		Reconstructs germline sequences from alignment data
+:ref:`DefineClones`		Assigns clones by V gene, J gene and junction distance
+:ref:`MakeDb`		Creates standardized databases from germline alignment results
+	imgt	Parses IMGT/HighV-QUEST output
+	igblast	Parses IgBLAST output and adds IMGT-gapping to the V-segment
+	ihmm	Parses iHMMune-Align output
 :ref:`ParseDb`		Parses annotations in tab delimited database files
 	add	Adds fields to the database
 	delete	Deletes specific records
