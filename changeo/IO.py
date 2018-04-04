@@ -903,25 +903,25 @@ class IgBLASTReader:
         """
         return self._fields
 
-    def __init__(self, igblast, seq_dict, repo_dict, asis_calls=False, receptor=True):
+    def __init__(self, igblast, sequences, references, asis_calls=False, receptor=True):
         """
         Initializer.
 
         Arguments:
-          igblast : handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
-          seq_dict : dictionary of query sequences;
+          igblast (file): handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
+          sequences (dict): dictionary of query sequences;
                      sequence descriptions as keys with original query sequences as SeqRecord values.
-          repo_dict : dictionary of IMGT gapped germline sequences.
-          asis_calls : if True do not parse gene calls for allele names.
-          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
+          references (dict): dictionary of IMGT gapped germline sequences.
+          asis_calls (bool): if True do not parse gene calls for allele names.
+          receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
           changeo.Parsers.IgBLASTReader
         """
         # Arguments
         self.igblast = igblast
-        self.seq_dict = seq_dict
-        self.repo_dict = repo_dict
+        self.sequences = sequences
+        self.references = references
         self.asis_calls = asis_calls
         self.receptor = receptor
 
@@ -1366,15 +1366,15 @@ class IgBLASTReader:
         Parses an IgBLAST result into separate sections
 
         Arguments:
-          block : an iterator from itertools.groupby containing a single IgBLAST result.
+          block (iter): an iterator from itertools.groupby containing a single IgBLAST result.
 
         Returns:
-          dict : a parsed results block;
-                 with the keys 'query' (sequence identifier as a string),
-                 'summary' (dictionary of the alignment summary),
-                 'subregion' (dictionary of IgBLAST CDR3 sequences), and
-                 'hits' (VDJ hit table as a list of dictionaries).
-                 Returns None if the block has no data that can be parsed.
+          dict: a parsed results block;
+                with the keys 'query' (sequence identifier as a string),
+                'summary' (dictionary of the alignment summary),
+                'subregion' (dictionary of IgBLAST CDR3 sequences), and
+                'hits' (VDJ hit table as a list of dictionaries).
+                Returns None if the block has no data that can be parsed.
         """
         # Parsing info
         #
@@ -1441,7 +1441,7 @@ class IgBLASTReader:
         if 'query' in sections:
             query = sections['query']
             db['SEQUENCE_ID'] = query
-            db['SEQUENCE_INPUT'] = str(self.seq_dict[query].seq)
+            db['SEQUENCE_INPUT'] = str(self.sequences[query].seq)
 
         # Parse summary section
         if 'summary' in sections:
@@ -1466,7 +1466,7 @@ class IgBLASTReader:
                              v_germ_start=db['V_GERM_START_VDJ'],
                              v_germ_length=db['V_GERM_LENGTH_VDJ'],
                              v_call=db['V_CALL'],
-                             references=self.repo_dict,
+                             references=self.references,
                              asis_calls=self.asis_calls)
             db.update(imgt_dict)
 
@@ -1480,7 +1480,7 @@ class IgBLASTReader:
                                           j_germ_start=db['J_GERM_START'],
                                           j_germ_length=db['J_GERM_LENGTH'],
                                           j_call=db['J_CALL'],
-                                          references=self.repo_dict,
+                                          references=self.references,
                                           asis_calls=self.asis_calls)
                 db.update(junc_dict)
 
@@ -1629,24 +1629,24 @@ class IHMMuneReader:
         """
         return self._fields
 
-    def __init__(self, ihmmune, seq_dict, repo_dict, receptor=True):
+    def __init__(self, ihmmune, sequences, references, receptor=True):
         """
         Initializer
 
         Arguments:
-          ihmmune : handle to an open iHMMune-Align output file.
-          seq_dict : dictionary with sequence descriptions as keys mapping to the SeqRecord containing
-                    the original query sequences.
-          repo_dict : dictionary of IMGT gapped germline sequences.
-          receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary
+          ihmmune (file): handle to an open iHMMune-Align output file.
+          sequences (dict): dictionary with sequence descriptions as keys mapping to the SeqRecord containing
+                            the original query sequences.
+          references (dict): dictionary of IMGT gapped germline sequences.
+          receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary
 
         Returns:
           changeo.Parsers.IHMMuneReader
         """
         # Arguments
         self.ihmmune = ihmmune
-        self.seq_dict = seq_dict
-        self.repo_dict = repo_dict
+        self.sequences = sequences
+        self.references = references
         self.receptor = receptor
 
         # Define field list
@@ -1901,7 +1901,7 @@ class IHMMuneReader:
         # Extract query ID and sequence
         query = record['SEQUENCE_ID']
         db = {'SEQUENCE_ID': query,
-              'SEQUENCE_INPUT': str(self.seq_dict[query].seq)}
+              'SEQUENCE_INPUT': str(self.sequences[query].seq)}
 
         # Check for valid alignment
         if not record['V_CALL'] or \
@@ -1929,8 +1929,7 @@ class IHMMuneReader:
                              v_germ_start=db['V_GERM_START_VDJ'],
                              v_germ_length=db['V_GERM_LENGTH_VDJ'],
                              v_call=db['V_CALL'],
-                             references=self.repo_dict,
-                             asis_calls=self.asis_calls)
+                             references=self.references)
             db.update(imgt_dict)
 
         # Infer IMGT junction
@@ -1940,8 +1939,7 @@ class IHMMuneReader:
                                       j_germ_start=db['J_GERM_START'],
                                       j_germ_length=db['J_GERM_LENGTH'],
                                       j_call=db['J_CALL'],
-                                      references=self.repo_dict,
-                                      asis_calls=self.asis_calls)
+                                      references=self.references)
             db.update(junc_dict)
 
         # Overall alignment score

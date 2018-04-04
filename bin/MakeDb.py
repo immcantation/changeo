@@ -37,7 +37,7 @@ def getIDforIMGT(seq_file):
       dict : a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
     """
 
-    # Create a seq_dict ID translation using IDs truncate up to space or 50 chars
+    # Create a sequence ID translation using IDs truncate up to space or 50 chars
     ids = {}
     for rec in readSeqFile(seq_file):
         if len(rec.description) <= 50:
