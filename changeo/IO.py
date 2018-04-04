@@ -2005,7 +2005,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
                  'V_GERM_LENGTH_IMGT': None}
 
     # Initialize imgt gapped sequence
-    seq_imgt = '.' * (int(v_germ_length) - 1) + seq
+    seq_imgt = '.' * (int(v_germ_start) - 1) + seq
 
     # Extract first V call
     if not asis_calls:
