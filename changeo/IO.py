@@ -854,7 +854,7 @@ class IMGTReader:
 
         # Parse optional fields
         db.update(IMGTReader._parseScores(summary))
-        db.update(getRegions(db))
+        db.update(getRegions(db['SEQUENCE_IMGT'], db['JUNCTION_LENGTH']))
         db.update(IMGTReader._parseJuncDetails(junction))
 
         return db
@@ -1462,16 +1462,27 @@ class IgBLASTReader:
 
         # Create IMGT-gapped sequence
         if ('V_CALL' in db and db['V_CALL']) and ('SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']):
-            db.update(gapV(db, self.repo_dict, asis_calls=self.asis_calls))
+            imgt_dict = gapV(db['SEQUENCE_VDJ'],
+                             v_germ_start=db['V_GERM_START_VDJ'],
+                             v_germ_length=db['V_GERM_LENGTH_VDJ'],
+                             v_call=db['V_CALL'],
+                             references=self.repo_dict,
+                             asis_calls=self.asis_calls)
+            db.update(imgt_dict)
 
         # Add junction
         if 'subregion' in sections:
             if 'CDR3_IGBLAST_START' in sections['subregion']:
-                junction = self._parseSubregionSection(sections['subregion'], db['SEQUENCE_INPUT'])
-                db.update(junction)
+                junc_dict = self._parseSubregionSection(sections['subregion'], db['SEQUENCE_INPUT'])
+                db.update(junc_dict)
             elif ('J_CALL' in db and db['J_CALL']) and ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-                junction = inferJunction(db, self.repo_dict, asis_calls=self.asis_calls)
-                db.update(junction)
+                junc_dict = inferJunction(db['SEQUENCE_IMGT'],
+                                          j_germ_start=db['J_GERM_START'],
+                                          j_germ_length=db['J_GERM_LENGTH'],
+                                          j_call=db['J_CALL'],
+                                          references=self.repo_dict,
+                                          asis_calls=self.asis_calls)
+                db.update(junc_dict)
 
         # Add IgBLAST CDR3 sequences
         if 'subregion' in sections:
@@ -1482,7 +1493,7 @@ class IgBLASTReader:
             db.update(dict(zip(ChangeoSchema.igblast_cdr3_fields, [None, None])))
 
         # Add FWR and CDR regions
-        db.update(getRegions(db))
+        db.update(getRegions(db.get('SEQUENCE_IMGT', None), db.get('JUNCTION_LENGTH', None)))
 
         return db
 
@@ -1914,19 +1925,31 @@ class IHMMuneReader:
         # Create IMGT-gapped sequence
         if 'V_CALL' in db and db['V_CALL'] and \
                 'SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']:
-            db.update(gapV(db, self.repo_dict))
+            imgt_dict = gapV(db['SEQUENCE_VDJ'],
+                             v_germ_start=db['V_GERM_START_VDJ'],
+                             v_germ_length=db['V_GERM_LENGTH_VDJ'],
+                             v_call=db['V_CALL'],
+                             references=self.repo_dict,
+                             asis_calls=self.asis_calls)
+            db.update(imgt_dict)
 
         # Infer IMGT junction
         if ('J_CALL' in db and db['J_CALL']) and \
                 ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-            db.update(inferJunction(db, self.repo_dict))
+            junc_dict = inferJunction(db['SEQUENCE_IMGT'],
+                                      j_germ_start=db['J_GERM_START'],
+                                      j_germ_length=db['J_GERM_LENGTH'],
+                                      j_call=db['J_CALL'],
+                                      references=self.repo_dict,
+                                      asis_calls=self.asis_calls)
+            db.update(junc_dict)
 
         # Overall alignment score
         db.update(IHMMuneReader._parseScores(record))
 
         # FWR and CDR regions
-        db.update(getRegions(db))
-
+        db.update(getRegions(db.get('SEQUENCE_IMGT', None), db.get('JUNCTION_LENGTH', None)))
+        
         return db
 
     def __iter__(self):
@@ -1961,17 +1984,20 @@ class IHMMuneReader:
             return db
 
 
-def gapV(db, repo_dict, asis_calls=False):
+def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False):
     """
-    Construction IMGT-gapped V-region sequences.
+    Construction IMGT-gapped V segment sequences.
 
     Arguments:
-      db : database dictionary of parsed IgBLAST.
-      repo_dict : dictionary of IMGT-gapped reference sequences.
-      asis_calls : if True do not parse V_CALL for allele names and just split by comma.
+      seq (str): V(D)J sequence alignment (SEQUENCE_VDJ).
+      v_germ_start (int): start position V segment alignment in the germline (V_GERM_START_VDJ).
+      v_germ_length (int): length of the V segment alignment against the germline (V_GERM_LENGTH_VDJ).
+      v_call (str): V segment allele assignment (V_CALL).
+      references (dict): dictionary of IMGT-gapped reference sequences.
+      asis_calls (bool): if True do not parse v_call for allele names and just split by comma.
 
     Returns:
-      dict : database entries containing IMGT-gapped query sequences and germline positions.
+      dict : dictionary containing IMGT-gapped query sequences and germline positions.
     """
     # Initialize return object
     imgt_dict = {'SEQUENCE_IMGT': None,
@@ -1979,24 +2005,24 @@ def gapV(db, repo_dict, asis_calls=False):
                  'V_GERM_LENGTH_IMGT': None}
 
     # Initialize imgt gapped sequence
-    seq_imgt = '.' * (int(db['V_GERM_START_VDJ']) - 1) + db['SEQUENCE_VDJ']
+    seq_imgt = '.' * (int(v_germ_length) - 1) + seq
 
     # Extract first V call
     if not asis_calls:
-        vgene = parseAllele(db['V_CALL'], v_allele_regex, 'first')
+        vgene = parseAllele(v_call, v_allele_regex, 'first')
     else:
-        vgene = db['V_CALL'].split(',')[0]
+        vgene = v_call.split(',')[0]
 
     # Find gapped germline V segment
-    if vgene in repo_dict:
-        vgap = repo_dict[vgene]
+    if vgene in references:
+        vgap = references[vgene]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
-        gapcount = int(db['V_GERM_START_VDJ']) - 1
+        gapcount = int(v_germ_start) - 1
         for gap in gaps:
             i = gap.start()
             # Break if gap begins after V region
-            if i >= db['V_GERM_LENGTH_VDJ'] + gapcount:
+            if i >= v_germ_length + gapcount:
                 break
             # Insert gap into IMGT sequence
             seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
@@ -2006,25 +2032,28 @@ def gapV(db, repo_dict, asis_calls=False):
         imgt_dict['SEQUENCE_IMGT'] = seq_imgt
         # Update IMGT positioning information for V
         imgt_dict['V_GERM_START_IMGT'] = 1
-        imgt_dict['V_GERM_LENGTH_IMGT'] = db['V_GERM_LENGTH_VDJ'] + gapcount
+        imgt_dict['V_GERM_LENGTH_IMGT'] = v_germ_length + gapcount
     else:
-        sys.stderr.write('\nWARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined for %s.\n' \
-                         % (vgene, db['SEQUENCE_ID']))
+        sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined.\n' \
+                         % vgene)
 
     return imgt_dict
 
 
-def inferJunction(db, repo_dict, asis_calls=False):
+def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False):
     """
     Identify junction region by IMGT definition.
 
     Arguments:
-      db : database dictionary of changeo data.
-      repo_dict : dictionary of IMGT-gapped reference sequences.
-      asis_calls : if True do not parse V_CALL for allele names and just split by comma.
+      seq (str): IMGT-gapped V(D)J sequence alignment (SEQUENCE_IMGT).
+      j_germ_start (int): start position J segment alignment in the germline (J_GERM_START).
+      j_germ_length (int): length of the J segment alignment against the germline (J_GERM_LENGTH).
+      j_call (str): J segment allele assignment (J_CALL).
+      references (dict): dictionary of IMGT-gapped reference sequences.
+      asis_calls (bool): if True do not parse V_CALL for allele names and just split by comma.
 
     Returns:
-      dict : database entries containing junction sequence and length.
+      dict : dictionary containing junction sequence, translation and length.
     """
     junc_dict = {'JUNCTION': None,
                  'JUNCTION_AA': None,
@@ -2032,26 +2061,26 @@ def inferJunction(db, repo_dict, asis_calls=False):
 
     # Find germline J segment
     if not asis_calls:
-        jgene = parseAllele(db['J_CALL'], j_allele_regex, 'first')
+        jgene = parseAllele(j_call, j_allele_regex, 'first')
     else:
-        jgene = db['J_CALL'].split(',')[0]
-    jgerm = repo_dict.get(jgene, None)
+        jgene = j_call.split(',')[0]
+    jgerm = references.get(jgene, None)
 
     if jgerm is not None:
         # Look for (F|W)GXG amino acid motif in germline nucleotide sequence
         motif = re.search(r'T(TT|TC|GG)GG[ACGT]{4}GG[AGCT]', jgerm)
 
         # Define junction end position
-        seq_len = len(db['SEQUENCE_IMGT'])
+        seq_len = len(seq)
         if motif:
-            j_start = seq_len - db['J_GERM_LENGTH']
-            motif_pos = max(motif.start() - db['J_GERM_START'] + 1, -1)
+            j_start = seq_len - j_germ_length
+            motif_pos = max(motif.start() - j_germ_start + 1, -1)
             junc_end = j_start + motif_pos + 3
         else:
             junc_end = seq_len
 
         # Extract junction
-        junc_dict['JUNCTION'] = db['SEQUENCE_IMGT'][309:junc_end]
+        junc_dict['JUNCTION'] = seq[309:junc_end]
         junc_len = len(junc_dict['JUNCTION'])
         junc_dict['JUNCTION_LENGTH'] = junc_len
 
@@ -2063,15 +2092,16 @@ def inferJunction(db, repo_dict, asis_calls=False):
     return junc_dict
 
 
-def getRegions(db):
+def getRegions(seq, junction_length):
     """
     Identify FWR and CDR regions by IMGT definition.
 
     Arguments:
-      db : database dictionary of parsed alignment output.
+      seq : IMGT-gapped sequence.
+      junction_length : length of the junction region in nucleotides.
 
     Returns:
-      dict : database entries containing FWR and CDR sequences.
+      dict : dictionary of FWR and CDR sequences.
     """
     region_dict = {'FWR1_IMGT': None,
                    'FWR2_IMGT': None,
@@ -2081,29 +2111,29 @@ def getRegions(db):
                    'CDR2_IMGT': None,
                    'CDR3_IMGT': None}
     try:
-        seq_len = len(db['SEQUENCE_IMGT'])
-        region_dict['FWR1_IMGT'] = db['SEQUENCE_IMGT'][0:min(78, seq_len)]
+        seq_len = len(seq)
+        region_dict['FWR1_IMGT'] = seq[0:min(78, seq_len)]
     except (KeyError, IndexError, TypeError):
         return region_dict
 
-    try: region_dict['CDR1_IMGT'] = db['SEQUENCE_IMGT'][78:min(114, seq_len)]
+    try: region_dict['CDR1_IMGT'] = seq[78:min(114, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR2_IMGT'] = db['SEQUENCE_IMGT'][114:min(165, seq_len)]
+    try: region_dict['FWR2_IMGT'] = seq[114:min(165, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['CDR2_IMGT'] = db['SEQUENCE_IMGT'][165:min(195, seq_len)]
+    try: region_dict['CDR2_IMGT'] = seq[165:min(195, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR3_IMGT'] = db['SEQUENCE_IMGT'][195:min(312, seq_len)]
+    try: region_dict['FWR3_IMGT'] = seq[195:min(312, seq_len)]
     except (IndexError): return region_dict
 
     try:
         # CDR3
-        cdr3_end = 306 + db['JUNCTION_LENGTH']
-        region_dict['CDR3_IMGT'] = db['SEQUENCE_IMGT'][312:cdr3_end]
+        cdr3_end = 306 + junction_length
+        region_dict['CDR3_IMGT'] = seq[312:cdr3_end]
         # FWR4
-        region_dict['FWR4_IMGT'] = db['SEQUENCE_IMGT'][cdr3_end:]
+        region_dict['FWR4_IMGT'] = seq[cdr3_end:]
     except (KeyError, IndexError, TypeError):
         return region_dict
 
@@ -2137,15 +2167,15 @@ def readGermlines(repo, asis=False):
         sys.exit('\nERROR: No valid germline fasta files (.fasta, .fna, .fa) were found in %s' \
                  % ','.join(repo))
 
-    repo_dict = {}
+    references = {}
     for file_name in repo_files:
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
                 germ_key = parseAllele(g.description, allele_regex, 'first') if not asis else g.id
-                repo_dict[germ_key] = str(g.seq).upper()
+                references[germ_key] = str(g.seq).upper()
 
-    return repo_dict
+    return references
 
 
 def extractIMGT(imgt_output):
