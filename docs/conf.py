@@ -51,10 +51,9 @@ needs_sphinx = '1.4'
 # ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
-              'sphinx.ext.todo',
               'sphinx.ext.imgmath',
-              'sphinx.ext.coverage',
-              'sphinxcontrib.napoleon',
+              'sphinx.ext.napoleon',
+              'sphinx.ext.todo',
               'sphinxcontrib.autoprogram',
               'sphinxcontrib.bibtex']
 
