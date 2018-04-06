@@ -326,12 +326,12 @@ def getArgParser():
                             version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
-                                       help='Gapping method')
+                                       help='alignment method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(multiproc=True)
+    parser_parent = getCommonArgParser(format=False, multiproc=True)
 
     # Argument parser for column-wise alignment across records
     parser_across = subparsers.add_parser('across', parents=[parser_parent],

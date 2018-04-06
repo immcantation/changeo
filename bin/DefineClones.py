@@ -534,13 +534,13 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
         reader = ChangeoReader
         writer = ChangeoWriter
         schema = ChangeoSchema
-        out_fields = getDbFields(db_file, add='CLONE', reader=reader)
+        out_fields = getDbFields(db_file, add=schema.asChangeo('clone'), reader=reader)
         out_args['out_type'] = 'tab'
     elif format == 'airr':
         reader = AIRRReader
         writer = AIRRWriter
         schema = AIRRSchema
-        out_fields = getDbFields(db_file, add='clone', reader=reader)
+        out_fields = getDbFields(db_file, add=schema.asAIRR('clone'), reader=reader)
         out_args['out_type'] = 'tsv'
     else:
         sys.exit('Error:  Invalid format %s' % format)
@@ -618,17 +618,17 @@ def getArgParser():
               ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(multiproc=True)],
+                            parents=[getCommonArgParser(format=False, multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Distance cloning method
     group = parser.add_argument_group('cloning arguments')
-    group.add_argument('--sf', action='store', dest='seq_field', default=None,
-                        help='Field to be used to calculate distance between records. Defaults to JUNCTION.')
-    group.add_argument('--vf', action='store', dest='v_field', default=None,
-                        help='Field containing the germline V segment call. Defaults to V_CALL.')
-    group.add_argument('--jf', action='store', dest='j_field', default=None,
-                        help='Field containing the germline J segment call. Defaults to J_CALL.')
+    group.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
+                        help='Field to be used to calculate distance between records.')
+    group.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
+                        help='Field containing the germline V segment call.')
+    group.add_argument('--jf', action='store', dest='j_field', default=default_j_field,
+                        help='Field containing the germline J segment call.')
     group.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                         help='Additional fields to use for grouping clones aside from V, J and junction length.')
     group.add_argument('--mode', action='store', dest='mode',
@@ -693,22 +693,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
-    # Set default fields if not specified.
-    default_fields = {'seq_field': default_seq_field,
-                      'v_field': default_v_field,
-                      'j_field': default_j_field}
-
-    # Default Change-O fields
-    if args_dict['format'] == 'changeo':
-        for f in default_fields:
-            if args_dict[f] is None:  args_dict[f] = default_fields[f]
-            else: args_dict[f] = args_dict[f].upper()
-
-    # Default AIRR fields
-    if args_dict['format'] == 'airr':
-        for f in default_fields:
-            if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
-            else: args_dict[f] = args_dict[f].lower()
+    # # Set default fields if not specified.
+    # default_fields = {'seq_field': default_seq_field,
+    #                   'v_field': default_v_field,
+    #                   'j_field': default_j_field}
+    #
+    # # Default Change-O fields
+    # if args_dict['format'] == 'changeo':
+    #     for f in default_fields:
+    #         if args_dict[f] is None:  args_dict[f] = default_fields[f]
+    #         else: args_dict[f] = args_dict[f].upper()
+    #
+    # # Default AIRR fields
+    # if args_dict['format'] == 'airr':
+    #     for f in default_fields:
+    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
+    #         else: args_dict[f] = args_dict[f].lower()
 
     # Define grouping and cloning function arguments
     args_dict['group_args'] = {'action': args_dict['action'],
