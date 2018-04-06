@@ -20,7 +20,7 @@ from time import time
 from presto.IO import getOutputHandle, printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getFileExt, TSVReader, TSVWriter
+from changeo.IO import countDbFile, splitFileName, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -59,7 +59,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
@@ -173,7 +173,7 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
     # Open inut
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Add fields
     out_fields = list(db_iter.fields)
@@ -242,7 +242,7 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Append index field
     out_fields = list(db_iter.fields)
@@ -309,7 +309,7 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Exclude dropped field from output
     out_fields = [f for f in db_iter.fields if f not in fields]
@@ -390,7 +390,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Open output
     if out_file is not None:
@@ -462,7 +462,7 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
     # Open file handles
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Get header and rename fields
     out_fields = list(db_iter.fields)
@@ -553,7 +553,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Open output
     if out_file is not None:
@@ -631,7 +631,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Open output
     if out_file is not None:
@@ -707,7 +707,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    out_args['out_type'] = getFileExt(db_file)
+    __, out_args['out_type'] = splitFileName(db_file)
 
     # Open output
     if out_file is not None:
@@ -791,7 +791,7 @@ def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args)
     if out_file is not None:
         pass_handle = open(out_file, 'w')
     else:
-        out_args['out_type'] = getFileExt(db_files[0])
+        __, out_args['out_type'] = splitFileName(db_files[0])
         pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)

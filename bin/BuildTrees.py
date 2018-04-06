@@ -9,15 +9,16 @@ import sys
 from argparse import ArgumentParser
 from textwrap import dedent
 from collections import OrderedDict
-
+from time import time
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog
+from presto.IO import  printLog, getOutputHandle, printProgress
 from changeo.Defaults import default_format
-from changeo.IO import AIRRReader, ChangeoReader
+from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, splitFileName, getDbFields
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
+from Bio.Seq import Seq
 
 def maskSplitCodons(receptor):
     """
@@ -86,47 +87,63 @@ def maskSplitCodons(receptor):
                 qpos -= 1
                 spos = ospos
                 #print("But codon was apparently preserved")
-                log[str(spos)]="IN-FRAME"
+                #log[str(spos)]="IN-FRAME"
+                if 'IN-FRAME' in  log:
+                    log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
+                else:
+                    log['IN-FRAME'] = str(spos)
             elif qpos >= len(qcodons):
-                log[str(spos)] = "FAILED_MATCH_QSTRING"
                 log['PASS'] = False
+                log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
             elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= len(scodons):
                     #print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
-                    log[str(spos)] = "END"
+                    #log[str(spos)] = "END"
+                    if 'END-MASKED' in log:
+                        log['END-MASKED'] = log['END-MASKED'] + "," + str(spos)
+                    else:
+                        log['END-MASKED'] = str(spos)
                 else:
                     #print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
-                    log[str(spos)] = "FAILED_MATCH"
+                    #log[str(spos)] = "FAILED_MATCH"
                     log['PASS']=False
+                    log['FAIL']="FAILED_MATCH:"+str(spos)
                     #exit(1)
             elif qcodons[qpos] == scodons[spos]:
                 #print("Masked %s at position %d" % (scodons[ospos], ospos))
                 scodons[ospos] = "NNN"
-                log[str(spos)] = "MASKED"
+                if 'MASKED' in  log:
+                    log['MASKED'] = log['MASKED'] + "," + str(spos)
+                else:
+                    log['MASKED'] = str(spos)
+
             else:
-                #print("Something weird happened")
                 log['PASS'] = False
-                #exit(1)
+                log['FAIL'] = "UNKNOWN"
 
     #if scodons[-1] == "." or scodons[-1] == ".." or scodons[-1] == "...":
     #    scodons[-1] = "NNN"
     #    log[str(len(scodons))] = "MASKED"
     if len(scodons[-1]) != 3:
         scodons[-1] = "NNN"
-        log[str(len(scodons))] = "MASKED"
+        #log[str(len(scodons))] = "MASKED"
+        if 'MASKED' in log:
+            log['MASKED'] = log['MASKED'] + "," + str(len(scodons))
+        else:
+            log['MASKED'] = str(spos)
 
     concatenated_seq = Seq("")
     for i in scodons:
         concatenated_seq += i
 
-    log['INSEQ'] = receptor.sequence_input
-    log['IMGTSEQ'] = receptor.sequence_imgt
-    log["MASKED"] = concatenated_seq
+    log['SEQ_IN'] = receptor.sequence_input
+    log['SEQ_IMGT'] = receptor.sequence_imgt
+    log["SEQ_MASKED"] = concatenated_seq
 
     return concatenated_seq, log
 
-def outputIgPhyML(clones, sequences, collapse=False, failed=None, out_dir=None):
+def outputIgPhyML(clones, sequences, collapse=False, logs=None, fail_writer=None, out_dir=None):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -134,7 +151,7 @@ def outputIgPhyML(clones, sequences, collapse=False, failed=None, out_dir=None):
         clones (list): receptor objects within the same clone.
         sequences (list): sequences within the same clone (share indexes with clones parameter).
         collapse (bool): if True collapse identical sequences.
-        failed (file): file handle for output of failed records. if None do not output failed records.
+        logs (dict of OrderedDicts): contains log information for each sequence
         out_dir (str): directory for output files.
     Returns:
         int: number of clones.
@@ -191,14 +208,12 @@ def outputIgPhyML(clones, sequences, collapse=False, failed=None, out_dir=None):
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
-        if conseq in useqs:
-            log = OrderedDict()
-            log['ID'] = clones[j].sequence_id
-            log['CLONE'] = clones[j].clone
-            log['SEQ_IMGT'] = conseq
-            log['FAIL'] = "Duplication of " + clones[useqs[conseq]].sequence_id
-            if collapse:
-                printLog(log, handle=failed)
+        if conseq in useqs and collapse:
+            logs[clones[j].sequence_id]['PASS'] = False
+            logs[clones[j].sequence_id]['FAIL'] = "Duplication of " + clones[useqs[conseq]].sequence_id
+            logs[clones[j].sequence_id]['DUPLICATE']=True
+            if fail_writer is not None:
+                fail_writer.writeReceptor(clones[j])
         else:
             useqs[conseq] = j
         conseqs.append(conseq)
@@ -255,13 +270,38 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         None: outputs files for IgPhyML.
 
     """
+    start_time = time()
     # TODO: changeo console log
+    # pass_handle.name = "outdir/out_name_lineages.tsv"
+    pass_handle = getOutputHandle(db_file,
+                                  out_label='lineages',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type='tsv')
+
+    dir_name, __ = os.path.split(pass_handle.name)
+
+    if out_args['out_name'] is None:
+        clone_name, __ = splitFileName(db_file)
+    else:
+        clone_name = out_args['out_name']
+    # clone_dir = outdir/out_name
+    if dir_name is None:
+        clone_dir = clone_name
+    else:
+        clone_dir = os.path.join(dir_name, clone_name)
+    if not os.path.exists(clone_dir):
+        os.makedirs(clone_dir)
 
     # Format options
     if format == 'changeo':
         reader = ChangeoReader
+        writer = ChangeoWriter
+        out_fields = getDbFields(db_file, reader=reader)
     elif format == 'airr':
         reader = AIRRReader
+        writer = AIRRWriter
+        out_fields = getDbFields(db_file, reader=reader)
     else:
         sys.exit('Error:  Invalid format %s' % format)
 
@@ -270,20 +310,28 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     records = reader(handle)
 
     # TODO: make consistent with changeo behavior regarding --log and --failed
-    # get output directory
-    out_dir = out_args['out_dir']
-    log_handle = open(out_args['log_file'], 'w')
-    failed = open(os.path.join(out_dir, "failedSeqs.fa"), 'w')
+    fail_handle, fail_writer = None, None
+    if out_args['failed']:
+        fail_handle = getOutputHandle(db_file,
+                                      out_label='lineages-fail',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
+        fail_writer = writer(fail_handle, fields=out_fields)
 
     cloneseqs = {}
     clones = {}
+    logs = OrderedDict()
+    rec_count = 0
+    seq_fail = 0
     for r in records:
+        rec_count += 1
+        #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
             mout = maskSplitCodons(r)
             mask_seq = mout[0]
-
+            logs[mout[1]['ID']]=mout[1]
             if mout[1]['PASS']:
-                printLog(mout[1], handle=log_handle)
                 if r.clone in clones:
                     clones[r.clone].append(r)
                     cloneseqs[r.clone].append(mask_seq)
@@ -291,34 +339,66 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
                     clones[r.clone] = [r]
                     cloneseqs[r.clone] = [mask_seq]
             else:
-                printLog(mout[1], handle=failed)
+                if out_args['failed']:
+                    fail_writer.writeReceptor(r)
+                seq_fail += 1
+
         else:
-            print("Skipping %s", r.sequence_id)
+            log = OrderedDict()
+            log['ID'] = r.sequence_id
+            log['CLONE'] = r.clone
+            log['PASS'] = False
+            log['FAIL'] = "NONFUNCTIONAL"
+            log['SEQ_IN'] = r.sequence_input
+            logs[r.sequence_id]=log
+            if out_args['failed']:
+                fail_writer.writeReceptor(r)
+            seq_fail += 1
 
-    clonesizes={}
+    clonesizes = {}
+    pass_count = 0
     for k in clones.keys():
-        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], collapse=False, failed=failed,
-                                           out_dir=out_dir)
+        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], collapse=collapse,
+                                           logs=logs,fail_writer=fail_writer,out_dir=clone_dir)
+        pass_count += clonesizes[str(k)]
+    fail_count = rec_count - pass_count
 
-    # TODO: make consistent with changeo behavior and naming scheme
-    repfile1 = os.path.join(out_dir, "repFile.tsv")
-    repfile2 = os.path.join(out_dir, "repFile.N.tsv")
-    rout1 = open(repfile1, 'w')
-    rout2 = open(repfile2, 'w')
+    if out_args['log_file'] is not None:
+        log_handle = open(out_args['log_file'], 'w')
+        for j in logs.keys():
+            printLog(logs[j], handle=log_handle)
 
     # TODO: changeo console log
-    print(len(clonesizes), file=rout1)
-    print(len(clonesizes), file=rout2)
+    print(len(clonesizes), file=pass_handle)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
-        print(key + "\t" + str(clonesizes[key]))
-        outfile = out_dir + "/" + key + ".fa"
-        partfile = out_dir + "/" + key + ".part.txt"
+        #print(key + "\t" + str(clonesizes[key]))
+        outfile = clone_dir + "/" + key + ".fa"
+        partfile = clone_dir + "/" + key + ".part.txt"
         # TODO: use file.write()
-        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=rout1)
-        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", "N"), file=rout2)
+        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=pass_handle)
 
     handle.close()
+    output = {'pass': None, 'fail': None}
+    if pass_handle is not None:
+        output['pass'] = pass_handle.name
+        pass_handle.close()
+    if fail_handle is not None:
+        output['fail'] = fail_handle.name
+        fail_handle.close()
+    if log_handle is not None:
+        log_handle.close()
 
+    #printProgress(rec_count, rec_count, 0.05, start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
+    log['RECORDS'] = rec_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['MASKFAIL'] = seq_fail
+    if collapse:
+        log['DUPLICATE'] = fail_count - seq_fail
+    log['END'] = 'BuildTrees'
+    printLog(log)
 
 def getArgParser():
     """
@@ -357,7 +437,7 @@ def getArgParser():
               ''')
 
     # Parent parser
-    parser_parent = getCommonArgParser(log=True, format=True)
+    parser_parent = getCommonArgParser(db_out=False, log=True, format=False)
 
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,

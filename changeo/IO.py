@@ -2289,16 +2289,18 @@ def getDbFields(file, add=None, exclude=None, reader=TSVReader):
     return fields
 
 
-def getFileExt(filename):
+def splitFileName(file):
     """
     Extract the extension from a file name
 
     Arguments:
-      filename : file name
+      file (str): file name.
 
     Returns:
-      str : file extension
+      tuple : tuple of the file basename and extension.
     """
-    file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+    dir_name, file_name = os.path.split(file)
+    short_name, ext_name = os.path.splitext(file_name)
+    file_type = ext_name.lower().lstrip('.')
 
-    return file_type
+    return short_name, file_type
