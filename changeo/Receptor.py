@@ -303,6 +303,7 @@ class ChangeoSchema:
                               ('J_IDENTITY', 'j_identity')])
     imgt_score_fields = list(imgt_score.keys())
 
+    # IgBLAST scoring fields
     igblast_score = OrderedDict([('V_SCORE', 'v_score'),
                                  ('V_IDENTITY', 'v_identity'),
                                  ('V_EVALUE', 'v_evalue'),
@@ -443,7 +444,6 @@ class Receptor:
     Attributes:
       sequence_id (str) : unique sequence identifier.
       v_call (str) : V allele assignment(s).
-      v_call_genotype (str) : genotyped V allele assignment(s).
       d_call (str) : D allele assignment(s).
       j_call (str) : J allele assignment(s).
       c_call (str) : C region assignment.
@@ -529,7 +529,6 @@ class Receptor:
     # Mapping of member variables to parsing functions
     _parsers = {'sequence_id': '_identity',
                 'v_call': '_identity',
-                'v_call_genotyped': '_identity',
                 'd_call': '_identity',
                 'j_call': '_identity',
                 'c_call': '_identity',
