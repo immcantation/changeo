@@ -89,9 +89,9 @@ rev_comp:
   description: True if the the alignment is on the opposite strand (reverse complemented).
   changeo: REV_COMP
   airr: rev_comp
-productive:
+functional:
   type: boolean
-  description: True if the V(D)J sequence is predicted to be productive.
+  description: True if the V(D)J sequence is a functional gene and is predicted to be productive.
   changeo: FUNCTIONAL
   airr: productive
 
@@ -133,7 +133,7 @@ v_seq_length:
   description: Length of the V segment in the query sequence.
   coordinate: v_seq, length
   changeo: V_SEQ_LENGTH
-  airr: null
+  airr: v_sequence_length
 
 v_germ_start_align:
   type: integer
