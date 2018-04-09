@@ -21,8 +21,8 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, readGermlines, AIRRWriter, ChangeoWriter, \
-                       IgBLASTReader, IMGTReader, IHMMuneReader
+from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, \
+                       AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 
@@ -98,12 +98,12 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
 
     # Function to convert fasta header annotations to changeo columns
     def _changeo(fields, header):
-        f = [ChangeoSchema.asChangeo(x) for x in header if x.upper() not in fields]
+        f = [ChangeoSchema.fromReceptor(x) for x in header if x.upper() not in fields]
         fields.extend(f)
         return fields
 
     def _airr(fields, header):
-        f = [AIRRSchema.asAIRR(x) for x in header if x.lower() not in fields]
+        f = [AIRRSchema.fromReceptor(x) for x in header if x.lower() not in fields]
         fields.extend(f)
         return fields
 
@@ -156,7 +156,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                 # Convert to Receptor fields
                 ann_parsed = OrderedDict()
                 for k, v in ann_raw.items():
-                    ann_parsed[ChangeoSchema.asReceptor(k)] = v
+                    ann_parsed[ChangeoSchema.toReceptor(k)] = v
 
                 # If first record, use parsed description to define extra columns
                 if i == 1:  fields = _annotate(fields, ann_parsed.keys())
@@ -257,19 +257,17 @@ def parseIMGT(aligner_file, seq_file=None, partial=False, asis_id=True,
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
     printMessage('Done', start_time=start_time, end=True, width=20)
 
+    # Define format operators
+    try:
+        __, writer, schema = getFormatOperators(format)
+    except ValueError:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Define output fields
-    if format == 'changeo':
-        writer = ChangeoWriter
-        fields = ChangeoSchema.fields(imgt_score=parse_scores,
-                                      region=parse_regions,
-                                      junction=parse_junction)
-        out_args['out_type'] = 'tab'
-    elif format == 'airr':
-        writer = AIRRWriter
-        fields = AIRRSchema.fields(imgt_score=True,
-                                   region=parse_regions,
-                                   junction=parse_junction)
-        out_args['out_type'] = 'tsv'
+    fields = schema.fields(imgt_score=parse_scores,
+                           region=parse_regions,
+                           junction=parse_junction)
+    out_args['out_type'] = schema.out_type
 
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
@@ -334,19 +332,17 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     repo_dict = readGermlines(repo, asis=asis_calls)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
+    # Define format operators
+    try:
+        __, writer, schema = getFormatOperators(format)
+    except ValueError:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Define output fields
-    if format == 'changeo':
-        writer = ChangeoWriter
-        fields = ChangeoSchema.fields(igblast_score=parse_scores,
-                                      region=parse_regions,
-                                      igblast_cdr3=parse_igblast_cdr3)
-        out_args['out_type'] = 'tab'
-    elif format == 'airr':
-        writer = AIRRWriter
-        fields = AIRRSchema.fields(igblast_score=True,
-                                   region=parse_regions,
-                                   igblast_cdr3=parse_igblast_cdr3)
-        out_args['out_type'] = 'tsv'
+    fields = schema.fields(igblast_score=parse_scores,
+                           region=parse_regions,
+                           igblast_cdr3=parse_igblast_cdr3)
+    out_args['out_type'] = schema.out_type
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
@@ -402,17 +398,16 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
     repo_dict = readGermlines(repo)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
+    # Define format operators
+    try:
+        __, writer, schema = getFormatOperators(format)
+    except ValueError:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Define output fields
-    if format == 'changeo':
-        writer = ChangeoWriter
-        fields = ChangeoSchema.fields(ihmm_score=parse_scores,
-                                      region=parse_regions)
-        out_args['out_type'] = 'tab'
-    if format == 'airr':
-        writer = AIRRWriter
-        fields = AIRRSchema.fields(ihmm_score=True,
-                                   region=parse_regions)
-        out_args['out_type'] = 'tsv'
+    fields = schema.fields(ihmm_score=parse_scores,
+                           region=parse_regions)
+    out_args['out_type'] = schema.out_type
 
     # Parse and write output
     with open(aligner_file, 'r') as f:

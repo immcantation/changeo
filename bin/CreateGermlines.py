@@ -21,8 +21,8 @@ from presto.IO import getOutputHandle, printLog, printMessage, printProgress
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields, readGermlines, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, readGermlines, \
+                       AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # Defaults
@@ -436,42 +436,28 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     if cloned:  log['CLONE_FIELD'] = clone_field
     printLog(log)
 
-    # Format options
-    if format == 'changeo':
-        reader = ChangeoReader
-        writer = ChangeoWriter
-        schema = ChangeoSchema
-        germline_fields = OrderedDict()
-        seq_type = seq_field.split('_')[-1]
-        if 'full' in germ_types:  germline_fields['full'] = 'GERMLINE_' + seq_type
-        if 'dmask' in germ_types:  germline_fields['dmask'] = 'GERMLINE_' + seq_type + '_D_MASK'
-        if 'vonly' in germ_types:  germline_fields['vonly'] = 'GERMLINE_' + seq_type + '_V_REGION'
-        if 'regions' in germ_types:  germline_fields['regions'] = 'GERMLINE_REGIONS'
-        if cloned:
-            germline_fields['v'] = 'GERMLINE_V_CALL'
-            germline_fields['d'] = 'GERMLINE_D_CALL'
-            germline_fields['j'] = 'GERMLINE_J_CALL'
-        out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
-        out_args['out_type'] = 'tab'
-    elif format == 'airr':
-        reader = AIRRReader
-        writer = AIRRWriter
-        schema = AIRRSchema
-        germline_fields = OrderedDict()
-        # TODO: this won't work for AIRR necessarily
-        seq_type = seq_field.split('_')[-1]
-        if 'full' in germ_types:  germline_fields['full'] = 'germline_' + seq_type
-        if 'dmask' in germ_types:  germline_fields['dmask'] = 'germline_' + seq_type + '_d_mask'
-        if 'vonly' in germ_types:  germline_fields['vonly'] = 'germline_' + seq_type + '_v_region'
-        if 'regions' in germ_types:  germline_fields['regions'] = 'germline_regions'
-        if cloned:
-            germline_fields['v'] = 'germline_v_call'
-            germline_fields['d'] = 'germline_d_call'
-            germline_fields['j'] = 'germline_j_call'
-        out_fields = getDbFields(db_file, add=list(germline_fields.values()), reader=reader)
-        out_args['out_type'] = 'tsv'
-    else:
+    # Define format operators
+    try:
+        reader, writer, schema = getFormatOperators(format)
+    except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
+    out_args['out_type'] = schema.out_type
+
+    # TODO: this won't work for AIRR necessarily
+    # Define output germline fields
+    germline_fields = OrderedDict()
+    seq_type = seq_field.split('_')[-1]
+    if 'full' in germ_types:  germline_fields['full'] = 'germline_' + seq_type
+    if 'dmask' in germ_types:  germline_fields['dmask'] = 'germline_' + seq_type + '_d_mask'
+    if 'vonly' in germ_types:  germline_fields['vonly'] = 'germline_' + seq_type + '_v_region'
+    if 'regions' in germ_types:  germline_fields['regions'] = 'germline_regions'
+    if cloned:
+        germline_fields['v'] = 'germline_v_call'
+        germline_fields['d'] = 'germline_d_call'
+        germline_fields['j'] = 'germline_j_call'
+    out_fields = getDbFields(db_file,
+                             add=[schema.fromReceptor(f) for f in germline_fields.values()],
+                             reader=reader)
 
     # Get repertoire and open Db reader
     references = readGermlines(repo)
@@ -487,11 +473,11 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
             sys.exit('Error: %s field does not exist in input database file.' % f)
 
     # Translate to Receptor attribute names
-    v_field = schema.asReceptor(v_field)
-    d_field = schema.asReceptor(d_field)
-    j_field = schema.asReceptor(j_field)
-    seq_field = schema.asReceptor(seq_field)
-    clone_field = schema.asReceptor(clone_field)
+    v_field = schema.toReceptor(v_field)
+    d_field = schema.toReceptor(d_field)
+    j_field = schema.toReceptor(j_field)
+    seq_field = schema.toReceptor(seq_field)
+    clone_field = schema.toReceptor(clone_field)
 
     # Define Receptor iterator
     if cloned:
@@ -705,7 +691,7 @@ if __name__ == '__main__':
     # # Default AIRR fields
     # if args_dict['format'] == 'airr':
     #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
+    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.fromReceptor(default_fields[f])
     #         else: args_dict[f] = args_dict[f].lower()
 
     # Clean arguments dictionary

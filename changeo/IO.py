@@ -161,7 +161,7 @@ class ChangeoReader:
         # Parse fields
         result = {}
         for k, v in record.items():
-            k = ChangeoSchema.asReceptor(k)
+            k = ChangeoSchema.toReceptor(k)
             result[k] = v
 
         return Receptor(result)
@@ -233,7 +233,7 @@ class ChangeoWriter:
         # Parse known fields
         result = {}
         for k, v in row.items():
-            k = ChangeoSchema.asChangeo(k)
+            k = ChangeoSchema.fromReceptor(k)
             result[k] = v
 
         return result
@@ -330,7 +330,7 @@ class AIRRReader:
         result = {}
         for k, v in record.items():
             # Convert start positions to 0-based
-            k = AIRRSchema.asReceptor(k)
+            k = AIRRSchema.toReceptor(k)
             if v is not None and v != '' and k in AIRRSchema._start:
                 v = str(int(v) + 1)
             result[k] = v
@@ -419,7 +419,7 @@ class AIRRWriter:
             if v is not None and v != '' and k in AIRRSchema._start:
                 v = str(int(v) - 1)
             # Convert field names
-            k = AIRRSchema.asAIRR(k, False)
+            k = AIRRSchema.fromReceptor(k, False)
             result[k] = v
 
         return result
@@ -476,6 +476,49 @@ class IMGTReader:
     """
     An iterator to read and parse IMGT output files.
     """
+    @staticmethod
+    def customFields(score=False, region=False, junction=False):
+        """
+        Returns non-standard Receptor attributes defined by the parser
+
+        Arguments:
+          score : if True include alignment scoring fields.
+          region : if True include IMGT-gapped CDR and FWR region fields.
+          junction : if True include detailed junction annotation fields.
+
+        Returns:
+          list : list of Receptor fields.
+        """
+        # Alignment scoring fields
+        score_fields = ['v_score',
+                        'v_identity'
+                        'j_score',
+                        'j_identity']
+
+        # FWR amd CDR fields
+        region_fields = ['fwr1_imgt',
+                         'fwr2_imgt',
+                         'fwr3_imgt',
+                         'fwr4_imgt',
+                         'cdr1_imgt',
+                         'cdr2_imgt',
+                         'cdr3_imgt']
+
+        # Define default detailed junction field ordering
+        junction_fields = ['n1_length',
+                           'n2_length',
+                           'p3v_length',
+                           'p5d_length',
+                           'p3d_length',
+                           'p5j_length',
+                           'd_frame']
+
+        fields = []
+        if score:  fields.extend(score_fields)
+        if region:  fields.extend(region_fields)
+        if junction:  fields.extend(junction_fields)
+
+        return fields
 
     @property
     def fields(self):
@@ -898,6 +941,56 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
+    # Ordered list of known fields
+    @staticmethod
+    def customFields(score=False, region=False, cdr3=False):
+        """
+        Returns non-standard Receptor attributes defined by the parser
+
+        Arguments:
+          score : if True include alignment scoring fields.
+          region : if True include IMGT-gapped CDR and FWR region fields.
+          cdr3 : if True include IgBLAST CDR3 assignment fields.
+
+        Returns:
+          list : list of Receptor fields.
+        """
+        # IgBLAST scoring fields
+        score_fields = ['v_score',
+                        'v_identity',
+                        'v_evalue',
+                        'v_cigar',
+                        'd_score',
+                        'd_identity',
+                        'd_evalue',
+                        'd_cigar',
+                        'j_score',
+                        'j_identity',
+                        'j_evalue',
+                        'j_cigar']
+
+        # FWR amd CDR fields
+        region_fields = ['fwr1_imgt',
+                         'fwr2_imgt',
+                         'fwr3_imgt',
+                         'fwr4_imgt',
+                         'cdr1_imgt',
+                         'cdr2_imgt',
+                         'cdr3_imgt']
+
+        # IgBLAST CDR3 fields
+        cdr3_fields = ['cdr3_igblast',
+                       'cdr3_igblast_aa',
+                       'cdr3_igblast_start',
+                       'cdr3_igblast_end']
+
+        fields = []
+        if score:  fields.extend(score_fields)
+        if region:  fields.extend(region_fields)
+        if cdr3:  fields.extend(cdr3_fields)
+
+        return fields
+
     @property
     def fields(self):
         """
@@ -1003,7 +1096,7 @@ class IgBLASTReader:
         #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
 
         # Define column names
-        cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST_NT',
+        cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST',
                     'translation': 'CDR3_IGBLAST_AA',
                     'start': 'CDR3_IGBLAST_START',
                     'end': 'CDR3_IGBLAST_END'}
@@ -1619,6 +1712,37 @@ class IHMMuneReader:
                       'V_SEQ_START',
                       'V_SEQ_LENGTH',
                       'A_SCORE']
+
+    # Ordered list of known fields
+    @staticmethod
+    def customFields(score=False, region=False):
+        """
+        Returns non-standard Receptor attributes defined by the parser
+
+        Arguments:
+          score : if True include alignment scoring fields.
+          region : if True include IMGT-gapped CDR and FWR region fields.
+
+        Returns:
+          list : list of Receptor fields.
+        """
+        # Alignment scoring fields
+        score_fields = ['hmm_score']
+
+        # FWR amd CDR fields
+        region_fields = ['fwr1_imgt',
+                         'fwr2_imgt',
+                         'fwr3_imgt',
+                         'fwr4_imgt',
+                         'cdr1_imgt',
+                         'cdr2_imgt',
+                         'cdr3_imgt']
+
+        fields = []
+        if score:  fields.extend(score_fields)
+        if region:  fields.extend(region_fields)
+
+        return fields
 
     @property
     def fields(self):
@@ -2306,3 +2430,28 @@ def splitFileName(file):
     file_type = ext_name.lower().lstrip('.')
 
     return short_name, file_type
+
+
+def getFormatOperators(format):
+    """
+    Simple wrapper for fetching the set of operator classes for a data format
+
+    Arguments:
+      format (str): name of the data format.
+
+    Returns:
+      tuple: a tuple with the reader class, writer class, and schema definition class.
+    """
+    # Format options
+    if format == 'changeo':
+        reader = ChangeoReader
+        writer = ChangeoWriter
+        schema = ChangeoSchema
+    elif format == 'airr':
+        reader = AIRRReader
+        writer = AIRRWriter
+        schema = AIRRSchema
+    else:
+        raise ValueError
+
+    return reader, writer, schema

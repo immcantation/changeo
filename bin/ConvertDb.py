@@ -106,7 +106,7 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
                   'v_sequence_end', 'v_germline_end',
                   'd_sequence_end', 'd_germline_end',
                   'j_sequence_end', 'j_germline_end']
-    fields = [ChangeoSchema.asAIRR(x) for x in db_iter.fields]
+    fields = [ChangeoSchema.toAIRR(x) for x in db_iter.fields]
     fields = [x for x in fields if x not in fields_delete]
     fields.extend([x for x in fields_add if x not in fields])
 
@@ -178,7 +178,7 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
                   'V_SEQ_LENGTH', 'V_GERM_LENGTH_VDJ',
                   'D_SEQ_LENGTH', 'D_GERM_LENGTH',
                   'J_SEQ_LENGTH', 'J_GERM_LENGTH']
-    fields = [AIRRSchema.asChangeo(x) for x in db_iter.fields]
+    fields = [AIRRSchema.toChangeo(x) for x in db_iter.fields]
     fields = [x for x in fields if x not in fields_delete]
     fields.extend([x for x in fields_add if x not in fields])
 

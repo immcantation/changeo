@@ -24,7 +24,8 @@ from presto.Multiprocessing import manageProcesses
 from changeo.Defaults import default_format, default_v_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
-from changeo.IO import countDbFile, getDbFields, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, \
+                       AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
@@ -529,28 +530,18 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     log['NPROC'] = nproc
     printLog(log)
 
-    # Format options
-    if format == 'changeo':
-        reader = ChangeoReader
-        writer = ChangeoWriter
-        schema = ChangeoSchema
-        out_fields = getDbFields(db_file, add=schema.asChangeo('clone'), reader=reader)
-        out_args['out_type'] = 'tab'
-    elif format == 'airr':
-        reader = AIRRReader
-        writer = AIRRWriter
-        schema = AIRRSchema
-        out_fields = getDbFields(db_file, add=schema.asAIRR('clone'), reader=reader)
-        out_args['out_type'] = 'tsv'
-    else:
+    # Define format operators
+    try:
+        reader, writer, schema = getFormatOperators(format)
+    except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
 
     # Translate to Receptor attribute names
-    seq_field = schema.asReceptor(seq_field)
-    v_field = schema.asReceptor(v_field)
-    j_field = schema.asReceptor(j_field)
+    seq_field = schema.toReceptor(seq_field)
+    v_field = schema.toReceptor(v_field)
+    j_field = schema.toReceptor(j_field)
     if group_fields is not None:
-        group_fields = [schema.asReceptor(f) for f in group_fields]
+        group_fields = [schema.toReceptor(f) for f in group_fields]
 
     # Define feeder function and arguments
     group_args['group_fields'] = group_fields
@@ -560,6 +551,7 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
                  'reader': reader,
                  'group_func': group_func, 
                  'group_args': group_args}
+
     # Define worker function and arguments
     filter_args = {'seq_field': seq_field,
                    'v_field': 'v_field',
@@ -572,6 +564,8 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
                  'filter_args': filter_args}
 
     # Define collector function and arguments
+    out_fields = getDbFields(db_file, add=schema.fromReceptor('clone'), reader=reader)
+    out_args['out_type'] = schema.out_type
     collect_args = {'db_file': db_file,
                     'fields': out_fields,
                     'writer': writer,
@@ -707,7 +701,7 @@ if __name__ == '__main__':
     # # Default AIRR fields
     # if args_dict['format'] == 'airr':
     #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.asAIRR(default_fields[f])
+    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.toAIRR(default_fields[f])
     #         else: args_dict[f] = args_dict[f].lower()
 
     # Define grouping and cloning function arguments

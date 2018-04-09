@@ -22,7 +22,7 @@ from presto.Applications import runMuscle
 from presto.IO import printLog
 from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbFields, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
+from changeo.IO import getDbFields, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter, getFormatOperators
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue, collectDbQueue
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
@@ -236,38 +236,29 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
     log['NPROC'] = nproc
     printLog(log)
 
-    # Format options
-    if format == 'changeo':
-        reader = ChangeoReader
-        writer = ChangeoWriter
-        field_map = OrderedDict([(ChangeoSchema.asReceptor(f), '%s_ALIGN' % f) for f in seq_fields])
-        if 'group_fields' in group_args and group_args['group_fields'] is not None:
-            group_args['group_fields'] = [ChangeoSchema.asReceptor(f) for f in group_args['group_fields']]
-        out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
-        out_args['out_type'] = 'tab'
-    elif format == 'airr':
-        reader = AIRRReader
-        writer = AIRRWriter
-        field_map = OrderedDict([(AIRRSchema.asReceptor(f), '%s_align' % f) for f in seq_fields])
-        if 'group_fields' in group_args and group_args['group_fields'] is not None:
-            group_args['group_fields'] = [AIRRSchema.asReceptor(f) for f in group_args['group_fields']]
-        out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
-        out_args['out_type'] = 'tsv'
-    else:
+    # Define format operators
+    try:
+        reader, writer, schema = getFormatOperators(format)
+    except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
 
     # Define feeder function and arguments
+    if 'group_fields' in group_args and group_args['group_fields'] is not None:
+        group_args['group_fields'] = [schema.toReceptor(f) for f in group_args['group_fields']]
     feed_func = feedDbQueue
     feed_args = {'db_file': db_file,
                  'reader': reader,
                  'group_func': group_func,
                  'group_args': group_args}
     # Define worker function and arguments
+    field_map = OrderedDict([(schema.toReceptor(f), '%s_align' % f) for f in seq_fields])
     align_args['field_map'] = field_map
     work_func = processDbQueue
     work_args = {'process_func': align_func,
                  'process_args': align_args}
     # Define collector function and arguments
+    out_fields = getDbFields(db_file, add=list(field_map.values()), reader=reader)
+    out_args['out_type'] = schema.out_type
     collect_func = collectDbQueue
     collect_args = {'db_file': db_file,
                     'label': 'align',

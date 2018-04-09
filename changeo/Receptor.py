@@ -31,6 +31,9 @@ class AIRRSchema:
     """
     AIRR format to Receptor mappings
     """
+    # Default file extension
+    out_type = 'tsv'
+
     # Core fields
     core = OrderedDict([('sequence_id', 'sequence_id'),
                         ('sequence', 'sequence_input'),
@@ -127,7 +130,7 @@ class AIRRSchema:
     junction_fields = list(junction.keys())
 
     # IgBLAST CDR3 fields
-    igblast_cdr3 = OrderedDict([('cdr3_igblast_nt', 'cdr3_igblast_nt'),
+    igblast_cdr3 = OrderedDict([('cdr3_igblast', 'cdr3_igblast'),
                                 ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
                                 ('cdr3_igblast_start', 'cdr3_igblast_start'),
                                 ('cdr3_igblast_end', 'cdr3_igblast_end')])
@@ -216,7 +219,7 @@ class AIRRSchema:
         return fields
 
     @staticmethod
-    def asReceptor(field):
+    def toReceptor(field):
         """
         Returns a Receptor attribute name from an AIRR column name
 
@@ -229,7 +232,7 @@ class AIRRSchema:
         return AIRRSchema._airr.get(field, field)
 
     @staticmethod
-    def asAIRR(field, strict=False):
+    def fromReceptor(field, strict=False):
         """
         Returns an AIRR column name from a Receptor attribute name
 
@@ -247,7 +250,7 @@ class AIRRSchema:
             return AIRRSchema._receptor.get(field, field)
 
     @staticmethod
-    def asChangeo(field):
+    def toChangeo(field):
         """
         Returns a Change-O column name from an AIRR column name
 
@@ -256,13 +259,16 @@ class AIRRSchema:
         Returns:
           str : Change-O column name
         """
-        return ChangeoSchema.asChangeo(AIRRSchema.asReceptor(field))
+        return ChangeoSchema.fromReceptor(AIRRSchema.toReceptor(field))
 
 
 class ChangeoSchema:
     """
     Change-O to Receptor mappings
     """
+    # Default file extension
+    out_type = 'tab'
+
     # Core fields
     core = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
                         ('SEQUENCE_INPUT', 'sequence_input'),
@@ -346,7 +352,7 @@ class ChangeoSchema:
     junction_fields = list(junction.keys())
 
     # IgBLAST CDR3 field ordering
-    igblast_cdr3 = OrderedDict([('CDR3_IGBLAST_NT', 'cdr3_igblast_nt'),
+    igblast_cdr3 = OrderedDict([('CDR3_IGBLAST', 'cdr3_igblast'),
                                 ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
                                 ('CDR3_IGBLAST_START', 'cdr3_igblast_start'),
                                 ('CDR3_IGBLAST_END', 'cdr3_igblast_end')])
@@ -402,7 +408,7 @@ class ChangeoSchema:
         return fields
 
     @staticmethod
-    def asReceptor(field):
+    def toReceptor(field):
         """
         Returns a Receptor attribute name from a Change-O column name
 
@@ -414,7 +420,7 @@ class ChangeoSchema:
         return ChangeoSchema._changeo.get(field, field.lower())
 
     @staticmethod
-    def asChangeo(field):
+    def fromReceptor(field):
         """
         Returns a Change-O column name from a Receptor attribute name
 
@@ -426,7 +432,7 @@ class ChangeoSchema:
         return ChangeoSchema._receptor.get(field, field.upper())
 
     @staticmethod
-    def asAIRR(field):
+    def toAIRR(field):
         """
         Returns an AIRR column name from a Change-O column name
 
@@ -435,7 +441,7 @@ class ChangeoSchema:
         Returns:
           str : AIRR column name
         """
-        return AIRRSchema.asAIRR(ChangeoSchema.asReceptor(field))
+        return AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(field))
 
 
 class Receptor:
@@ -488,8 +494,10 @@ class Receptor:
       cdr1_imgt (Bio.Seq.Seq) : IMGT-gapped CDR1 nucleotide sequence.
       cdr2_imgt (Bio.Seq.Seq) : IMGT-gapped CDR2 nucleotide sequence.
       cdr3_imgt (Bio.Seq.Seq) : IMGT-gapped CDR3 nucleotide sequence.
-      cdr3_igblast_nt (Bio.Seq.Seq) : CDR3 nucleotide sequence assigned by IgBLAST.
+      cdr3_igblast (Bio.Seq.Seq) : CDR3 nucleotide sequence assigned by IgBLAST.
       cdr3_igblast_aa (Bio.Seq.Seq) : CDR3 amino acid sequence assigned by IgBLAST.
+      cdr3_igblast_start (int) : CDR3 nucleotide sequence start position assigned by IgBLAST.
+      cdr3_igblast_end (int) : CDR3 amino acid sequence end position assigned by IgBLAST.
 
       n1_length (int) : M nucleotides 5' of the D segment.
       n2_length (int) : nucleotides 3' of the D segment.
@@ -597,8 +605,10 @@ class Receptor:
                 'p3d_length': '_integer',
                 'p5j_length': '_integer',
                 'd_frame': '_integer',
-                'cdr3_igblast_nt': '_nucleotide',
+                'cdr3_igblast': '_nucleotide',
                 'cdr3_igblast_aa': '_aminoacid',
+                'cdr3_igblast_start': '_integer',
+                'cdr3_igblast_end': '_integer',
                 'conscount': '_integer',
                 'dupcount': '_integer',
                 'clone': '_identity'}
@@ -796,7 +806,7 @@ class Receptor:
           Value in the AIRR field. Returns None if the field cannot be found.
         """
         # Map to Receptor attribute
-        field = AIRRSchema.asReceptor(field)
+        field = AIRRSchema.toReceptor(field)
 
         if seq:
             return self.getSeq(field)
@@ -815,7 +825,7 @@ class Receptor:
           Value in the Change-O field. Returns None if the field cannot be found.
         """
         # Map to Receptor attribute
-        field = ChangeoSchema.asReceptor(field)
+        field = ChangeoSchema.toReceptor(field)
 
         if seq:
             return self.getSeq(field)
