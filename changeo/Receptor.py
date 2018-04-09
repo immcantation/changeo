@@ -266,6 +266,7 @@ class ChangeoSchema:
     # Core fields
     core = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
                         ('SEQUENCE_INPUT', 'sequence_input'),
+                        ('REV_COMP', 'rev_comp'),
                         ('FUNCTIONAL', 'functional'),
                         ('IN_FRAME', 'in_frame'),
                         ('STOP', 'stop'),
@@ -538,8 +539,8 @@ class Receptor:
                 'junction': '_nucleotide',
                 'junction_aa': '_aminoacid',
                 'junction_length': '_integer',
-                'functional': '_logical',
                 'rev_comp': '_logical',
+                'functional': '_logical',
                 'in_frame': '_logical',
                 'stop': '_logical',
                 'mutated_invariant': '_logical',

@@ -534,6 +534,11 @@ class IMGTReader:
             summary['Functionality'] = summary['V-DOMAIN Functionality']
             summary['Functionality comment'] = summary['V-DOMAIN Functionality comment']
 
+        # Orientation parser
+        def _revcomp():
+            x = {'+': 'F', '-': 'T'}
+            return x.get(summary['Orientation'], None)
+
         # Functionality parser
         def _functional():
             x = summary['Functionality']
@@ -546,13 +551,12 @@ class IMGTReader:
 
         # Junction frame parser
         def _inframe():
-            x = summary['JUNCTION frame']
-            return {'in-frame': 'T', 'out-of-frame': 'F'}.get(x, None)
+            x = {'in-frame': 'T', 'out-of-frame': 'F'}
+            return x.get(summary['JUNCTION frame'], None)
 
         # Stop codon parser
         def _stop():
-            x = summary['Functionality comment']
-            return 'T' if 'stop codon' in x else 'F'
+            return 'T' if 'stop codon' in summary['Functionality comment'] else 'F'
 
         # Mutated invariant parser
         def _invariant():
@@ -570,6 +574,7 @@ class IMGTReader:
         result = {}
         # Parse functionality information
         if 'No results' not in summary['Functionality']:
+            result['REV_COMP'] = _revcomp()
             result['FUNCTIONAL'] = _functional()
             result['IN_FRAME'] = _inframe()
             result['STOP'] = _stop()
@@ -893,9 +898,6 @@ class IgBLASTReader:
     """
     An iterator to read and parse IgBLAST output files
     """
-    # IgBLAST extra summary fields
-    _summary_fields = ['REV_COMP']
-
     @property
     def fields(self):
         """
@@ -927,7 +929,6 @@ class IgBLASTReader:
 
         # Define field list
         self._fields = ChangeoSchema.core_fields
-        self._fields.extend(self._summary_fields)
         self._fields.extend(ChangeoSchema.region_fields)
         self._fields.extend(ChangeoSchema.igblast_score_fields)
         self._fields.extend(ChangeoSchema.igblast_cdr3_fields)
@@ -1619,9 +1620,6 @@ class IHMMuneReader:
                       'V_SEQ_LENGTH',
                       'A_SCORE']
 
-    # iHMMUne-Align score fields
-    _score_fields = ['HMM_SCORE']
-
     @property
     def fields(self):
         """
@@ -1669,6 +1667,9 @@ class IHMMuneReader:
         Returns:
           dict : database entries containing functionality information.
         """
+        # Orientation
+        def _revcomp():
+            return 'F' if int(record['RC']) == 0 else 'T'
 
         # Functional
         def _functional():
@@ -1698,6 +1699,7 @@ class IHMMuneReader:
 
         # Parse functionality
         result = {}
+        result['REV_COMP'] = _revcomp()
         result['FUNCTIONAL'] = _functional()
         result['IN_FRAME'] = _inframe()
         result['STOP'] = _stop()
