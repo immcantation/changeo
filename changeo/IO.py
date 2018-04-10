@@ -238,7 +238,7 @@ class ChangeoWriter:
 
         return result
 
-    def __init__(self, handle, fields=ChangeoSchema.fields(), header=True):
+    def __init__(self, handle, fields=ChangeoSchema.standard_fields, header=True):
         """
         Initializer
 
@@ -331,13 +331,13 @@ class AIRRReader:
         for k, v in record.items():
             # Convert start positions to 0-based
             k = AIRRSchema.toReceptor(k)
-            if v is not None and v != '' and k in AIRRSchema._start:
+            if v is not None and v != '' and k in Receptor._start:
                 v = str(int(v) + 1)
             result[k] = v
 
-        for k in AIRRSchema._end:
+        for k in Receptor._end:
             if k in result and result[k] is not None:
-                start, length = AIRRSchema._end[k]
+                start, length = Receptor._end[k]
                 result[length] = int(result[k]) - int(result[start]) + 1
 
         return Receptor(result)
@@ -416,7 +416,7 @@ class AIRRWriter:
         row = record.toDict()
         for k, v in row.items():
             # Convert start positions to 0-based
-            if v is not None and v != '' and k in AIRRSchema._start:
+            if v is not None and v != '' and k in Receptor._start:
                 v = str(int(v) - 1)
             # Convert field names
             k = AIRRSchema.fromReceptor(k, False)
@@ -424,7 +424,7 @@ class AIRRWriter:
 
         return result
 
-    def __init__(self, handle, fields=AIRRSchema.fields()):
+    def __init__(self, handle, fields=AIRRSchema.standard_fields):
         """
         Initializer
 
@@ -477,21 +477,23 @@ class IMGTReader:
     An iterator to read and parse IMGT output files.
     """
     @staticmethod
-    def customFields(score=False, region=False, junction=False):
+    def customFields(scores=False, regions=False, junction=False, schema=None):
         """
-        Returns non-standard Receptor attributes defined by the parser
+        Returns non-standard fields defined by the parser
 
         Arguments:
-          score : if True include alignment scoring fields.
-          region : if True include IMGT-gapped CDR and FWR region fields.
+          scores : if True include alignment scoring fields.
+          regions : if True include IMGT-gapped CDR and FWR region fields.
           junction : if True include detailed junction annotation fields.
+          schema : schema class to pass field through for conversion.
+                   If None, return changeo.Receptor.Receptor attribute names.
 
         Returns:
-          list : list of Receptor fields.
+          list : list of field names.
         """
         # Alignment scoring fields
         score_fields = ['v_score',
-                        'v_identity'
+                        'v_identity',
                         'j_score',
                         'j_identity']
 
@@ -514,18 +516,15 @@ class IMGTReader:
                            'd_frame']
 
         fields = []
-        if score:  fields.extend(score_fields)
-        if region:  fields.extend(region_fields)
+        if scores:  fields.extend(score_fields)
+        if regions:  fields.extend(region_fields)
         if junction:  fields.extend(junction_fields)
 
-        return fields
+        # Convert field names if schema provided
+        if schema is not None:
+            fields = [schema.fromReceptor(f) for f in fields]
 
-    @property
-    def fields(self):
-        """
-        List of ordered output field names.
-        """
-        return self._fields
+        return fields
 
     def __init__(self, summary, gapped, ntseq, junction, receptor=True):
         """
@@ -547,12 +546,6 @@ class IMGTReader:
         self.ntseq = ntseq
         self.junction = junction
         self.receptor = receptor
-
-        # Define field list
-        self._fields = ChangeoSchema.core_fields
-        self._fields.extend(ChangeoSchema.region_fields)
-        self._fields.extend(ChangeoSchema.junction_fields)
-        self._fields.extend(ChangeoSchema.imgt_score_fields)
 
         # Open readers
         readers = [csv.DictReader(self.summary, delimiter='\t'),
@@ -617,12 +610,12 @@ class IMGTReader:
         result = {}
         # Parse functionality information
         if 'No results' not in summary['Functionality']:
-            result['REV_COMP'] = _revcomp()
-            result['FUNCTIONAL'] = _functional()
-            result['IN_FRAME'] = _inframe()
-            result['STOP'] = _stop()
-            result['MUTATED_INVARIANT'] = _invariant()
-            result['INDELS'] = _indels()
+            result['rev_comp'] = _revcomp()
+            result['functional'] = _functional()
+            result['in_frame'] = _inframe()
+            result['stop'] = _stop()
+            result['mutated_invariant'] = _invariant()
+            result['indels'] = _indels()
 
         return result
 
@@ -645,9 +638,9 @@ class IMGTReader:
         v_call = summary['V-GENE and allele']
         d_call = summary['D-GENE and allele']
         j_call = summary['J-GENE and allele']
-        result['V_CALL'] = delim_regex.sub(',', clean_regex.sub('', v_call)) if v_call else None
-        result['D_CALL'] = delim_regex.sub(',', clean_regex.sub('', d_call)) if d_call else None
-        result['J_CALL'] = delim_regex.sub(',', clean_regex.sub('', j_call)) if j_call else None
+        result['v_call'] = delim_regex.sub(',', clean_regex.sub('', v_call)) if v_call else None
+        result['d_call'] = delim_regex.sub(',', clean_regex.sub('', d_call)) if d_call else None
+        result['j_call'] = delim_regex.sub(',', clean_regex.sub('', j_call)) if j_call else None
 
         return result
 
@@ -664,20 +657,22 @@ class IMGTReader:
           dict : database entries for fill length V(D)J sequences.
         """
         result = {}
+
         # Extract ungapped sequences
         if ntseq['V-D-J-REGION']:
-            result['SEQUENCE_VDJ'] = ntseq['V-D-J-REGION']
+            result['sequence_vdj'] = ntseq['V-D-J-REGION']
         elif ntseq['V-J-REGION']:
-            result['SEQUENCE_VDJ'] = ntseq['V-J-REGION']
+            result['sequence_vdj'] = ntseq['V-J-REGION']
         else:
-            result['SEQUENCE_VDJ'] = ntseq['V-REGION']
+            result['sequence_vdj'] = ntseq['V-REGION']
+
         # Extract gapped sequences
         if gapped['V-D-J-REGION']:
-            result['SEQUENCE_IMGT'] = gapped['V-D-J-REGION']
+            result['sequence_imgt'] = gapped['V-D-J-REGION']
         elif gapped['V-J-REGION']:
-            result['SEQUENCE_IMGT'] = gapped['V-J-REGION']
+            result['sequence_imgt'] = gapped['V-J-REGION']
         else:
-            result['SEQUENCE_IMGT'] = gapped['V-REGION']
+            result['sequence_imgt'] = gapped['V-REGION']
 
         return result
 
@@ -694,10 +689,10 @@ class IMGTReader:
           dict : database entries for V query and germline alignment positions.
         """
         result = {}
-        result['V_SEQ_START'] = ntseq['V-REGION start']
-        result['V_SEQ_LENGTH'] = len(ntseq['V-REGION']) if ntseq['V-REGION'] else 0
-        result['V_GERM_START_IMGT'] = 1
-        result['V_GERM_LENGTH_IMGT'] = len(gapped['V-REGION']) if gapped['V-REGION'] else 0
+        result['v_seq_start'] = ntseq['V-REGION start']
+        result['v_seq_length'] = len(ntseq['V-REGION']) if ntseq['V-REGION'] else 0
+        result['v_germ_start_imgt'] = 1
+        result['v_germ_length_imgt'] = len(gapped['V-REGION']) if gapped['V-REGION'] else 0
 
         return result
 
@@ -713,8 +708,8 @@ class IMGTReader:
         Returns:
           dict : database entries for junction, N/P and D region alignment positions.
         """
-        v_start = db['V_SEQ_START']
-        v_length = db['V_SEQ_LENGTH']
+        v_start = db['v_seq_start']
+        v_length = db['v_seq_length']
 
         # First N/P length
         def _np1():
@@ -743,17 +738,17 @@ class IMGTReader:
 
         result = {}
         # Junction sequence
-        result['JUNCTION'] = junction['JUNCTION']
-        result['JUNCTION_AA'] = junction['JUNCTION (AA)']
-        result['JUNCTION_LENGTH'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
+        result['junction'] = junction['JUNCTION']
+        result['junction_aa'] = junction['JUNCTION (AA)']
+        result['junction_length'] = len(junction['JUNCTION']) if junction['JUNCTION'] else 0
 
         # N/P and D alignment positions
-        result['NP1_LENGTH'] = _np1()
-        result['D_SEQ_START'] = _dstart()
-        result['D_SEQ_LENGTH'] = int(junction['D-REGION-nt nb'] or 0)
-        result['D_GERM_START'] = int(junction['5\'D-REGION trimmed-nt nb'] or 0) + 1
-        result['D_GERM_LENGTH'] = int(junction['D-REGION-nt nb'] or 0)
-        result['NP2_LENGTH'] = _np2()
+        result['np1_length'] = _np1()
+        result['d_seq_start'] = _dstart()
+        result['d_seq_length'] = int(junction['D-REGION-nt nb'] or 0)
+        result['d_germ_start'] = int(junction['5\'D-REGION trimmed-nt nb'] or 0) + 1
+        result['d_germ_length'] = int(junction['D-REGION-nt nb'] or 0)
+        result['np2_length'] = _np2()
 
         return result
 
@@ -774,19 +769,19 @@ class IMGTReader:
 
         # J start
         def _jstart():
-            nb = [db['V_SEQ_START'],
-                  db['V_SEQ_LENGTH'],
-                  db['NP1_LENGTH'],
-                  db['D_SEQ_LENGTH'],
-                  db['NP2_LENGTH']]
+            nb = [db['v_seq_start'],
+                  db['v_seq_length'],
+                  db['np1_length'],
+                  db['d_seq_length'],
+                  db['np2_length']]
             return sum(int(i) for i in nb if i)
 
         # J region alignment positions
         result = {}
-        result['J_SEQ_START'] = _jstart()
-        result['J_SEQ_LENGTH'] = len(ntseq['J-REGION']) if ntseq['J-REGION'] else 0
-        result['J_GERM_START'] = int(junction['5\'J-REGION trimmed-nt nb'] or 0) + 1
-        result['J_GERM_LENGTH'] = len(gapped['J-REGION']) if gapped['J-REGION'] else 0
+        result['j_seq_start'] = _jstart()
+        result['j_seq_length'] = len(ntseq['J-REGION']) if ntseq['J-REGION'] else 0
+        result['j_germ_start'] = int(junction['5\'J-REGION trimmed-nt nb'] or 0) + 1
+        result['j_germ_length'] = len(gapped['J-REGION']) if gapped['J-REGION'] else 0
 
         return result
 
@@ -805,24 +800,24 @@ class IMGTReader:
 
         # V score
         try:
-            result['V_SCORE'] = float(summary['V-REGION score'])
+            result['v_score'] = float(summary['V-REGION score'])
         except (TypeError, ValueError):
-            result['V_SCORE'] = None
+            result['v_score'] = None
         # V identity
         try:
-            result['V_IDENTITY'] = float(summary['V-REGION identity %']) / 100.0
+            result['v_identity'] = float(summary['V-REGION identity %']) / 100.0
         except (TypeError, ValueError):
-            result['V_IDENTITY'] = 'None'
+            result['v_identity'] = 'None'
         # J score
         try:
-            result['J_SCORE'] = float(summary['J-REGION score'])
+            result['j_score'] = float(summary['J-REGION score'])
         except (TypeError, ValueError):
-            result['J_SCORE'] = None
+            result['j_score'] = None
         # J identity
         try:
-            result['J_IDENTITY'] = float(summary['J-REGION identity %']) / 100.0
+            result['j_identity'] = float(summary['J-REGION identity %']) / 100.0
         except (TypeError, ValueError):
-            result['J_IDENTITY'] = None
+            result['j_identity'] = None
 
         return result
 
@@ -857,13 +852,13 @@ class IMGTReader:
 
         # D Frame and junction fields
         result = {}
-        result['D_FRAME'] = _dframe()
-        result['N1_LENGTH'] = _n1()
-        result['N2_LENGTH'] = int(junction['N2-REGION-nt nb'] or 0)
-        result['P3V_LENGTH'] = int(junction['P3\'V-nt nb'] or 0)
-        result['P5D_LENGTH'] = int(junction['P5\'D-nt nb'] or 0)
-        result['P3D_LENGTH'] = int(junction['P3\'D-nt nb'] or 0)
-        result['P5J_LENGTH'] = int(junction['P5\'J-nt nb'] or 0)
+        result['d_frame'] = _dframe()
+        result['n1_length'] = _n1()
+        result['n2_length'] = int(junction['N2-REGION-nt nb'] or 0)
+        result['p3v_length'] = int(junction['P3\'V-nt nb'] or 0)
+        result['p5d_length'] = int(junction['P5\'D-nt nb'] or 0)
+        result['p3d_length'] = int(junction['P3\'D-nt nb'] or 0)
+        result['p5j_length'] = int(junction['P5\'J-nt nb'] or 0)
 
         return result
 
@@ -889,8 +884,8 @@ class IMGTReader:
             sys.exit('Error: IMGT files are corrupt starting with Summary file record %s' % id_set[0])
 
         # Initialize db with query ID and sequence
-        db = {'SEQUENCE_ID': summary['Sequence ID'],
-              'SEQUENCE_INPUT': summary['Sequence']}
+        db = {'sequence_id': summary['Sequence ID'],
+              'sequence_input': summary['Sequence']}
 
         # Parse required fields
         db.update(IMGTReader._parseFunctionality(summary))
@@ -902,7 +897,7 @@ class IMGTReader:
 
         # Parse optional fields
         db.update(IMGTReader._parseScores(summary))
-        db.update(getRegions(db['SEQUENCE_IMGT'], db['JUNCTION_LENGTH']))
+        db.update(getRegions(db['sequence_imgt'], db['junction_length']))
         db.update(IMGTReader._parseJuncDetails(junction))
 
         return db
@@ -943,17 +938,19 @@ class IgBLASTReader:
     """
     # Ordered list of known fields
     @staticmethod
-    def customFields(score=False, region=False, cdr3=False):
+    def customFields(scores=False, regions=False, cdr3=False, schema=None):
         """
-        Returns non-standard Receptor attributes defined by the parser
+        Returns non-standard fields defined by the parser
 
         Arguments:
-          score : if True include alignment scoring fields.
-          region : if True include IMGT-gapped CDR and FWR region fields.
+          scores : if True include alignment scoring fields.
+          regions : if True include IMGT-gapped CDR and FWR region fields.
           cdr3 : if True include IgBLAST CDR3 assignment fields.
+          schema : schema class to pass field through for conversion.
+                   If None, return changeo.Receptor.Receptor attribute names.
 
         Returns:
-          list : list of Receptor fields.
+          list : list of field names.
         """
         # IgBLAST scoring fields
         score_fields = ['v_score',
@@ -980,23 +977,18 @@ class IgBLASTReader:
 
         # IgBLAST CDR3 fields
         cdr3_fields = ['cdr3_igblast',
-                       'cdr3_igblast_aa',
-                       'cdr3_igblast_start',
-                       'cdr3_igblast_end']
+                       'cdr3_igblast_aa']
 
         fields = []
-        if score:  fields.extend(score_fields)
-        if region:  fields.extend(region_fields)
+        if scores:  fields.extend(score_fields)
+        if regions:  fields.extend(region_fields)
         if cdr3:  fields.extend(cdr3_fields)
 
-        return fields
+        # Convert field names if schema provided
+        if schema is not None:
+            fields = [schema.fromReceptor(f) for f in fields]
 
-    @property
-    def fields(self):
-        """
-        List of ordered output field names.
-        """
-        return self._fields
+        return fields
 
     def __init__(self, igblast, sequences, references, asis_calls=False, receptor=True):
         """
@@ -1019,12 +1011,6 @@ class IgBLASTReader:
         self.references = references
         self.asis_calls = asis_calls
         self.receptor = receptor
-
-        # Define field list
-        self._fields = ChangeoSchema.core_fields
-        self._fields.extend(ChangeoSchema.region_fields)
-        self._fields.extend(ChangeoSchema.igblast_score_fields)
-        self._fields.extend(ChangeoSchema.igblast_cdr3_fields)
 
         # Define parsing blocks
         self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
@@ -1096,10 +1082,10 @@ class IgBLASTReader:
         #   CDR3  CAACAGTGGAGTAGTTACCCACGGACG QQWSSYPRT	248	287
 
         # Define column names
-        cdr3_map = {'nucleotide sequence': 'CDR3_IGBLAST',
-                    'translation': 'CDR3_IGBLAST_AA',
-                    'start': 'CDR3_IGBLAST_START',
-                    'end': 'CDR3_IGBLAST_END'}
+        cdr3_map = {'nucleotide sequence': 'cdr3_igblast',
+                    'translation': 'cdr3_igblast_aa',
+                    'start': 'cdr3_igblast_start',
+                    'end': 'cdr3_igblast_end'}
 
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Sub-region sequence details')))
@@ -1112,6 +1098,10 @@ class IgBLASTReader:
         # Populate dictionary with parsed fields
         cdr = {v: None for v in columns}
         cdr.update(dict(zip(columns, rows)))
+
+        # Add length
+        if cdr.get('cdr3_igblast', None) is not None:
+            cdr['cdr3_igblast_length'] = len(cdr['cdr3_igblast'])
 
         return cdr
 
@@ -1157,26 +1147,26 @@ class IgBLASTReader:
             v_call = parseAllele(summary['v_match'], v_allele_regex, action='list')
             d_call = parseAllele(summary['d_match'], d_allele_regex, action='list')
             j_call = parseAllele(summary['j_match'], j_allele_regex, action='list')
-            result['V_CALL'] = ','.join(v_call) if v_call else None
-            result['D_CALL'] = ','.join(d_call) if d_call else None
-            result['J_CALL'] = ','.join(j_call) if j_call else None
+            result['v_call'] = ','.join(v_call) if v_call else None
+            result['d_call'] = ','.join(d_call) if d_call else None
+            result['j_call'] = ','.join(j_call) if j_call else None
         else:
-            result['V_CALL'] = None if summary['v_match'] == 'N/A' else summary['v_match']
-            result['D_CALL'] = None if summary['d_match'] == 'N/A' else summary['d_match']
-            result['J_CALL'] = None if summary['j_match'] == 'N/A' else summary['j_match']
+            result['v_call'] = None if summary['v_match'] == 'N/A' else summary['v_match']
+            result['d_call'] = None if summary['d_match'] == 'N/A' else summary['d_match']
+            result['j_call'] = None if summary['j_match'] == 'N/A' else summary['j_match']
 
         # Parse quality information
-        result['STOP'] = 'T' if summary['stop'] == 'Yes' else 'F'
-        result['IN_FRAME'] = 'T' if summary['frame'] == 'In-frame' else 'F'
-        result['FUNCTIONAL'] = 'T' if summary['productive'] == 'Yes' else 'F'
+        result['stop'] = 'T' if summary['stop'] == 'Yes' else 'F'
+        result['in_frame'] = 'T' if summary['frame'] == 'In-frame' else 'F'
+        result['functional'] = 'T' if summary['productive'] == 'Yes' else 'F'
 
         # Reverse complement input sequence if required
         if summary['strand'] == '-':
-            seq_rc = Seq(db['SEQUENCE_INPUT'], IUPAC.ambiguous_dna).reverse_complement()
-            result['SEQUENCE_INPUT'] = str(seq_rc)
-            result['REV_COMP'] = 'T'
+            seq_rc = Seq(db['sequence_input'], IUPAC.ambiguous_dna).reverse_complement()
+            result['sequence_input'] = str(seq_rc)
+            result['rev_comp'] = 'T'
         else:
-            result['REV_COMP'] = 'F'
+            result['rev_comp'] = 'F'
 
         return result
 
@@ -1193,8 +1183,8 @@ class IgBLASTReader:
           dict : db of results.
         """
         # Extract junction
-        junc_start = int(section['CDR3_IGBLAST_START']) - 3
-        junc_end = int(section['CDR3_IGBLAST_END']) + 3
+        junc_start = int(section['cdr3_igblast_start']) - 3
+        junc_end = int(section['cdr3_igblast_end']) + 3
         junc_seq = sequence[(junc_start - 1):junc_end]
         junc_len = len(junc_seq)
 
@@ -1204,11 +1194,11 @@ class IgBLASTReader:
         junc_aa = str(Seq(junc_tmp).translate())
 
         # Build return values
-        return {'JUNCTION': junc_seq,
-                'JUNCTION_AA': junc_aa,
-                'JUNCTION_LENGTH': junc_len,
-                'JUNCTION_START': junc_start,
-                'JUNCTION_END': junc_end}
+        return {'junction': junc_seq,
+                'junction_aa': junc_aa,
+                'junction_length': junc_len,
+                'junction_start': junc_start,
+                'junction_end': junc_end}
 
     @staticmethod
     def _parseVHitPos(v_hit):
@@ -1223,12 +1213,12 @@ class IgBLASTReader:
         """
         result = {}
         # Germline positions
-        result['V_GERM_START_VDJ'] = int(v_hit['s. start'])
-        result['V_GERM_LENGTH_VDJ'] = int(v_hit['s. end']) - result['V_GERM_START_VDJ'] + 1
+        result['v_germ_start_vdj'] = int(v_hit['s. start'])
+        result['v_germ_length_vdj'] = int(v_hit['s. end']) - result['v_germ_start_vdj'] + 1
         # Query sequence positions
-        result['V_SEQ_START'] = int(v_hit['q. start'])
-        result['V_SEQ_LENGTH'] = int(v_hit['q. end']) - result['V_SEQ_START'] + 1
-        result['INDELS'] = 'F' if int(v_hit['gap opens']) == 0 else 'T'
+        result['v_seq_start'] = int(v_hit['q. start'])
+        result['v_seq_length'] = int(v_hit['q. end']) - result['v_seq_start'] + 1
+        result['indels'] = 'F' if int(v_hit['gap opens']) == 0 else 'T'
 
         return result
 
@@ -1246,11 +1236,11 @@ class IgBLASTReader:
         """
         result = {}
         # Query sequence positions
-        result['D_SEQ_START'] = int(d_hit['q. start']) + overlap
-        result['D_SEQ_LENGTH'] = max(int(d_hit['q. end']) - result['D_SEQ_START'] + 1, 0)
+        result['d_seq_start'] = int(d_hit['q. start']) + overlap
+        result['d_seq_length'] = max(int(d_hit['q. end']) - result['d_seq_start'] + 1, 0)
         # Germline positions
-        result['D_GERM_START'] = int(d_hit['s. start']) + overlap
-        result['D_GERM_LENGTH'] = max(int(d_hit['s. end']) - result['D_GERM_START'] + 1, 0)
+        result['d_germ_start'] = int(d_hit['s. start']) + overlap
+        result['d_germ_length'] = max(int(d_hit['s. end']) - result['d_germ_start'] + 1, 0)
 
         return result
 
@@ -1267,10 +1257,10 @@ class IgBLASTReader:
           dict: db of J starts and lengths
         """
         result = {}
-        result['J_SEQ_START'] = int(j_hit['q. start']) + overlap
-        result['J_SEQ_LENGTH'] = max(int(j_hit['q. end']) - result['J_SEQ_START'] + 1, 0)
-        result['J_GERM_START'] = int(j_hit['s. start']) + overlap
-        result['J_GERM_LENGTH'] = max(int(j_hit['s. end']) - result['J_GERM_START'] + 1, 0)
+        result['j_seq_start'] = int(j_hit['q. start']) + overlap
+        result['j_seq_length'] = max(int(j_hit['q. end']) - result['j_seq_start'] + 1, 0)
+        result['j_germ_start'] = int(j_hit['s. start']) + overlap
+        result['j_germ_length'] = max(int(j_hit['s. end']) - result['j_germ_start'] + 1, 0)
 
         return result
 
@@ -1311,13 +1301,13 @@ class IgBLASTReader:
           dict : db of results.
         """
         result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
+        seq_vdj = db['sequence_vdj']
         v_hit = next(x for x in hits if x['segment'] == 'V')
 
         # Alignment positions
         result.update(IgBLASTReader._parseVHitPos(v_hit))
         # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, v_hit, 0)
+        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, v_hit, 0)
 
         return result
 
@@ -1334,28 +1324,28 @@ class IgBLASTReader:
           dict : db of results.
         """
         result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
+        seq_vdj = db['sequence_vdj']
         d_hit = next(x for x in hits if x['segment'] == 'D')
 
         # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
         overlap = 0
-        if db['V_CALL']:
-            np1_len = int(d_hit['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+        if db['v_call']:
+            np1_len = int(d_hit['q. start']) - (db['v_seq_start'] + db['v_seq_length'])
             if np1_len < 0:
-                result['NP1_LENGTH'] = 0
+                result['np1_length'] = 0
                 overlap = abs(np1_len)
             else:
-                result['NP1_LENGTH'] = np1_len
-                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                result['np1_length'] = np1_len
+                np1_start = db['v_seq_start'] + db['v_seq_length'] - 1
                 np1_end = int(d_hit['q. start']) - 1
                 if seq_vdj is not None:
-                    seq_vdj += db['SEQUENCE_INPUT'][np1_start:np1_end]
+                    seq_vdj += db['sequence_input'][np1_start:np1_end]
 
         # D alignment positions
         result.update(IgBLASTReader._parseDHitPos(d_hit, overlap))
         # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, d_hit, overlap)
+        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, d_hit, overlap)
 
         return result
 
@@ -1372,41 +1362,41 @@ class IgBLASTReader:
           dict : db of results.
         """
         result = {}
-        seq_vdj = db['SEQUENCE_VDJ']
+        seq_vdj = db['sequence_vdj']
         j_hit = next(x for x in hits if x['segment'] == 'J')
 
         # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
         overlap = 0
-        if db['D_CALL']:
-            np2_len = int(j_hit['q. start']) - (db['D_SEQ_START'] + db['D_SEQ_LENGTH'])
+        if db['d_call']:
+            np2_len = int(j_hit['q. start']) - (db['d_seq_start'] + db['d_seq_length'])
             if np2_len < 0:
-                result['NP2_LENGTH'] = 0
+                result['np2_length'] = 0
                 overlap = abs(np2_len)
             else:
-                result['NP2_LENGTH'] = np2_len
-                n2_start = db['D_SEQ_START'] + db['D_SEQ_LENGTH'] - 1
+                result['np2_length'] = np2_len
+                n2_start = db['d_seq_start'] + db['d_seq_length'] - 1
                 n2_end = int(j_hit['q. start']) - 1
                 if seq_vdj is not None:
-                    seq_vdj += db['SEQUENCE_INPUT'][n2_start: n2_end]
-        elif db['V_CALL']:
-            np1_len = int(j_hit['q. start']) - (db['V_SEQ_START'] + db['V_SEQ_LENGTH'])
+                    seq_vdj += db['sequence_input'][n2_start: n2_end]
+        elif db['v_call']:
+            np1_len = int(j_hit['q. start']) - (db['v_seq_start'] + db['v_seq_length'])
             if np1_len < 0:
-                result['NP1_LENGTH'] = 0
+                result['np1_length'] = 0
                 overlap = abs(np1_len)
             else:
-                result['NP1_LENGTH'] = np1_len
-                np1_start = db['V_SEQ_START'] + db['V_SEQ_LENGTH'] - 1
+                result['np1_length'] = np1_len
+                np1_start = db['v_seq_start'] + db['v_seq_length'] - 1
                 np1_end = int(j_hit['q. start']) - 1
                 if seq_vdj is not None:
-                    seq_vdj += db['SEQUENCE_INPUT'][np1_start: np1_end]
+                    seq_vdj += db['sequence_input'][np1_start: np1_end]
         else:
-            result['NP1_LENGTH'] = 0
+            result['np1_length'] = 0
 
         # J alignment positions
         result.update(IgBLASTReader._parseJHitPos(j_hit, overlap))
         # Update VDJ sequence, removing insertions
-        result['SEQUENCE_VDJ'] = IgBLASTReader._removeInsertions(seq_vdj, j_hit, overlap)
+        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, j_hit, overlap)
 
         return result
 
@@ -1417,41 +1407,41 @@ class IgBLASTReader:
 
         Arguments:
           hits :  hit table as a list of dictionaries.
-          segment : segment name; one of 'V', 'D' or 'J'.
+          segment : segment name; one of 'v', 'd' or 'j'.
 
         Returns:
           dict : scores
         """
         result = {}
-        s_hit = next(x for x in hits if x['segment'] == segment)
+        s_hit = next(x for x in hits if x['segment'] == segment.upper())
 
         # Score
         try:
-            result['%s_SCORE' % segment] = float(s_hit['bit score'])
+            result['%s_score' % segment] = float(s_hit['bit score'])
         except (TypeError, ValueError):
-            result['%s_SCORE' % segment] = None
+            result['%s_score' % segment] = None
         # Identity
         try:
-            result['%s_IDENTITY' % segment] = float(s_hit['% identity']) / 100.0
+            result['%s_identity' % segment] = float(s_hit['% identity']) / 100.0
         except (TypeError, ValueError):
-            result['%s_IDENTITY' % segment] = None
+            result['%s_identity' % segment] = None
         # E-value
         try:
-            result['%s_EVALUE' % segment] = float(s_hit['evalue'])
+            result['%s_evalue' % segment] = float(s_hit['evalue'])
         except (TypeError, ValueError):
-            result['%s_EVALUE' % segment] = None
+            result['%s_evalue' % segment] = None
         # BTOP
         try:
-            result['%s_BTOP' % segment] = s_hit['BTOP']
+            result['%s_btop' % segment] = s_hit['BTOP']
         except (KeyError, TypeError, ValueError):
-            result['%s_BTOP' % segment] = None
+            result['%s_btop' % segment] = None
         # CIGAR
         try:
             align = decodeBTOP(s_hit['BTOP'])
             align = padAlignment(align, int(s_hit['q. start']) - 1, int(s_hit['s. start']) - 1)
-            result['%s_CIGAR' % segment] = encodeCIGAR(align)
+            result['%s_cigar' % segment] = encodeCIGAR(align)
         except (KeyError, TypeError, ValueError):
-            result['%s_CIGAR' % segment] = None
+            result['%s_cigar' % segment] = None
 
         return result
 
@@ -1534,8 +1524,8 @@ class IgBLASTReader:
         db = {}
         if 'query' in sections:
             query = sections['query']
-            db['SEQUENCE_ID'] = query
-            db['SEQUENCE_INPUT'] = str(self.sequences[query].seq)
+            db['sequence_id'] = query
+            db['sequence_input'] = str(self.sequences[query].seq)
 
         # Parse summary section
         if 'summary' in sections:
@@ -1543,37 +1533,37 @@ class IgBLASTReader:
 
         # Parse hit table
         if 'hits' in sections:
-            db['SEQUENCE_VDJ'] = ''
-            if db['V_CALL']:
+            db['sequence_vdj'] = ''
+            if db['v_call']:
                 db.update(self._parseVHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'V'))
-            if db['D_CALL']:
+                db.update(self._parseHitScores(sections['hits'], 'v'))
+            if db['d_call']:
                 db.update(self._parseDHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'D'))
-            if db['J_CALL']:
+                db.update(self._parseHitScores(sections['hits'], 'd'))
+            if db['j_call']:
                 db.update(self._parseJHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'J'))
+                db.update(self._parseHitScores(sections['hits'], 'j'))
 
         # Create IMGT-gapped sequence
-        if ('V_CALL' in db and db['V_CALL']) and ('SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']):
-            imgt_dict = gapV(db['SEQUENCE_VDJ'],
-                             v_germ_start=db['V_GERM_START_VDJ'],
-                             v_germ_length=db['V_GERM_LENGTH_VDJ'],
-                             v_call=db['V_CALL'],
+        if ('v_call' in db and db['v_call']) and ('sequence_vdj' in db and db['sequence_vdj']):
+            imgt_dict = gapV(db['sequence_vdj'],
+                             v_germ_start=db['v_germ_start_vdj'],
+                             v_germ_length=db['v_germ_length_vdj'],
+                             v_call=db['v_call'],
                              references=self.references,
                              asis_calls=self.asis_calls)
             db.update(imgt_dict)
 
         # Add junction
         if 'subregion' in sections:
-            if 'CDR3_IGBLAST_START' in sections['subregion']:
-                junc_dict = self._parseSubregionSection(sections['subregion'], db['SEQUENCE_INPUT'])
+            if 'cdr3_igblast_start' in sections['subregion']:
+                junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
                 db.update(junc_dict)
-            elif ('J_CALL' in db and db['J_CALL']) and ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-                junc_dict = inferJunction(db['SEQUENCE_IMGT'],
-                                          j_germ_start=db['J_GERM_START'],
-                                          j_germ_length=db['J_GERM_LENGTH'],
-                                          j_call=db['J_CALL'],
+            elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+                junc_dict = inferJunction(db['sequence_imgt'],
+                                          j_germ_start=db['j_germ_start'],
+                                          j_germ_length=db['j_germ_length'],
+                                          j_call=db['j_call'],
                                           references=self.references,
                                           asis_calls=self.asis_calls)
                 db.update(junc_dict)
@@ -1584,10 +1574,10 @@ class IgBLASTReader:
             db.update(sections['subregion'])
         else:
             # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
-            db.update(dict(zip(ChangeoSchema.igblast_cdr3_fields, [None, None])))
+            db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
 
         # Add FWR and CDR regions
-        db.update(getRegions(db.get('SEQUENCE_IMGT', None), db.get('JUNCTION_LENGTH', None)))
+        db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
 
         return db
 
@@ -1715,19 +1705,21 @@ class IHMMuneReader:
 
     # Ordered list of known fields
     @staticmethod
-    def customFields(score=False, region=False):
+    def customFields(scores=False, regions=False, schema=None):
         """
         Returns non-standard Receptor attributes defined by the parser
 
         Arguments:
-          score : if True include alignment scoring fields.
-          region : if True include IMGT-gapped CDR and FWR region fields.
+          scores : if True include alignment scoring fields.
+          regions : if True include IMGT-gapped CDR and FWR region fields.
+          schema : schema class to pass field through for conversion.
+                   If None, return changeo.Receptor.Receptor attribute names.
 
         Returns:
-          list : list of Receptor fields.
+          list : list of field names.
         """
         # Alignment scoring fields
-        score_fields = ['hmm_score']
+        score_fields = ['vdj_score']
 
         # FWR amd CDR fields
         region_fields = ['fwr1_imgt',
@@ -1739,17 +1731,14 @@ class IHMMuneReader:
                          'cdr3_imgt']
 
         fields = []
-        if score:  fields.extend(score_fields)
-        if region:  fields.extend(region_fields)
+        if scores:  fields.extend(score_fields)
+        if regions:  fields.extend(region_fields)
+
+        # Convert field names if schema provided
+        if schema is not None:
+            fields = [schema.fromReceptor(f) for f in fields]
 
         return fields
-
-    @property
-    def fields(self):
-        """
-        List of ordered output field names.
-        """
-        return self._fields
 
     def __init__(self, ihmmune, sequences, references, receptor=True):
         """
@@ -1770,11 +1759,6 @@ class IHMMuneReader:
         self.sequences = sequences
         self.references = references
         self.receptor = receptor
-
-        # Define field list
-        self._fields = ChangeoSchema.core_fields
-        self._fields.extend(ChangeoSchema.region_fields)
-        self._fields.extend(ChangeoSchema.ihmm_score_fields)
 
         # Open reader
         self.records = csv.DictReader(self.ihmmune, fieldnames=IHMMuneReader.ihmmune_fields,
@@ -1822,12 +1806,11 @@ class IHMMuneReader:
             return 'T' if any(check) else 'F'
 
         # Parse functionality
-        result = {}
-        result['REV_COMP'] = _revcomp()
-        result['FUNCTIONAL'] = _functional()
-        result['IN_FRAME'] = _inframe()
-        result['STOP'] = _stop()
-        result['INDELS'] = _indels()
+        result = {'rev_comp': _revcomp(),
+                  'functional': _functional(),
+                  'in_frame': _inframe(),
+                  'stop': _stop(),
+                  'indels':  _indels()}
 
         return result
 
@@ -1842,13 +1825,15 @@ class IHMMuneReader:
         Returns:
           dict : database entries for gene calls.
         """
-        result = {}
+        # Extract allele calls
         v_call = parseAllele(record['V_CALL'], v_allele_regex, action='list')
         d_call = parseAllele(record['D_CALL'], d_allele_regex, action='list')
         j_call = parseAllele(record['J_CALL'], j_allele_regex, action='list')
-        result['V_CALL'] = ','.join(v_call) if v_call else None
-        result['D_CALL'] = ','.join(d_call) if d_call else None
-        result['J_CALL'] = ','.join(j_call) if j_call else None
+
+        # Build return object
+        result = {'v_call': ','.join(v_call) if v_call else None,
+                  'd_call': ','.join(d_call) if d_call else None,
+                  'j_call': ','.join(j_call) if j_call else None}
 
         return result
 
@@ -1864,9 +1849,8 @@ class IHMMuneReader:
           dict : database entries containing N/P region lengths.
         """
         # N/P lengths
-        result = {}
-        result['NP1_LENGTH'] = len(record['NP1_SEQ'])
-        result['NP2_LENGTH'] = len(record['NP2_SEQ'])
+        result = {'np1_length': len(record['NP1_SEQ']),
+                  'np2_length': len(record['NP2_SEQ'])}
 
         return result
 
@@ -1883,19 +1867,19 @@ class IHMMuneReader:
           dict : database entries containing V call and alignment positions.
         """
         # Default return
-        result = {'V_SEQ_START': None,
-                  'V_SEQ_LENGTH': None,
-                  'V_GERM_START': None,
-                  'V_GERM_LENGTH': None}
+        result = {'v_seq_start': None,
+                  'v_seq_length': None,
+                  'v_germ_start_vdj': None,
+                  'v_germ_length_vdj': None}
 
         # Find V positions
-        if db['V_CALL']:
+        if db['v_call']:
             # Query positions
-            result['V_SEQ_START'] = int(record['V_SEQ_START'])
-            result['V_SEQ_LENGTH'] = len(record['V_SEQ'].strip('.'))
+            result['v_seq_start'] = int(record['V_SEQ_START'])
+            result['v_seq_length'] = len(record['V_SEQ'].strip('.'))
             # Germline positions
-            db['V_GERM_START_VDJ'] = 1
-            db['V_GERM_LENGTH_VDJ'] = result['V_SEQ_LENGTH']
+            result['v_germ_start_vdj'] = 1
+            result['v_germ_length_vdj'] = result['v_seq_length']
 
         return result
 
@@ -1914,24 +1898,24 @@ class IHMMuneReader:
 
         # D start position
         def _dstart():
-            nb = [db['V_SEQ_START'],
-                  db['V_SEQ_LENGTH'],
-                  db['NP1_LENGTH']]
+            nb = [db['v_seq_start'],
+                  db['v_seq_length'],
+                  db['np1_length']]
             return sum(int(i) for i in nb if i)
 
         # Default return
-        result = {'D_SEQ_START': None,
-                  'D_SEQ_LENGTH': None,
-                  'D_GERM_START': None,
-                  'D_GERM_LENGTH': None}
+        result = {'d_seq_start': None,
+                  'd_seq_length': None,
+                  'd_germ_start': None,
+                  'd_germ_length': None}
 
-        if db['D_CALL']:
+        if db['d_call']:
             # Query positions
-            result['D_SEQ_START'] = _dstart()
-            result['D_SEQ_LENGTH'] = len(record['D_SEQ'].strip('.'))
+            result['d_seq_start'] = _dstart()
+            result['d_seq_length'] = len(record['D_SEQ'].strip('.'))
             # Germline positions
-            result['D_GERM_START'] = len(record['D_SEQ']) - len(record['D_SEQ'].lstrip('.'))
-            result['D_GERM_LENGTH'] = result['D_SEQ_LENGTH']
+            result['d_germ_start'] = len(record['D_SEQ']) - len(record['D_SEQ'].lstrip('.'))
+            result['d_germ_length'] = result['d_seq_length']
 
         return result
 
@@ -1951,27 +1935,27 @@ class IHMMuneReader:
         # J start position
         def _jstart():
             # J positions
-            nb = [db['V_SEQ_START'],
-                  db['V_SEQ_LENGTH'],
-                  db['NP1_LENGTH'],
-                  db['D_SEQ_LENGTH'],
-                  db['NP2_LENGTH']]
+            nb = [db['v_seq_start'],
+                  db['v_seq_length'],
+                  db['np1_length'],
+                  db['d_seq_length'],
+                  db['np2_length']]
             return sum(int(i) for i in nb if i)
 
         # Default return
-        result = {'J_SEQ_START': None,
-                  'J_SEQ_LENGTH': None,
-                  'J_GERM_START': None,
-                  'J_GERM_LENGTH': None}
+        result = {'j_seq_start': None,
+                  'j_seq_length': None,
+                  'j_germ_start': None,
+                  'j_germ_length': None}
 
         # Find J region
-        if db['J_CALL']:
+        if db['j_call']:
             # Query positions
-            result['J_SEQ_START'] = _jstart()
-            result['J_SEQ_LENGTH'] = len(record['J_SEQ'].strip('.'))
+            result['j_seq_start'] = _jstart()
+            result['j_seq_length'] = len(record['J_SEQ'].strip('.'))
             # Germline positions
-            result['J_GERM_START'] = len(record['J_SEQ']) - len(record['J_SEQ'].lstrip('.'))
-            result['J_GERM_LENGTH'] = result['J_SEQ_LENGTH']
+            result['j_germ_start'] = len(record['J_SEQ']) - len(record['J_SEQ'].lstrip('.'))
+            result['j_germ_length'] = result['j_seq_length']
 
         return result
 
@@ -1987,13 +1971,13 @@ class IHMMuneReader:
         Returns:
           dict : database entries containing the full length V(D)J sequence.
         """
-        segments = [record['V_SEQ'].strip('.') if db['V_CALL'] else '',
-                    record['NP1_SEQ'] if db['NP1_LENGTH'] else '',
-                    record['D_SEQ'].strip('.') if db['D_CALL'] else '',
-                    record['NP2_SEQ'] if db['NP2_LENGTH'] else '',
-                    record['J_SEQ'].strip('.') if db['J_CALL'] else '']
+        segments = [record['V_SEQ'].strip('.') if db['v_call'] else '',
+                    record['NP1_SEQ'] if db['np1_length'] else '',
+                    record['D_SEQ'].strip('.') if db['d_call'] else '',
+                    record['NP2_SEQ'] if db['np2_length'] else '',
+                    record['J_SEQ'].strip('.') if db['j_call'] else '']
 
-        return {'SEQUENCE_VDJ': ''.join(segments)}
+        return {'sequence_vdj': ''.join(segments)}
 
     @staticmethod
     def _parseScores(record):
@@ -2008,9 +1992,9 @@ class IHMMuneReader:
         """
         result = {}
         try:
-            result['HMM_SCORE'] = float(record['HMM_SCORE'])
+            result['vdj_score'] = float(record['HMM_SCORE'])
         except (TypeError, ValueError):
-            result['HMM_SCORE'] = None
+            result['vdj_score'] = None
 
         return result
 
@@ -2026,17 +2010,17 @@ class IHMMuneReader:
         """
         # Extract query ID and sequence
         query = record['SEQUENCE_ID']
-        db = {'SEQUENCE_ID': query,
-              'SEQUENCE_INPUT': str(self.sequences[query].seq)}
+        db = {'sequence_id': query,
+              'sequence_input': str(self.sequences[query].seq)}
 
         # Check for valid alignment
         if not record['V_CALL'] or \
                 record['V_CALL'].startswith('NA - ') or \
                 record['V_CALL'].startswith('State path'):
-            db['FUNCTIONAL'] = None
-            db['V_CALL'] = None
-            db['D_CALL'] = None
-            db['J_CALL'] = None
+            db['functional'] = None
+            db['v_call'] = None
+            db['d_call'] = None
+            db['j_call'] = None
             return db
 
         # Parse record
@@ -2049,22 +2033,22 @@ class IHMMuneReader:
         db.update(IHMMuneReader._assembleVDJ(record, db))
 
         # Create IMGT-gapped sequence
-        if 'V_CALL' in db and db['V_CALL'] and \
-                'SEQUENCE_VDJ' in db and db['SEQUENCE_VDJ']:
-            imgt_dict = gapV(db['SEQUENCE_VDJ'],
-                             v_germ_start=db['V_GERM_START_VDJ'],
-                             v_germ_length=db['V_GERM_LENGTH_VDJ'],
-                             v_call=db['V_CALL'],
+        if 'v_call' in db and db['v_call'] and \
+                'sequence_vdj' in db and db['sequence_vdj']:
+            imgt_dict = gapV(db['sequence_vdj'],
+                             v_germ_start=db['v_germ_start_vdj'],
+                             v_germ_length=db['v_germ_length_vdj'],
+                             v_call=db['v_call'],
                              references=self.references)
             db.update(imgt_dict)
 
         # Infer IMGT junction
-        if ('J_CALL' in db and db['J_CALL']) and \
-                ('SEQUENCE_IMGT' in db and db['SEQUENCE_IMGT']):
-            junc_dict = inferJunction(db['SEQUENCE_IMGT'],
-                                      j_germ_start=db['J_GERM_START'],
-                                      j_germ_length=db['J_GERM_LENGTH'],
-                                      j_call=db['J_CALL'],
+        if ('j_call' in db and db['j_call']) and \
+                ('sequence_imgt' in db and db['sequence_imgt']):
+            junc_dict = inferJunction(db['sequence_imgt'],
+                                      j_germ_start=db['j_germ_start'],
+                                      j_germ_length=db['j_germ_length'],
+                                      j_call=db['j_call'],
                                       references=self.references)
             db.update(junc_dict)
 
@@ -2072,7 +2056,7 @@ class IHMMuneReader:
         db.update(IHMMuneReader._parseScores(record))
 
         # FWR and CDR regions
-        db.update(getRegions(db.get('SEQUENCE_IMGT', None), db.get('JUNCTION_LENGTH', None)))
+        db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
         
         return db
 
@@ -2124,9 +2108,9 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
       dict : dictionary containing IMGT-gapped query sequences and germline positions.
     """
     # Initialize return object
-    imgt_dict = {'SEQUENCE_IMGT': None,
-                 'V_GERM_START_IMGT': None,
-                 'V_GERM_LENGTH_IMGT': None}
+    imgt_dict = {'sequence_imgt': None,
+                 'v_germ_start_imgt': None,
+                 'v_germ_length_imgt': None}
 
     # Initialize imgt gapped sequence
     seq_imgt = '.' * (int(v_germ_start) - 1) + seq
@@ -2153,10 +2137,10 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
             # Update gap counter
             gapcount += 1
 
-        imgt_dict['SEQUENCE_IMGT'] = seq_imgt
+        imgt_dict['sequence_imgt'] = seq_imgt
         # Update IMGT positioning information for V
-        imgt_dict['V_GERM_START_IMGT'] = 1
-        imgt_dict['V_GERM_LENGTH_IMGT'] = v_germ_length + gapcount
+        imgt_dict['v_germ_start_imgt'] = 1
+        imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
     else:
         sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined.\n' \
                          % vgene)
@@ -2179,9 +2163,9 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
     Returns:
       dict : dictionary containing junction sequence, translation and length.
     """
-    junc_dict = {'JUNCTION': None,
-                 'JUNCTION_AA': None,
-                 'JUNCTION_LENGTH': None}
+    junc_dict = {'junction': None,
+                 'junction_aa': None,
+                 'junction_length': None}
 
     # Find germline J segment
     if not asis_calls:
@@ -2204,14 +2188,14 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
             junc_end = seq_len
 
         # Extract junction
-        junc_dict['JUNCTION'] = seq[309:junc_end]
-        junc_len = len(junc_dict['JUNCTION'])
-        junc_dict['JUNCTION_LENGTH'] = junc_len
+        junc_dict['junction'] = seq[309:junc_end]
+        junc_len = len(junc_dict['junction'])
+        junc_dict['junction_length'] = junc_len
 
         # Translation
-        junc_tmp = junc_dict['JUNCTION'].replace('-', 'N').replace('.', 'N')
+        junc_tmp = junc_dict['junction'].replace('-', 'N').replace('.', 'N')
         if junc_len % 3 > 0:  junc_tmp = junc_tmp[:junc_len - junc_len % 3]
-        junc_dict['JUNCTION_AA'] = str(Seq(junc_tmp).translate())
+        junc_dict['junction_aa'] = str(Seq(junc_tmp).translate())
 
     return junc_dict
 
@@ -2227,37 +2211,37 @@ def getRegions(seq, junction_length):
     Returns:
       dict : dictionary of FWR and CDR sequences.
     """
-    region_dict = {'FWR1_IMGT': None,
-                   'FWR2_IMGT': None,
-                   'FWR3_IMGT': None,
-                   'FWR4_IMGT': None,
-                   'CDR1_IMGT': None,
-                   'CDR2_IMGT': None,
-                   'CDR3_IMGT': None}
+    region_dict = {'fwr1_imgt': None,
+                   'fwr2_imgt': None,
+                   'fwr3_imgt': None,
+                   'fwr4_imgt': None,
+                   'cdr1_imgt': None,
+                   'cdr2_imgt': None,
+                   'cdr3_imgt': None}
     try:
         seq_len = len(seq)
-        region_dict['FWR1_IMGT'] = seq[0:min(78, seq_len)]
+        region_dict['fwr1_imgt'] = seq[0:min(78, seq_len)]
     except (KeyError, IndexError, TypeError):
         return region_dict
 
-    try: region_dict['CDR1_IMGT'] = seq[78:min(114, seq_len)]
+    try: region_dict['cdr1_imgt'] = seq[78:min(114, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR2_IMGT'] = seq[114:min(165, seq_len)]
+    try: region_dict['fwr2_imgt'] = seq[114:min(165, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['CDR2_IMGT'] = seq[165:min(195, seq_len)]
+    try: region_dict['cdr2_imgt'] = seq[165:min(195, seq_len)]
     except (IndexError): return region_dict
 
-    try: region_dict['FWR3_IMGT'] = seq[195:min(312, seq_len)]
+    try: region_dict['fwr3_imgt'] = seq[195:min(312, seq_len)]
     except (IndexError): return region_dict
 
     try:
         # CDR3
         cdr3_end = 306 + junction_length
-        region_dict['CDR3_IMGT'] = seq[312:cdr3_end]
+        region_dict['cdr3_imgt'] = seq[312:cdr3_end]
         # FWR4
-        region_dict['FWR4_IMGT'] = seq[cdr3_end:]
+        region_dict['fwr4_imgt'] = seq[cdr3_end:]
     except (KeyError, IndexError, TypeError):
         return region_dict
 

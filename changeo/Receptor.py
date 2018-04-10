@@ -35,188 +35,93 @@ class AIRRSchema:
     out_type = 'tsv'
 
     # Core fields
-    core = OrderedDict([('sequence_id', 'sequence_id'),
-                        ('sequence', 'sequence_input'),
-                        ('sequence_alignment', 'sequence_imgt'),
-                        ('germline_alignment', 'germline_imgt'),
-                        ('rev_comp', 'rev_comp'),
-                        ('productive', 'functional'),
-                        ('stop_codon', 'stop'),
-                        ('vj_in_frame', 'in_frame'),
-                        ('v_call', 'v_call'),
-                        ('d_call', 'd_call'),
-                        ('j_call', 'j_call'),
-                        ('c_call', 'c_call'),
-                        ('junction', 'junction'),
-                        ('junction_length', 'junction_length'),
-                        ('junction_aa', 'junction_aa'),
-                        ('np1_length', 'np1_length'),
-                        ('np2_length', 'np2_length'),
-                        ('v_sequence_start', 'v_seq_start'),
-                        ('v_sequence_end', 'v_seq_end'),
-                        ('v_germline_start', 'v_germ_start_imgt'),
-                        ('v_germline_end', 'v_germ_end_imgt'),
-                        ('d_sequence_start', 'd_seq_start'),
-                        ('d_sequence_end', 'd_seq_end'),
-                        ('d_germline_start', 'd_germ_start'),
-                        ('d_germline_end', 'd_germ_end'),
-                        ('j_sequence_start', 'j_seq_start'),
-                        ('j_sequence_end', 'j_seq_end'),
-                        ('j_germline_start', 'j_germ_start'),
-                        ('j_germline_end', 'j_germ_end')])
-    core_fields = list(core.keys())
+    standard = OrderedDict([('sequence_id', 'sequence_id'),
+                            ('sequence', 'sequence_input'),
+                            ('sequence_alignment', 'sequence_imgt'),
+                            ('germline_alignment', 'germline_imgt'),
+                            ('rev_comp', 'rev_comp'),
+                            ('productive', 'functional'),
+                            ('stop_codon', 'stop'),
+                            ('vj_in_frame', 'in_frame'),
+                            ('v_call', 'v_call'),
+                            ('d_call', 'd_call'),
+                            ('j_call', 'j_call'),
+                            ('c_call', 'c_call'),
+                            ('junction', 'junction'),
+                            ('junction_length', 'junction_length'),
+                            ('junction_aa', 'junction_aa'),
+                            ('np1_length', 'np1_length'),
+                            ('np2_length', 'np2_length'),
+                            ('v_sequence_start', 'v_seq_start'),
+                            ('v_sequence_end', 'v_seq_end'),
+                            ('v_germline_start', 'v_germ_start_imgt'),
+                            ('v_germline_end', 'v_germ_end_imgt'),
+                            ('d_sequence_start', 'd_seq_start'),
+                            ('d_sequence_end', 'd_seq_end'),
+                            ('d_germline_start', 'd_germ_start'),
+                            ('d_germline_end', 'd_germ_end'),
+                            ('j_sequence_start', 'j_seq_start'),
+                            ('j_sequence_end', 'j_seq_end'),
+                            ('j_germline_start', 'j_germ_start'),
+                            ('j_germline_end', 'j_germ_end')])
+    standard_fields = list(standard.keys())
 
-    # Alignment scoring fields
-    imgt_score = OrderedDict([('v_score', 'v_score'),
-                              ('v_identity', 'v_identity'),
-                              ('d_score', 'd_score'),
-                              ('d_identity', 'd_identity'),
-                              ('j_score', 'j_score'),
-                              ('j_identity', 'j_identity')])
-    imgt_score_fields = list(imgt_score.keys())
-
-    igblast_score = OrderedDict([('v_score', 'v_score'),
-                                 ('v_identity', 'v_identity'),
-                                 ('v_evalue', 'v_evalue'),
-                                 ('v_cigar', 'v_cigar'),
-                                 ('d_score', 'd_score'),
-                                 ('d_identity', 'd_identity'),
-                                 ('d_evalue', 'd_evalue'),
-                                 ('d_cigar', 'd_cigar'),
-                                 ('j_score', 'j_score'),
-                                 ('j_identity', 'j_identity'),
-                                 ('j_evalue', 'j_evalue'),
-                                 ('j_cigar', 'j_cigar')])
-    igblast_score_fields = list(igblast_score.keys())
-
-    ihmm_score = OrderedDict([('vdj_score', 'hmm_score')])
-    ihmm_score_fields = list(ihmm_score.keys())
-
-    # FWR andd CDR fields
-    region = OrderedDict([('cdr1', 'cdr1_imgt'),
+    # Custom fields
+    custom = OrderedDict([('v_score', 'v_score'),
+                          ('v_identity', 'v_identity'),
+                          ('v_evalue', 'v_evalue'),
+                          ('v_cigar', 'v_cigar'),
+                          ('d_score', 'd_score'),
+                          ('d_identity', 'd_identity'),
+                          ('d_evalue', 'd_evalue'),
+                          ('d_cigar', 'd_cigar'),
+                          ('j_score', 'j_score'),
+                          ('j_identity', 'j_identity'),
+                          ('j_evalue', 'j_evalue'),
+                          ('j_cigar', 'j_cigar'),
+                          ('vdj_score', 'vdj_score'),
+                          ('cdr1', 'cdr1_imgt'),
                           ('cdr2', 'cdr2_imgt'),
                           ('cdr3', 'cdr3_imgt'),
                           ('fwr1', 'fwr1_imgt'),
                           ('fwr2', 'fwr2_imgt'),
                           ('fwr3', 'fwr3_imgt'),
-                          ('fwr4', 'fwr4_imgt')])
-    region_fields = list(region.keys())
-
-    # CDR and FWR position fields
-    region_position = OrderedDict([('cdr1_start', 'cdr1_start'),
-                                   ('cdr1_end', 'cdr1_end'),
-                                   ('cdr2_start', 'cdr2_start'),
-                                   ('cdr2_end', 'cdr2_end'),
-                                   ('cdr3_start', 'cdr3_start'),
-                                   ('cdr3_end', 'cdr3_end'),
-                                   ('fwr1_start', 'fwr1_start'),
-                                   ('fwr1_end', 'fwr1_end'),
-                                   ('fwr2_start', 'fwr2_start'),
-                                   ('fwr2_end', 'fwr2_end'),
-                                   ('fwr3_start', 'fwr3_start'),
-                                   ('fwr3_end', 'fwr3_end'),
-                                   ('fwr4_start', 'fwr4_start'),
-                                   ('fwr4_end', 'fwr4_end')])
-    region_position_fields = list(region_position.keys())
-
-    # Detailed junction fields
-    junction = OrderedDict([('n1_length', 'n1_length'),
-                            ('n2_length', 'n2_length'),
-                            ('p3v_length', 'p3v_length'),
-                            ('p5d_length', 'p5d_length'),
-                            ('p3d_length', 'p3d_length'),
-                            ('p5j_length', 'p5j_length'),
-                            ('d_frame', 'd_frame')])
-    junction_fields = list(junction.keys())
-
-    # IgBLAST CDR3 fields
-    igblast_cdr3 = OrderedDict([('cdr3_igblast', 'cdr3_igblast'),
-                                ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
-                                ('cdr3_igblast_start', 'cdr3_igblast_start'),
-                                ('cdr3_igblast_end', 'cdr3_igblast_end')])
-    igblast_cdr3_fields = list(igblast_cdr3.keys())
-
-    # Grouping and counting fields
-    count = OrderedDict([('duplicate_count', 'dupcount'),
-                         ('consensus_count', 'conscount'),
-                         ('clone_id', 'clone')])
-    count_fields = list(count.keys())
+                          ('fwr4', 'fwr4_imgt'),
+                          ('cdr1_start', 'cdr1_start'),
+                          ('cdr1_end', 'cdr1_end'),
+                          ('cdr2_start', 'cdr2_start'),
+                          ('cdr2_end', 'cdr2_end'),
+                          ('cdr3_start', 'cdr3_start'),
+                          ('cdr3_end', 'cdr3_end'),
+                          ('fwr1_start', 'fwr1_start'),
+                          ('fwr1_end', 'fwr1_end'),
+                          ('fwr2_start', 'fwr2_start'),
+                          ('fwr2_end', 'fwr2_end'),
+                          ('fwr3_start', 'fwr3_start'),
+                          ('fwr3_end', 'fwr3_end'),
+                          ('fwr4_start', 'fwr4_start'),
+                          ('fwr4_end', 'fwr4_end'),
+                          ('n1_length', 'n1_length'),
+                          ('n2_length', 'n2_length'),
+                          ('p3v_length', 'p3v_length'),
+                          ('p5d_length', 'p5d_length'),
+                          ('p3d_length', 'p3d_length'),
+                          ('p5j_length', 'p5j_length'),
+                          ('d_frame', 'd_frame'),
+                          ('cdr3_igblast', 'cdr3_igblast'),
+                          ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
+                          ('duplicate_count', 'dupcount'),
+                          ('consensus_count', 'conscount'),
+                          ('clone_id', 'clone'),
+                          ('cell_id', 'cell')])
+    custom_fields = list(custom.keys())
 
     # Mapping of AIRR column names to Receptor attributes
-    _airr = OrderedDict(chain(core.items(),
-                              igblast_score.items(),
-                              imgt_score.items(),
-                              ihmm_score.items(),
-                              region.items(),
-                              junction.items(),
-                              igblast_cdr3.items(),
-                              count.items()))
+    schema = OrderedDict(chain(standard.items(), custom.items()))
+    fields = list(schema.keys())
 
     # Mapping of Receptor attributes to AIRR column names
-    _receptor = {v: k for k, v in _airr.items()}
-
-    # Set of starting Receptor positional fields
-    _start = ['v_seq_start',
-              'v_germ_start_imgt',
-              'v_germ_start_vdj',
-              'd_seq_start',
-              'd_germ_start',
-              'j_seq_start',
-              'j_germ_start',
-              'fwr1_start',
-              'fwr2_start',
-              'fwr3_start',
-              'fwr4_start',
-              'cdr1_start',
-              'cdr2_start',
-              'cdr3_start']
-
-    # Positional fields in the form <Receptor end field>: (<Receptor start field>, <Receptor length field>)
-    _end = {'v_seq_end': ('v_seq_start', 'v_seq_length'),
-            'v_germ_end_imgt': ('v_germ_start_imgt', 'v_germ_length_imgt'),
-            'v_germ_end_vdj': ('v_germ_start_vdj', 'v_germ_length_vdj'),
-            'd_seq_end': ('d_seq_start', 'd_seq_length'),
-            'd_germ_end': ('d_germ_start', 'd_germ_length'),
-            'j_seq_end': ('j_seq_start', 'j_seq_length'),
-            'j_germ_end': ('j_germ_start', 'j_germ_length'),
-            'fwr1_end': ('fwr1_start', 'fwr1_length'),
-            'fwr2_end': ('fwr2_start', 'fwr2_length'),
-            'fwr3_end': ('fwr3_start', 'fwr3_length'),
-            'fwr4_end': ('fwr4_start', 'fwr4_length'),
-            'cdr1_end': ('cdr1_start', 'cdr1_length'),
-            'cdr2_end': ('cdr2_start', 'cdr2_length'),
-            'cdr3_end': ('cdr3_start', 'cdr3_length')}
-
-    # Ordered list of known fields
-    @staticmethod
-    def fields(igblast_score=False, imgt_score=False, ihmm_score=False,
-               region=False, junction=False, igblast_cdr3=False,
-               count=False):
-        """
-        Returns a list of column names
-
-        Arguments:
-          igblast_score : if True include IgBLAST alignment scoring fields
-          imgt_score : if True include IMGT alignment scoring fields
-          ihmm_score : if True include iHMMune-Align alignment scoring fields
-          region : if True include CDR and FWR region fields
-          junction : if True include detailed junction fields
-          igblast_cdr3 : if True include IgBLAST CDR3 assignment fields
-          count : if True include count fields
-
-        Returns:
-          list : ordered column names
-        """
-        fields = AIRRSchema.core_fields[:]
-        if igblast_score:  fields.extend(AIRRSchema.igblast_score_fields)
-        if imgt_score:  fields.extend(AIRRSchema.imgt_score_fields)
-        if ihmm_score:  fields.extend(AIRRSchema.ihmm_score_fields)
-        if region:  fields.extend(AIRRSchema.region_fields)
-        if junction:  fields.extend(AIRRSchema.junction_fields)
-        if igblast_cdr3:  fields.extend(AIRRSchema.igblast_cdr3_fields)
-        if count:  fields.extend(AIRRSchema.count_fields)
-
-        return fields
+    receptor = {v: k for k, v in schema.items()}
 
     @staticmethod
     def toReceptor(field):
@@ -229,7 +134,7 @@ class AIRRSchema:
           str : Receptor attribute name
         """
         field = field.lower()
-        return AIRRSchema._airr.get(field, field)
+        return AIRRSchema.schema.get(field, field)
 
     @staticmethod
     def fromReceptor(field, strict=False):
@@ -245,9 +150,9 @@ class AIRRSchema:
         """
         field = field.lower()
         if strict:
-            return AIRRSchema._receptor.get(field, None)
+            return AIRRSchema.receptor.get(field, None)
         else:
-            return AIRRSchema._receptor.get(field, field)
+            return AIRRSchema.receptor.get(field, field)
 
     @staticmethod
     def toChangeo(field):
@@ -269,143 +174,85 @@ class ChangeoSchema:
     # Default file extension
     out_type = 'tab'
 
-    # Core fields
-    core = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
-                        ('SEQUENCE_INPUT', 'sequence_input'),
-                        ('REV_COMP', 'rev_comp'),
-                        ('FUNCTIONAL', 'functional'),
-                        ('IN_FRAME', 'in_frame'),
-                        ('STOP', 'stop'),
-                        ('MUTATED_INVARIANT', 'mutated_invariant'),
-                        ('INDELS', 'indels'),
-                        ('V_CALL', 'v_call'),
-                        ('D_CALL', 'd_call'),
-                        ('J_CALL', 'j_call'),
-                        ('SEQUENCE_VDJ', 'sequence_vdj'),
-                        ('SEQUENCE_IMGT', 'sequence_imgt'),
-                        ('V_SEQ_START', 'v_seq_start'),
-                        ('V_SEQ_LENGTH', 'v_seq_length'),
-                        ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
-                        ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
-                        ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
-                        ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
-                        ('NP1_LENGTH', 'np1_length'),
-                        ('D_SEQ_START', 'd_seq_start'),
-                        ('D_SEQ_LENGTH', 'd_seq_length'),
-                        ('D_GERM_START', 'd_germ_start'),
-                        ('D_GERM_LENGTH', 'd_germ_length'),
-                        ('NP2_LENGTH', 'np2_length'),
-                        ('J_SEQ_START', 'j_seq_start'),
-                        ('J_SEQ_LENGTH', 'j_seq_length'),
-                        ('J_GERM_START', 'j_germ_start'),
-                        ('J_GERM_LENGTH', 'j_germ_length'),
-                        ('JUNCTION', 'junction'),
-                        ('JUNCTION_LENGTH', 'junction_length')])
-    core_fields = list(core.keys())
+    # Standard fields
+    standard = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
+                            ('SEQUENCE_INPUT', 'sequence_input'),
+                            ('REV_COMP', 'rev_comp'),
+                            ('FUNCTIONAL', 'functional'),
+                            ('IN_FRAME', 'in_frame'),
+                            ('STOP', 'stop'),
+                            ('MUTATED_INVARIANT', 'mutated_invariant'),
+                            ('INDELS', 'indels'),
+                            ('V_CALL', 'v_call'),
+                            ('D_CALL', 'd_call'),
+                            ('J_CALL', 'j_call'),
+                            ('SEQUENCE_VDJ', 'sequence_vdj'),
+                            ('SEQUENCE_IMGT', 'sequence_imgt'),
+                            ('V_SEQ_START', 'v_seq_start'),
+                            ('V_SEQ_LENGTH', 'v_seq_length'),
+                            ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
+                            ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
+                            ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
+                            ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
+                            ('NP1_LENGTH', 'np1_length'),
+                            ('D_SEQ_START', 'd_seq_start'),
+                            ('D_SEQ_LENGTH', 'd_seq_length'),
+                            ('D_GERM_START', 'd_germ_start'),
+                            ('D_GERM_LENGTH', 'd_germ_length'),
+                            ('NP2_LENGTH', 'np2_length'),
+                            ('J_SEQ_START', 'j_seq_start'),
+                            ('J_SEQ_LENGTH', 'j_seq_length'),
+                            ('J_GERM_START', 'j_germ_start'),
+                            ('J_GERM_LENGTH', 'j_germ_length'),
+                            ('JUNCTION', 'junction'),
+                            ('JUNCTION_LENGTH', 'junction_length')])
+    standard_fields = list(standard.keys())
 
-    # Alignment scoring fields
-    imgt_score = OrderedDict([('V_SCORE', 'v_score'),
-                              ('V_IDENTITY', 'v_identity'),
-                              ('J_SCORE', 'j_score'),
-                              ('J_IDENTITY', 'j_identity')])
-    imgt_score_fields = list(imgt_score.keys())
-
-    # IgBLAST scoring fields
-    igblast_score = OrderedDict([('V_SCORE', 'v_score'),
-                                 ('V_IDENTITY', 'v_identity'),
-                                 ('V_EVALUE', 'v_evalue'),
-                                 ('V_BTOP', 'v_btop'),
-                                 ('V_CIGAR', 'v_cigar'),
-                                 ('D_SCORE', 'd_score'),
-                                 ('D_IDENTITY', 'd_identity'),
-                                 ('D_EVALUE', 'd_evalue'),
-                                 ('D_BTOP', 'd_btop'),
-                                 ('D_CIGAR', 'd_cigar'),
-                                 ('J_SCORE', 'j_score'),
-                                 ('J_IDENTITY', 'j_identity'),
-                                 ('J_EVALUE', 'j_evalue'),
-                                 ('J_BTOP', 'j_btop'),
-                                 ('J_CIGAR', 'j_cigar')])
-    igblast_score_fields = list(igblast_score.keys())
-
-    ihmm_score = OrderedDict([('HMM_SCORE', 'hmm_score')])
-    ihmm_score_fields = list(ihmm_score.keys())
-
-    # Define default FWR amd CDR field ordering
-    region = OrderedDict([('FWR1_IMGT', 'fwr1_imgt'),
+    # Custom fields
+    custom = OrderedDict([('V_SCORE', 'v_score'),
+                          ('V_IDENTITY', 'v_identity'),
+                          ('V_EVALUE', 'v_evalue'),
+                          ('V_BTOP', 'v_btop'),
+                          ('V_CIGAR', 'v_cigar'),
+                          ('D_SCORE', 'd_score'),
+                          ('D_IDENTITY', 'd_identity'),
+                          ('D_EVALUE', 'd_evalue'),
+                          ('D_BTOP', 'd_btop'),
+                          ('D_CIGAR', 'd_cigar'),
+                          ('J_SCORE', 'j_score'),
+                          ('J_IDENTITY', 'j_identity'),
+                          ('J_EVALUE', 'j_evalue'),
+                          ('J_BTOP', 'j_btop'),
+                          ('J_CIGAR', 'j_cigar'),
+                          ('VDJ_SCORE', 'vdj_score'),
+                          ('FWR1_IMGT', 'fwr1_imgt'),
                           ('FWR2_IMGT', 'fwr2_imgt'),
                           ('FWR3_IMGT', 'fwr3_imgt'),
                           ('FWR4_IMGT', 'fwr4_imgt'),
                           ('CDR1_IMGT', 'cdr1_imgt'),
                           ('CDR2_IMGT', 'cdr2_imgt'),
-                          ('CDR3_IMGT', 'cdr3_imgt')])
-    region_fields = list(region.keys())
-
-    # Define default detailed junction field ordering
-    junction = OrderedDict([('N1_LENGTH', 'n1_length'),
-                            ('N2_LENGTH', 'n2_length'),
-                            ('P3V_LENGTH', 'p3v_length'),
-                            ('P5D_LENGTH', 'p5d_length'),
-                            ('P3D_LENGTH', 'p3d_length'),
-                            ('P5J_LENGTH', 'p5j_length'),
-                            ('D_FRAME', 'd_frame')])
-    junction_fields = list(junction.keys())
-
-    # IgBLAST CDR3 field ordering
-    igblast_cdr3 = OrderedDict([('CDR3_IGBLAST', 'cdr3_igblast'),
-                                ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
-                                ('CDR3_IGBLAST_START', 'cdr3_igblast_start'),
-                                ('CDR3_IGBLAST_END', 'cdr3_igblast_end')])
-    igblast_cdr3_fields = list(igblast_cdr3.keys())
-
-    # Grouping and counting fields
-    count = OrderedDict([('CONSCOUNT', 'conscount'),
-                         ('DUPCOUNT', 'dupcount'),
-                         ('CLONE', 'clone')])
-    count_fields = list(count.keys())
+                          ('CDR3_IMGT', 'cdr3_imgt'),
+                          ('N1_LENGTH', 'n1_length'),
+                          ('N2_LENGTH', 'n2_length'),
+                          ('P3V_LENGTH', 'p3v_length'),
+                          ('P5D_LENGTH', 'p5d_length'),
+                          ('P3D_LENGTH', 'p3d_length'),
+                          ('P5J_LENGTH', 'p5j_length'),
+                          ('D_FRAME', 'd_frame'),
+                          ('CDR3_IGBLAST', 'cdr3_igblast'),
+                          ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
+                          ('CONSCOUNT', 'conscount'),
+                          ('DUPCOUNT', 'dupcount'),
+                          ('CLONE', 'clone'),
+                          ('CELL', 'cell')])
+    custom_fields = list(custom.keys())
 
     # Mapping of Change-O column names to Receptor attributes
-    _changeo = OrderedDict(chain(core.items(),
-                                 igblast_score.items(),
-                                 imgt_score.items(),
-                                 ihmm_score.items(),
-                                 region.items(),
-                                 junction.items(),
-                                 igblast_cdr3.items(),
-                                 count.items()))
+    schema = OrderedDict(chain(standard.items(), custom.items()))
+    fields = list(schema.keys())
 
     # Mapping of Receptor attributes to Change-O column names
-    _receptor = {v: k for k, v in _changeo.items()}
-
-    # Ordered list of known fields
-    @staticmethod
-    def fields(igblast_score=False, imgt_score=False, ihmm_score=False,
-               region=False, junction=False, igblast_cdr3=False, count=False):
-        """
-        Returns a list of column names
-
-        Arguments:
-          igblast_score : if True include IgBLAST alignment scoring fields
-          imgt_score : if True include IMGT alignment scoring fields
-          ihmm_score : if True include iHMMune-Align alignment scoring fields
-          region : if True include CDR and FWR region fields
-          junction : if True include detailed junction fields
-          igblast_cdr3 : if True include IgBLAST CDR3 assignment fields
-          count : if True include count fields
-
-        Returns:
-          list : ordered column names
-        """
-        fields = ChangeoSchema.core_fields[:]
-        if igblast_score:  fields.extend(ChangeoSchema.igblast_score_fields)
-        if imgt_score:  fields.extend(ChangeoSchema.imgt_score_fields)
-        if ihmm_score:  fields.extend(ChangeoSchema.ihmm_score_fields)
-        if region:  fields.extend(ChangeoSchema.region_fields)
-        if junction:  fields.extend(ChangeoSchema.junction_fields)
-        if igblast_cdr3:  fields.extend(ChangeoSchema.igblast_cdr3_fields)
-        if count:  fields.extend(ChangeoSchema.count_fields)
-
-        return fields
+    receptor = {v: k for k, v in schema.items()}
 
     @staticmethod
     def toReceptor(field):
@@ -417,7 +264,7 @@ class ChangeoSchema:
         Returns:
           str : Receptor attribute name
         """
-        return ChangeoSchema._changeo.get(field, field.lower())
+        return ChangeoSchema.schema.get(field, field.lower())
 
     @staticmethod
     def fromReceptor(field):
@@ -429,7 +276,7 @@ class ChangeoSchema:
         Returns:
           str : Change-O column name
         """
-        return ChangeoSchema._receptor.get(field, field.upper())
+        return ChangeoSchema.receptor.get(field, field.upper())
 
     @staticmethod
     def toAIRR(field):
@@ -455,8 +302,8 @@ class Receptor:
       j_call (str) : J allele assignment(s).
       c_call (str) : C region assignment.
       sequence_input (Bio.Seq.Seq) : input nucleotide sequence.
+      sequence_vdj (Bio.Seq.Seq) : Aligned V(D)J nucleotide sequence without IMGT-gaps.
       sequence_imgt	(Bio.Seq.Seq) : IMGT-gapped V(D)J nucleotide sequence.
-      sequence_vdj (Bio.Seq.Seq) : ungapped V(D)J nucleotide sequence.
       junction (Bio.Seq.Seq) : ungapped junction region nucletide sequence.
       junction_aa (Bio.Seq.Seq) : ungapped junction region amino acid sequence.
       junction_length (int) : length of the junction in nucleotides.
@@ -496,8 +343,6 @@ class Receptor:
       cdr3_imgt (Bio.Seq.Seq) : IMGT-gapped CDR3 nucleotide sequence.
       cdr3_igblast (Bio.Seq.Seq) : CDR3 nucleotide sequence assigned by IgBLAST.
       cdr3_igblast_aa (Bio.Seq.Seq) : CDR3 amino acid sequence assigned by IgBLAST.
-      cdr3_igblast_start (int) : CDR3 nucleotide sequence start position assigned by IgBLAST.
-      cdr3_igblast_end (int) : CDR3 amino acid sequence end position assigned by IgBLAST.
 
       n1_length (int) : M nucleotides 5' of the D segment.
       n2_length (int) : nucleotides 3' of the D segment.
@@ -522,7 +367,7 @@ class Receptor:
       j_evalue (float) : E-value for the alignment of the J.
       j_btop (str) : BTOP for the alignment of the J.
       j_cigar (str) : CIGAR for the alignment of the J.
-      hmm_score (float) : alignment score for the V(D)J.
+      vdj_score (float) : alignment score for the V(D)J.
 
       germline_vdj (Bio.Seq.Seq) : full ungapped germline V(D)J nucleotide sequence.
       germline_vdj_d_mask (Bio.Seq.Seq) : ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
@@ -531,7 +376,9 @@ class Receptor:
 
       conscount (int) : number of reads contributing to the UMI consensus sequence.
       dupcount (int) : copy number of the sequence.
+
       clone (str): clonal cluster identifier.
+      cell (str): origin cell identifier.
 
       annotations (dict) : dictionary containing all unknown fields.
     """
@@ -586,7 +433,7 @@ class Receptor:
                 'j_evalue': '_float',
                 'j_btop': '_identity',
                 'j_cigar': '_identity',
-                'hmm_score': '_float',
+                'vdj_score': '_float',
                 'fwr1_imgt': '_nucleotide',
                 'fwr2_imgt': '_nucleotide',
                 'fwr3_imgt': '_nucleotide',
@@ -607,11 +454,32 @@ class Receptor:
                 'd_frame': '_integer',
                 'cdr3_igblast': '_nucleotide',
                 'cdr3_igblast_aa': '_aminoacid',
-                'cdr3_igblast_start': '_integer',
-                'cdr3_igblast_end': '_integer',
                 'conscount': '_integer',
                 'dupcount': '_integer',
-                'clone': '_identity'}
+                'clone': '_identity',
+                'cell': '_identity'}
+
+    # Positional fields sets in the form (start, length, end)
+    _coordinates = [('v_seq_start', 'v_seq_length', 'v_seq_end'),
+                    ('v_germ_start_imgt', 'v_germ_length_imgt', 'v_germ_end_imgt'),
+                    ('v_germ_start_vdj', 'v_germ_length_vdj', 'v_germ_end_vdj'),
+                    ('d_seq_start', 'd_seq_length', 'd_seq_end'),
+                    ('d_germ_start', 'd_germ_length', 'd_germ_end'),
+                    ('j_seq_start', 'j_seq_length', 'j_seq_end'),
+                    ('j_germ_start', 'j_germ_length', 'j_germ_end'),
+                    ('fwr1_start', 'fwr1_length', 'fwr1_end'),
+                    ('fwr2_start', 'fwr2_length', 'fwr2_end'),
+                    ('fwr3_start', 'fwr3_length', 'fwr3_end'),
+                    ('fwr4_start', 'fwr4_length', 'fwr4_end'),
+                    ('cdr1_start', 'cdr1_length','cdr1_end'),
+                    ('cdr2_start', 'cdr2_length', 'cdr2_end'),
+                    ('cdr3_start', 'cdr3_length', 'cdr3_end')]
+
+    # Positional fields sets in the form {start: (length, end)}
+    _start = {x[0]: (x[1], x[2]) for x in _coordinates}
+
+    # Positional fields sets in the form {end: (start, length)}
+    _end = {x[2]: (x[0], x[1]) for x in _coordinates}
 
     # Mapping of derived properties to parsing functions
     _derived = {'v_seq_end': '_integer',
@@ -621,6 +489,7 @@ class Receptor:
                 'j_germ_end': '_integer',
                 'd_seq_end': '_integer',
                 'd_germ_end': '_integer'}
+
 
     @staticmethod
     def _identity(v, deparse=False):

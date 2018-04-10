@@ -262,12 +262,13 @@ def parseIMGT(aligner_file, seq_file=None, partial=False, asis_id=True,
         __, writer, schema = getFormatOperators(format)
     except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
+    out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = schema.fields(imgt_score=parse_scores,
-                           region=parse_regions,
-                           junction=parse_junction)
-    out_args['out_type'] = schema.out_type
+    fields = list(schema.standard_fields)
+    custom = IMGTReader.customFields(scores=parse_scores, regions=parse_regions,
+                                     junction=parse_junction, schema=schema)
+    fields.extend(custom)
 
     # Parse IMGT output and write db
     with open(imgt_files['summary'], 'r') as summary_handle, \
@@ -337,12 +338,13 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
         __, writer, schema = getFormatOperators(format)
     except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
+    out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = schema.fields(igblast_score=parse_scores,
-                           region=parse_regions,
-                           igblast_cdr3=parse_igblast_cdr3)
-    out_args['out_type'] = schema.out_type
+    fields = list(schema.standard_fields)
+    custom = IgBLASTReader.customFields(scores=parse_scores, regions=parse_regions,
+                                        cdr3=parse_igblast_cdr3, schema=schema)
+    fields.extend(custom)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
@@ -403,11 +405,13 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
         __, writer, schema = getFormatOperators(format)
     except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
+    out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = schema.fields(ihmm_score=parse_scores,
-                           region=parse_regions)
-    out_args['out_type'] = schema.out_type
+    fields = list(schema.standard_fields)
+    custom = IHMMuneReader.customFields(scores=parse_scores, regions=parse_regions,
+                                        schema=schema)
+    fields.extend(custom)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
@@ -456,11 +460,11 @@ def getArgParser():
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
                   V_EVALUE, V_SCORE, V_IDENTITY, V_BTOP,
                   J_EVALUE, J_SCORE, J_IDENTITY, J_BTOP.
-                  CDR3_IGBLAST_NT, CDR3_IGBLAST_AA
+                  CDR3_IGBLAST, CDR3_IGBLAST_AA, 
+                  CDR3_IGBLAST_START, CDR3_IGBLAST_END
 
               ihmm specific output fields:
-                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
-                  HMM_SCORE
+                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ, VDJ_SCORE
               ''')
                 
     # Define ArgumentParser
@@ -599,7 +603,7 @@ def getArgParser():
     group_ihmm.add_argument('--scores', action='store_true', dest='parse_scores',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the path score of the
-                                  iHMMune-Align hidden Markov model to HMM_SCORE.''')
+                                  iHMMune-Align hidden Markov model to VDJ_SCORE.''')
     group_ihmm.add_argument('--regions', action='store_true', dest='parse_regions',
                              help='''Specify if IMGT FWRs and CDRs should be
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
