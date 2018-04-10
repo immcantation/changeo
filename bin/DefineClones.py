@@ -517,7 +517,7 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'DefineClones'
-    log['DB_FILE'] = os.path.basename(db_file)
+    log['FILE'] = os.path.basename(db_file)
     log['SEQ_FIELD'] = seq_field
     log['V_FIELD'] = v_field
     log['J_FIELD'] = j_field

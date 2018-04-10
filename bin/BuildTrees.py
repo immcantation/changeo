@@ -274,7 +274,7 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'BuildTrees'
-    log['DB_FILE'] = os.path.basename(db_file)
+    log['FILE'] = os.path.basename(db_file)
     log['COLLAPSE'] = collapse
     printLog(log)
 

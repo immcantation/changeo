@@ -426,7 +426,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'CreateGermlines'
-    log['DB_FILE'] = os.path.basename(db_file)
+    log['FILE'] = os.path.basename(db_file)
     log['GERM_TYPES'] = ','.join(germ_types)
     log['SEQ_FIELD'] = seq_field
     log['V_FIELD'] = v_field
