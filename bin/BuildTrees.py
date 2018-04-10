@@ -15,7 +15,8 @@ from time import time
 from presto.Defaults import default_out_args
 from presto.IO import  printLog, getOutputHandle, printProgress
 from changeo.Defaults import default_format
-from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, splitFileName, getDbFields
+from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, \
+                       splitFileName, getDbFields, getFormatOperators
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 from Bio.Seq import Seq
@@ -270,6 +271,13 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         None: outputs files for IgPhyML.
 
     """
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'BuildTrees'
+    log['DB_FILE'] = os.path.basename(db_file)
+    log['COLLAPSE'] = collapse
+    printLog(log)
+
     start_time = time()
     # pass_handle.name = "outdir/out_name_lineages.tsv"
     pass_handle = getOutputHandle(db_file,
@@ -293,16 +301,11 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         os.makedirs(clone_dir)
 
     # Format options
-    if format == 'changeo':
-        reader = ChangeoReader
-        writer = ChangeoWriter
-        out_fields = getDbFields(db_file, reader=reader)
-    elif format == 'airr':
-        reader = AIRRReader
-        writer = AIRRWriter
-        out_fields = getDbFields(db_file, reader=reader)
-    else:
+    try:
+        reader, writer, __ = getFormatOperators(format)
+    except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
+    out_fields = getDbFields(db_file, reader=reader)
 
     # open input file
     handle = open(db_file, 'r')
@@ -346,7 +349,7 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
             log['ID'] = r.sequence_id
             log['CLONE'] = r.clone
             log['PASS'] = False
-            log['FAIL'] = "NONFUNCTIONAL"
+            log['FAIL'] = 'NONFUNCTIONAL'
             log['SEQ_IN'] = r.sequence_input
             logs[r.sequence_id]=log
             if out_args['failed']:
@@ -366,6 +369,7 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
 
+    # TODO: changeo console log
     print(len(clonesizes), file=pass_handle)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
@@ -407,17 +411,14 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-                 germ-pass
-                    database with assigned germline sequences.
-                 germ-fail
-                    database with records failing germline assignment.
+                 lineages
+                    successfully processed records.
+                 lineages-fail
+                    database records failed processing.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_IMGT,
-                 V_CALL, J_CALL, 
-                 
-
-
+                 SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_IMGT,
+                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL
               ''')
 
     # Parent parser
