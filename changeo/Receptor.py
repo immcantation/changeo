@@ -35,93 +35,93 @@ class AIRRSchema:
     out_type = 'tsv'
 
     # Core fields
-    standard = OrderedDict([('sequence_id', 'sequence_id'),
-                            ('sequence', 'sequence_input'),
-                            ('sequence_alignment', 'sequence_imgt'),
-                            ('germline_alignment', 'germline_imgt'),
-                            ('rev_comp', 'rev_comp'),
-                            ('productive', 'functional'),
-                            ('stop_codon', 'stop'),
-                            ('vj_in_frame', 'in_frame'),
-                            ('v_call', 'v_call'),
-                            ('d_call', 'd_call'),
-                            ('j_call', 'j_call'),
-                            ('c_call', 'c_call'),
-                            ('junction', 'junction'),
-                            ('junction_length', 'junction_length'),
-                            ('junction_aa', 'junction_aa'),
-                            ('np1_length', 'np1_length'),
-                            ('np2_length', 'np2_length'),
-                            ('v_sequence_start', 'v_seq_start'),
-                            ('v_sequence_end', 'v_seq_end'),
-                            ('v_germline_start', 'v_germ_start_imgt'),
-                            ('v_germline_end', 'v_germ_end_imgt'),
-                            ('d_sequence_start', 'd_seq_start'),
-                            ('d_sequence_end', 'd_seq_end'),
-                            ('d_germline_start', 'd_germ_start'),
-                            ('d_germline_end', 'd_germ_end'),
-                            ('j_sequence_start', 'j_seq_start'),
-                            ('j_sequence_end', 'j_seq_end'),
-                            ('j_germline_start', 'j_germ_start'),
-                            ('j_germline_end', 'j_germ_end')])
-    standard_fields = list(standard.keys())
+    _standard_map = OrderedDict([('sequence_id', 'sequence_id'),
+                                 ('sequence', 'sequence_input'),
+                                 ('sequence_alignment', 'sequence_imgt'),
+                                 ('germline_alignment', 'germline_imgt'),
+                                 ('rev_comp', 'rev_comp'),
+                                 ('productive', 'functional'),
+                                 ('stop_codon', 'stop'),
+                                 ('vj_in_frame', 'in_frame'),
+                                 ('v_call', 'v_call'),
+                                 ('d_call', 'd_call'),
+                                 ('j_call', 'j_call'),
+                                 ('c_call', 'c_call'),
+                                 ('junction', 'junction'),
+                                 ('junction_length', 'junction_length'),
+                                 ('junction_aa', 'junction_aa'),
+                                 ('np1_length', 'np1_length'),
+                                 ('np2_length', 'np2_length'),
+                                 ('v_sequence_start', 'v_seq_start'),
+                                 ('v_sequence_end', 'v_seq_end'),
+                                 ('v_germline_start', 'v_germ_start_imgt'),
+                                 ('v_germline_end', 'v_germ_end_imgt'),
+                                 ('d_sequence_start', 'd_seq_start'),
+                                 ('d_sequence_end', 'd_seq_end'),
+                                 ('d_germline_start', 'd_germ_start'),
+                                 ('d_germline_end', 'd_germ_end'),
+                                 ('j_sequence_start', 'j_seq_start'),
+                                 ('j_sequence_end', 'j_seq_end'),
+                                 ('j_germline_start', 'j_germ_start'),
+                                 ('j_germline_end', 'j_germ_end')])
+    standard_fields = list(_standard_map.keys())
 
     # Custom fields
-    custom = OrderedDict([('v_score', 'v_score'),
-                          ('v_identity', 'v_identity'),
-                          ('v_evalue', 'v_evalue'),
-                          ('v_cigar', 'v_cigar'),
-                          ('d_score', 'd_score'),
-                          ('d_identity', 'd_identity'),
-                          ('d_evalue', 'd_evalue'),
-                          ('d_cigar', 'd_cigar'),
-                          ('j_score', 'j_score'),
-                          ('j_identity', 'j_identity'),
-                          ('j_evalue', 'j_evalue'),
-                          ('j_cigar', 'j_cigar'),
-                          ('vdj_score', 'vdj_score'),
-                          ('cdr1', 'cdr1_imgt'),
-                          ('cdr2', 'cdr2_imgt'),
-                          ('cdr3', 'cdr3_imgt'),
-                          ('fwr1', 'fwr1_imgt'),
-                          ('fwr2', 'fwr2_imgt'),
-                          ('fwr3', 'fwr3_imgt'),
-                          ('fwr4', 'fwr4_imgt'),
-                          ('cdr1_start', 'cdr1_start'),
-                          ('cdr1_end', 'cdr1_end'),
-                          ('cdr2_start', 'cdr2_start'),
-                          ('cdr2_end', 'cdr2_end'),
-                          ('cdr3_start', 'cdr3_start'),
-                          ('cdr3_end', 'cdr3_end'),
-                          ('fwr1_start', 'fwr1_start'),
-                          ('fwr1_end', 'fwr1_end'),
-                          ('fwr2_start', 'fwr2_start'),
-                          ('fwr2_end', 'fwr2_end'),
-                          ('fwr3_start', 'fwr3_start'),
-                          ('fwr3_end', 'fwr3_end'),
-                          ('fwr4_start', 'fwr4_start'),
-                          ('fwr4_end', 'fwr4_end'),
-                          ('n1_length', 'n1_length'),
-                          ('n2_length', 'n2_length'),
-                          ('p3v_length', 'p3v_length'),
-                          ('p5d_length', 'p5d_length'),
-                          ('p3d_length', 'p3d_length'),
-                          ('p5j_length', 'p5j_length'),
-                          ('d_frame', 'd_frame'),
-                          ('cdr3_igblast', 'cdr3_igblast'),
-                          ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
-                          ('duplicate_count', 'dupcount'),
-                          ('consensus_count', 'conscount'),
-                          ('clone_id', 'clone'),
-                          ('cell_id', 'cell')])
-    custom_fields = list(custom.keys())
+    _custom_map = OrderedDict([('v_score', 'v_score'),
+                               ('v_identity', 'v_identity'),
+                               ('v_evalue', 'v_evalue'),
+                               ('v_cigar', 'v_cigar'),
+                               ('d_score', 'd_score'),
+                               ('d_identity', 'd_identity'),
+                               ('d_evalue', 'd_evalue'),
+                               ('d_cigar', 'd_cigar'),
+                               ('j_score', 'j_score'),
+                               ('j_identity', 'j_identity'),
+                               ('j_evalue', 'j_evalue'),
+                               ('j_cigar', 'j_cigar'),
+                               ('vdj_score', 'vdj_score'),
+                               ('cdr1', 'cdr1_imgt'),
+                               ('cdr2', 'cdr2_imgt'),
+                               ('cdr3', 'cdr3_imgt'),
+                               ('fwr1', 'fwr1_imgt'),
+                               ('fwr2', 'fwr2_imgt'),
+                               ('fwr3', 'fwr3_imgt'),
+                               ('fwr4', 'fwr4_imgt'),
+                               ('cdr1_start', 'cdr1_start'),
+                               ('cdr1_end', 'cdr1_end'),
+                               ('cdr2_start', 'cdr2_start'),
+                               ('cdr2_end', 'cdr2_end'),
+                               ('cdr3_start', 'cdr3_start'),
+                               ('cdr3_end', 'cdr3_end'),
+                               ('fwr1_start', 'fwr1_start'),
+                               ('fwr1_end', 'fwr1_end'),
+                               ('fwr2_start', 'fwr2_start'),
+                               ('fwr2_end', 'fwr2_end'),
+                               ('fwr3_start', 'fwr3_start'),
+                               ('fwr3_end', 'fwr3_end'),
+                               ('fwr4_start', 'fwr4_start'),
+                               ('fwr4_end', 'fwr4_end'),
+                               ('n1_length', 'n1_length'),
+                               ('n2_length', 'n2_length'),
+                               ('p3v_length', 'p3v_length'),
+                               ('p5d_length', 'p5d_length'),
+                               ('p3d_length', 'p3d_length'),
+                               ('p5j_length', 'p5j_length'),
+                               ('d_frame', 'd_frame'),
+                               ('cdr3_igblast', 'cdr3_igblast'),
+                               ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
+                               ('duplicate_count', 'dupcount'),
+                               ('consensus_count', 'conscount'),
+                               ('clone_id', 'clone'),
+                               ('cell_id', 'cell')])
+    custom_fields = list(_custom_map.keys())
 
     # Mapping of AIRR column names to Receptor attributes
-    schema = OrderedDict(chain(standard.items(), custom.items()))
-    fields = list(schema.keys())
+    _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
+    fields = list(_schema_map.keys())
 
     # Mapping of Receptor attributes to AIRR column names
-    receptor = {v: k for k, v in schema.items()}
+    _receptor_map = {v: k for k, v in _schema_map.items()}
 
     @staticmethod
     def toReceptor(field):
@@ -134,7 +134,7 @@ class AIRRSchema:
           str : Receptor attribute name
         """
         field = field.lower()
-        return AIRRSchema.schema.get(field, field)
+        return AIRRSchema._schema_map.get(field, field)
 
     @staticmethod
     def fromReceptor(field, strict=False):
@@ -150,9 +150,9 @@ class AIRRSchema:
         """
         field = field.lower()
         if strict:
-            return AIRRSchema.receptor.get(field, None)
+            return AIRRSchema._receptor_map.get(field, None)
         else:
-            return AIRRSchema.receptor.get(field, field)
+            return AIRRSchema._receptor_map.get(field, field)
 
     @staticmethod
     def toChangeo(field):
@@ -175,84 +175,84 @@ class ChangeoSchema:
     out_type = 'tab'
 
     # Standard fields
-    standard = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
-                            ('SEQUENCE_INPUT', 'sequence_input'),
-                            ('REV_COMP', 'rev_comp'),
-                            ('FUNCTIONAL', 'functional'),
-                            ('IN_FRAME', 'in_frame'),
-                            ('STOP', 'stop'),
-                            ('MUTATED_INVARIANT', 'mutated_invariant'),
-                            ('INDELS', 'indels'),
-                            ('V_CALL', 'v_call'),
-                            ('D_CALL', 'd_call'),
-                            ('J_CALL', 'j_call'),
-                            ('SEQUENCE_VDJ', 'sequence_vdj'),
-                            ('SEQUENCE_IMGT', 'sequence_imgt'),
-                            ('V_SEQ_START', 'v_seq_start'),
-                            ('V_SEQ_LENGTH', 'v_seq_length'),
-                            ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
-                            ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
-                            ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
-                            ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
-                            ('NP1_LENGTH', 'np1_length'),
-                            ('D_SEQ_START', 'd_seq_start'),
-                            ('D_SEQ_LENGTH', 'd_seq_length'),
-                            ('D_GERM_START', 'd_germ_start'),
-                            ('D_GERM_LENGTH', 'd_germ_length'),
-                            ('NP2_LENGTH', 'np2_length'),
-                            ('J_SEQ_START', 'j_seq_start'),
-                            ('J_SEQ_LENGTH', 'j_seq_length'),
-                            ('J_GERM_START', 'j_germ_start'),
-                            ('J_GERM_LENGTH', 'j_germ_length'),
-                            ('JUNCTION', 'junction'),
-                            ('JUNCTION_LENGTH', 'junction_length')])
-    standard_fields = list(standard.keys())
+    _standard_map = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
+                                 ('SEQUENCE_INPUT', 'sequence_input'),
+                                 ('REV_COMP', 'rev_comp'),
+                                 ('FUNCTIONAL', 'functional'),
+                                 ('IN_FRAME', 'in_frame'),
+                                 ('STOP', 'stop'),
+                                 ('MUTATED_INVARIANT', 'mutated_invariant'),
+                                 ('INDELS', 'indels'),
+                                 ('V_CALL', 'v_call'),
+                                 ('D_CALL', 'd_call'),
+                                 ('J_CALL', 'j_call'),
+                                 ('SEQUENCE_VDJ', 'sequence_vdj'),
+                                 ('SEQUENCE_IMGT', 'sequence_imgt'),
+                                 ('V_SEQ_START', 'v_seq_start'),
+                                 ('V_SEQ_LENGTH', 'v_seq_length'),
+                                 ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
+                                 ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
+                                 ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
+                                 ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
+                                 ('NP1_LENGTH', 'np1_length'),
+                                 ('D_SEQ_START', 'd_seq_start'),
+                                 ('D_SEQ_LENGTH', 'd_seq_length'),
+                                 ('D_GERM_START', 'd_germ_start'),
+                                 ('D_GERM_LENGTH', 'd_germ_length'),
+                                 ('NP2_LENGTH', 'np2_length'),
+                                 ('J_SEQ_START', 'j_seq_start'),
+                                 ('J_SEQ_LENGTH', 'j_seq_length'),
+                                 ('J_GERM_START', 'j_germ_start'),
+                                 ('J_GERM_LENGTH', 'j_germ_length'),
+                                 ('JUNCTION', 'junction'),
+                                 ('JUNCTION_LENGTH', 'junction_length')])
+    standard_fields = list(_standard_map.keys())
 
     # Custom fields
-    custom = OrderedDict([('V_SCORE', 'v_score'),
-                          ('V_IDENTITY', 'v_identity'),
-                          ('V_EVALUE', 'v_evalue'),
-                          ('V_BTOP', 'v_btop'),
-                          ('V_CIGAR', 'v_cigar'),
-                          ('D_SCORE', 'd_score'),
-                          ('D_IDENTITY', 'd_identity'),
-                          ('D_EVALUE', 'd_evalue'),
-                          ('D_BTOP', 'd_btop'),
-                          ('D_CIGAR', 'd_cigar'),
-                          ('J_SCORE', 'j_score'),
-                          ('J_IDENTITY', 'j_identity'),
-                          ('J_EVALUE', 'j_evalue'),
-                          ('J_BTOP', 'j_btop'),
-                          ('J_CIGAR', 'j_cigar'),
-                          ('VDJ_SCORE', 'vdj_score'),
-                          ('FWR1_IMGT', 'fwr1_imgt'),
-                          ('FWR2_IMGT', 'fwr2_imgt'),
-                          ('FWR3_IMGT', 'fwr3_imgt'),
-                          ('FWR4_IMGT', 'fwr4_imgt'),
-                          ('CDR1_IMGT', 'cdr1_imgt'),
-                          ('CDR2_IMGT', 'cdr2_imgt'),
-                          ('CDR3_IMGT', 'cdr3_imgt'),
-                          ('N1_LENGTH', 'n1_length'),
-                          ('N2_LENGTH', 'n2_length'),
-                          ('P3V_LENGTH', 'p3v_length'),
-                          ('P5D_LENGTH', 'p5d_length'),
-                          ('P3D_LENGTH', 'p3d_length'),
-                          ('P5J_LENGTH', 'p5j_length'),
-                          ('D_FRAME', 'd_frame'),
-                          ('CDR3_IGBLAST', 'cdr3_igblast'),
-                          ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
-                          ('CONSCOUNT', 'conscount'),
-                          ('DUPCOUNT', 'dupcount'),
-                          ('CLONE', 'clone'),
-                          ('CELL', 'cell')])
-    custom_fields = list(custom.keys())
+    _custom_map = OrderedDict([('V_SCORE', 'v_score'),
+                               ('V_IDENTITY', 'v_identity'),
+                               ('V_EVALUE', 'v_evalue'),
+                               ('V_BTOP', 'v_btop'),
+                               ('V_CIGAR', 'v_cigar'),
+                               ('D_SCORE', 'd_score'),
+                               ('D_IDENTITY', 'd_identity'),
+                               ('D_EVALUE', 'd_evalue'),
+                               ('D_BTOP', 'd_btop'),
+                               ('D_CIGAR', 'd_cigar'),
+                               ('J_SCORE', 'j_score'),
+                               ('J_IDENTITY', 'j_identity'),
+                               ('J_EVALUE', 'j_evalue'),
+                               ('J_BTOP', 'j_btop'),
+                               ('J_CIGAR', 'j_cigar'),
+                               ('VDJ_SCORE', 'vdj_score'),
+                               ('FWR1_IMGT', 'fwr1_imgt'),
+                               ('FWR2_IMGT', 'fwr2_imgt'),
+                               ('FWR3_IMGT', 'fwr3_imgt'),
+                               ('FWR4_IMGT', 'fwr4_imgt'),
+                               ('CDR1_IMGT', 'cdr1_imgt'),
+                               ('CDR2_IMGT', 'cdr2_imgt'),
+                               ('CDR3_IMGT', 'cdr3_imgt'),
+                               ('N1_LENGTH', 'n1_length'),
+                               ('N2_LENGTH', 'n2_length'),
+                               ('P3V_LENGTH', 'p3v_length'),
+                               ('P5D_LENGTH', 'p5d_length'),
+                               ('P3D_LENGTH', 'p3d_length'),
+                               ('P5J_LENGTH', 'p5j_length'),
+                               ('D_FRAME', 'd_frame'),
+                               ('CDR3_IGBLAST', 'cdr3_igblast'),
+                               ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
+                               ('CONSCOUNT', 'conscount'),
+                               ('DUPCOUNT', 'dupcount'),
+                               ('CLONE', 'clone'),
+                               ('CELL', 'cell')])
+    custom_fields = list(_custom_map.keys())
 
     # Mapping of Change-O column names to Receptor attributes
-    schema = OrderedDict(chain(standard.items(), custom.items()))
-    fields = list(schema.keys())
+    _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
+    fields = list(_schema_map.keys())
 
     # Mapping of Receptor attributes to Change-O column names
-    receptor = {v: k for k, v in schema.items()}
+    _receptor_map = {v: k for k, v in _schema_map.items()}
 
     @staticmethod
     def toReceptor(field):
@@ -264,7 +264,7 @@ class ChangeoSchema:
         Returns:
           str : Receptor attribute name
         """
-        return ChangeoSchema.schema.get(field, field.lower())
+        return ChangeoSchema._schema_map.get(field, field.lower())
 
     @staticmethod
     def fromReceptor(field):
@@ -276,7 +276,7 @@ class ChangeoSchema:
         Returns:
           str : Change-O column name
         """
-        return ChangeoSchema.receptor.get(field, field.upper())
+        return ChangeoSchema._receptor_map.get(field, field.upper())
 
     @staticmethod
     def toAIRR(field):
@@ -296,91 +296,91 @@ class Receptor:
     A class defining a V(D)J sequence and its annotations
 
     Attributes:
-      sequence_id (str) : unique sequence identifier.
-      v_call (str) : V allele assignment(s).
-      d_call (str) : D allele assignment(s).
-      j_call (str) : J allele assignment(s).
-      c_call (str) : C region assignment.
-      sequence_input (Bio.Seq.Seq) : input nucleotide sequence.
-      sequence_vdj (Bio.Seq.Seq) : Aligned V(D)J nucleotide sequence without IMGT-gaps.
-      sequence_imgt	(Bio.Seq.Seq) : IMGT-gapped V(D)J nucleotide sequence.
-      junction (Bio.Seq.Seq) : ungapped junction region nucletide sequence.
-      junction_aa (Bio.Seq.Seq) : ungapped junction region amino acid sequence.
-      junction_length (int) : length of the junction in nucleotides.
+      sequence_id (str): unique sequence identifier.
+      v_call (str): V allele assignment(s).
+      d_call (str): D allele assignment(s).
+      j_call (str): J allele assignment(s).
+      c_call (str): C region assignment.
+      sequence_input (Bio.Seq.Seq): input nucleotide sequence.
+      sequence_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
+      sequence_imgt (Bio.Seq.Seq): IMGT-gapped V(D)J nucleotide sequence.
+      junction (Bio.Seq.Seq): ungapped junction region nucletide sequence.
+      junction_aa (Bio.Seq.Seq): ungapped junction region amino acid sequence.
+      junction_length (int): length of the junction in nucleotides.
 
-      functional (bool) : whether sample V(D)J sequence is predicted to be functional.
-      rev_comp (bool) : whether the alignment is relative to the reverse compliment of the input sequence.
-      in_frame (bool) : whether junction region is in-frame.
-      stop (bool) : whether a stop codon is present in the V(D)J sequence.
-      mutated_invariant (bool) : whether the conserved amino acids are mutated in the V(D)J sequence.
-      indels (bool) : whether the V(D)J nucleotide sequence contains insertions and/or deletions.
+      functional (bool): whether sample V(D)J sequence is predicted to be functional.
+      rev_comp (bool): whether the alignment is relative to the reverse compliment of the input sequence.
+      in_frame (bool): whether junction region is in-frame.
+      stop (bool): whether a stop codon is present in the V(D)J sequence.
+      mutated_invariant (bool): whether the conserved amino acids are mutated in the V(D)J sequence.
+      indels (bool): whether the V(D)J nucleotide sequence contains insertions and/or deletions.
 
-      v_seq_start (int) : position of the first V nucleotide in the input sequence.
-      v_seq_length (int) : number of V nucleotides in the input sequence.
-      v_germ_start_imgt (int) : position of the first V nucleotide in IMGT-gapped V germline sequence alignment.
-      v_germ_length_imgt (int) : length of the IMGT numbered germline V alignment.
-      v_germ_start_vdj (int) : position of the first nucleotide in ungapped V germline sequence alignment.
-      v_germ_length_vdj (int) : length of the ungapped germline V alignment.
-      np1_start (int) : position of the first untemplated nucleotide between the V and D segments in the input sequence.
-      np1_length (int) : number of untemplated nucleotides between the V and D segments.
-      d_seq_start (int) : position of the first D nucleotide in the input sequence.
-      d_seq_length (int) : number of D nucleotides in the input sequence.
-      d_germ_start (int) : position of the first nucleotide in D germline sequence alignment.
-      d_germ_length (int) : length of the germline D alignment.
-      np2_start (int) : position of the first untemplated nucleotide between the D and J segments in the input sequence.
-      np2_length (int) : number of untemplated nucleotides between the D and J segments.
-      j_seq_start (int) : position of the first J nucleotide in the input sequence.
-      j_seq_length (int) : number of J nucleotides in the input sequence.
-      j_germ_start (int) : position of the first nucleotide in J germline sequence alignment.
-      j_germ_length (int) : length of the germline J alignment.
+      v_seq_start (int): position of the first V nucleotide in the input sequence.
+      v_seq_length (int): number of V nucleotides in the input sequence.
+      v_germ_start_imgt (int): position of the first V nucleotide in IMGT-gapped V germline sequence alignment.
+      v_germ_length_imgt (int): length of the IMGT numbered germline V alignment.
+      v_germ_start_vdj (int): position of the first nucleotide in ungapped V germline sequence alignment.
+      v_germ_length_vdj (int): length of the ungapped germline V alignment.
+      np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence.
+      np1_length (int): number of untemplated nucleotides between the V and D segments.
+      d_seq_start (int): position of the first D nucleotide in the input sequence.
+      d_seq_length (int): number of D nucleotides in the input sequence.
+      d_germ_start (int): position of the first nucleotide in D germline sequence alignment.
+      d_germ_length (int): length of the germline D alignment.
+      np2_start (int): position of the first untemplated nucleotide between the D and J segments in the input sequence.
+      np2_length (int): number of untemplated nucleotides between the D and J segments.
+      j_seq_start (int): position of the first J nucleotide in the input sequence.
+      j_seq_length (int): number of J nucleotides in the input sequence.
+      j_germ_start (int): position of the first nucleotide in J germline sequence alignment.
+      j_germ_length (int): length of the germline J alignment.
 
-      fwr1_imgt (Bio.Seq.Seq) : IMGT-gapped FWR1 nucleotide sequence.
-      fwr2_imgt (Bio.Seq.Seq) : IMGT-gapped FWR2 nucleotide sequence.
-      fwr3_imgt (Bio.Seq.Seq) : IMGT-gapped FWR3 nucleotide sequence.
-      fwr4_imgt (Bio.Seq.Seq) : IMGT-gapped FWR4 nucleotide sequence.
-      cdr1_imgt (Bio.Seq.Seq) : IMGT-gapped CDR1 nucleotide sequence.
-      cdr2_imgt (Bio.Seq.Seq) : IMGT-gapped CDR2 nucleotide sequence.
-      cdr3_imgt (Bio.Seq.Seq) : IMGT-gapped CDR3 nucleotide sequence.
-      cdr3_igblast (Bio.Seq.Seq) : CDR3 nucleotide sequence assigned by IgBLAST.
-      cdr3_igblast_aa (Bio.Seq.Seq) : CDR3 amino acid sequence assigned by IgBLAST.
+      fwr1_imgt (Bio.Seq.Seq): IMGT-gapped FWR1 nucleotide sequence.
+      fwr2_imgt (Bio.Seq.Seq): IMGT-gapped FWR2 nucleotide sequence.
+      fwr3_imgt (Bio.Seq.Seq): IMGT-gapped FWR3 nucleotide sequence.
+      fwr4_imgt (Bio.Seq.Seq): IMGT-gapped FWR4 nucleotide sequence.
+      cdr1_imgt (Bio.Seq.Seq): IMGT-gapped CDR1 nucleotide sequence.
+      cdr2_imgt (Bio.Seq.Seq): IMGT-gapped CDR2 nucleotide sequence.
+      cdr3_imgt (Bio.Seq.Seq): IMGT-gapped CDR3 nucleotide sequence.
+      cdr3_igblast (Bio.Seq.Seq): CDR3 nucleotide sequence assigned by IgBLAST.
+      cdr3_igblast_aa (Bio.Seq.Seq): CDR3 amino acid sequence assigned by IgBLAST.
 
-      n1_length (int) : M nucleotides 5' of the D segment.
-      n2_length (int) : nucleotides 3' of the D segment.
-      p3v_length (int) : palindromic nucleotides 3' of the V segment.
-      p5d_length (int) : palindromic nucleotides 5' of the D segment.
-      p3d_length (int) : palindromic nucleotides 3' of the D segment.
-      p5j_length (int) : palindromic nucleotides 5' of the J segment.
-      d_frame (int) : D segment reading frame.
+      n1_length (int): M nucleotides 5' of the D segment.
+      n2_length (int): nucleotides 3' of the D segment.
+      p3v_length (int): palindromic nucleotides 3' of the V segment.
+      p5d_length (int): palindromic nucleotides 5' of the D segment.
+      p3d_length (int): palindromic nucleotides 3' of the D segment.
+      p5j_length (int): palindromic nucleotides 5' of the J segment.
+      d_frame (int): D segment reading frame.
 
-      v_score	(float) : alignment score for the V.
-      v_identity (float) : alignment identity for the V.
-      v_evalue (float) : E-value for the alignment of the V.
-      v_btop (str) : BTOP for the alignment of the V.
-      v_cigar (str) : CIGAR for the alignment of the V.
-      d_score	(float) : alignment score for the D.
-      d_identity	(float) : alignment identity for the D.
-      d_evalue (float) : E-value for the alignment of the D.
-      d_btop (str) : BTOP for the alignment of the D.
-      D_cigar (str) : CIGAR for the alignment of the D.
-      j_score	(float) : alignment score for the J.
-      j_identity	(float) : alignment identity for the J.
-      j_evalue (float) : E-value for the alignment of the J.
-      j_btop (str) : BTOP for the alignment of the J.
-      j_cigar (str) : CIGAR for the alignment of the J.
-      vdj_score (float) : alignment score for the V(D)J.
+      v_score (float): alignment score for the V.
+      v_identity (float): alignment identity for the V.
+      v_evalue (float): E-value for the alignment of the V.
+      v_btop (str): BTOP for the alignment of the V.
+      v_cigar (str): CIGAR for the alignment of the V.
+      d_score (float): alignment score for the D.
+      d_identity (float): alignment identity for the D.
+      d_evalue (float): E-value for the alignment of the D.
+      d_btop (str): BTOP for the alignment of the D.
+      D_cigar (str): CIGAR for the alignment of the D.
+      j_score (float): alignment score for the J.
+      j_identity (float): alignment identity for the J.
+      j_evalue (float): E-value for the alignment of the J.
+      j_btop (str): BTOP for the alignment of the J.
+      j_cigar (str): CIGAR for the alignment of the J.
+      vdj_score (float): alignment score for the V(D)J.
 
-      germline_vdj (Bio.Seq.Seq) : full ungapped germline V(D)J nucleotide sequence.
-      germline_vdj_d_mask (Bio.Seq.Seq) : ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
-      germline_imgt (Bio.Seq.Seq) : full IMGT-gapped germline V(D)J nucleotide sequence.
-      germline_imgt_d_mask (Bio.Seq.Seq) : IMGT-gapped germline V(D)J nucleotide sequence with ns masking the NP1-D-NP2 regions.
+      germline_vdj (Bio.Seq.Seq): full ungapped germline V(D)J nucleotide sequence.
+      germline_vdj_d_mask (Bio.Seq.Seq): ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
+      germline_imgt (Bio.Seq.Seq): full IMGT-gapped germline V(D)J nucleotide sequence.
+      germline_imgt_d_mask (Bio.Seq.Seq): IMGT-gapped germline V(D)J nucleotide sequence with ns masking the NP1-D-NP2 regions.
 
-      conscount (int) : number of reads contributing to the UMI consensus sequence.
-      dupcount (int) : copy number of the sequence.
+      conscount (int): number of reads contributing to the UMI consensus sequence.
+      dupcount (int): copy number of the sequence.
 
       clone (str): clonal cluster identifier.
       cell (str): origin cell identifier.
 
-      annotations (dict) : dictionary containing all unknown fields.
+      annotations (dict): dictionary containing all unknown fields.
     """
     # Mapping of member variables to parsing functions
     _parsers = {'sequence_id': '_identity',
