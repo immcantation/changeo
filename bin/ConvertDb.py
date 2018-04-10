@@ -115,7 +115,7 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
         pass_handle = open(out_file, 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type='tsv')
+                                      out_name=out_args['out_name'], out_type=AIRRSchema.out_type)
     pass_writer = AIRRWriter(pass_handle, fields=fields)
 
     # Count records
@@ -187,7 +187,7 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
         pass_handle = open(out_file, 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type='tab')
+                                      out_name=out_args['out_name'], out_type=ChangeoSchema.out_type)
     pass_writer = ChangeoWriter(pass_handle, fields=fields)
 
     # Count records
