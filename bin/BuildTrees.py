@@ -271,7 +271,6 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
 
     """
     start_time = time()
-    # TODO: changeo console log
     # pass_handle.name = "outdir/out_name_lineages.tsv"
     pass_handle = getOutputHandle(db_file,
                                   out_label='lineages',
@@ -309,7 +308,6 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     handle = open(db_file, 'r')
     records = reader(handle)
 
-    # TODO: make consistent with changeo behavior regarding --log and --failed
     fail_handle, fail_writer = None, None
     if out_args['failed']:
         fail_handle = getOutputHandle(db_file,
@@ -368,14 +366,12 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
 
-    # TODO: changeo console log
     print(len(clonesizes), file=pass_handle)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
         outfile = clone_dir + "/" + key + ".fa"
         partfile = clone_dir + "/" + key + ".part.txt"
-        # TODO: use file.write()
-        print("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile), file=pass_handle)
+        pass_handle.write("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile))
 
     handle.close()
     output = {'pass': None, 'fail': None}
@@ -417,23 +413,11 @@ def getArgParser():
                     database with records failing germline assignment.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_VDJ or SEQUENCE_IMGT,
-                 V_CALL or V_CALL_GENOTYPED, D_CALL, J_CALL,
-                 V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
-                 D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
-                 J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
-                 NP1_LENGTH, NP2_LENGTH
-
-             optional fields:
-                 N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
-                 CLONE
+                 SEQUENCE_ID, SEQUENCE_IMGT,
+                 V_CALL, J_CALL, 
+                 
 
 
-             output fields:
-                 GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
-                 GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
-                 GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
-                 GERMLINE_REGIONS
               ''')
 
     # Parent parser
