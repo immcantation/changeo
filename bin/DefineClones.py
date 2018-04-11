@@ -129,7 +129,7 @@ def indexByUnion(index, key, rec, group_fields=None):
     for field in f_range:
         try:
             outer_dict = outer_dict[key[field]]
-        except (KeyError):
+        except KeyError:
             outer_dict = None
             break
     # If field combination exists, look through Js
