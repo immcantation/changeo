@@ -1,4 +1,4 @@
-receptor:
+Receptor:
   sequence_id:
     type: identity
     description: Unique sequence identifier
@@ -493,18 +493,28 @@ receptor:
     changeo: CELL
     airr: cell_id
 
-changeo:
+Changeo:
   out_type: tab
   standard:
     - SEQUENCE_ID
     - SEQUENCE_INPUT
+    - FUNCTIONAL
+    - IN_FRAME
   custom:
     - V_SCORE
+    - V_IDENTITY
+    - V_EVALUE
+    - V_BTOP
 
-airr:
+AIRR:
   out_type: tsv
   standard:
     - sequence_id
     - sequence
+    - sequence_alignment
+    - germline_alignment
   custom:
     - v_score
+    - v_identity
+    - v_evalue
+    - v_cigar

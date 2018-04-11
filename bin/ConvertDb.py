@@ -29,7 +29,7 @@ from changeo.Defaults import default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter, \
                        TSVReader, TSVWriter
-from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema
+from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema, Receptor
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -96,19 +96,11 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     db_handle = open(db_file, 'rt')
     db_iter = ChangeoReader(db_handle, receptor=True)
 
-    # Set fields
-    fields_delete = ['v_seq_length', 'v_germ_length_vdj',
-                     'd_seq_length', 'd_germ_length',
-                     'j_seq_length', 'j_germ_length']
-    fields_add = ['v_sequence_start', 'v_germline_start',
-                  'd_sequence_start', 'd_germline_start',
-                  'j_sequence_start', 'j_germline_start',
-                  'v_sequence_end', 'v_germline_end',
-                  'd_sequence_end', 'd_germline_end',
-                  'j_sequence_end', 'j_germline_end']
-    fields = [ChangeoSchema.toAIRR(x) for x in db_iter.fields]
-    fields = [x for x in fields if x not in fields_delete]
-    fields.extend([x for x in fields_add if x not in fields])
+    # Set output fields replacing length with end fields
+    in_fields = [ChangeoSchema.toReceptor(f) for f in db_iter.fields]
+    out_fields = [Receptor._length[f][1] if f in Receptor._length else f \
+                  for f in in_fields]
+    out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
     if out_file is not None:
@@ -116,7 +108,7 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     else:
         pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'], out_type=AIRRSchema.out_type)
-    pass_writer = AIRRWriter(pass_handle, fields=fields)
+    pass_writer = AIRRWriter(pass_handle, fields=out_fields)
 
     # Count records
     result_count = countDbFile(db_file)
@@ -168,19 +160,11 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     db_handle = open(db_file, 'rt')
     db_iter = AIRRReader(db_handle, receptor=True)
 
-    # Set fields
-    fields_delete = ['V_SEQ_END', 'V_GERM_END_VDJ',
-                     'D_SEQ_END', 'D_GERM_END',
-                     'J_SEQ_END', 'J_GERM_END']
-    fields_add = ['V_SEQ_START', 'V_GERM_START_VDJ',
-                  'D_SEQ_START', 'D_GERM_START',
-                  'J_SEQ_START', 'J_GERM_START',
-                  'V_SEQ_LENGTH', 'V_GERM_LENGTH_VDJ',
-                  'D_SEQ_LENGTH', 'D_GERM_LENGTH',
-                  'J_SEQ_LENGTH', 'J_GERM_LENGTH']
-    fields = [AIRRSchema.toChangeo(x) for x in db_iter.fields]
-    fields = [x for x in fields if x not in fields_delete]
-    fields.extend([x for x in fields_add if x not in fields])
+    # Set output fields replacing length with end fields
+    in_fields = [AIRRSchema.toReceptor(f) for f in db_iter.fields]
+    out_fields = [Receptor._end[f][1] if f in Receptor._end else f \
+                  for f in in_fields]
+    out_fields = [ChangeoSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
     if out_file is not None:
@@ -188,7 +172,7 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     else:
         pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'], out_type=ChangeoSchema.out_type)
-    pass_writer = ChangeoWriter(pass_handle, fields=fields)
+    pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
 
     # Count records
     result_count = countDbFile(db_file)

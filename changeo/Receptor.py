@@ -39,6 +39,7 @@ class AIRRSchema:
                                  ('sequence', 'sequence_input'),
                                  ('sequence_alignment', 'sequence_imgt'),
                                  ('germline_alignment', 'germline_imgt'),
+                                 ('germline_alignment_d_mask', 'germline_imgt_d_mask'),
                                  ('rev_comp', 'rev_comp'),
                                  ('productive', 'functional'),
                                  ('stop_codon', 'stop'),
@@ -177,7 +178,6 @@ class ChangeoSchema:
     # Standard fields
     _standard_map = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
                                  ('SEQUENCE_INPUT', 'sequence_input'),
-                                 ('REV_COMP', 'rev_comp'),
                                  ('FUNCTIONAL', 'functional'),
                                  ('IN_FRAME', 'in_frame'),
                                  ('STOP', 'stop'),
@@ -213,17 +213,14 @@ class ChangeoSchema:
                                ('V_IDENTITY', 'v_identity'),
                                ('V_EVALUE', 'v_evalue'),
                                ('V_BTOP', 'v_btop'),
-                               ('V_CIGAR', 'v_cigar'),
                                ('D_SCORE', 'd_score'),
                                ('D_IDENTITY', 'd_identity'),
                                ('D_EVALUE', 'd_evalue'),
                                ('D_BTOP', 'd_btop'),
-                               ('D_CIGAR', 'd_cigar'),
                                ('J_SCORE', 'j_score'),
                                ('J_IDENTITY', 'j_identity'),
                                ('J_EVALUE', 'j_evalue'),
                                ('J_BTOP', 'j_btop'),
-                               ('J_CIGAR', 'j_cigar'),
                                ('VDJ_SCORE', 'vdj_score'),
                                ('FWR1_IMGT', 'fwr1_imgt'),
                                ('FWR2_IMGT', 'fwr2_imgt'),
@@ -297,23 +294,31 @@ class Receptor:
 
     Attributes:
       sequence_id (str): unique sequence identifier.
-      v_call (str): V allele assignment(s).
-      d_call (str): D allele assignment(s).
-      j_call (str): J allele assignment(s).
-      c_call (str): C region assignment.
-      sequence_input (Bio.Seq.Seq): input nucleotide sequence.
-      sequence_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
-      sequence_imgt (Bio.Seq.Seq): IMGT-gapped V(D)J nucleotide sequence.
-      junction (Bio.Seq.Seq): ungapped junction region nucletide sequence.
-      junction_aa (Bio.Seq.Seq): ungapped junction region amino acid sequence.
-      junction_length (int): length of the junction in nucleotides.
 
-      functional (bool): whether sample V(D)J sequence is predicted to be functional.
       rev_comp (bool): whether the alignment is relative to the reverse compliment of the input sequence.
+      functional (bool): whether sample V(D)J sequence is predicted to be functional.
       in_frame (bool): whether junction region is in-frame.
       stop (bool): whether a stop codon is present in the V(D)J sequence.
       mutated_invariant (bool): whether the conserved amino acids are mutated in the V(D)J sequence.
       indels (bool): whether the V(D)J nucleotide sequence contains insertions and/or deletions.
+
+      sequence_input (Bio.Seq.Seq): input nucleotide sequence.
+      sequence_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
+      sequence_imgt (Bio.Seq.Seq): IMGT-gapped V(D)J nucleotide sequence.
+
+      junction (Bio.Seq.Seq): ungapped junction region nucletide sequence.
+      junction_aa (Bio.Seq.Seq): ungapped junction region amino acid sequence.
+      junction_length (int): length of the junction in nucleotides.
+
+      germline_vdj (Bio.Seq.Seq): full ungapped germline V(D)J nucleotide sequence.
+      germline_vdj_d_mask (Bio.Seq.Seq): ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
+      germline_imgt (Bio.Seq.Seq): full IMGT-gapped germline V(D)J nucleotide sequence.
+      germline_imgt_d_mask (Bio.Seq.Seq): IMGT-gapped germline V(D)J nucleotide sequence with ns masking the NP1-D-NP2 regions.
+
+      v_call (str): V allele assignment(s).
+      d_call (str): D allele assignment(s).
+      j_call (str): J allele assignment(s).
+      c_call (str): C region assignment.
 
       v_seq_start (int): position of the first V nucleotide in the input sequence.
       v_seq_length (int): number of V nucleotides in the input sequence.
@@ -321,18 +326,42 @@ class Receptor:
       v_germ_length_imgt (int): length of the IMGT numbered germline V alignment.
       v_germ_start_vdj (int): position of the first nucleotide in ungapped V germline sequence alignment.
       v_germ_length_vdj (int): length of the ungapped germline V alignment.
+
       np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence.
       np1_length (int): number of untemplated nucleotides between the V and D segments.
+
       d_seq_start (int): position of the first D nucleotide in the input sequence.
       d_seq_length (int): number of D nucleotides in the input sequence.
       d_germ_start (int): position of the first nucleotide in D germline sequence alignment.
       d_germ_length (int): length of the germline D alignment.
+
       np2_start (int): position of the first untemplated nucleotide between the D and J segments in the input sequence.
       np2_length (int): number of untemplated nucleotides between the D and J segments.
+
       j_seq_start (int): position of the first J nucleotide in the input sequence.
       j_seq_length (int): number of J nucleotides in the input sequence.
       j_germ_start (int): position of the first nucleotide in J germline sequence alignment.
       j_germ_length (int): length of the germline J alignment.
+
+      v_score (float): alignment score for the V.
+      v_identity (float): alignment identity for the V.
+      v_evalue (float): E-value for the alignment of the V.
+      v_btop (str): BTOP for the alignment of the V.
+      v_cigar (str): CIGAR for the alignment of the V.
+
+      d_score (float): alignment score for the D.
+      d_identity (float): alignment identity for the D.
+      d_evalue (float): E-value for the alignment of the D.
+      d_btop (str): BTOP for the alignment of the D.
+      D_cigar (str): CIGAR for the alignment of the D.
+
+      j_score (float): alignment score for the J.
+      j_identity (float): alignment identity for the J.
+      j_evalue (float): E-value for the alignment of the J.
+      j_btop (str): BTOP for the alignment of the J.
+      j_cigar (str): CIGAR for the alignment of the J.
+
+      vdj_score (float): alignment score for the V(D)J.
 
       fwr1_imgt (Bio.Seq.Seq): IMGT-gapped FWR1 nucleotide sequence.
       fwr2_imgt (Bio.Seq.Seq): IMGT-gapped FWR2 nucleotide sequence.
@@ -352,28 +381,6 @@ class Receptor:
       p5j_length (int): palindromic nucleotides 5' of the J segment.
       d_frame (int): D segment reading frame.
 
-      v_score (float): alignment score for the V.
-      v_identity (float): alignment identity for the V.
-      v_evalue (float): E-value for the alignment of the V.
-      v_btop (str): BTOP for the alignment of the V.
-      v_cigar (str): CIGAR for the alignment of the V.
-      d_score (float): alignment score for the D.
-      d_identity (float): alignment identity for the D.
-      d_evalue (float): E-value for the alignment of the D.
-      d_btop (str): BTOP for the alignment of the D.
-      D_cigar (str): CIGAR for the alignment of the D.
-      j_score (float): alignment score for the J.
-      j_identity (float): alignment identity for the J.
-      j_evalue (float): E-value for the alignment of the J.
-      j_btop (str): BTOP for the alignment of the J.
-      j_cigar (str): CIGAR for the alignment of the J.
-      vdj_score (float): alignment score for the V(D)J.
-
-      germline_vdj (Bio.Seq.Seq): full ungapped germline V(D)J nucleotide sequence.
-      germline_vdj_d_mask (Bio.Seq.Seq): ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
-      germline_imgt (Bio.Seq.Seq): full IMGT-gapped germline V(D)J nucleotide sequence.
-      germline_imgt_d_mask (Bio.Seq.Seq): IMGT-gapped germline V(D)J nucleotide sequence with ns masking the NP1-D-NP2 regions.
-
       conscount (int): number of reads contributing to the UMI consensus sequence.
       dupcount (int): copy number of the sequence.
 
@@ -384,22 +391,26 @@ class Receptor:
     """
     # Mapping of member variables to parsing functions
     _parsers = {'sequence_id': '_identity',
-                'v_call': '_identity',
-                'd_call': '_identity',
-                'j_call': '_identity',
-                'c_call': '_identity',
-                'sequence_input': '_nucleotide',
-                'sequence_imgt': '_nucleotide',
-                'sequence_vdj': '_nucleotide',
-                'junction': '_nucleotide',
-                'junction_aa': '_aminoacid',
-                'junction_length': '_integer',
                 'rev_comp': '_logical',
                 'functional': '_logical',
                 'in_frame': '_logical',
                 'stop': '_logical',
                 'mutated_invariant': '_logical',
                 'indels': '_logical',
+                'sequence_input': '_nucleotide',
+                'sequence_imgt': '_nucleotide',
+                'sequence_vdj': '_nucleotide',
+                'junction': '_nucleotide',
+                'junction_aa': '_aminoacid',
+                'junction_length': '_integer',
+                'germline_imgt': '_nucleotide',
+                'germline_imgt_d_mask': '_nucleotide',
+                'germline_vdj': '_nucleotide',
+                'germline_vdj_d_mask': '_nucleotide',
+                'v_call': '_identity',
+                'd_call': '_identity',
+                'j_call': '_identity',
+                'c_call': '_identity',
                 'v_seq_start': '_integer',
                 'v_seq_length': '_integer',
                 'v_germ_start_imgt': '_integer',
@@ -441,10 +452,6 @@ class Receptor:
                 'cdr1_imgt': '_nucleotide',
                 'cdr2_imgt': '_nucleotide',
                 'cdr3_imgt': '_nucleotide',
-                'germline_imgt': '_nucleotide',
-                'germline_imgt_d_mask': '_nucleotide',
-                'germline_vdj': '_nucleotide',
-                'germline_vdj_d_mask': '_nucleotide',
                 'n1_length': '_integer',
                 'n2_length': '_integer',
                 'p3v_length': '_integer',
@@ -478,6 +485,9 @@ class Receptor:
     # Positional fields sets in the form {start: (length, end)}
     _start = {x[0]: (x[1], x[2]) for x in _coordinates}
 
+    # Positional fields sets in the form {length: (start, end)}
+    _length = {x[1]: (x[0], x[2]) for x in _coordinates}
+
     # Positional fields sets in the form {end: (start, length)}
     _end = {x[2]: (x[0], x[1]) for x in _coordinates}
 
@@ -489,7 +499,6 @@ class Receptor:
                 'j_germ_end': '_integer',
                 'd_seq_end': '_integer',
                 'd_germ_end': '_integer'}
-
 
     @staticmethod
     def _identity(v, deparse=False):
