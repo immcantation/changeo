@@ -27,8 +27,8 @@ from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Defaults import default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter, \
-                       TSVReader, TSVWriter
+from changeo.IO import countDbFile, getFormatOperators, AIRRReader, AIRRWriter, \
+                       ChangeoReader, ChangeoWriter, TSVReader, TSVWriter
 from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema, Receptor
 
 # System settings
@@ -617,12 +617,10 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
-    # Format options
-    if format == 'changeo':
-        reader = ChangeoReader
-    elif format == 'airr':
-        reader = AIRRReader
-    else:
+    # Define format operators
+    try:
+        reader, __, __ = getFormatOperators(format)
+    except ValueError:
         sys.exit('Error:  Invalid format %s' % format)
 
     # Open input
