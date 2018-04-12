@@ -379,7 +379,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
 def makeGenbankFeatures(record, start=None, end=None, product=default_product,
                         inference=None, db_xref=default_db_xref,
-                        cregion_field=None, keep_stop=False):
+                        c_field=None, allow_stop=False, asis_calls=False):
     """
     Creates a feature table for GenBank submissions
 
@@ -390,8 +390,9 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
       product : Product (protein) name.
       inference : Reference alignment tool.
       db_xref : Reference database name.
-      cregion_field : column containing the C region gene call.
-      keep_stop : if True retain records with junctions having stop codons.
+      c_field : column containing the C region gene call.
+      allow_stop : if True retain records with junctions having stop codons.
+      asis_calls : if True do not parse gene calls for IMGT nomenclature.
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -405,10 +406,23 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #   Line 2, Column 4: Qualifier key
     #   Line 2, Column 5: Qualifier value
 
-    # Get genes and check for valid record
-    v_gene = record.getVGene()
-    d_gene = record.getDGene()
-    j_gene = record.getJGene()
+    # Get genes and alleles
+    if not asis_calls:
+        v_gene = record.getVGene()
+        d_gene = record.getDGene()
+        j_gene = record.getJGene()
+        v_allele = record.getVAlleleNumber()
+        d_allele = record.getDAlleleNumber()
+        j_allele = record.getJAlleleNumber()
+    else:
+        v_gene = record.v_call
+        d_gene = record.d_call
+        j_gene = record.j_call
+        v_allele = None
+        d_allele = None
+        j_allele = None
+
+    # Fail if V or J is missing
     if v_gene is None or j_gene is None:
         return None
 
@@ -426,11 +440,12 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     c_region_start = record.j_seq_end + 1 - start_trim
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
     if c_region_length > 0:
-        if cregion_field is None:
+        if c_field is None:
             c_region = []
         else:
-            c_call = record.getField(cregion_field)
-            c_gene = parseAllele(c_call, c_gene_regex, action='first')
+            c_gene = record.getField(c_field)
+            if not asis_calls:
+                c_gene = parseAllele(c_gene, c_gene_regex, action='first')
             c_region = [('gene', c_gene),
                         ('db_xref', '%s:%s' % (db_xref, c_gene))]
 
@@ -457,9 +472,11 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #     allele (allele only, without gene name, don't use if ambiguous)
     #     db_xref (database link)
     #     inference (reference alignment tool)
-    v_segment = [('gene', v_gene),
-                 ('allele', record.getVAlleleNumber()),
-                 ('db_xref', '%s:%s' % (db_xref, v_gene))]
+    v_segment = [('gene', v_gene)]
+    if v_allele is not None:
+        v_segment.append(('allele', v_allele))
+    if db_xref is not None:
+        v_segment.append(('db_xref', '%s:%s' % (db_xref, v_gene)))
     if inference is not None:
         v_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
     result[(variable_start, record.v_seq_end - start_trim, 'V_segment')] = v_segment
@@ -470,9 +487,11 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #     db_xref
     #     inference
     if d_gene:
-        d_segment = [('gene', d_gene),
-                     ('allele', record.getDAlleleNumber()),
-                     ('db_xref', '%s:%s' % (db_xref, d_gene))]
+        d_segment = [('gene', d_gene)]
+        if d_allele is not None:
+            d_segment.append(('allele', d_allele))
+        if db_xref is not None:
+            d_segment.append(('db_xref', '%s:%s' % (db_xref, d_gene)))
         if inference is not None:
             d_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
         result[(record.d_seq_start - start_trim, record.d_seq_end - start_trim, 'D_segment')] = d_segment
@@ -482,9 +501,11 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #     allele
     #     db_xref
     #     inference
-    j_segment = [('gene', j_gene),
-                 ('allele', record.getVAlleleNumber()),
-                 ('db_xref', '%s:%s' % (db_xref, j_gene))]
+    j_segment = [('gene', j_gene)]
+    if j_allele is not None:
+        j_segment.append(('allele', j_allele))
+    if db_xref is not None:
+        j_segment.append(('db_xref', '%s:%s' % (db_xref, j_gene)))
     if inference is not None:
         j_segment.append(('inference', 'COORDINATES:alignment:%s' % inference))
     result[(record.j_seq_start - start_trim, j_end - start_trim, 'J_segment')] = j_segment
@@ -511,7 +532,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         junction_aa = junction_seq.translate()
 
         # Return invalid record upon junction stop codon
-        if '*' in junction_aa and not keep_stop:
+        if '*' in junction_aa and not allow_stop:
             return None
         elif '*' in junction_aa:
             cds_record.append(('note', '%s junction region' % product))
@@ -525,7 +546,8 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
 
 
 def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, isolate=None,
-                        tissue=None, cell=None, molecule=default_molecule):
+                        tissue=None, cell_type=None, count_field=None, index_field=None,
+                        molecule=default_molecule):
     """
     Creates a sequence for GenBank submissions
 
@@ -538,7 +560,9 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
       sex : sex.
       isolate : sample identifier.
       tissue : tissue type.
-      cell : cell type.
+      cell_type : cell type.
+      count_field : field name to populate the AIRR_READ_COUNT note.
+      index_field : field name to populate the AIRR_CELL_INDEX note.
       molecule : source molecule (eg, "mRNA", "genomic DNA")
 
     Returns:
@@ -569,9 +593,19 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
         name = '%s [isolate=%s]' % (name, isolate)
     if tissue is not None:
         name = '%s [tissue-type=%s]' % (name, tissue)
-    if cell is not None:
-        name = '%s [cell-type=%s]' % (name, cell)
+    if cell_type is not None:
+        name = '%s [cell-type=%s]' % (name, cell_type)
     name = '%s [moltype=%s] [keyword=TLS; Targeted Locus Study; AIRR; MiAIRR:1.0]' % (name, molecule)
+
+    # Notes
+    note_dict = OrderedDict()
+    if count_field is not None:
+        note_dict['AIRR_READ_COUNT'] = record.getField(count_field)
+    if index_field is not None:
+        note_dict['AIRR_CELL_INDEX'] = record.getField(index_field)
+    if note_dict:
+        note = '; '.join(['%s:%s' % (k, v) for k, v in note_dict.items()])
+        name = '%s [note=%s]' % (name, note)
 
     # Return SeqRecord and positions
     record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=name,
@@ -582,10 +616,11 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
 
 
 def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=None,
-                     isolate=None, tissue=None, cell=None, molecule=default_molecule,
-                     product=default_product, cregion_field=None, label=None,
-                     keep_id=False, keep_stop=False,
-                     format=default_format, out_file=None, out_args=default_out_args):
+                     isolate=None, tissue=None, cell_type=None, molecule=default_molecule,
+                     product=default_product, c_field=None, label=None,
+                     count_field=None, index_field=None, allow_stop=False,
+                     asis_id=False, asis_calls=False, format=default_format, out_file=None,
+                     out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
 
@@ -597,13 +632,16 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       sex : sex.
       isolate : sample identifier.
       tissue : tissue type.
-      cell : cell type.
+      cell_type : cell type.
       molecule : source molecule (eg, "mRNA", "genomic DNA")
       product : Product (protein) name.
-      cregion_field : column containing the C region gene call.
+      c_field : column containing the C region gene call.
       label : a string to use as a label for the ID. if None do not add a field label.
-      keep_id : if True use the original sequence ID for the output IDs
-      keep_stop : if True retain records with junctions having stop codons.
+      count_field : field name to populate the AIRR_READ_COUNT note.
+      index_field : field name to populate the AIRR_CELL_INDEX note.
+      allow_stop : if True retain records with junctions having stop codons.
+      asis_id : if True use the original sequence ID for the output IDs.
+      asis_calls : if True do not parse gene calls for IMGT nomenclature.
       format : input and output format.
       out_file : output file name without extension. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -653,12 +691,13 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
         rec_count += 1
 
         # Extract table dictionary
-        name = None if keep_id else rec_count
+        name = None if asis_id else rec_count
         seq = makeGenbankSequence(rec, name=name, label=label, organism=organism, sex=sex, isolate=isolate,
-                                  tissue=tissue, cell=cell, molecule=molecule)
+                                  tissue=tissue, cell_type=cell_type, count_field=count_field, index_field=index_field,
+                                  molecule=molecule)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'], product=product,
-                                  db_xref=db_xref, inference=inference, cregion_field=cregion_field,
-                                  keep_stop=keep_stop)
+                                  db_xref=db_xref, inference=inference, c_field=c_field,
+                                  allow_stop=allow_stop, asis_calls=asis_calls)
 
         if tbl is not None:
             pass_count +=1
@@ -806,42 +845,52 @@ def getArgParser():
                                        description='Creates a fasta and feature table file for GenBank submissions.')
     group_gb = parser_gb.add_argument_group('conversion arguments')
     group_gb.add_argument('--product', action='store', dest='product', default=default_product,
-                            help='''The product name, such as "immunoglobulin heavy chain".''')
+                          help='''The product name, such as "immunoglobulin heavy chain".''')
     group_gb.add_argument('--inf', action='store', dest='inference', default=None,
-                            help='''Name and version of the inference tool used for reference alignment in the 
-                                 form tool:version.''')
+                          help='''Name and version of the inference tool used for reference alignment in the 
+                               form tool:version.''')
     group_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
-                            help='Name of the reference database used for alignment.')
+                          help='Name of the reference database used for alignment.')
     group_gb.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
-                            help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+                          help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
     group_gb.add_argument('--organism', action='store', dest='organism', default=None,
-                            help='The scientific name of the organism.')
+                          help='The scientific name of the organism.')
     group_gb.add_argument('--sex', action='store', dest='sex', default=None,
-                            help='''If specified, adds the given sex annotation 
-                                 to the fasta headers.''')
+                          help='''If specified, adds the given sex annotation 
+                               to the fasta headers.''')
     group_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
-                            help='''If specified, adds the given isolate annotation 
-                                 (sample label) to the fasta headers.''')
+                          help='''If specified, adds the given isolate annotation 
+                               (sample label) to the fasta headers.''')
     group_gb.add_argument('--tissue', action='store', dest='tissue', default=None,
-                            help='''If specified, adds the given tissue-type annotation 
-                                 to the fasta headers.''')
-    group_gb.add_argument('--cell', action='store', dest='cell', default=None,
-                            help='''If specified, adds the given cell-type annotation 
-                                 to the fasta headers.''')
-    group_gb.add_argument('--cregion', action='store', dest='cregion_field', default=None,
-                            help='''Field containing the C region call. If unspecified, the C region gene 
-                                 call will be excluded from the feature table.''')
+                          help='''If specified, adds the given tissue-type annotation 
+                               to the fasta headers.''')
+    group_gb.add_argument('--cell-type', action='store', dest='cell_type', default=None,
+                          help='''If specified, adds the given cell-type annotation 
+                               to the fasta headers.''')
     group_gb.add_argument('--label', action='store', dest='label', default=None,
-                            help='''If specified, add a field name to the sequence identifier. 
-                                 Sequence identifiers will be output in the form <label>=<id>.''')
-    group_gb.add_argument('--id', action='store_true', dest='keep_id',
-                            help='''If specified, use the existing sequence identifier for the output identifier. 
-                                 By default, only the row number will be used as the identifier to avoid
-                                 the 50 character limit.''')
-    group_gb.add_argument('--stop', action='store_true', dest='keep_stop',
-                            help='''If specified, retain records in the output with stop codons in the junction region.
-                                 In such records the CDS will be removed and replaced with a similar misc_feature in 
-                                 the feature table.''')
+                          help='''If specified, add a field name to the sequence identifier. 
+                               Sequence identifiers will be output in the form <label>=<id>.''')
+    group_gb.add_argument('--cf', action='store', dest='c_field', default=None,
+                          help='''Field containing the C region call. If unspecified, the C region gene 
+                               call will be excluded from the feature table.''')
+    group_gb.add_argument('--nf', action='store', dest='count_field', default=None,
+                          help='''If specified, use the provided column to add the AIRR_READ_COUNT 
+                               note to the feature table.''')
+    group_gb.add_argument('--if', action='store', dest='index_field', default=None,
+                          help='''If specified, use the provided column to add the AIRR_CELL_INDEX 
+                               note to the feature table.''')
+    group_gb.add_argument('--allow-stop', action='store_true', dest='allow_stop',
+                          help='''If specified, retain records in the output with stop codons in the junction region.
+                               In such records the CDS will be removed and replaced with a similar misc_feature in 
+                               the feature table.''')
+    group_gb.add_argument('--asis-id', action='store_true', dest='asis_id',
+                          help='''If specified, use the existing sequence identifier for the output identifier. 
+                               By default, only the row number will be used as the identifier to avoid
+                               the 50 character limit.''')
+    group_gb.add_argument('--asis-calls', action='store_true', dest='asis_calls',
+                          help='''Specify to prevent gene calls from being parsed into IMGT allele names.
+                               Note, this requires the gene assignments to be exact matches to valid 
+                               records in the references database specified by the "--db" argument.''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
