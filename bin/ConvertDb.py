@@ -410,6 +410,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #   Line 2, Column 5: Qualifier value
 
     # Get genes and alleles
+    c_gene = None
     if not asis_calls:
         # V gene
         v_gene = record.getVGene()
@@ -420,6 +421,9 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         # J gene
         j_gene = record.getJGene()
         j_allele = record.getJAlleleNumber()
+        # C region
+        if c_field is not None:
+            c_gene = parseAllele(record.getField(c_field), c_gene_regex, action='first')
     else:
         # V gene
         v_split = iter(record.v_call.rsplit(allele_delim, maxsplit=1))
@@ -433,6 +437,9 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         j_split = iter(record.j_call.rsplit(allele_delim, maxsplit=1))
         j_gene = next(j_split, None)
         j_allele = next(j_split, None)
+        # C region
+        if c_field is not None:
+            c_gene = record.getField(c_field)
 
     # Fail if V or J is missing
     if v_gene is None or j_gene is None:
@@ -452,14 +459,11 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     c_region_start = record.j_seq_end + 1 - start_trim
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
     if c_region_length > 0:
-        if c_field is None:
-            c_region = []
-        else:
-            c_gene = record.getField(c_field)
-            if not asis_calls:
-                c_gene = parseAllele(c_gene, c_gene_regex, action='first')
+        if c_gene is not None:
             c_region = [('gene', c_gene),
                         ('db_xref', '%s:%s' % (db_xref, c_gene))]
+        else:
+            c_region = []
 
         # Assign C_region feature
         result[(c_region_start, '>%i' % (c_region_start + c_region_length - 1), 'C_region')] = c_region
@@ -747,6 +751,47 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     return (tbl_handle.name, fsa_handle.name)
 
 
+# def runASN(seq_list, asn_exec=default_asn_exec):
+#     """
+#     Executes tbl2asn to generate Sequin files
+#
+#     Arguments:
+#       seq_list : a list of SeqRecord objects to align
+#       aligner_exec : the MUSCLE executable
+#
+#     Returns:
+#       Bio.Align.MultipleSeqAlignment : Multiple alignment results.
+#     """
+#     tbl2asn -i file -a s -V vb -t template.sbt
+#
+#     # Return sequence if only one sequence in seq_list
+#     if len(seq_list) < 2:
+#         align = MultipleSeqAlignment(seq_list)
+#         return align
+#
+#     # Set MUSCLE command
+#     cmd = [aligner_exec, '-diags', '-maxiters', '2']
+#
+#     # Convert sequences to FASTA and write to string
+#     stdin_handle = StringIO()
+#     SeqIO.write(seq_list, stdin_handle, 'fasta')
+#     stdin_str = stdin_handle.getvalue()
+#     stdin_handle.close()
+#
+#     # Open MUSCLE process
+#     child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+#                   universal_newlines=True)
+#
+#     # Send sequences to MUSCLE stdin and retrieve stdout, stderr
+#     stdout_str, __ = child.communicate(stdin_str)
+#
+#     # Capture sequences from MUSCLE stdout
+#     stdout_handle = StringIO(stdout_str)
+#     align = AlignIO.read(stdout_handle, 'fasta')
+#     stdout_handle.close()
+#
+#     return align
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -938,7 +983,6 @@ if __name__ == '__main__':
         else:
             args_dict.update(yamlArguments(yaml_config, args_dict))
         del args_dict['yaml_config']
-    print(args_dict)
 
     # Check argument pairs
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
