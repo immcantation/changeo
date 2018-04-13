@@ -26,7 +26,8 @@ from Bio.Alphabet import IUPAC
 from presto.Annotation import flattenAnnotation
 from presto.IO import getOutputHandle, printLog, printProgress
 from changeo.Defaults import default_csv_size, default_format, default_out_args
-from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
+                                yamlArguments
 from changeo.IO import countDbFile, getFormatOperators, AIRRReader, AIRRWriter, \
                        ChangeoReader, ChangeoWriter, TSVReader, TSVWriter
 from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema, Receptor
@@ -39,10 +40,10 @@ default_id_field = 'SEQUENCE_ID'
 default_seq_field = 'SEQUENCE_IMGT'
 default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_db_xref = 'IMGT/GENE-DB'
-default_molecule='mRNA'
-default_product='immunoglobulin heavy chain'
+default_molecule = 'mRNA'
+default_product = 'immunoglobulin heavy chain'
+default_allele_delim = '*'
 
-# TODO:  convert SQL-ish operations to modify_func() as per ParseHeaders
 
 def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
     """
@@ -379,7 +380,8 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
 def makeGenbankFeatures(record, start=None, end=None, product=default_product,
                         inference=None, db_xref=default_db_xref,
-                        c_field=None, allow_stop=False, asis_calls=False):
+                        c_field=None, allow_stop=False, asis_calls=False,
+                        allele_delim=default_allele_delim):
     """
     Creates a feature table for GenBank submissions
 
@@ -393,6 +395,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
       c_field : column containing the C region gene call.
       allow_stop : if True retain records with junctions having stop codons.
       asis_calls : if True do not parse gene calls for IMGT nomenclature.
+      allele_delim : delimiter separating the gene name from the allele number when asis_calls=True.
 
     Returns:
       dict : dictionary defining GenBank features where the key is a tuple
@@ -408,19 +411,28 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
 
     # Get genes and alleles
     if not asis_calls:
+        # V gene
         v_gene = record.getVGene()
-        d_gene = record.getDGene()
-        j_gene = record.getJGene()
         v_allele = record.getVAlleleNumber()
+        # D gene
+        d_gene = record.getDGene()
         d_allele = record.getDAlleleNumber()
+        # J gene
+        j_gene = record.getJGene()
         j_allele = record.getJAlleleNumber()
     else:
-        v_gene = record.v_call
-        d_gene = record.d_call
-        j_gene = record.j_call
-        v_allele = None
-        d_allele = None
-        j_allele = None
+        # V gene
+        v_split = iter(record.v_call.rsplit(allele_delim, maxsplit=1))
+        v_gene = next(v_split, None)
+        v_allele = next(v_split, None)
+        # D gene
+        d_split = iter(record.d_call.rsplit(allele_delim, maxsplit=1))
+        d_gene = next(d_split, None)
+        d_allele = next(d_split, None)
+        # J gene
+        j_split = iter(record.j_call.rsplit(allele_delim, maxsplit=1))
+        j_gene = next(j_split, None)
+        j_allele = next(j_split, None)
 
     # Fail if V or J is missing
     if v_gene is None or j_gene is None:
@@ -619,7 +631,8 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
                      isolate=None, tissue=None, cell_type=None, molecule=default_molecule,
                      product=default_product, c_field=None, label=None,
                      count_field=None, index_field=None, allow_stop=False,
-                     asis_id=False, asis_calls=False, format=default_format, out_file=None,
+                     asis_id=False, asis_calls=False, allele_delim=default_allele_delim,
+                     format=default_format, out_file=None,
                      out_args=default_out_args):
     """
     Builds a GenBank submission tbl file from records
@@ -642,6 +655,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       allow_stop : if True retain records with junctions having stop codons.
       asis_id : if True use the original sequence ID for the output IDs.
       asis_calls : if True do not parse gene calls for IMGT nomenclature.
+      allele_delim : delimiter separating the gene name from the allele number when asis_calls=True.
       format : input and output format.
       out_file : output file name without extension. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -697,7 +711,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
                                   molecule=molecule)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'], product=product,
                                   db_xref=db_xref, inference=inference, c_field=c_field,
-                                  allow_stop=allow_stop, asis_calls=asis_calls)
+                                  allow_stop=allow_stop, asis_calls=asis_calls, allele_delim=allele_delim)
 
         if tbl is not None:
             pass_count +=1
@@ -888,9 +902,19 @@ def getArgParser():
                                By default, only the row number will be used as the identifier to avoid
                                the 50 character limit.''')
     group_gb.add_argument('--asis-calls', action='store_true', dest='asis_calls',
-                          help='''Specify to prevent gene calls from being parsed into IMGT allele names.
+                          help='''Specify to prevent alleles from being parsed using the IMGT nomenclature.
                                Note, this requires the gene assignments to be exact matches to valid 
-                               records in the references database specified by the "--db" argument.''')
+                               records in the references database specified by the --db argument.''')
+    group_gb.add_argument('--allele-delim', action='store', dest='allele_delim', default=default_allele_delim,
+                          help='''The delimiter to use for splitting the gene name from the allele number.
+                               Note, this only applies when specifying --asis-calls. By default,
+                               this argument will be ignored and allele numbers extracted under the
+                               expectation of IMGT nomenclature consistency.''')
+    group_gb.add_argument('-y', action='store', dest='yaml_config', default=None,
+                          help='''A yaml file specifying conversion details containing one row per argument 
+                               in the form \'variable: value\'. If specified, any arguments provided in the 
+                               yaml file will override those provided at the commandline, except for input
+                               and output file arguments (-d and -o).''')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
@@ -905,6 +929,16 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+
+    # Overwrite genbank args with yaml file if provided
+    if args.command == 'genbank' and args_dict['yaml_config'] is not None:
+        yaml_config = args_dict['yaml_config']
+        if not os.path.exists(yaml_config):
+            sys.exit('ERROR:  Input %s does not exist' % yaml_config)
+        else:
+            args_dict.update(yamlArguments(yaml_config, args_dict))
+        del args_dict['yaml_config']
+    print(args_dict)
 
     # Check argument pairs
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):

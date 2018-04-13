@@ -8,12 +8,34 @@ from changeo import __version__, __date__
 # Imports
 import os
 import sys
+import yaml
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
                      RawDescriptionHelpFormatter
 
 # Changeo imports
 from changeo.Defaults import choices_format, default_format
+
+
+def yamlArguments(file, args):
+    """
+    Returns a dictionary of argument from a yaml file
+
+    Arguments:
+      file (str): simple yaml file with rows in the form 'argument: value'.
+      args (dict): output of parseCommonArgs defining valid arguments.
+
+    Returns:
+      dict: dictionary of arguments.
+    """
+    try:
+        yaml_args = yaml.load(open(file, 'r'))
+        yaml_args = {k: v for k, v in yaml_args.items() if k in args}
+    except:
+        sys.exit('Error:  YAML arguments file is invalid.')
+
+    return yaml_args
+
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
     """
