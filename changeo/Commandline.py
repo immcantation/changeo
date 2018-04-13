@@ -30,7 +30,7 @@ def yamlArguments(file, args):
     """
     try:
         yaml_args = yaml.load(open(file, 'r'))
-        yaml_args = {k: v for k, v in yaml_args.items() if k in args}
+        yaml_args = {k.lower(): v for k, v in yaml_args.items() if k.lower() in args}
     except:
         sys.exit('Error:  YAML arguments file is invalid.')
 
