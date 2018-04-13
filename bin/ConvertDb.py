@@ -10,10 +10,12 @@ from changeo import __version__, __date__
 import csv
 import os
 import re
+import shutil
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
+from subprocess import check_output, STDOUT
 
 from textwrap import dedent
 from time import time
@@ -24,7 +26,7 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
-from presto.IO import getOutputHandle, printLog, printProgress
+from presto.IO import getOutputHandle, printLog, printMessage, printProgress
 from changeo.Defaults import default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
@@ -43,6 +45,38 @@ default_db_xref = 'IMGT/GENE-DB'
 default_molecule = 'mRNA'
 default_product = 'immunoglobulin heavy chain'
 default_allele_delim = '*'
+default_tbl2asn_exec='tbl2asn'
+
+def runASN(fasta, template=None, tbl2asn_exec=default_tbl2asn_exec):
+    """
+    Executes tbl2asn to generate Sequin files
+
+    Arguments:
+      seq_list : a list of SeqRecord objects to align
+      aligner_exec : the MUSCLE executable
+
+    Returns:
+      Bio.Align.MultipleSeqAlignment : Multiple alignment results.
+    """
+    # Basic command that requires .fsa and .tbl files in the same directory
+    # tbl2asn -i records.fsa -a s -V vb -t template.sbt
+
+    # Define tb2asn command
+    cmd = [tbl2asn_exec,
+           '-i', fasta,
+           '-a', 's',
+           '-V', 'vb']
+    if template is not None:
+        cmd.extend(['-t', template])
+
+    # Execute tbl2asn
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
+    except:
+        sys.exit('Error: tbl2asn failed')
+
+    return stdout_str
 
 
 def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
@@ -636,10 +670,11 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
                      product=default_product, c_field=None, label=None,
                      count_field=None, index_field=None, allow_stop=False,
                      asis_id=False, asis_calls=False, allele_delim=default_allele_delim,
+                     build_asn=False, asn_template=None, tbl2asn_exec=default_tbl2asn_exec,
                      format=default_format, out_file=None,
                      out_args=default_out_args):
     """
-    Builds a GenBank submission tbl file from records
+    Builds GenBank submission fasta and table files
 
     Arguments:
       db_file : the database file name.
@@ -660,6 +695,9 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       asis_id : if True use the original sequence ID for the output IDs.
       asis_calls : if True do not parse gene calls for IMGT nomenclature.
       allele_delim : delimiter separating the gene name from the allele number when asis_calls=True.
+      build_asn : if True run tbl2asn on the generated .tbl and .fsa files.
+      asn_template : template file (.sbt) to pass to tbl2asn.
+      tbl2asn_exec : name of or path to the tbl2asn executable.
       format : input and output format.
       out_file : output file name without extension. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -732,8 +770,17 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
         else:
             fail_count += 1
 
-    # Print counts
+    # Final progress bar
     printProgress(rec_count, result_count, 0.05, start_time)
+
+    # Run tbl2asn
+    if build_asn:
+        start_time = time()
+        printMessage('Running tbl2asn', start_time=start_time, width=25)
+        result = runASN(fsa_handle.name, template_file, tbl2asn_exec=tbl2asn_exec)
+        printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Print ending console log
     log = OrderedDict()
     log['OUTPUT_TBL'] = os.path.basename(tbl_handle.name)
     log['OUTPUT_FSA'] = os.path.basename(fsa_handle.name)
@@ -750,47 +797,6 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
 
     return (tbl_handle.name, fsa_handle.name)
 
-
-# def runASN(seq_list, asn_exec=default_asn_exec):
-#     """
-#     Executes tbl2asn to generate Sequin files
-#
-#     Arguments:
-#       seq_list : a list of SeqRecord objects to align
-#       aligner_exec : the MUSCLE executable
-#
-#     Returns:
-#       Bio.Align.MultipleSeqAlignment : Multiple alignment results.
-#     """
-#     tbl2asn -i file -a s -V vb -t template.sbt
-#
-#     # Return sequence if only one sequence in seq_list
-#     if len(seq_list) < 2:
-#         align = MultipleSeqAlignment(seq_list)
-#         return align
-#
-#     # Set MUSCLE command
-#     cmd = [aligner_exec, '-diags', '-maxiters', '2']
-#
-#     # Convert sequences to FASTA and write to string
-#     stdin_handle = StringIO()
-#     SeqIO.write(seq_list, stdin_handle, 'fasta')
-#     stdin_str = stdin_handle.getvalue()
-#     stdin_handle.close()
-#
-#     # Open MUSCLE process
-#     child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-#                   universal_newlines=True)
-#
-#     # Send sequences to MUSCLE stdin and retrieve stdout, stderr
-#     stdout_str, __ = child.communicate(stdin_str)
-#
-#     # Capture sequences from MUSCLE stdout
-#     stdout_handle = StringIO(stdout_str)
-#     align = AlignIO.read(stdout_handle, 'fasta')
-#     stdout_handle.close()
-#
-#     return align
 
 def getArgParser():
     """
@@ -958,8 +964,15 @@ def getArgParser():
     group_gb.add_argument('-y', action='store', dest='yaml_config', default=None,
                           help='''A yaml file specifying conversion details containing one row per argument 
                                in the form \'variable: value\'. If specified, any arguments provided in the 
-                               yaml file will override those provided at the commandline, except for input
-                               and output file arguments (-d and -o).''')
+                               yaml file will override those provided at the commandline.''')
+    group_gb.add_argument('--asn', action='store_true', dest='build_asn',
+                          help='''If specified, run tbl2asn to generate the .sqn submission file after making 
+                               the .fsa and .tbl files.''')
+    group_gb.add_argument('--sbt', action='store', dest='asn_template', default=None,
+                          help='''If provided along with --asn, use the specified file for the template file
+                               argument to tbl2asn.''')
+    group_gb.add_argument('--exec', action='store', dest='tbl2asn_exec', default=default_tbl2asn_exec,
+                          help='The name or location of the tbl2asn executable.')
     parser_gb.set_defaults(func=convertDbGenbank)
 
     return parser
@@ -979,10 +992,19 @@ if __name__ == '__main__':
     if args.command == 'genbank' and args_dict['yaml_config'] is not None:
         yaml_config = args_dict['yaml_config']
         if not os.path.exists(yaml_config):
-            sys.exit('ERROR:  Input %s does not exist' % yaml_config)
+            parser.error('%s does not exist' % yaml_config)
         else:
             args_dict.update(yamlArguments(yaml_config, args_dict))
         del args_dict['yaml_config']
+
+        # Check tbl2asn execution arguments
+        if args_dict['build_asn']:
+            template_file = args_dict['asn_template']
+            tbl2asn_exec = args_dict['tbl2asn_exec']
+            if not shutil.which(tbl2asn_exec):
+                parser.error('%s does not exist' % tbl2asn_exec)
+            if template_file is not None and not os.path.exists(template_file):
+                parser.error('%s does not exist' % template_file)
 
     # Check argument pairs
     if args.command == 'add' and len(args_dict['fields']) != len(args_dict['values']):
