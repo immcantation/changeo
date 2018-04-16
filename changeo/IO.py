@@ -360,10 +360,9 @@ class AIRRReader:
         # Define reader
         try:
             import airr
-            self.reader = airr.read(self.handle, debug=False)
+            self.reader = airr.io.RearrangementReader(self.handle, debug=False)
         except ImportError:
-            sys.stderr.out(
-                'Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
+            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
             self.reader = TSVReader(self.handle)
 
     def __iter__(self):
@@ -442,7 +441,7 @@ class AIRRWriter:
         # Define writer
         try:
             import airr
-            self.writer = airr.create(self.handle, fields=fields, debug=False)
+            self.writer = airr.io.RearrangementWriter(self.handle, fields=fields, debug=False)
         except ImportError:
             sys.stderr.out(
                 'Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')

@@ -995,7 +995,6 @@ if __name__ == '__main__':
             parser.error('%s does not exist' % yaml_config)
         else:
             args_dict.update(yamlArguments(yaml_config, args_dict))
-        del args_dict['yaml_config']
 
         # Check tbl2asn execution arguments
         if args_dict['build_asn']:
@@ -1018,6 +1017,7 @@ if __name__ == '__main__':
     del args_dict['command']
     del args_dict['func']
     del args_dict['db_files']
+    if args.command == 'genbank':  del args_dict['yaml_config']
     if 'out_files' in args_dict: del args_dict['out_files']
 
     # Call main function for each input file
