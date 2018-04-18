@@ -1,3 +1,4 @@
+#### Receptor object data definitions and mappings ####
 Receptor:
   sequence_id:
     type: identity
@@ -13,12 +14,12 @@ Receptor:
     type: nucleotide
     description: Aligned V(D)J sequence.
     changeo: SEQUENCE_VDJ
-    airr: sequence_alignment
+    airr: null
   sequence_imgt:
     type: nucleotide
     description: IMGT-gapped, aligned V(D)J sequence.
     changeo: SEQUENCE_IMGT
-    airr: sequence_imgt
+    airr: sequence_alignment
   junction:
     type: nucleotide
     description: Junction region nucleotide sequence.
@@ -39,22 +40,22 @@ Receptor:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_align' field.
     changeo: GERMLINE_VDJ
-    airr: germline_alignment
+    airr: null
   germline_vdj_d_mask:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_align' field and having the D segment masked.
     changeo: GERMLINE_VDJ_D_MASK
-    airr: germline_alignment_d_mask
+    airr: null
   germline_imgt:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_imgt' field.
     changeo: GERMLINE_IMGT
-    airr: germline_imgt
+    airr: germline_alignment
   germline_imgt_d_mask:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_imgt' field and having the D segment masked.
     changeo: GERMLINE_IMGT_D_MASK
-    airr: germline_imgt_d_mask
+    airr: germline_alignment_d_mask
   v_call:
     type: identity
     description: V gene with allele.
@@ -133,7 +134,7 @@ Receptor:
     description: Alignment start position in the V reference sequence.
     coordinate: start, v_germ_vdj
     changeo: V_GERM_START_VDJ
-    airr: v_germline_start
+    airr: null
   v_germ_length_vdj:
     type: integer
     description: Alignment length in the V reference sequence.
@@ -145,13 +146,13 @@ Receptor:
     description: Alignment end position in the V reference sequence.
     coordinate: end, v_germ_vdj
     changeo: null
-    airr: v_germline_end
+    airr: null
   v_germ_start_imgt:
     type: integer
     description: Alignment start position in the IMGT-gapped V reference sequence.
     coordinate: start, v_germ_imgt
     changeo: V_GERM_START_IMGT
-    airr: v_imgt_start
+    airr: v_germline_start
   v_germ_length_imgt:
     type: integer
     description: Alignment length in the IMGT-gapped V reference sequence.
@@ -163,13 +164,13 @@ Receptor:
     description: Alignment end position in the IMGT-gapped V reference sequence.
     coordinate: end, v_germ_imgt
     changeo: null
-    airr: v_imgt_end
+    airr: v_germline_end
   np1_start:
     type: integer
     description: Start position of the nucleotides between the V and D segments or V and J segments.
     coordinate: start, np1
-    changeo: NP1_START
-    airr: np1_start
+    changeo: null
+    airr: null
   np1_length:
     type: integer
     description: Number of nucleotides between the V and D segments or V and J segments.
@@ -181,7 +182,7 @@ Receptor:
     description: End position of the nucleotides between the V and D segments or V and J segments.
     coordinate: end, np1
     changeo: null
-    airr: np1_end
+    airr: null
   d_seq_start:
     type: integer
     description: Start position of the D segment in the query sequence.
@@ -222,8 +223,8 @@ Receptor:
     type: integer
     description: Start position of the nucleotides between the D and J segments.
     coordinate: start, np2
-    changeo: NP2_START
-    airr: np2_start
+    changeo: null
+    airr: null
   np2_length:
     type: integer
     description: Number of nucleotides between the D and J segments.
@@ -235,7 +236,7 @@ Receptor:
     description: End position of the nucleotides between the D and J segments.
     coordinate: end, np2
     changeo: null
-    airr: np2_end
+    airr: null
   j_seq_start:
     type: integer
     description: Start position of the J segment in the query sequence.
@@ -247,7 +248,7 @@ Receptor:
     description: Length of the J segment in the query sequence.
     coordinate: length, j_seq
     changeo: J_SEQ_LENGTH
-    airr: nulll
+    airr: null
   j_seq_end:
     type: integer
     description: End position of the J segment in the query sequence.
@@ -331,7 +332,7 @@ Receptor:
     type: float
     description: V alignment E-value.
     changeo: V_EVALUE
-    airr: v_evalue
+    airr: v_support
   v_cigar:
     type: identity
     description: V alignment CIGAR string.
@@ -341,7 +342,7 @@ Receptor:
     type: identity
     description: V alignment BTOP string.
     changeo: V_BTOP
-    airr: v_btop
+    airr: null
   d_score:
     type: float
     description: D alignment score.
@@ -356,7 +357,7 @@ Receptor:
     type: float
     description: D alignment E-value.
     changeo: D_EVALUE
-    airr: d_evalue
+    airr: d_support
   d_cigar:
     type: identity
     description: D alignment CIGAR string.
@@ -366,7 +367,7 @@ Receptor:
     type: identity
     description: D alignment BTOP string.
     changeo: D_BTOP
-    airr: d_btop
+    airr: null
   j_score:
     type: float
     description: J alignment score.
@@ -381,7 +382,7 @@ Receptor:
     type: float
     description: J alignment E-value.
     changeo: J_EVALUE
-    airr: j_evalue
+    airr: j_support
   j_cigar:
     type: identity
     description: J alignment CIGAR string.
@@ -391,7 +392,7 @@ Receptor:
     type: identity
     description: V alignment BTOP string.
     changeo: J_BTOP
-    airr: j_btop
+    airr: null
   c_score:
     type: float
     description: C region alignment score.
@@ -406,7 +407,7 @@ Receptor:
     type: float
     description: C region alignment E-value.
     changeo: C_EVALUE
-    airr: c_evalue
+    airr: c_support
   c_cigar:
     type: identity
     description: C region alignment CIGAR string.
@@ -416,7 +417,7 @@ Receptor:
     type: identity
     description: V alignment BTOP string.
     changeo: C_BTOP
-    airr: c_btop
+    airr: null
   vdj_score:
     type: float
     description: Alignment score for aligners that consider the full sequence.
@@ -431,7 +432,7 @@ Receptor:
     type: float
     description: Alignment E-value for aligners that consider the full sequence.
     changeo: VDJ_EVALUE
-    airr: vdj_evalue
+    airr: vdj_support
   vdj_cigar:
     type: identity
     description: CIGAR string for the full V(D)J alignment.
@@ -441,7 +442,7 @@ Receptor:
     type: identity
     description: BTOP string for the full V(D)J alignment.
     changeo: VDJ_BTOP
-    airr: vdj_btop
+    airr: null
   n1_length:
     type: integer
     description: Number of untemplated nucleotides 5' of the D segment.
@@ -493,6 +494,8 @@ Receptor:
     changeo: CELL
     airr: cell_id
 
+
+#### Change-O format output definition ####
 Changeo:
   out_type: tab
   standard:
@@ -500,12 +503,68 @@ Changeo:
     - SEQUENCE_INPUT
     - FUNCTIONAL
     - IN_FRAME
+    - STOP
+    - MUTATED_INVARIANT
+    - INDELS
+    - V_CALL
+    - D_CALL
+    - J_CALL
+    - SEQUENCE_VDJ
+    - SEQUENCE_IMGT
+    - V_SEQ_START
+    - V_SEQ_LENGTH
+    - V_GERM_START_VDJ
+    - V_GERM_LENGTH_VDJ
+    - V_GERM_START_IMGT
+    - V_GERM_LENGTH_IMGT
+    - NP1_LENGTH
+    - D_SEQ_START
+    - D_SEQ_LENGTH
+    - D_GERM_START
+    - D_GERM_LENGTH
+    - J_SEQ_START
+    - J_SEQ_LENGTH
+    - J_GERM_START
+    - J_GERM_LENGTH
+    - JUNCTION
+    - JUNCTION_LENGTH
   custom:
     - V_SCORE
     - V_IDENTITY
     - V_EVALUE
-    - V_BTOP
+    - V_CIGAR
+    - D_SCORE
+    - D_IDENTITY
+    - D_EVALUE
+    - D_CIGAR
+    - J_SCORE
+    - J_IDENTITY
+    - J_EVALUE
+    - J_CIGAR
+    - VDJ_SCORE
+    - FWR1_IMGT
+    - FWR2_IMGT
+    - FWR3_IMGT
+    - FWR4_IMGT
+    - CDR1_IMGT
+    - CDR2_IMGT
+    - CDR3_IMGT
+    - N1_LENGTH
+    - N2_LENGTH
+    - P3V_LENGTH
+    - P5D_LENGTH
+    - P3D_LENGTH
+    - P5J_LENGTH
+    - D_FRAME
+    - CDR3_IGBLAST
+    - CDR3_IGBLAST_AA
+    - CONSCOUNT
+    - DUPCOUNT
+    - CLONE
+    - CELL
 
+
+#### AIRR Rearrangement format output definition ####
 AIRR:
   out_type: tsv
   standard:
@@ -513,8 +572,76 @@ AIRR:
     - sequence
     - sequence_alignment
     - germline_alignment
+    - rev_comp
+    - productive
+    - stop_codon
+    - vj_in_frame
+    - v_call
+    - d_call
+    - j_call
+    - junction
+    - junction_length
+    - junction_aa
+    - np1_length
+    - np2_length
+    - v_sequence_start
+    - v_sequence_end
+    - v_germline_start
+    - v_germline_end
+    - d_sequence_start
+    - d_sequence_end
+    - d_germline_start
+    - d_germline_end
+    - j_sequence_start
+    - j_sequence_end
+    - j_germline_start
+    - j_germline_end
   custom:
+    - c_call
+    - locus
     - v_score
     - v_identity
-    - v_evalue
+    - v_support
     - v_cigar
+    - d_score
+    - d_identity
+    - d_support
+    - d_cigar
+    - j_score
+    - j_identity
+    - j_support
+    - j_cigar
+    - vdj_score
+    - fwr1
+    - fwr2
+    - fwr3
+    - fwr4
+    - cdr1
+    - cdr2
+    - cdr3
+    - fwr1_start
+    - fwr1_end
+    - fwr2_start
+    - fwr2_end
+    - fwr3_start
+    - fwr3_end
+    - fwr4_start
+    - fwr4_end
+    - cdr1_start
+    - cdr1_end
+    - cdr2_start
+    - cdr2_end
+    - cdr3_start
+    - cdr3_end
+    - n1_length
+    - n2_length
+    - p3v_length
+    - p5d_length
+    - p3d_length
+    - p5j_length
+    - d_frame
+    - cdr3_igblast
+    - cdr3_igblast_aa
+    - duplicate_count
+    - consensus_count
+    - cell_id

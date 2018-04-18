@@ -1045,9 +1045,9 @@ class IgBLASTReader:
         summary_map = {'Top V gene match': 'v_match',
                        'Top D gene match': 'd_match',
                        'Top J gene match': 'j_match',
-                       'Chain type': 'chain',
-                       'stop codon': 'stop',
-                       'V-J frame': 'frame',
+                       'Chain type': 'chain_type',
+                       'stop codon': 'stop_codon',
+                       'V-J frame': 'vj_frame',
                        'Productive': 'productive',
                        'Strand': 'strand'}
 
@@ -1154,9 +1154,12 @@ class IgBLASTReader:
             result['d_call'] = None if summary['d_match'] == 'N/A' else summary['d_match']
             result['j_call'] = None if summary['j_match'] == 'N/A' else summary['j_match']
 
+        # Parse locus
+        result['locus'] = None if summary['chain_type'] == 'N/A' else summary['chain_type']
+
         # Parse quality information
-        result['stop'] = 'T' if summary['stop'] == 'Yes' else 'F'
-        result['in_frame'] = 'T' if summary['frame'] == 'In-frame' else 'F'
+        result['stop'] = 'T' if summary['stop_codon'] == 'Yes' else 'F'
+        result['in_frame'] = 'T' if summary['vj_frame'] == 'In-frame' else 'F'
         result['functional'] = 'T' if summary['productive'] == 'Yes' else 'F'
 
         # Reverse complement input sequence if required
