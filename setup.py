@@ -15,11 +15,6 @@ try:
 except ImportError:
     sys.exit('Please install setuptools before installing changeo.\n')
 
-try:
-    from pip.req import parse_requirements
-except ImportError:
-    sys.exit('Please install pip before installing changeo.\n')
-
 # Get version, author and license information
 info_file = os.path.join('changeo', 'Version.py')
 __version__, __author__, __license__ = None, None, None
@@ -49,18 +44,13 @@ install_scripts = [os.path.join('bin', s) for s in scripts]
 desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
 long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
-# TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
 if os.environ.get('READTHEDOCS', None) == 'True':
     # Set empty install_requires to get install to work on readthedocs
     install_requires = []
 else:
-    require_file = 'requirements.txt'
-    try:
-        requirements = parse_requirements(require_file, session=False)
-    except TypeError:
-        requirements = parse_requirements(require_file)
-    install_requires = [str(r.req) for r in requirements]
+    with open('requirements.txt') as req:
+        install_requires = req.read().splitlines()
 
 # Setup
 setup(name='changeo',
