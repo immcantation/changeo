@@ -16,7 +16,7 @@ segment assignments, these nested extries are delimited by commas.
 The ordering of the columns does not matter.
 
 An API for input and output of the Change-O format is provide in
-:class:`changeo.Parsers.ChangeoReader` and :class:`changeo.Parsers.ChangeoWriter`, respectively.
+:class:`changeo.IO.ChangeoReader` and :class:`changeo.IO.ChangeoWriter`, respectively.
 See :class:`changeo.Receptor.Receptor` for a description of the data structure used by
 the reader and writer classes.
 

@@ -175,7 +175,7 @@ class ChangeoReader:
           receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          changeo.Parsers.ChangeoReader
+          changeo.IO.ChangeoReader
         """
         # Arguments
         self.handle = handle
@@ -188,7 +188,7 @@ class ChangeoReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.ChangeoReader
+          changeo.IO.ChangeoReader
         """
         return self
 
@@ -248,7 +248,7 @@ class ChangeoWriter:
           header : if True write the header on initialization.
 
         Returns:
-          changeo.Parsers.ChangeoWriter
+          changeo.IO.ChangeoWriter
         """
         # Arguments
         self.handle = handle
@@ -351,7 +351,7 @@ class AIRRReader:
           receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          changeo.Parsers.AIRRReader
+          changeo.IO.AIRRReader
         """
         # Arguments
         self.handle = handle
@@ -370,7 +370,7 @@ class AIRRReader:
         Iterator initializer
 
         Returns:
-          changeo.Parsers.AIRRReader
+          changeo.IO.AIRRReader
         """
         return self
 
@@ -432,7 +432,7 @@ class AIRRWriter:
           fields : list of output field names
 
         Returns:
-          changeo.Parsers.AIRRWriter
+          changeo.IO.AIRRWriter
         """
         # Arguments
         self.handle = handle
@@ -906,7 +906,7 @@ class IMGTReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.IMGTReader
+          changeo.IO.IMGTReader
         """
         return self
 
@@ -996,13 +996,13 @@ class IgBLASTReader:
         Arguments:
           igblast (file): handle to an open IgBLAST output file written with '-outfmt 7 std qseq sseq btop'.
           sequences (dict): dictionary of query sequences;
-                     sequence descriptions as keys with original query sequences as SeqRecord values.
+                            sequence descriptions as keys with original query sequences as SeqRecord values.
           references (dict): dictionary of IMGT gapped germline sequences.
           asis_calls (bool): if True do not parse gene calls for allele names.
           receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          changeo.Parsers.IgBLASTReader
+          changeo.IO.IgBLASTReader
         """
         # Arguments
         self.igblast = igblast
@@ -1588,7 +1588,7 @@ class IgBLASTReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.IgBLASTReader
+          changeo.IO.IgBLASTReader
         """
         return self
 
@@ -1754,7 +1754,7 @@ class IHMMuneReader:
           receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary
 
         Returns:
-          changeo.Parsers.IHMMuneReader
+          changeo.IO.IHMMuneReader
         """
         # Arguments
         self.ihmmune = ihmmune
@@ -2067,7 +2067,7 @@ class IHMMuneReader:
         Iterator initializer.
 
         Returns:
-          changeo.Parsers.IHMMuneReader
+          changeo.IO.IHMMuneReader
         """
         return self
 
