@@ -41,7 +41,8 @@ scripts = ['AlignRecords.py',
 install_scripts = [os.path.join('bin', s) for s in scripts]
 
 # Load long package description
-desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+#desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+desc_files = ['README.rst']
 long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
 # Parse requirements
