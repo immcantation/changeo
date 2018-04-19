@@ -375,7 +375,7 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
         #print(key + "\t" + str(clonesizes[key]))
         outfile = clone_dir + "/" + key + ".fa"
         partfile = clone_dir + "/" + key + ".part.txt"
-        pass_handle.write("%s\t%s\t%s\t%s" % (outfile, "N", key+"_GERM", partfile))
+        pass_handle.write("%s\t%s\t%s\t%s\n" % (outfile, "N", key+"_GERM", partfile))
 
     handle.close()
     output = {'pass': None, 'fail': None}
