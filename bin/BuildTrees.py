@@ -144,16 +144,18 @@ def maskSplitCodons(receptor):
 
     return concatenated_seq, log
 
-def outputIgPhyML(clones, sequences, collapse=False, logs=None, fail_writer=None, out_dir=None):
+def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
     Arguments:
         clones (list): receptor objects within the same clone.
         sequences (list): sequences within the same clone (share indexes with clones parameter).
+        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
         collapse (bool): if True collapse identical sequences.
         logs (dict of OrderedDicts): contains log information for each sequence
         out_dir (str): directory for output files.
+        fail_writer (handle): file of failed sequences
     Returns:
         int: number of clones.
     """
@@ -204,37 +206,54 @@ def outputIgPhyML(clones, sequences, collapse=False, logs=None, fail_writer=None
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
-
-    useqs = {}
+    delim = "_"
+    #useqs = {}
+    useqs_f = {}
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
-        if conseq in useqs and collapse:
+        if meta_data is not None:
+            #print("Meta data:",meta_data[0],meta_data)
+            #print(clones[j].getField(meta_data[0]))
+            conseq_f = "".join([str(seq_rec) for seq_rec in newseqs[j]])+delim+str(clones[j].getField(meta_data[0]))
+        else:
+            conseq_f = conseq
+        if conseq_f in useqs_f and collapse:
             logs[clones[j].sequence_id]['PASS'] = False
-            logs[clones[j].sequence_id]['FAIL'] = "Duplication of " + clones[useqs[conseq]].sequence_id
+            logs[clones[j].sequence_id]['FAIL'] = "Duplication of " + clones[useqs_f[conseq_f]].sequence_id
             logs[clones[j].sequence_id]['DUPLICATE']=True
             if fail_writer is not None:
                 fail_writer.writeReceptor(clones[j])
         else:
-            useqs[conseq] = j
+            #useqs[conseq] = j
+            useqs_f[conseq_f] = j
         conseqs.append(conseq)
 
     # Output fasta file of masked, concatenated sequences
     outfile = out_dir + "/" + clones[0].clone + ".fa"
     clonef = open(outfile, 'w')
     if collapse:
-        for seq, num in useqs.items():
-            sid = clones[num].sequence_id.translate(transtable)
+        for seq_f, num in useqs_f.items():
+            seq = seq_f
+            cid = ""
+            if meta_data is not None:
+                seq, cid = seq_f.split(delim)
+                cid = delim + cid
+            sid = clones[num].sequence_id.translate(transtable) + cid
             print(">%s\n%s" % (sid, seq), file=clonef)
-            if len(useqs) == 1 and duplicate:
-                print(">%s_1\n%s" % (sid, seq), file=clonef)
+            if len(useqs_f) == 1 and duplicate:
+                sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
+                print(">%s\n%s" % (sid, seq), file=clonef)
     else:
         for j in range(0, nseqs):
-            sid = clones[j].sequence_id.translate(transtable)
+            cid = ""
+            if meta_data is not None:
+                cid = delim+str(clones[j].getField(meta_data[0]))
+            sid = clones[j].sequence_id.translate(transtable)+cid
             print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
-        if nseqs == 1 and duplicate:
-            sid = clones[j].sequence_id.translate(transtable)
-            print(">%s_1\n%s" % (sid, conseqs[j]), file=clonef)
+            if nseqs == 1 and duplicate:
+                sid = clones[j].sequence_id.translate(transtable)+"_1"+cid
+                print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
 
     print(">%s_GERM" % clones[0].clone, file=clonef)
     for i in range(0, len(newgerm)):
@@ -253,17 +272,18 @@ def outputIgPhyML(clones, sequences, collapse=False, logs=None, fail_writer=None
     print(",".join(map(str, imgt)), file=partf)
 
     if collapse:
-        return len(useqs)
+        return len(useqs_f)
     else:
         return nseqs
 
 
-def buildTrees(db_file, collapse=False, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
     Arguments:
         db_file (str): input tab-delimited database file.
+        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
         collapse (bool): if True collapse identical sequences.
         format (str): input and output format.
         out_args (dict): arguments for output preferences.
@@ -279,7 +299,6 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     printLog(log)
 
     start_time = time()
-    # pass_handle.name = "outdir/out_name_lineages.tsv"
     pass_handle = getOutputHandle(db_file,
                                   out_label='lineages',
                                   out_dir=out_args['out_dir'],
@@ -359,11 +378,12 @@ def buildTrees(db_file, collapse=False, format=default_format, out_args=default_
     clonesizes = {}
     pass_count = 0
     for k in clones.keys():
-        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], collapse=collapse,
+        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
                                            logs=logs,fail_writer=fail_writer,out_dir=clone_dir)
         pass_count += clonesizes[str(k)]
     fail_count = rec_count - pass_count
 
+    log_handle = None
     if out_args['log_file'] is not None:
         log_handle = open(out_args['log_file'], 'w')
         for j in logs.keys():
@@ -432,6 +452,8 @@ def getArgParser():
     group = parser.add_argument_group('tree building arguments')
     group.add_argument('--collapse', action='store_true', dest='collapse',
                         help='''Collapse identical sequences.''')
+    group.add_argument('--md', nargs='+', action='store', dest='meta_data',default=None,
+                       help='''Include metadata in sequence ID.''')
 
     return parser
 
