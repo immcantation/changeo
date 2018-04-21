@@ -38,22 +38,30 @@ def maskSplitCodons(receptor):
     log['ID']=receptor.sequence_id
     log['CLONE']=receptor.clone
     log['PASS'] = True
-
+   # print(receptor.sequence_id)
     # adjust starting position of query sequence
     qi = qi[(receptor.v_seq_start - 1):]
 
     # deal with the fact that it's possible to start mid-codon
     scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
     for i in range(0, len(scodons)):
+        #print(scodons[i],qi[0:3])
         if scodons[i] != '...':
             if scodons[i][0:2] == '..':
                 scodons[i] = "NN"+scodons[i][2]
-                qi = "NN" + qi
+                #sometimes IMGT will just cut off first letter if non-match, at which point we'll just want to mask the
+                #first codon in the IMGT seq, other times it will be legitimately absent from the query, at which point
+                #we have to shift the frame. This attempts to correct for this by looking at the next codon over in the
+                #alignment
+                if scodons[i][2:3] != qi[2:3] or scodons[i + 1] != qi[3:6]:
+                    qi = "NN" + qi
                 spos = i
                 break
             elif scodons[i][0] == '.':
                 scodons[i] = "N" + scodons[i][1:3]
-                qi = "N" + qi
+                if scodons[i][1:3] != qi[1:3] or scodons[i+1] != qi[3:6]:
+                    #print("here!\t"+scodons[i][1:3] +"\t"+ qi[0:2]+":"+scodons[i+1]+"\t"+qi[3:6])
+                    qi = "N" + qi
                 spos = i
                 break
             else:
@@ -87,32 +95,32 @@ def maskSplitCodons(receptor):
             if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
                 qpos -= 1
                 spos = ospos
-                #print("But codon was apparently preserved")
+               # print("But codon was apparently preserved")
                 #log[str(spos)]="IN-FRAME"
                 if 'IN-FRAME' in  log:
                     log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
                 else:
                     log['IN-FRAME'] = str(spos)
-            elif qpos >= len(qcodons):
+            elif qpos >= len(qcodons) and spos < len(scodons):
                 log['PASS'] = False
                 log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
             elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= len(scodons):
-                    #print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                #    print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
                     #log[str(spos)] = "END"
                     if 'END-MASKED' in log:
                         log['END-MASKED'] = log['END-MASKED'] + "," + str(spos)
                     else:
                         log['END-MASKED'] = str(spos)
                 else:
-                    #print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                 #   print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
                     #log[str(spos)] = "FAILED_MATCH"
                     log['PASS']=False
                     log['FAIL']="FAILED_MATCH:"+str(spos)
                     #exit(1)
             elif qcodons[qpos] == scodons[spos]:
-                #print("Masked %s at position %d" % (scodons[ospos], ospos))
+               # print("Masked %s at position %d" % (scodons[ospos], ospos))
                 scodons[ospos] = "NNN"
                 if 'MASKED' in  log:
                     log['MASKED'] = log['MASKED'] + "," + str(spos)
