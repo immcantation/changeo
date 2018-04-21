@@ -5,494 +5,751 @@ Receptor:
     description: Unique sequence identifier
     changeo: SEQUENCE_ID
     airr: sequence_id
+    imgt: 'Sequence ID'
   sequence_input:
     type: nucleotide
     description: Query nucleotide sequence.
     changeo: SEQUENCE_INPUT
     airr: sequence
+    imgt: 'Sequence'
   sequence_vdj:
     type: nucleotide
     description: Aligned V(D)J sequence.
     changeo: SEQUENCE_VDJ
     airr: null
+    imgt: ['V-D-J-REGION', 'V-J-REGION', 'V-REGION']
   sequence_imgt:
     type: nucleotide
     description: IMGT-gapped, aligned V(D)J sequence.
     changeo: SEQUENCE_IMGT
     airr: sequence_alignment
+    imgt: ['V-D-J-REGION', 'V-J-REGION', 'V-REGION']
   junction:
     type: nucleotide
     description: Junction region nucleotide sequence.
     changeo: JUNCTION
     airr: junction
+    imgt: 'JUNCTION'
   junction_aa:
     type: aminoacid
     description: Junction region amino acid sequence.
     changeo: JUNCTION_AA
     airr: junction_aa
+    imgt: 'AA JUNCTION'
+  junction_start:
+    type: integer
+    description: Start position of the junction in the query sequence.
+    coordinate:
+      - start
+      - junction
+    changeo: null
+    airr: null
+    imgt: 'JUNCTION start'
+  junction_end:
+    type: integer
+    description: End position of the junction in the query sequence.
+    coordinate:
+      - end
+      - junction
+    changeo: null
+    airr: null
+    imgt: 'JUNCTION end'
   junction_length:
     type: integer
     description: Number of nucleotides in the junction region.
-    coordinate: length, junction
+    coordinate:
+      - length
+      - junction
     changeo: JUNCTION_LENGTH
     airr: junction_length
+    imgt: 'JUNCTION-nt nb'
   germline_vdj:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_align' field.
     changeo: GERMLINE_VDJ
     airr: null
+    imgt: null
   germline_vdj_d_mask:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_align' field and having the D segment masked.
     changeo: GERMLINE_VDJ_D_MASK
     airr: null
+    imgt: null
   germline_imgt:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_imgt' field.
     changeo: GERMLINE_IMGT
     airr: germline_alignment
+    imgt: null
   germline_imgt_d_mask:
     type: nucleotide
     description: Inferred germline sequence aligned with the 'sequence_imgt' field and having the D segment masked.
     changeo: GERMLINE_IMGT_D_MASK
     airr: germline_alignment_d_mask
+    imgt: null
   v_call:
     type: identity
     description: V gene with allele.
     changeo: V_CALL
     airr: v_call
+    imgt: 'V-GENE and allele'
   d_call:
     type: identity
     description: D gene with allele.
     changeo: D_CALL
     airr: d_call
+    imgt: 'D-GENE and allele'
   j_call:
     type: identity
     description: J gene with allele.
     changeo: J_CALL
     airr: j_call
+    imgt: 'J-GENE and allele'
   c_call:
     type: identity
     description: C region with allele.
     changeo: C_CALL
     airr: c_call
+    imgt: null
   locus:
     type: identity
     description: Gene locus.
     changeo: LOCUS
     airr: locus
+    imgt: null
   rev_comp:
     type: boolean
     description: True if the the alignment is on the opposite strand (reverse complemented).
     changeo: REV_COMP
     airr: rev_comp
+    imgt: 'Orientation'
   functional:
     type: boolean
     description: True if the V(D)J sequence is a functional gene and is predicted to be productive.
     changeo: FUNCTIONAL
     airr: productive
+    imgt: 'V-DOMAIN Functionality'
   in_frame:
     type: boolean
     description: True if the V and J segment alignments are in-frame.
     changeo: IN_FRAME
     airr: vj_in_frame
+    imgt: 'JUNCTION frame'
   stop:
     type: boolean
     description: True if the aligned sequence contains a stop codon.
     changeo: STOP
     airr: stop_codon
+    imgt: 'V-DOMAIN Functionality comment'
   mutated_invariant:
     type: boolean
     description: True the aligment contains a mutated conserved amino acid.
     changeo: MUTATED_INVARIANT
     airr: mutated_invariant
+    imgt: ['V-DOMAIN Functionality comment', 'V-REGION potential ins/del']
   indels:
     type: boolean
     description: True if the V(D)J sequence contains insertions and/or deletions.
     changeo: INDELS
     airr: indels
+    imgt: ['V-REGION potential ins/del', 'V-REGION insertions', 'V-REGION deletions']
   v_seq_start:
     type: integer
     description: Start position of the V segment in the query sequence.
-    coordinate: start, v_seq
+    coordinate:
+      - start
+      - v_seq
     changeo: V_SEQ_START
     airr: v_sequence_start
-  v_seq_length:
-    type: integer
-    description: Length of the V segment in the query sequence.
-    coordinate: length, v_seq
-    changeo: V_SEQ_LENGTH
-    airr: null
+    imgt: 'V-REGION start'
   v_seq_end:
     type: integer
     description: End of the V segment in the query sequence.
-    coordinate: end, v_seq
+    coordinate:
+      - end
+      - v_seq
     changeo: null
     airr: v_sequence_end
+    imgt: 'V-REGION end'
+  v_seq_length:
+    type: integer
+    description: Length of the V segment in the query sequence.
+    coordinate:
+      - length
+      - v_seq
+    changeo: V_SEQ_LENGTH
+    airr: null
+    imgt: null
   v_germ_start_vdj:
     type: integer
     description: Alignment start position in the V reference sequence.
-    coordinate: start, v_germ_vdj
+    coordinate:
+      - start
+      - v_germ_vdj
     changeo: V_GERM_START_VDJ
     airr: null
-  v_germ_length_vdj:
-    type: integer
-    description: Alignment length in the V reference sequence.
-    coordinate: length, v_germ_vdj
-    changeo: V_GERM_LENGTH_VDJ
-    airr: null
+    imgt: null
   v_germ_end_vdj:
     type: integer
     description: Alignment end position in the V reference sequence.
-    coordinate: end, v_germ_vdj
+    coordinate:
+      - end
+      - v_germ_vdj
     changeo: null
     airr: null
+    imgt: null
+  v_germ_length_vdj:
+    type: integer
+    description: Alignment length in the V reference sequence.
+    coordinate:
+      - length
+      - v_germ_vdj
+    changeo: V_GERM_LENGTH_VDJ
+    airr: null
+    imgt: null
   v_germ_start_imgt:
     type: integer
     description: Alignment start position in the IMGT-gapped V reference sequence.
-    coordinate: start, v_germ_imgt
+    coordinate:
+      - start
+      - v_germ_imgt
     changeo: V_GERM_START_IMGT
     airr: v_germline_start
-  v_germ_length_imgt:
-    type: integer
-    description: Alignment length in the IMGT-gapped V reference sequence.
-    coordinate: length, v_germ_imgt
-    changeo: V_GERM_LENGTH_IMGT
-    airr: null
+    imgt: null
   v_germ_end_imgt:
     type: integer
     description: Alignment end position in the IMGT-gapped V reference sequence.
-    coordinate: end, v_germ_imgt
+    coordinate:
+      - end
+      - v_germ_imgt
     changeo: null
     airr: v_germline_end
+    imgt: null
+  v_germ_length_imgt:
+    type: integer
+    description: Alignment length in the IMGT-gapped V reference sequence.
+    coordinate:
+      - length
+      - v_germ_imgt
+    changeo: V_GERM_LENGTH_IMGT
+    airr: null
+    imgt: null
   np1_start:
     type: integer
     description: Start position of the nucleotides between the V and D segments or V and J segments.
-    coordinate: start, np1
+    coordinate:
+      - start
+      - np1
     changeo: null
     airr: null
-  np1_length:
-    type: integer
-    description: Number of nucleotides between the V and D segments or V and J segments.
-    coordinate: length, np1
-    changeo: NP1_LENGTH
-    airr: np2_length
+    imgt: null
   np1_end:
     type: integer
     description: End position of the nucleotides between the V and D segments or V and J segments.
-    coordinate: end, np1
+    coordinate:
+      - end
+      - np1
     changeo: null
     airr: null
+    imgt: null
+  np1_length:
+    type: integer
+    description: Number of nucleotides between the V and D segments or V and J segments.
+    coordinate:
+      - length
+      - np1
+    changeo: NP1_LENGTH
+    airr: np1_length
+    imgt: ["P3'V-nt nb", 'N-REGION-nt nb', 'N1-REGION-nt nb', "P5'D-nt nb"]
   d_seq_start:
     type: integer
     description: Start position of the D segment in the query sequence.
-    coordinate: d_seq, start
+    coordinate:
+      - d_seq
+      - start
     changeo: D_SEQ_START
     airr: d_sequence_start
-  d_seq_length:
-    type: integer
-    description: Length of the D segment in the query sequence.
-    coordinate: length, d_seq
-    changeo: D_SEQ_LENGTH
-    airr: null
+    imgt: 'D-REGION start'
   d_seq_end:
     type: integer
     description: End position of the D segment in the query sequence.
-    coordinate: end, d_seq
+    coordinate:
+      - end
+      - d_seq
     changeo: null
     airr: d_sequence_end
+    imgt: 'D-REGION end'
+  d_seq_length:
+    type: integer
+    description: Length of the D segment in the query sequence.
+    coordinate:
+      - length
+      - d_seq
+    changeo: D_SEQ_LENGTH
+    airr: null
+    imgt: 'D-REGION-nt nb'
   d_germ_start:
     type: integer
     description: Alignment start position in the D reference sequence.
-    coordinate: start, d_germ
+    coordinate:
+      - start
+      - d_germ
     changeo: D_GERM_START
     airr: d_germline_start
-  d_germ_length:
-    type: integer
-    description: Length of the alignment to the D reference sequence.
-    coordinate: length, d_germ
-    changeo: D_GERM_LENGTH
-    airr: null
+    imgt: "5'D-REGION trimmed-nt nb"
   d_germ_end:
     type: integer
     description: Alignment end position in the D reference sequence.
-    coordinate: end, d_germ
+    coordinate:
+      - end
+      - d_germ
     changeo: null
     airr: d_germline_end
+    imgt: null
+  d_germ_length:
+    type: integer
+    description: Length of the alignment to the D reference sequence.
+    coordinate:
+      - length
+      - d_germ
+    changeo: D_GERM_LENGTH
+    airr: null
+    imgt: 'D-REGION-nt nb'
   np2_start:
     type: integer
     description: Start position of the nucleotides between the D and J segments.
-    coordinate: start, np2
+    coordinate:
+      - start
+      - np2
     changeo: null
     airr: null
-  np2_length:
-    type: integer
-    description: Number of nucleotides between the D and J segments.
-    coordinate: length, np2
-    changeo: NP2_LENGTH
-    airr: np2_length
+    imgt: null
   np2_end:
     type: integer
     description: End position of the nucleotides between the D and J segments.
-    coordinate: end, np2
+    coordinate:
+      - end
+      - np2
     changeo: null
     airr: null
+    imgt: null
+  np2_length:
+    type: integer
+    description: Number of nucleotides between the D and J segments.
+    coordinate:
+      - length
+      - np2
+    changeo: NP2_LENGTH
+    airr: np2_length
+    imgt: ["P3'D-nt nb", 'N2-REGION-nt nb', "P5'J-nt nb"]
   j_seq_start:
     type: integer
     description: Start position of the J segment in the query sequence.
-    coordinate: start, j_seq
+    coordinate:
+      - start
+      - j_seq
     changeo: J_SEQ_START
     airr: j_sequence_start
-  j_seq_length:
-    type: integer
-    description: Length of the J segment in the query sequence.
-    coordinate: length, j_seq
-    changeo: J_SEQ_LENGTH
-    airr: null
+    imgt: 'J-REGION start'
   j_seq_end:
     type: integer
     description: End position of the J segment in the query sequence.
-    coordinate: end, j_seq
+    coordinate:
+      - end
+      - j_seq
     changeo: null
     airr: j_sequence_end
+    imgt: 'J-REGION end'
+  j_seq_length:
+    type: integer
+    description: Length of the J segment in the query sequence.
+    coordinate:
+      - length
+      - j_seq
+    changeo: J_SEQ_LENGTH
+    airr: null
+    imgt: null
   j_germ_start:
     type: integer
     description: Alignment start position in the J reference sequence.
-    coordinate: start, j_germ
+    coordinate:
+      - start
+      - j_germ
     changeo: J_GERM_START
     airr: j_germline_start
+    imgt: "5'J-REGION trimmed-nt nb"
   j_germ_end:
     type: integer
     description: Alignment start position in the J reference sequence.
-    coordinate: end, j_germ
+    coordinate:
+      - end
+      - j_germ
     changeo: null
     airr: j_germline_end
+    imgt: null
   j_germ_length:
     type: integer
     description: Alignment length of the J reference sequence.
-    coordinate: length, j_germ
+    coordinate:
+      - length
+      - j_germ
     changeo: J_GERM_LENGTH
     airr: null
+    imgt: null
   np1:
     type: nucleotide
     description: Nucleotide sequence of the combined N/P region between the V and D segments or V and J segments.
     changeo: NP1
     airr: np1
+    imgt: ["P3'V", 'N-REGION', 'N1-REGION', "P5'D"]
   np2:
     type: nucleotide
     description: Nucleotide sequence of the combined N/P region between the D and J segments.
     changeo: NP2
     airr: np2
-  cdr1:
-    type: nucleotide
-    description: Nucleotide sequence of the aligned CDR1 region.
-    changeo: CDR1_IMGT
-    airr: cdr1
-  cdr2:
-    type: nucleotide
-    description: Nucleotide sequence of the aligned CDR2 region.
-    changeo: CDR2_IMGT
-    airr: cdr2
-  cdr3:
-    type: nucleotide
-    description: Nucleotide sequence of the aligned CDR3 region.
-    changeo: CDR3_IMGT
-    airr: cdr3
+    imgt: ["P3'D", 'N2-REGION', "P5'J"]
   fwr1:
     type: nucleotide
     description: Nucleotide sequence of the aligned FWR1 region.
     changeo: FWR1_IMGT
     airr: fwr1
+    imgt: 'FR1-IMGT'
   fwr2:
     type: nucleotide
     description: Nucleotide sequence of the aligned FWR2 region.
     changeo: FWR2_IMGT
     airr: fwr2
+    imgt: 'FR2-IMGT'
   fwr3:
     type: nucleotide
     description: Nucleotide sequence of the aligned FWR3 region.
     changeo: FWR3_IMGT
     airr: fwr3
+    imgt: 'FR3-IMGT'
   fwr4:
     type: nucleotide
     description: Nucleotide sequence of the aligned FWR4 region.
     changeo: FWR4_IMGT
     airr: fwr4
+    imgt: 'FR4-IMGT'
+  cdr1:
+    type: nucleotide
+    description: Nucleotide sequence of the aligned CDR1 region.
+    changeo: CDR1_IMGT
+    airr: cdr1
+    imgt: 'CDR1-IMGT'
+  cdr2:
+    type: nucleotide
+    description: Nucleotide sequence of the aligned CDR2 region.
+    changeo: CDR2_IMGT
+    airr: cdr2
+    imgt: 'CDR2-IMGT'
+  cdr3:
+    type: nucleotide
+    description: Nucleotide sequence of the aligned CDR3 region.
+    changeo: CDR3_IMGT
+    airr: cdr3
+    imgt: 'CDR3-IMGT'
+  fwr1_start:
+    type: integer
+    description: FWR1 start position in the query sequence.
+    changeo: null
+    airr: fwr1_start
+    imgt: 'FR1-IMGT start'
+  fwr1_end:
+    type: integer
+    description: FWR1 end position in the query sequence.
+    changeo: null
+    airr: fwr1_end
+    imgt: 'FR1-IMGT end'
+  fwr2_start:
+    type: integer
+    description: FWR2 start position in the query sequence.
+    changeo: null
+    airr: fwr2_start
+    imgt: 'FR2-IMGT start'
+  fwr2_end:
+    type: integer
+    description: FWR2 end position in the query sequence.
+    changeo: null
+    airr: fwr2_end
+    imgt: 'FR2-IMGT end'
+  fwr3_start:
+    type: integer
+    description: FWR3 start position in the query sequence.
+    changeo: null
+    airr: fwr3_start
+    imgt: 'FR3-IMGT start'
+  fwr3_end:
+    type: integer
+    description: FWR3 end position in the query sequence.
+    changeo: null
+    airr: fwr3_end
+    imgt: 'FR3-IMGT end'
+  fwr4_start:
+    type: integer
+    description: FWR4 start position in the query sequence.
+    changeo: null
+    airr: fwr4_start
+    imgt: 'FR4-IMGT start'
+  fwr4_end:
+    type: integer
+    description: FWR4 end position in the query sequence.
+    changeo: null
+    airr: fwr4_end
+    imgt: 'FR4-IMGT end'
+  cdr1_start:
+    type: integer
+    description: CDR1 start position in the query sequence.
+    changeo: null
+    airr: cdr1_start
+    imgt: 'CDR1-IMGT start'
+  cdr1_end:
+    type: integer
+    description: CDR1 end position in the query sequence.
+    changeo: null
+    airr: cdr1_end
+    imgt: 'CDR1-IMGT end'
+  cdr2_start:
+    type: integer
+    description: CDR2 start position in the query sequence.
+    changeo: null
+    airr: cdr2_start
+    imgt: 'CDR2-IMGT start'
+  cdr2_end:
+    type: integer
+    description: CDR2 end position in the query sequence.
+    changeo: null
+    airr: cdr2_end
+    imgt: 'CDR2-IMGT end'
+  cdr3_start:
+    type: integer
+    description: CDR3 start position in the query sequence.
+    changeo: null
+    airr: cdr3_start
+    imgt: 'CDR3-IMGT start'
+  cdr3_end:
+    type: integer
+    description: CDR3 end position in the query sequence.
+    changeo: null
+    airr: cdr3_end
+    imgt: 'CDR3-IMGT end'
   v_score:
     type: float
     description: V alignment score.
     changeo: V_SCORE
     airr: v_score
+    imgt: 'V-REGION score'
   v_identity:
     type: float
     description:  V alignment fractional identity.
     changeo: V_IDENTITY
     airr: v_identity
+    imgt: 'V-REGION identity %'
   v_evalue:
     type: float
     description: V alignment E-value.
     changeo: V_EVALUE
     airr: v_support
+    imgt: null
   v_cigar:
     type: identity
     description: V alignment CIGAR string.
     changeo: V_CIGAR
     airr: v_cigar
+    imgt: null
   v_btop:
     type: identity
     description: V alignment BTOP string.
     changeo: V_BTOP
     airr: null
+    imgt: null
   d_score:
     type: float
     description: D alignment score.
     changeo: D_SCORE
     airr: d_score
+    imgt: 'D-REGION score'
   d_identity:
     type: float
     description:  D alignment fractional identity.
     changeo: D_IDENTITY
     airr: d_identity
+    imgt: 'D-REGION identity %'
   d_evalue:
     type: float
     description: D alignment E-value.
     changeo: D_EVALUE
     airr: d_support
+    imgt: null
   d_cigar:
     type: identity
     description: D alignment CIGAR string.
     changeo: D_CIGAR
     airr: d_cigar
+    imgt: null
   d_btop:
     type: identity
     description: D alignment BTOP string.
     changeo: D_BTOP
     airr: null
+    imgt: null
   j_score:
     type: float
     description: J alignment score.
     changeo: J_SCORE
     airr: j_score
+    imgt: 'J-REGION score'
   j_identity:
     type: float
     description:  J alignment fractional identity.
     changeo: J_IDENTITY
     airr: j_identity
+    imgt: 'J-REGION identity %'
   j_evalue:
     type: float
     description: J alignment E-value.
     changeo: J_EVALUE
     airr: j_support
+    imgt: null
   j_cigar:
     type: identity
     description: J alignment CIGAR string.
     changeo: J_CIGAR
     airr: j_cigar
+    imgt: null
   j_btop:
     type: identity
-    description: V alignment BTOP string.
+    description: J alignment BTOP string.
     changeo: J_BTOP
     airr: null
+    imgt: null
   c_score:
     type: float
     description: C region alignment score.
     changeo: C_SCORE
     airr: c_score
+    imgt: null
   c_identity:
     type: float
     description:  C region alignment fractional identity.
     changeo: C_IDENTITY
     airr: c_identity
+    imgt: null
   c_evalue:
     type: float
     description: C region alignment E-value.
     changeo: C_EVALUE
     airr: c_support
+    imgt: null
   c_cigar:
     type: identity
     description: C region alignment CIGAR string.
     changeo: C_CIGAR
     airr: c_cigar
+    imgt: null
   c_btop:
     type: identity
-    description: V alignment BTOP string.
+    description: C alignment BTOP string.
     changeo: C_BTOP
     airr: null
+    imgt: null
   vdj_score:
     type: float
     description: Alignment score for aligners that consider the full sequence.
     changeo: VDJ_SCORE
     airr: vdj_score
+    imgt: null
   vdj_identity:
     type: float
     description: Alignment fractional identity for aligners that consider the full sequence.
     changeo: VDJ_IDENTITY
     airr: vdj_identity
+    imgt: null
   vdj_evalue:
     type: float
     description: Alignment E-value for aligners that consider the full sequence.
     changeo: VDJ_EVALUE
     airr: vdj_support
+    imgt: null    
   vdj_cigar:
     type: identity
     description: CIGAR string for the full V(D)J alignment.
     changeo: VDJ_CIGAR
     airr: vdj_cigar
+    imgt: null
   vdj_btop:
     type: identity
     description: BTOP string for the full V(D)J alignment.
     changeo: VDJ_BTOP
     airr: null
+    imgt: null
   n1_length:
     type: integer
     description: Number of untemplated nucleotides 5' of the D segment.
     changeo: N1_LENGTH
     airr: n1_length
+    imgt: ['N-REGION-nt nb', 'N1-REGION-nt nb']
   n2_length:
     type: integer
     description: Number of untemplated nucleotides 3' of the D segment.
     changeo: N2_LENGTH
     airr: n2_length
+    imgt: 'N2-REGION-nt nb'
   p3v_length:
     type: integer
     description: Number of palindromic nucleotides 3' of the V segment.
     changeo: P3V_LENGTH
     airr: p3v_length
+    imgt: "P3'V-nt nb"
   p5d_length:
     type: integer
     description: Number of palindromic nucleotides 5' of the D segment.
     changeo: P5D_LENGTH
     airr: p5d_length
+    imgt: "P5'D-nt nb"
   p3d_length:
     type: integer
     description: Number of palindromic nucleotides 3' of the D segment.
     changeo: P3D_LENGTH
     airr: p3d_length
+    imgt: "P3'D-nt nb"
   p5j_length:
     type: integer
     description: Number of palindromic nucleotides 5' of the J segment.
     changeo: P5J_LENGTH
     airr: p5j_length
+    imgt: "P5'J-nt nb"
+  d_frame:
+    type: integer
+    description: Reading frame of the D segment.
+    changeo: D_FRAME
+    airr: null
+    imgt: 'D-REGION reading frame'
   dupcount:
     type: integer
     description: Copy number or number of duplicate observations of the sequence.
     changeo: DUPCOUNT
     airr: duplicate_count
+    imgt: null
   conscount:
     type: integer
     description: Number of reads contributing to the (UMI) consensus for this sequence.
     changeo: CONSCOUNT
     airr: consensus_count
+    imgt: null
   clone:
     type: identity
     description: Clonal cluster assignment for the query sequence.
     changeo: CLONE
     airr: clone_id
+    imgt: null
   cell:
     type: identity
     description: Cell identifier.
     changeo: CELL
     airr: cell_id
+    imgt: null
 
 
 #### Change-O format output definition ####
