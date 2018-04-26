@@ -31,21 +31,53 @@ def maskSplitCodons(receptor):
     Returns:
       str : modified IMGT gapped sequence.
     """
-
+    debug = False
     qi = receptor.sequence_input
     si = receptor.sequence_imgt
     log = OrderedDict()
     log['ID']=receptor.sequence_id
     log['CLONE']=receptor.clone
     log['PASS'] = True
-   # print(receptor.sequence_id)
+    if debug:
+        print(receptor.sequence_id)
     # adjust starting position of query sequence
     qi = qi[(receptor.v_seq_start - 1):]
+
+    #TODO: tally where --- gaps are in IMGT sequence and remove them for now
+    gaps = []
+    nsi = ""
+    for i in range(0,len(si)):
+        if si[i] == "-":
+            gaps.append(1)
+        else:
+            gaps.append(0)
+            nsi = nsi + si[i]
+
+    #TODO: find any gaps not divisble by three
+    curgap = 0
+    for i in gaps:
+        if i == 1:
+            curgap += 1
+        elif i == 0 and curgap != 0:
+            if curgap % 3 != 0 :
+                if debug:
+                    print("Frame-shifting gap detected! Cowardly refusing to include sequence.")
+                log['PASS'] = False
+                log['FAIL'] = "FRAME-SHIFTING GAP"
+                log['SEQ_IN'] = receptor.sequence_input
+                log['SEQ_IMGT'] = receptor.sequence_imgt
+                log["SEQ_MASKED"] = receptor.sequence_imgt
+                return receptor.sequence_imgt, log
+            else:
+                curgap = 0
+
+    si = nsi
 
     # deal with the fact that it's possible to start mid-codon
     scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
     for i in range(0, len(scodons)):
-        #print(scodons[i],qi[0:3])
+        if debug:
+            print(scodons[i],qi[0:3])
         if scodons[i] != '...':
             if scodons[i][0:2] == '..':
                 scodons[i] = "NN"+scodons[i][2]
@@ -71,56 +103,65 @@ def maskSplitCodons(receptor):
     qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
 
 
-    qpos = 0
+    s_end = 0 #adjust for the fact that IMGT sequences can end on gaps
     for i in range(spos, len(scodons)):
-        if scodons[i] != '...':
-            qpos += 1
-
+        if scodons[i] != '...' and len(scodons[i]) == 3:
+            s_end = i
+    if debug:
+        print(str(s_end) + ":" + str(len(scodons)))
+        print(scodons[s_end])
+    s_end += 1
     qpos = 0
     # TODO: for loop with zip()
-    while spos < len(scodons) and qpos < len(qcodons):
-        #print(scodons[spos] + "\t" + qcodons[qpos])
+    while spos < s_end and qpos < len(qcodons):
+        if debug:
+            print(scodons[spos] + "\t" + qcodons[qpos])
         if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
             spos += 1
         elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
             spos += 1
             qpos += 1
         else: # if not the same, mask IMGT at that site and scan foward until you find a codon that matches next site
-            #print("checking %s at position %d" % (scodons[spos], spos))
+            if debug:
+                print("checking %s at position %d" % (scodons[spos], spos))
             ospos=spos
             spos += 1
             qpos += 1
-            while qpos < len(qcodons) and spos < len(scodons) and scodons[spos] != qcodons[qpos]:
+            while qpos < len(qcodons) and spos < s_end and scodons[spos] != qcodons[qpos]:
                 qpos += 1
             if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
                 qpos -= 1
                 spos = ospos
-               # print("But codon was apparently preserved")
+                if debug:
+                    print("But codon was apparently preserved")
                 #log[str(spos)]="IN-FRAME"
                 if 'IN-FRAME' in  log:
                     log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
                 else:
                     log['IN-FRAME'] = str(spos)
-            elif qpos >= len(qcodons) and spos < len(scodons):
+            elif qpos >= len(qcodons) and spos < s_end:
                 log['PASS'] = False
                 log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
-            elif spos >= len(scodons) or qcodons[qpos] != scodons[spos]:
+            elif spos >= s_end or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
-                if spos >= len(scodons):
-                #    print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                if spos >= s_end:
+                    if debug:
+                        print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
                     #log[str(spos)] = "END"
                     if 'END-MASKED' in log:
                         log['END-MASKED'] = log['END-MASKED'] + "," + str(spos)
                     else:
                         log['END-MASKED'] = str(spos)
                 else:
-                 #   print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                    if debug:
+                        print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
                     #log[str(spos)] = "FAILED_MATCH"
                     log['PASS']=False
                     log['FAIL']="FAILED_MATCH:"+str(spos)
                     #exit(1)
             elif qcodons[qpos] == scodons[spos]:
-               # print("Masked %s at position %d" % (scodons[ospos], ospos))
+                if debug:
+                    print("Masked %s at position %d" % (scodons[ospos], ospos))
                 scodons[ospos] = "NNN"
                 if 'MASKED' in  log:
                     log['MASKED'] = log['MASKED'] + "," + str(spos)
@@ -135,7 +176,10 @@ def maskSplitCodons(receptor):
     #    scodons[-1] = "NNN"
     #    log[str(len(scodons))] = "MASKED"
     if len(scodons[-1]) != 3:
-        scodons[-1] = "NNN"
+        if scodons[-1] == ".." or scodons[-1] == ".":
+            scodons[-1] = "..."
+        else:
+            scodons[-1] = "NNN"
         #log[str(len(scodons))] = "MASKED"
         if 'MASKED' in log:
             log['MASKED'] = log['MASKED'] + "," + str(len(scodons))
@@ -146,6 +190,18 @@ def maskSplitCodons(receptor):
     for i in scodons:
         concatenated_seq += i
 
+    # TODO: add --- gaps back to IMGT sequence
+    ncon_seq = ""
+    counter = 0
+    for i in gaps:
+        #print(str(i) + ":" + ncon_seq)
+        if i == 1:
+            ncon_seq = ncon_seq + "."
+        elif i == 0:
+            ncon_seq = ncon_seq + concatenated_seq[counter]
+            counter += 1
+    ncon_seq = ncon_seq + concatenated_seq[counter:]
+    concatenated_seq = ncon_seq
     log['SEQ_IN'] = receptor.sequence_input
     log['SEQ_IMGT'] = receptor.sequence_imgt
     log["SEQ_MASKED"] = concatenated_seq
@@ -181,7 +237,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     germline = clones[0].getField("germline_imgt_d_mask")
 
     if len(sequences[0]) % 3 != 0:
-        print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences),clones[0].clone,sequences[0]))
+        print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
         exit(1)
     tallies = []
     for i in range(0, sites, 3):
