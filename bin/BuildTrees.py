@@ -21,13 +21,13 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
 
 from Bio.Seq import Seq
 
-def maskSplitCodons(receptor):
+def maskSplitCodons(receptor,recursive=False):
     """
     Identify junction region by IMGT definition.
 
     Arguments:
       receptor : Receptor object.
-
+      recursive (bool) : was this method part of a recursive call?
     Returns:
       str : modified IMGT gapped sequence.
     """
@@ -63,7 +63,7 @@ def maskSplitCodons(receptor):
                 if debug:
                     print("Frame-shifting gap detected! Cowardly refusing to include sequence.")
                 log['PASS'] = False
-                log['FAIL'] = "FRAME-SHIFTING GAP"
+                log['FAIL'] = "FRAME-SHIFTING DELETION"
                 log['SEQ_IN'] = receptor.sequence_input
                 log['SEQ_IMGT'] = receptor.sequence_imgt
                 log["SEQ_MASKED"] = receptor.sequence_imgt
@@ -102,7 +102,7 @@ def maskSplitCodons(receptor):
 
     qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
 
-
+    frameshifts = 0
     s_end = 0 #adjust for the fact that IMGT sequences can end on gaps
     for i in range(spos, len(scodons)):
         if scodons[i] != '...' and len(scodons[i]) == 3:
@@ -121,27 +121,93 @@ def maskSplitCodons(receptor):
         elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
             spos += 1
             qpos += 1
-        else: # if not the same, mask IMGT at that site and scan foward until you find a codon that matches next site
+        else: # if not the same, mask IMGT at that site and scan forward until you find a codon that matches next site
             if debug:
-                print("checking %s at position %d" % (scodons[spos], spos))
+                print("checking %s at position %d %d" % (scodons[spos], spos, qpos))
             ospos=spos
+            oqpos=qpos
             spos += 1
             qpos += 1
+            while spos < s_end and scodons[spos] == "...": #possible next codon is just a gap
+                spos += 1
             while qpos < len(qcodons) and spos < s_end and scodons[spos] != qcodons[qpos]:
+                if debug:
+                    print("Checking " + scodons[spos]+ "\t" + qcodons[qpos])
                 qpos += 1
             if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
                 qpos -= 1
                 spos = ospos
                 if debug:
                     print("But codon was apparently preserved")
-                #log[str(spos)]="IN-FRAME"
                 if 'IN-FRAME' in  log:
                     log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
                 else:
                     log['IN-FRAME'] = str(spos)
             elif qpos >= len(qcodons) and spos < s_end:
-                log['PASS'] = False
+                if debug:
+                    print("FAILING MATCH")
+                log['PASS'] = False #if no match for the adjacent codon was found, something's up.
                 log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
+                #figure out if this was due to a frame-shift by repeating this method but with an edited input sequence
+                if not recursive:
+                    for ins in range(1,3):
+                        ros = receptor.sequence_input
+                        ris = receptor.sequence_imgt
+                        psite = receptor.v_seq_start-1+oqpos*3
+                        pisite = ospos * 3
+                        if (psite+3 + ins) < len(ros) and (pisite+3) < len(ris):
+                        #cut out 1 or 2 nucleotides downstream of offending codon
+                            receptor.sequence_input = ros[0:(psite+3)]+ros[(psite+3 + ins):]
+                            receptor.sequence_imgt = ris[0:(pisite+3)] + ris[(pisite+3):]
+                            if debug:
+                                print(ros + "\n"+receptor.sequence_input)
+                                print(ris + "\n" + receptor.sequence_imgt)
+                                print("RUNNING %d\n"%ins)
+                            mout = maskSplitCodons(receptor,recursive=True)
+                            if mout[1]['PASS']:
+                                #if debug:
+                                receptor.sequence_input = ros
+                                receptor.sequence_imgt = ris
+                                frameshifts += 1
+                                if debug:
+                                    print("FRAMESHIFT of length %d!" % ins)
+                                log['FAIL'] = "SINGLE FRAME-SHIFTING INSERTION"
+                                break
+                            else:
+                                receptor.sequence_input = ros
+                                receptor.sequence_imgt = ris
+
+                            '''
+                                message,site = mout[1]['FAIL'].split(":")
+                                if message == "FAILED_MATCH_QSTRING":
+                                    log['FAIL'] = "FRAME-SHIFTING INSERTION"
+                                    site = int(site)
+                                    if site != spos:
+                                        if debug:
+                                            print("frame fixed site %d %d" % (spos, site))
+                                        frameshifts += 1
+                                        qi = receptor.sequence_input
+                                        qi = qi[(receptor.v_seq_start - 1):]
+                                        si = receptor.sequence_imgt
+                                        nsi = ""
+                                        for i in range(0, len(si)):
+                                            if si[i] != "-":
+                                               nsi = nsi + si[i]
+                                        si = nsi
+                                        scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
+                                        qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
+                                        spos = ospos
+                                        qpos = oqpos
+                                        if debug:
+                                            print("just re-assigned "+scodons[spos] + "\t" + qcodons[qpos])
+                                        break
+                                if debug:
+                                    print(message)
+                                receptor.sequence_input = ros
+                                receptor.sequence_imgt = ris
+                                log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
+                                    #print(mout[1]['FAIL'] + "\t" + str(qpos) + "\t" + str(spos))
+                            '''
             elif spos >= s_end or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= s_end:
@@ -155,10 +221,8 @@ def maskSplitCodons(receptor):
                 else:
                     if debug:
                         print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
-                    #log[str(spos)] = "FAILED_MATCH"
                     log['PASS']=False
                     log['FAIL']="FAILED_MATCH:"+str(spos)
-                    #exit(1)
             elif qcodons[qpos] == scodons[spos]:
                 if debug:
                     print("Masked %s at position %d" % (scodons[ospos], ospos))
@@ -172,9 +236,9 @@ def maskSplitCodons(receptor):
                 log['PASS'] = False
                 log['FAIL'] = "UNKNOWN"
 
-    #if scodons[-1] == "." or scodons[-1] == ".." or scodons[-1] == "...":
-    #    scodons[-1] = "NNN"
-    #    log[str(len(scodons))] = "MASKED"
+    if not log['PASS'] and not recursive:
+        #if log['FAIL'] == "FRAME-SHIFTING INSERTION":
+        log['FRAMESHIFTS'] = frameshifts
     if len(scodons[-1]) != 3:
         if scodons[-1] == ".." or scodons[-1] == ".":
             scodons[-1] = "..."
@@ -408,11 +472,22 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
     logs = OrderedDict()
     rec_count = 0
     seq_fail = 0
+    nf_fail = 0
+    del_fail = 0
+    in_fail = 0
+    other_fail = 0
     for r in records:
         rec_count += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
             mout = maskSplitCodons(r)
+            #Sometimes v start site is off a little
+            '''if not mout[1]['PASS'] and r.v_seq_start > 0:
+                r.v_seq_start -= 3
+                mout2 = maskSplitCodons(r)
+                r.v_seq_start += 3
+                if mout2[1]['PASS']:
+                    mout = mout2'''
             mask_seq = mout[0]
             logs[mout[1]['ID']]=mout[1]
             if mout[1]['PASS']:
@@ -426,6 +501,12 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
                 if out_args['failed']:
                     fail_writer.writeReceptor(r)
                 seq_fail += 1
+                if mout[1]['FAIL'] == "FRAME-SHIFTING DELETION":
+                    del_fail += 1
+                elif mout[1]['FAIL'] == "SINGLE FRAME-SHIFTING INSERTION":
+                    in_fail += 1
+                else:
+                    other_fail += 1
 
         else:
             log = OrderedDict()
@@ -438,6 +519,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
             if out_args['failed']:
                 fail_writer.writeReceptor(r)
             seq_fail += 1
+            nf_fail += 1
 
     clonesizes = {}
     pass_count = 0
@@ -478,7 +560,12 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
     log['RECORDS'] = rec_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['MASKFAIL'] = seq_fail
+    #log['TOTAL MASK FAIL'] = seq_fail
+    log['NONFUNCTIONAL'] = nf_fail
+    log['FRAMESHIFT_DEL'] = del_fail
+    log['FRAMESHIFT_INS'] = in_fail
+    log['OTHER_FAIL'] = other_fail
+
     if collapse:
         log['DUPLICATE'] = fail_count - seq_fail
     log['END'] = 'BuildTrees'
