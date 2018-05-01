@@ -1557,18 +1557,17 @@ class IgBLASTReader:
             db.update(imgt_dict)
 
         # Add junction
-        if 'subregion' in sections:
-            if 'cdr3_igblast_start' in sections['subregion']:
-                junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
-                db.update(junc_dict)
-            elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
-                junc_dict = inferJunction(db['sequence_imgt'],
-                                          j_germ_start=db['j_germ_start'],
-                                          j_germ_length=db['j_germ_length'],
-                                          j_call=db['j_call'],
-                                          references=self.references,
-                                          asis_calls=self.asis_calls)
-                db.update(junc_dict)
+        if 'subregion' in sections and 'cdr3_igblast_start' in sections['subregion']:
+            junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
+            db.update(junc_dict)
+        elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+            junc_dict = inferJunction(db['sequence_imgt'],
+                                      j_germ_start=db['j_germ_start'],
+                                      j_germ_length=db['j_germ_length'],
+                                      j_call=db['j_call'],
+                                      references=self.references,
+                                      asis_calls=self.asis_calls)
+            db.update(junc_dict)
 
         # Add IgBLAST CDR3 sequences
         if 'subregion' in sections:

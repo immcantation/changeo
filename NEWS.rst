@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  April 3, 2018
+Version 0.4.0.999:  May 1, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
@@ -9,7 +9,6 @@ Version 0.4.0.999:  April 3, 2018
 + All tools will no longer create empty pass or fail files if there are no
   records meeting the appropriate criteria for output.
 + Numerous API changes and internal structural changes to commandline tools.
-
 
 AlignRecords:
 
@@ -61,6 +60,7 @@ MakeDb:
   pad to a multiple of 3 (removes trailing X character).
 + The igblast subcommand will now fail records missing the required optional
   fields ``subject seq``, ``query seq`` and ``BTOP``, rather than abort.
++ Fixed bug causing parsing of IgBLAST <= 1.4 output to fail.
 
 ParseDb:
 
