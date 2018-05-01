@@ -25,11 +25,6 @@ here:
 
 Installation
 -----------------
-
-Download and install the development version of Change-O, which will
-include necessary scripts for using the new IgPhyML::
- 
-    pip3 install hg+https://bitbucket.org/kleinstein/changeo#default --user
  
 Download and install the new IgPhyML::
 
@@ -285,7 +280,7 @@ symmetric WRC/GYW. So, the following two commands are equivalent::
     igphyml --repfile ex_lineages.GY.tsv -m HLP17 -o lr --run_id HLP
  
     igphyml --repfile ex_lineages.GY.tsv -m HLP17 -t e --omegaOpt e --motifs WRC_2:0,GYW_0:1 \
-    --hotness e,e -o lr --run_id HLP
+        --hotness e,e -o lr --run_id HLP
  
 In both cases parameter estimates are recorded in
 ``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. Note that here we use
