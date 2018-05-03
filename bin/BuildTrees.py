@@ -272,7 +272,8 @@ def maskSplitCodons(receptor,recursive=False):
 
     return concatenated_seq, log
 
-def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None):
+def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
+                  min_seq=0):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -284,6 +285,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         logs (dict of OrderedDicts): contains log information for each sequence
         out_dir (str): directory for output files.
         fail_writer (handle): file of failed sequences
+        min_seq (int): minimum number of data sequences to include
     Returns:
         int: number of clones.
     """
@@ -356,6 +358,18 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             #useqs[conseq] = j
             useqs_f[conseq_f] = j
         conseqs.append(conseq)
+    #print("MINSEQ "+str(min_seq))
+    if collapse and len(useqs_f) < min_seq:
+        for seq_f, num in useqs_f.items():
+            logs[clones[num].sequence_id]['FAIL'] = "Clone too small: "+ str(len(useqs_f))
+            logs[clones[num].sequence_id]['PASS'] = False
+        return -len(useqs_f);
+
+    if not collapse and len(conseqs) < min_seq:
+        for j in range(0, nseqs):
+            logs[clones[j].sequence_id]['FAIL'] = "Clone too small: "+str(len(conseqs))
+            logs[clones[j].sequence_id]['PASS'] = False
+        return -len(conseqs);
 
     # Output fasta file of masked, concatenated sequences
     outfile = out_dir + "/" + clones[0].clone + ".fa"
@@ -405,7 +419,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         return nseqs
 
 
-def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -467,6 +481,11 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
                                       out_type=out_args['out_type'])
         fail_writer = writer(fail_handle, fields=out_fields)
 
+    if min_seq == 0:
+        min_seq = 0
+    else:
+        min_seq = int(min_seq[0])
+
     cloneseqs = {}
     clones = {}
     logs = OrderedDict()
@@ -475,6 +494,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
     nf_fail = 0
     del_fail = 0
     in_fail = 0
+    minseq_fail = 0
     other_fail = 0
     for r in records:
         rec_count += 1
@@ -523,10 +543,17 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
 
     clonesizes = {}
     pass_count = 0
+    nclones = 0
     for k in clones.keys():
         clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
-                                           logs=logs,fail_writer=fail_writer,out_dir=clone_dir)
-        pass_count += clonesizes[str(k)]
+                                           logs=logs,fail_writer=fail_writer,out_dir=clone_dir,min_seq=min_seq)
+        #If clone is too small, size is returned as a negative
+        if clonesizes[str(k)] > 0:
+            nclones += 1
+            pass_count += clonesizes[str(k)]
+        else:
+            seq_fail -= clonesizes[str(k)]
+            minseq_fail  -= clonesizes[str(k)]
     fail_count = rec_count - pass_count
 
     log_handle = None
@@ -536,12 +563,13 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
             printLog(logs[j], handle=log_handle)
 
     # TODO: changeo console log
-    print(len(clonesizes), file=pass_handle)
+    print(nclones, file=pass_handle)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
         outfile = clone_dir + "/" + key + ".fa"
         partfile = clone_dir + "/" + key + ".part.txt"
-        pass_handle.write("%s\t%s\t%s\t%s\n" % (outfile, "N", key+"_GERM", partfile))
+        if clonesizes[key] > 0:
+            pass_handle.write("%s\t%s\t%s\t%s\n" % (outfile, "N", key+"_GERM", partfile))
 
     handle.close()
     output = {'pass': None, 'fail': None}
@@ -564,6 +592,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, format=default_format, o
     log['NONFUNCTIONAL'] = nf_fail
     log['FRAMESHIFT_DEL'] = del_fail
     log['FRAMESHIFT_INS'] = in_fail
+    log['CLONETOOSMALL'] = minseq_fail
     log['OTHER_FAIL'] = other_fail
 
     if collapse:
@@ -605,6 +634,9 @@ def getArgParser():
                         help='''Collapse identical sequences.''')
     group.add_argument('--md', nargs='+', action='store', dest='meta_data',default=None,
                        help='''Include metadata in sequence ID.''')
+
+    group.add_argument('--minseq', nargs='+', action='store', dest='min_seq', default=0,
+                       help='''Minimum number of data sequences.''')
 
     return parser
 
