@@ -272,6 +272,98 @@ def maskSplitCodons(receptor,recursive=False):
 
     return concatenated_seq, log
 
+
+def unAmbigDist(seq1,seq2,fbreak=False):
+    """
+    Calculate the distance between two sequences counting only A,T,C,Gs
+    Args:
+        seq1 (str): sequence 1
+        seq2 (str): sequence 2
+        fbreak (bool): break after first difference found?
+
+    Returns:
+        Number of ACGT differences
+    """
+    if len(seq1) != len(seq2):
+        print("Sequences are not the same length! %s %s",seq1,seq2)
+        exit()
+    dist = 0
+    for i in range(0,len(seq1)):
+        if seq1[i] != "N" and seq1[i] != "-" and seq1[i] != ".":
+            if seq2[i] != "N" and seq2[i] != "-" and seq2[i] != ".":
+                if seq1[i] != seq2[i]:
+                    dist += 1
+                    if fbreak:
+                        break
+    return dist
+
+def deduplicate(useqs, receptors, log=None, meta_data=None,delim="_"):
+    """
+    Args:
+        useqs (dict): unique sequences within a clone
+        receptors (dict): receptors within a clone
+        log (ordered dict): log of sequence errors
+        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
+        delmi (str): delimited to use when appending meta_data
+
+        Returns:
+        list of deduplicated receptors within a clone
+    """
+    #print(receptors[0].clone)
+
+    joined = 1
+    iter = 0
+    while joined > 0:
+        joined = 0
+        keys = list(useqs.keys())
+        #print("%d %d" % (iter,len(keys)))
+        for i in range(0,len(keys)-1):
+            if joined == 1:
+                break
+            for j in range(i+1,len(keys)):
+                if joined == 1:
+                    break
+                ki = keys[i]
+                kj = keys[j]
+                if meta_data is None:
+                    ski = keys[i]
+                    skj = keys[j]
+                else:
+                    ski, cid = keys[i].split(delim)
+                    skj, cid = keys[j].split(delim)
+
+                ri = receptors[useqs[ki]]
+                rj = receptors[useqs[kj]]
+
+                dist = unAmbigDist(ski, skj, True)
+                m_match = True
+                if meta_data is not None and meta_data[0] != "DUPCOUNT":
+                    m_match = ri.getField(meta_data[0]) == rj.getField(meta_data[0])
+
+                if dist == 0 and m_match:
+                    joined = 1
+                    ncounti = ki.count('A') + ki.count('T') + ki.count('G') + ki.count('C')
+                    ncountj = kj.count('A') + kj.count('T') + kj.count('G') + kj.count('C')
+                    if ncountj > ncounti:
+                        rj.dupcount += ri.dupcount
+                        if log is not None:
+                            log[ri.sequence_id]['PASS'] = False
+                            log[ri.sequence_id]['DUPLICATE'] = True
+                            log[ri.sequence_id]['COLLAPSETO'] = kj
+                            log[ri.sequence_id]['COLLAPSEFROM'] = ki
+                            log[ri.sequence_id]['FAIL'] = "Collapsed with " + rj.sequence_id
+                        del useqs[ki]
+                    else:
+                        ri.dupcount += rj.dupcount
+                        if log is not None:
+                            log[rj.sequence_id]['PASS'] = False
+                            log[rj.sequence_id]['DUPLICATE'] = True
+                            log[ri.sequence_id]['COLLAPSETO'] = ki
+                            log[ri.sequence_id]['COLLAPSEFROM'] = kj
+                            log[rj.sequence_id]['FAIL'] = "Collapsed with " + ri.sequence_id
+                        del useqs[kj]
+    return useqs
+
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
                   min_seq=0):
     """
@@ -337,39 +429,39 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
     delim = "_"
-    #useqs = {}
     useqs_f = {}
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
         if meta_data is not None:
-            #print("Meta data:",meta_data[0],meta_data)
-            #print(clones[j].getField(meta_data[0]))
             conseq_f = "".join([str(seq_rec) for seq_rec in newseqs[j]])+delim+str(clones[j].getField(meta_data[0]))
         else:
             conseq_f = conseq
         if conseq_f in useqs_f and collapse:
+            clones[useqs_f[conseq_f]].dupcount += clones[j].dupcount
             logs[clones[j].sequence_id]['PASS'] = False
             logs[clones[j].sequence_id]['FAIL'] = "Duplication of " + clones[useqs_f[conseq_f]].sequence_id
             logs[clones[j].sequence_id]['DUPLICATE']=True
             if fail_writer is not None:
                 fail_writer.writeReceptor(clones[j])
         else:
-            #useqs[conseq] = j
             useqs_f[conseq_f] = j
         conseqs.append(conseq)
-    #print("MINSEQ "+str(min_seq))
+
+    if collapse:
+        useqs_f = deduplicate(useqs_f,clones,logs,meta_data)
+
     if collapse and len(useqs_f) < min_seq:
         for seq_f, num in useqs_f.items():
-            logs[clones[num].sequence_id]['FAIL'] = "Clone too small: "+ str(len(useqs_f))
+            logs[clones[num].sequence_id]['FAIL'] = "Clone too small: " + str(len(useqs_f))
             logs[clones[num].sequence_id]['PASS'] = False
-        return -len(useqs_f);
+        return -len(useqs_f)
 
     if not collapse and len(conseqs) < min_seq:
         for j in range(0, nseqs):
-            logs[clones[j].sequence_id]['FAIL'] = "Clone too small: "+str(len(conseqs))
+            logs[clones[j].sequence_id]['FAIL'] = "Clone too small: " + str(len(conseqs))
             logs[clones[j].sequence_id]['PASS'] = False
-        return -len(conseqs);
+        return -len(conseqs)
 
     # Output fasta file of masked, concatenated sequences
     outfile = out_dir + "/" + clones[0].clone + ".fa"
@@ -380,10 +472,13 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             cid = ""
             if meta_data is not None:
                 seq, cid = seq_f.split(delim)
-                cid = delim + cid
+                cid = delim + str(clones[num].getField(meta_data[0]))
             sid = clones[num].sequence_id.translate(transtable) + cid
             print(">%s\n%s" % (sid, seq), file=clonef)
             if len(useqs_f) == 1 and duplicate:
+                if meta_data is not None:
+                    if meta_data[0] == "DUPCOUNT":
+                        cid = delim + "0"
                 sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
                 print(">%s\n%s" % (sid, seq), file=clonef)
     else:
@@ -394,6 +489,9 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             sid = clones[j].sequence_id.translate(transtable)+cid
             print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
             if nseqs == 1 and duplicate:
+                if meta_data is not None:
+                    if meta_data[0] == "DUPCOUNT":
+                        cid = delim + "0"
                 sid = clones[j].sequence_id.translate(transtable)+"_1"+cid
                 print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
 
@@ -496,8 +594,15 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     in_fail = 0
     minseq_fail = 0
     other_fail = 0
+    fdcount = 0
+    totalreads = 0
+    passreads = 0
+    failreads = 0
     for r in records:
+        if r.dupcount is None:
+            r.dupcount = 1
         rec_count += 1
+        totalreads += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
             mout = maskSplitCodons(r)
@@ -511,6 +616,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             mask_seq = mout[0]
             logs[mout[1]['ID']]=mout[1]
             if mout[1]['PASS']:
+                #passreads += r.dupcount
                 if r.clone in clones:
                     clones[r.clone].append(r)
                     cloneseqs[r.clone].append(mask_seq)
@@ -521,13 +627,13 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                 if out_args['failed']:
                     fail_writer.writeReceptor(r)
                 seq_fail += 1
+                failreads += r.dupcount
                 if mout[1]['FAIL'] == "FRAME-SHIFTING DELETION":
                     del_fail += 1
                 elif mout[1]['FAIL'] == "SINGLE FRAME-SHIFTING INSERTION":
                     in_fail += 1
                 else:
                     other_fail += 1
-
         else:
             log = OrderedDict()
             log['ID'] = r.sequence_id
@@ -541,12 +647,15 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             seq_fail += 1
             nf_fail += 1
 
+    #print("FAILED DUPCOUNT: "+str(fdcount))
+    #print("FAILED SEQCOUNT: " + str(seq_fail))
     clonesizes = {}
     pass_count = 0
     nclones = 0
     for k in clones.keys():
         clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
                                            logs=logs,fail_writer=fail_writer,out_dir=clone_dir,min_seq=min_seq)
+        #passreads += pr
         #If clone is too small, size is returned as a negative
         if clonesizes[str(k)] > 0:
             nclones += 1
