@@ -383,7 +383,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     """
     duplicate = True # duplicate sequences in clones with only 1 sequence?
     sites = len(sequences[0])
-    imgtar = clones[0].imgtpartlabels
+    imgtar = clones[0].getField("imgtpartlabels")
     s=""
     for i in sequences:
         if len(i) != sites:
@@ -396,14 +396,14 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     print(str((sequences[0])))
     print(str((clones[0].sequence_imgt)))'''
     for c in clones:
-        if len(c.imgtpartlabels) != len(imgtar):
+        if len(c.getField("imgtpartlabels")) != len(imgtar):
             print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! %d",c[0].clone)
             print(c.imgtpartlabels)
             print(imgtar)
             print(str(j))
             exit(1)
         for j in range(0,len(imgtar)):
-            if c.imgtpartlabels[j] != imgtar[j]:
+            if c.getField("imgtpartlabels")[j] != imgtar[j]:
                 print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! %d",c[0].clone)
                 print(c.imgtpartlabels)
                 print(imgtar)
@@ -632,10 +632,11 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                     "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
             if simgt != r.sequence_imgt:
                 print("%s\n%s\n%s\n" % (r.sequence_id,r.sequence_imgt,simgt))
-            r.imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
+            imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
                                [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
                                +[120] * len(r.fwr4_imgt)
-            if len(r.imgtpartlabels) != len(r.sequence_imgt):
+            r.setField("imgtpartlabels",imgtpartlabels)
+            if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt):
                 print(r.imgtpartlabels)
                 print(r.sequence_imgt)
 
