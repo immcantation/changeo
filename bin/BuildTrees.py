@@ -383,6 +383,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     """
     duplicate = True # duplicate sequences in clones with only 1 sequence?
     sites = len(sequences[0])
+    imgtar = clones[0].imgtpartlabels
     s=""
     for i in sequences:
         if len(i) != sites:
@@ -390,6 +391,24 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             for s in sequences:
                 print(s)
             exit(1)
+    '''print(str(len(imgtar)))
+    #print(str(len(sequences[0])))
+    print(str((sequences[0])))
+    print(str((clones[0].sequence_imgt)))'''
+    for c in clones:
+        if len(c.imgtpartlabels) != len(imgtar):
+            print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! %d",c[0].clone)
+            print(c.imgtpartlabels)
+            print(imgtar)
+            print(str(j))
+            exit(1)
+        for j in range(0,len(imgtar)):
+            if c.imgtpartlabels[j] != imgtar[j]:
+                print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! %d",c[0].clone)
+                print(c.imgtpartlabels)
+                print(imgtar)
+                print(str(j))
+                exit(1)
 
     nseqs = len(sequences)
     germline = clones[0].getField("germline_imgt_d_mask")
@@ -419,7 +438,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         if tallies[i//3] > 0:
             newgerm.append(germline[i:(i+3)])
             lcodon=germline[i:(i+3)]
-            imgt.append(i//3)
+            imgt.append(imgtar[i])
 
     if len(lcodon) == 2:
         newgerm[-1]=newgerm[-1]+"N"
@@ -516,7 +535,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     else:
         return nseqs
 
-
+# Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
 def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
@@ -605,6 +624,21 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         totalreads += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
+            simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField("CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
+            if len(simgt) < len(r.sequence_imgt):
+                #simgt = simgt + ("."*(len(r.sequence_imgt) - len(simgt)))
+                r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
+                simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField(
+                    "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
+            if simgt != r.sequence_imgt:
+                print("%s\n%s\n%s\n" % (r.sequence_id,r.sequence_imgt,simgt))
+            r.imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
+                               [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
+                               +[120] * len(r.fwr4_imgt)
+            if len(r.imgtpartlabels) != len(r.sequence_imgt):
+                print(r.imgtpartlabels)
+                print(r.sequence_imgt)
+
             mout = maskSplitCodons(r)
             #Sometimes v start site is off a little
             '''if not mout[1]['PASS'] and r.v_seq_start > 0:
