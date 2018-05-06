@@ -398,14 +398,14 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     for c in clones:
         if len(c.getField("imgtpartlabels")) != len(imgtar):
             print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! %d",c[0].clone)
-            print(c.imgtpartlabels)
+            print(c.getFeild("imgtpartlabels"))
             print(imgtar)
             print(str(j))
             exit(1)
         for j in range(0,len(imgtar)):
             if c.getField("imgtpartlabels")[j] != imgtar[j]:
                 print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! %d",c[0].clone)
-                print(c.imgtpartlabels)
+                print(c.getFeild("imgtpartlabels"))
                 print(imgtar)
                 print(str(j))
                 exit(1)
@@ -613,6 +613,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     in_fail = 0
     minseq_fail = 0
     other_fail = 0
+    region_fail = 0
     fdcount = 0
     totalreads = 0
     passreads = 0
@@ -626,19 +627,29 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         if r.functional:
             simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField("CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
             if len(simgt) < len(r.sequence_imgt):
-                #simgt = simgt + ("."*(len(r.sequence_imgt) - len(simgt)))
                 r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
                 simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField(
                     "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
-            if simgt != r.sequence_imgt:
-                print("%s\n%s\n%s\n" % (r.sequence_id,r.sequence_imgt,simgt))
             imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
                                [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
                                +[120] * len(r.fwr4_imgt)
             r.setField("imgtpartlabels",imgtpartlabels)
-            if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt):
-                print(r.imgtpartlabels)
-                print(r.sequence_imgt)
+            if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
+                #print("%s\n%s\n%s\n" % (r.sequence_id, r.sequence_imgt, simgt))
+                #print(r.getField("imgtpartlabels"))
+                #print(r.sequence_imgt)
+                log = OrderedDict()
+                log['ID'] = r.sequence_id
+                log['CLONE'] = r.clone
+                log['SEQ_IN'] = r.sequence_input
+                log['SEQ_IMGT'] = r.sequence_imgt
+                logs[r.sequence_id] = log
+                logs[r.sequence_id]['PASS'] = False
+                logs[r.sequence_id]['FAIL'] = 'FWR/CDR error'
+                logs[r.sequence_id]['FWRCDRSEQ'] = simgt
+                seq_fail += 1
+                region_fail += 1
+                continue
 
             mout = maskSplitCodons(r)
             #Sometimes v start site is off a little
@@ -737,6 +748,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     log['FRAMESHIFT_DEL'] = del_fail
     log['FRAMESHIFT_INS'] = in_fail
     log['CLONETOOSMALL'] = minseq_fail
+    log['CDRFWR_ERROR'] = region_fail
     log['OTHER_FAIL'] = other_fail
 
     if collapse:
