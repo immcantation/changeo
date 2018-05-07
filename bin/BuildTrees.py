@@ -618,6 +618,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     totalreads = 0
     passreads = 0
     failreads = 0
+    imgt_warn = None
     for r in records:
         if r.dupcount is None:
             r.dupcount = 1
@@ -625,31 +626,34 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         totalreads += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
-            simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField("CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
-            if len(simgt) < len(r.sequence_imgt):
-                r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
-                simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField(
-                    "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
-            imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
-                               [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
-                               +[120] * len(r.fwr4_imgt)
-            r.setField("imgtpartlabels",imgtpartlabels)
-            if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
-                #print("%s\n%s\n%s\n" % (r.sequence_id, r.sequence_imgt, simgt))
-                #print(r.getField("imgtpartlabels"))
-                #print(r.sequence_imgt)
-                log = OrderedDict()
-                log['ID'] = r.sequence_id
-                log['CLONE'] = r.clone
-                log['SEQ_IN'] = r.sequence_input
-                log['SEQ_IMGT'] = r.sequence_imgt
-                logs[r.sequence_id] = log
-                logs[r.sequence_id]['PASS'] = False
-                logs[r.sequence_id]['FAIL'] = 'FWR/CDR error'
-                logs[r.sequence_id]['FWRCDRSEQ'] = simgt
-                seq_fail += 1
-                region_fail += 1
-                continue
+            #If IMGT regions are provided, record their positions
+            if r.getField("FWR1_IMGT") is not "":
+                simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField("CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
+                if len(simgt) < len(r.sequence_imgt):
+                    r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
+                    simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField(
+                        "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
+                imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
+                                   [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
+                                   +[120] * len(r.fwr4_imgt)
+                r.setField("imgtpartlabels",imgtpartlabels)
+                if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
+                    log = OrderedDict()
+                    log['ID'] = r.sequence_id
+                    log['CLONE'] = r.clone
+                    log['SEQ_IN'] = r.sequence_input
+                    log['SEQ_IMGT'] = r.sequence_imgt
+                    logs[r.sequence_id] = log
+                    logs[r.sequence_id]['PASS'] = False
+                    logs[r.sequence_id]['FAIL'] = 'FWR/CDR error'
+                    logs[r.sequence_id]['FWRCDRSEQ'] = simgt
+                    seq_fail += 1
+                    region_fail += 1
+                    continue
+            else:
+                imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data\n"
+                imgtpartlabels = [0] * len(r.sequence_imgt)
+                r.setField("imgtpartlabels", imgtpartlabels)
 
             mout = maskSplitCodons(r)
             #Sometimes v start site is off a little
@@ -693,8 +697,6 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             seq_fail += 1
             nf_fail += 1
 
-    #print("FAILED DUPCOUNT: "+str(fdcount))
-    #print("FAILED SEQCOUNT: " + str(seq_fail))
     clonesizes = {}
     pass_count = 0
     nclones = 0
@@ -750,6 +752,9 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     log['CLONETOOSMALL'] = minseq_fail
     log['CDRFWR_ERROR'] = region_fail
     log['OTHER_FAIL'] = other_fail
+
+    if imgt_warn is not None:
+        print(imgt_warn)
 
     if collapse:
         log['DUPLICATE'] = fail_count - seq_fail
