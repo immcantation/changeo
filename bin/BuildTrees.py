@@ -297,7 +297,7 @@ def unAmbigDist(seq1,seq2,fbreak=False):
                         break
     return dist
 
-def deduplicate(useqs, receptors, log=None, meta_data=None,delim="_"):
+def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
     """
     Args:
         useqs (dict): unique sequences within a clone
@@ -447,7 +447,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
-    delim = "_"
+    delim = ":"
     useqs_f = {}
     conseqs = []
     for j in range(0, nseqs):
@@ -468,7 +468,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         conseqs.append(conseq)
 
     if collapse:
-        useqs_f = deduplicate(useqs_f,clones,logs,meta_data)
+        useqs_f = deduplicate(useqs_f,clones,logs,meta_data,delim)
 
     if collapse and len(useqs_f) < min_seq:
         for seq_f, num in useqs_f.items():
@@ -620,6 +620,9 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     failreads = 0
     imgt_warn = None
     for r in records:
+        if r.clone is None:
+            print("Cannot export datasets until sequences are clustered into clones.")
+            exit(1)
         if r.dupcount is None:
             r.dupcount = 1
         rec_count += 1
