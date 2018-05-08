@@ -16,7 +16,7 @@ from presto.Defaults import default_out_args
 from presto.IO import  printLog, getOutputHandle, printProgress
 from changeo.Defaults import default_format
 from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, \
-                       splitFileName, getDbFields, getFormatOperators
+                       splitFileName, getDbFields, getFormatOperators, getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 from Bio.Seq import Seq
@@ -627,15 +627,17 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         #printProgress(rec_count, rec_count, 0.05, start_time)
         if r.functional:
             #If IMGT regions are provided, record their positions
-            if r.getField("FWR1_IMGT") is not "":
-                simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField("CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
+            regions = getRegions(r.sequence_imgt,r.junction_length)
+            #print(regions["cdr3_imgt"])
+            if regions["cdr3_imgt"] is not "":
+                simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
                 if len(simgt) < len(r.sequence_imgt):
                     r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
-                    simgt = r.getField("FWR1_IMGT") + r.getField("CDR1_IMGT") + r.getField("FWR2_IMGT") + r.getField(
-                        "CDR2_IMGT") + r.getField("FWR3_IMGT") + r.getField("CDR3_IMGT") + r.getField("FWR4_IMGT")
-                imgtpartlabels = [13]*len(r.fwr1_imgt) + [30]*len(r.cdr1_imgt) + [45]*len(r.fwr2_imgt) + \
-                                   [60]*len(r.cdr2_imgt) + [80]*len(r.fwr3_imgt) + [108] * len(r.cdr3_imgt) \
-                                   +[120] * len(r.fwr4_imgt)
+                    simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions[
+                        "cdr2_imgt"] + regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
+                imgtpartlabels = [13]*len(regions["fwr1_imgt"]) + [30]*len(regions["cdr1_imgt"]) + [45]*len(regions["fwr2_imgt"]) + \
+                                   [60]*len(regions["cdr2_imgt"]) + [80]*len(regions["fwr3_imgt"]) + [108] * len(regions["cdr3_imgt"]) \
+                                   +[120] * len(regions["fwr4_imgt"])
                 r.setField("imgtpartlabels",imgtpartlabels)
                 if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
                     log = OrderedDict()
@@ -651,7 +653,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                     region_fail += 1
                     continue
             else:
-                imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data\n"
+                imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data.\n"
                 imgtpartlabels = [0] * len(r.sequence_imgt)
                 r.setField("imgtpartlabels", imgtpartlabels)
 
