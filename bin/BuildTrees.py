@@ -300,8 +300,8 @@ def unAmbigDist(seq1,seq2,fbreak=False):
 def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
     """
     Args:
-        useqs (dict): unique sequences within a clone
-        receptors (dict): receptors within a clone
+        useqs (dict): unique sequences within a clone. sequence -> index in receptor list
+        receptors (dict): receptors within a clone (index is value in useqs dict)
         log (ordered dict): log of sequence errors
         meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
         delmi (str): delimited to use when appending meta_data
@@ -311,57 +311,63 @@ def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
     """
     #print(receptors[0].clone)
 
-    joined = 1
-    iter = 0
-    while joined > 0:
-        joined = 0
-        keys = list(useqs.keys())
-        #print("%d %d" % (iter,len(keys)))
-        for i in range(0,len(keys)-1):
-            if joined == 1:
-                break
-            for j in range(i+1,len(keys)):
-                if joined == 1:
-                    break
-                ki = keys[i]
-                kj = keys[j]
-                if meta_data is None:
-                    ski = keys[i]
-                    skj = keys[j]
+    keys = list(useqs.keys())
+    join = {} # id -> sequence id to join with (least ambiguous chars)
+    joinseqs = {} # id -> useq to join with (least ambiguous chars)
+    ambigchar = {} #sequence id -> number ATCG nucleotides
+    for i in range(0,len(keys)-1):
+        for j in range(i+1,len(keys)):
+            ki = keys[i]
+            kj = keys[j]
+            if meta_data is None:
+                ski = keys[i]
+                skj = keys[j]
+            else:
+                ski, cid = keys[i].split(delim)
+                skj, cid = keys[j].split(delim)
+            ri = receptors[useqs[ki]]
+            rj = receptors[useqs[kj]]
+            dist = unAmbigDist(ski, skj, True)
+            m_match = True
+            if meta_data is not None and meta_data[0] != "DUPCOUNT":
+                m_match = ri.getField(meta_data[0]) == rj.getField(meta_data[0])
+            if dist == 0 and m_match:
+                ncounti = ki.count('A') + ki.count('T') + ki.count('G') + ki.count('C')
+                ncountj = kj.count('A') + kj.count('T') + kj.count('G') + kj.count('C')
+                ambigchar[useqs[ki]] = ncounti
+                ambigchar[useqs[kj]] = ncountj
+                # this algorithm depends on the fact that all sequences are compared pairwise, and all are zero
+                # distance from the sequence they will be collapse to.
+                if ncountj > ncounti:
+                    nci = 0
+                    if useqs[ki] in join:
+                        nci = ambigchar[join[useqs[ki]]]
+                    if nci < ncountj:
+                        join[useqs[ki]] = useqs[kj]
+                        joinseqs[ki] = kj
                 else:
-                    ski, cid = keys[i].split(delim)
-                    skj, cid = keys[j].split(delim)
+                    ncj = 0
+                    if useqs[kj] in join:
+                        ncj = ambigchar[join[useqs[kj]]]
+                    if ncj < ncounti:
+                        join[useqs[kj]] = useqs[ki]
+                        joinseqs[kj] = ki
 
-                ri = receptors[useqs[ki]]
-                rj = receptors[useqs[kj]]
+    # loop through list of joined sequences and collapse
+    keys = list(useqs.keys())
+    for k in keys:
+        if useqs[k] in join:
+            rfrom = receptors[useqs[k]]
+            rto = receptors[join[useqs[k]]]
+            rto.dupcount += rfrom.dupcount
+            if log is not None:
+                log[rfrom.sequence_id]['PASS'] = False
+                log[rfrom.sequence_id]['DUPLICATE'] = True
+                log[rfrom.sequence_id]['COLLAPSETO'] = joinseqs[k]
+                log[rfrom.sequence_id]['COLLAPSEFROM'] = k
+                log[rfrom.sequence_id]['FAIL'] = "Collapsed with " + rto.sequence_id
+            del useqs[k]
 
-                dist = unAmbigDist(ski, skj, True)
-                m_match = True
-                if meta_data is not None and meta_data[0] != "DUPCOUNT":
-                    m_match = ri.getField(meta_data[0]) == rj.getField(meta_data[0])
-
-                if dist == 0 and m_match:
-                    joined = 1
-                    ncounti = ki.count('A') + ki.count('T') + ki.count('G') + ki.count('C')
-                    ncountj = kj.count('A') + kj.count('T') + kj.count('G') + kj.count('C')
-                    if ncountj > ncounti:
-                        rj.dupcount += ri.dupcount
-                        if log is not None:
-                            log[ri.sequence_id]['PASS'] = False
-                            log[ri.sequence_id]['DUPLICATE'] = True
-                            log[ri.sequence_id]['COLLAPSETO'] = kj
-                            log[ri.sequence_id]['COLLAPSEFROM'] = ki
-                            log[ri.sequence_id]['FAIL'] = "Collapsed with " + rj.sequence_id
-                        del useqs[ki]
-                    else:
-                        ri.dupcount += rj.dupcount
-                        if log is not None:
-                            log[rj.sequence_id]['PASS'] = False
-                            log[rj.sequence_id]['DUPLICATE'] = True
-                            log[ri.sequence_id]['COLLAPSETO'] = ki
-                            log[ri.sequence_id]['COLLAPSEFROM'] = kj
-                            log[rj.sequence_id]['FAIL'] = "Collapsed with " + ri.sequence_id
-                        del useqs[kj]
     return useqs
 
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
@@ -387,24 +393,41 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     s=""
     for i in sequences:
         if len(i) != sites:
-            print("Sequences within clone %s are not the same length!" % clones[0].clone)
-            for s in sequences:
-                print(s)
-            exit(1)
-    '''print(str(len(imgtar)))
-    #print(str(len(sequences[0])))
-    print(str((sequences[0])))
-    print(str((clones[0].sequence_imgt)))'''
+            print("WARNING! Sequences within clone %s are not the same length!\n" \
+                  "Trying to correct this but check the alignment file to make sure things make sense." \
+                  % clones[0].clone)
+            #for s in sequences:
+            #    print(s)
+            #exit(1)
+            maxlen = 0
+            for j in range(0,len(sequences)):
+                if len(sequences[j]) > maxlen:
+                    maxlen = len(sequences[j])
+                    imgtar = clones[j].getField("imgtpartlabels")
+            sites = maxlen
+            for j in range(0,len(sequences)):
+                cimgt = clones[j].getField("imgtpartlabels")
+                seqdiff = maxlen - len(sequences[j])
+                imgtdiff = len(imgtar)-len(cimgt)
+                sequences[j] = sequences[j] + "N"*(seqdiff)
+                last = cimgt[-1]
+                cimgt.extend([last]*(imgtdiff))
+                clones[j].setField("imgtpartlabels",cimgt)
+
+
     for c in clones:
         if len(c.getField("imgtpartlabels")) != len(imgtar):
-            print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! %d",c[0].clone)
-            print(c.getFeild("imgtpartlabels"))
+            print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! ",c.clone)
+            print(c.getField("imgtpartlabels"))
             print(imgtar)
             print(str(j))
+            for j in range(0, len(sequences)):
+                print(sequences[j])
+                print(clones[j].getField("imgtpartlabels"))
             exit(1)
         for j in range(0,len(imgtar)):
             if c.getField("imgtpartlabels")[j] != imgtar[j]:
-                print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! %d",c[0].clone)
+                print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! ",c.clone)
                 print(c.getFeild("imgtpartlabels"))
                 print(imgtar)
                 print(str(j))
@@ -619,6 +642,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     passreads = 0
     failreads = 0
     imgt_warn = None
+    print(" Correcting frames and indels of sequences..")
     for r in records:
         if r.clone is None:
             print("Cannot export datasets until sequences are clustered into clones.")
@@ -705,8 +729,15 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     clonesizes = {}
     pass_count = 0
     nclones = 0
+    print(" Processing clones..")
     for k in clones.keys():
-        clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
+        if len(cloneseqs) < min_seq:
+            for j in range(0, len(cloneseqs)):
+                logs[clones[j].sequence_id]['FAIL'] = "Clone too small: " + str(len(conseqs))
+                logs[clones[j].sequence_id]['PASS'] = False
+            clonesizes[str(k)] = len(cloneseqs)
+        else:
+            clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
                                            logs=logs,fail_writer=fail_writer,out_dir=clone_dir,min_seq=min_seq)
         #passreads += pr
         #If clone is too small, size is returned as a negative
