@@ -391,29 +391,33 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     sites = len(sequences[0])
     imgtar = clones[0].getField("imgtpartlabels")
     s=""
-    for i in sequences:
-        if len(i) != sites:
-            print("WARNING! Sequences within clone %s are not the same length!\n" \
-                  "Trying to correct this but check the alignment file to make sure things make sense." \
-                  % clones[0].clone)
-            #for s in sequences:
-            #    print(s)
-            #exit(1)
-            maxlen = 0
-            for j in range(0,len(sequences)):
-                if len(sequences[j]) > maxlen:
-                    maxlen = len(sequences[j])
-                    imgtar = clones[j].getField("imgtpartlabels")
-            sites = maxlen
-            for j in range(0,len(sequences)):
-                cimgt = clones[j].getField("imgtpartlabels")
-                seqdiff = maxlen - len(sequences[j])
-                imgtdiff = len(imgtar)-len(cimgt)
-                sequences[j] = sequences[j] + "N"*(seqdiff)
-                last = cimgt[-1]
-                cimgt.extend([last]*(imgtdiff))
-                clones[j].setField("imgtpartlabels",cimgt)
+    correctseqs = False
+    for seqi in range(0, len(sequences)):
+        i = sequences[seqi]
+        if len(i) != sites or len(clones[seqi].getField("imgtpartlabels")) != len(imgtar):
+            correctseqs = True
 
+    if correctseqs:
+        print("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+              "Trying to correct this but check the alignment file to make sure things make sense." \
+              % clones[0].clone)
+        maxlen = sites
+        maximgt = len(imgtar)
+        for j in range(0,len(sequences)):
+            if len(sequences[j]) > maxlen:
+                maxlen = len(sequences[j])
+            if len(clones[j].getField("imgtpartlabels")) > maximgt:
+                imgtar = clones[j].getField("imgtpartlabels")
+                maximgt = len(imgtar)
+        sites = maxlen
+        for j in range(0,len(sequences)):
+            cimgt = clones[j].getField("imgtpartlabels")
+            seqdiff = maxlen - len(sequences[j])
+            imgtdiff = len(imgtar)-len(cimgt)
+            sequences[j] = sequences[j] + "N"*(seqdiff)
+            last = cimgt[-1]
+            cimgt.extend([last]*(imgtdiff))
+            clones[j].setField("imgtpartlabels",cimgt)
 
     for c in clones:
         if len(c.getField("imgtpartlabels")) != len(imgtar):
@@ -436,7 +440,15 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     nseqs = len(sequences)
     germline = clones[0].getField("germline_imgt_d_mask")
 
-    if len(sequences[0]) % 3 != 0:
+    if sites > (len(germline)):
+        seqdiff = sites - len(germline)
+        germline = germline + "N" * (seqdiff)
+        if not correctseqs:
+            print("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+                  "Trying to correct this but check the alignment file to make sure things make sense." \
+                  % clones[0].clone)
+
+    if sites % 3 != 0:
         print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
         exit(1)
     tallies = []
@@ -467,6 +479,10 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         newgerm[-1]=newgerm[-1]+"N"
     elif len(lcodon) == 1:
         newgerm[-1] = newgerm[-1] + "NN"
+
+    #if len(newgerm) < sites:
+    #    seqdiff = sites - len(newgerm)
+    #    newgerm = newgerm + ["NNN"] * (seqdiff//3)
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
@@ -731,11 +747,11 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     nclones = 0
     print(" Processing clones..")
     for k in clones.keys():
-        if len(cloneseqs) < min_seq:
-            for j in range(0, len(cloneseqs)):
-                logs[clones[j].sequence_id]['FAIL'] = "Clone too small: " + str(len(conseqs))
-                logs[clones[j].sequence_id]['PASS'] = False
-            clonesizes[str(k)] = len(cloneseqs)
+        if len(clones[str(k)]) < min_seq:
+            for j in range(0, len(clones[str(k)])):
+                logs[clones[str(k)][j].sequence_id]['FAIL'] = "Clone too small: " + str(len(cloneseqs[str(k)]))
+                logs[clones[str(k)][j].sequence_id]['PASS'] = False
+            clonesizes[str(k)] = -len(cloneseqs[str(k)])
         else:
             clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
                                            logs=logs,fail_writer=fail_writer,out_dir=clone_dir,min_seq=min_seq)
