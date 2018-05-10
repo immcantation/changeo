@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  May 1, 2018
+Version 0.4.0.999:  May 10, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
@@ -9,6 +9,7 @@ Version 0.4.0.999:  May 1, 2018
 + All tools will no longer create empty pass or fail files if there are no
   records meeting the appropriate criteria for output.
 + Numerous API changes and internal structural changes to commandline tools.
++ Fixed duplicate newline issue on Windows.
 
 AlignRecords:
 
