@@ -103,7 +103,8 @@ class TSVWriter:
         self.handle = handle
         self.fields = fields
         self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
-                                     dialect='excel-tab', extrasaction='ignore')
+                                     dialect='excel-tab', extrasaction='ignore',
+                                     lineterminator='\n')
         if header:
             self.writeHeader()
 
@@ -254,7 +255,8 @@ class ChangeoWriter:
         self.handle = handle
         self.fields = [n.strip().upper() for n in fields]
         self.writer = csv.DictWriter(self.handle, fieldnames=self.fields,
-                                     dialect='excel-tab', extrasaction='ignore')
+                                     dialect='excel-tab', extrasaction='ignore',
+                                     lineterminator='\n')
         if header:
             self.writeHeader()
 
@@ -2483,6 +2485,6 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
 
     # Open and return handle
     try:
-        return open(out_file, mode='wt', newline=None)
+        return open(out_file, mode='w')
     except:
         sys.exit('ERROR:  File %s cannot be opened' % out_file)
