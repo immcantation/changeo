@@ -492,6 +492,8 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
         if meta_data is not None:
+            if isinstance(clones[j].getField(meta_data[0]), str):
+                clones[j].setField(meta_data[0],clones[j].getField(meta_data[0]).replace("_",""))
             conseq_f = "".join([str(seq_rec) for seq_rec in newseqs[j]])+delim+str(clones[j].getField(meta_data[0]))
         else:
             conseq_f = conseq
