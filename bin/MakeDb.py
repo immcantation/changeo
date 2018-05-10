@@ -18,10 +18,10 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from presto.Annotation import parseAnnotation
-from presto.IO import countSeqFile, getOutputHandle, printLog, printMessage, printProgress, readSeqFile
+from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, \
+from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
                        AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 

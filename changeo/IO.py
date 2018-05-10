@@ -2440,3 +2440,49 @@ def getFormatOperators(format):
         raise ValueError
 
     return reader, writer, schema
+
+
+def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_type=None):
+    """
+    Opens an output file handle
+
+    Arguments:
+      in_file : Input filename
+      out_label : Text to be inserted before the file extension;
+                  if None do not add a label
+      out_type : the file extension of the output file;
+                 if None use input file extension
+      out_dir : the output directory;
+                if None use directory of input file
+      out_name : the short filename to use for the output file;
+                 if None use input file short name
+
+    Returns:
+      file : File handle
+    """
+    # Get in_file components
+    dir_name, file_name = os.path.split(in_file)
+    short_name, ext_name = os.path.splitext(file_name)
+
+    # Define output directory
+    if out_dir is None:
+        out_dir = dir_name
+    else:
+        out_dir = os.path.abspath(out_dir)
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    # Define output file prefix
+    if out_name is None:  out_name = short_name
+    # Define output file extension
+    if out_type is None:  out_type = ext_name.lstrip('.')
+
+    # Define output file name
+    if out_label is None:
+        out_file = os.path.join(out_dir, '%s.%s' % (out_name, out_type))
+    else:
+        out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
+
+    # Open and return handle
+    try:
+        return open(out_file, mode='wt', newline=None)
+    except:
+        sys.exit('ERROR:  File %s cannot be opened' % out_file)

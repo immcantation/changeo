@@ -12,9 +12,9 @@ from collections import OrderedDict
 from time import time
 
 # Presto and changeo imports
-from presto.IO import getOutputHandle, printProgress, printLog
+from presto.IO import printProgress, printLog
 from changeo.Defaults import default_out_args
-from changeo.IO import countDbFile, ChangeoReader, ChangeoWriter
+from changeo.IO import countDbFile, getOutputHandle, ChangeoReader, ChangeoWriter
 from changeo.Receptor import Receptor
 
 

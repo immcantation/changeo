@@ -17,9 +17,9 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import getOutputHandle, printLog, printProgress
+from presto.IO import printLog, printProgress
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import getDbWriter, readDbFile, countDbFile
+from changeo.IO import getOutputHandle, getDbWriter, readDbFile, countDbFile
 
 # Defaults
 default_seq_field = 'JUNCTION'

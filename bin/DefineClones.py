@@ -19,12 +19,12 @@ from Bio.Seq import translate
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import getOutputHandle, printLog, printProgress
+from presto.IO import printLog, printProgress
 from presto.Multiprocessing import manageProcesses
 from changeo.Defaults import default_format, default_v_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
-from changeo.IO import countDbFile, getDbFields, getFormatOperators, \
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
                        AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
 from changeo.Receptor import AIRRSchema, ChangeoSchema

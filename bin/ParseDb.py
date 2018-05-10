@@ -17,10 +17,10 @@ from textwrap import dedent
 from time import time
 
 # Presto and changeo imports
-from presto.IO import getOutputHandle, printLog, printProgress, printMessage
+from presto.IO import printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, splitFileName, TSVReader, TSVWriter
+from changeo.IO import countDbFile, getOutputHandle, splitFileName, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)

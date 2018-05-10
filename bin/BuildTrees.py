@@ -13,10 +13,10 @@ from time import time
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog, getOutputHandle, printProgress
+from presto.IO import  printLog, printProgress
 from changeo.Defaults import default_format
 from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, \
-                       splitFileName, getDbFields, getFormatOperators, getRegions
+                       splitFileName, getDbFields, getFormatOperators, getRegions, getOutputHandle
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 from Bio.Seq import Seq

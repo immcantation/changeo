@@ -17,11 +17,11 @@ from time import time
 
 # Presto and change imports
 from presto.Defaults import default_out_args
-from presto.IO import getOutputHandle, printLog, printMessage, printProgress
+from presto.IO import printLog, printMessage, printProgress
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields, getFormatOperators, readGermlines, \
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines, \
                        AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
