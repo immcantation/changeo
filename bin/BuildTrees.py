@@ -53,7 +53,7 @@ def maskSplitCodons(receptor,recursive=False):
             gaps.append(0)
             nsi = nsi + si[i]
 
-    #TODO: find any gaps not divisble by three
+    #TODO: find any gaps not divisible by three
     curgap = 0
     for i in gaps:
         if i == 1:
@@ -370,6 +370,21 @@ def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
 
     return useqs
 
+def hasPTC(sequence):
+    """
+    Arguments:
+        sequence (str): IMGT gapped sequence in frame 1
+
+    Returns:
+        dist (int): negative if not PTCs, position of PTC if found
+
+    """
+    ptcs = ("TAA","TGA","TAG","TRA","TRG","TAR","TGR","TRR")
+    for i in range(0, len(sequence), 3):
+            if sequence[i:(i+3)] in ptcs:
+                return i
+    return -1
+
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
                   min_seq=0):
     """
@@ -670,7 +685,8 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         rec_count += 1
         totalreads += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
-        if r.functional:
+        ptcs = hasPTC(r.sequence_imgt)
+        if r.functional and ptcs < 0:
             #If IMGT regions are provided, record their positions
             regions = getRegions(r.sequence_imgt,r.junction_length)
             #print(regions["cdr3_imgt"])
@@ -703,14 +719,11 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                 r.setField("imgtpartlabels", imgtpartlabels)
 
             mout = maskSplitCodons(r)
-            #Sometimes v start site is off a little
-            '''if not mout[1]['PASS'] and r.v_seq_start > 0:
-                r.v_seq_start -= 3
-                mout2 = maskSplitCodons(r)
-                r.v_seq_start += 3
-                if mout2[1]['PASS']:
-                    mout = mout2'''
             mask_seq = mout[0]
+            ptcs = hasPTC(mask_seq)
+            if ptcs >= 0:
+                print(r.sequence_id)
+                print("Masked sequence suddenly has a PTC..")
             logs[mout[1]['ID']]=mout[1]
             if mout[1]['PASS']:
                 #passreads += r.dupcount
@@ -736,7 +749,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             log['ID'] = r.sequence_id
             log['CLONE'] = r.clone
             log['PASS'] = False
-            log['FAIL'] = 'NONFUNCTIONAL'
+            log['FAIL'] = 'NONFUNCTIONAL/PTC'
             log['SEQ_IN'] = r.sequence_input
             logs[r.sequence_id]=log
             if out_args['failed']:
