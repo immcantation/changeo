@@ -486,7 +486,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
-    delim = ":"
+    delim = "_"
     useqs_f = {}
     conseqs = []
     for j in range(0, nseqs):
