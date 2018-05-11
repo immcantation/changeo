@@ -150,7 +150,7 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -214,7 +214,7 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -283,7 +283,7 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
                                       out_name=out_args['out_name'], out_type='clip')
     # Iterate over records
     start_time = time()
-    rec_count = germ_count = pass_count = fail_count = 0
+    rec_count, germ_count, pass_count, fail_count = 0, 0, 0, 0
     cluster_last = None
     for rec in db_iter:
         # Print progress for previous iteration
@@ -379,7 +379,7 @@ def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -740,7 +740,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)

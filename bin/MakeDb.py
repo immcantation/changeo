@@ -137,8 +137,8 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     # Initialize handles, writers and counters
     pass_handle, pass_writer = None, None
     fail_handle, fail_writer = None, None
+    pass_count, fail_count = 0, 0
     start_time = time()
-    pass_count = fail_count = 0
 
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time)

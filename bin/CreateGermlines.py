@@ -498,7 +498,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Initialize handles, writers and counters
     pass_handle, pass_writer = None, None
     fail_handle, fail_writer = None, None
-    rec_count = pass_count = fail_count = 0
+    rec_count, pass_count, fail_count = 0, 0, 0
     start_time = time()
 
     # Iterate over rows

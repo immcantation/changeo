@@ -405,7 +405,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -568,7 +568,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = fail_count = 0
+    rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
@@ -722,7 +722,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = 0
+    rec_count, pass_count = 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)

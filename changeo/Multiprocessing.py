@@ -246,7 +246,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
         # Initialize handles, writers and counters
         pass_handle, pass_writer = None, None
         fail_handle, fail_writer = None, None
-        set_count = rec_count = pass_count = fail_count = 0
+        set_count, rec_count, pass_count, fail_count = 0, 0, 0, 0
         start_time = time()
 
         # Iterator over results queue until sentinel object reached
