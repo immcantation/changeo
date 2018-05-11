@@ -25,9 +25,8 @@ from changeo.Defaults import default_format, default_v_field, default_j_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
-                       AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
-from changeo.Multiprocessing import DbData, DbResult, feedDbQueue, processDbQueue
-from changeo.Receptor import AIRRSchema, ChangeoSchema
+                       AIRRWriter, ChangeoWriter
+from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue
 
 # Defaults
 default_translate = False
@@ -554,8 +553,8 @@ def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
 
     # Define worker function and arguments
     filter_args = {'seq_field': seq_field,
-                   'v_field': 'v_field',
-                   'j_field': 'j_field',
+                   'v_field': v_field,
+                   'j_field': j_field,
                    'max_missing': max_missing}
     clone_args['seq_field'] = seq_field
     work_args = {'process_func': clone_func,
