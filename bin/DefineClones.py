@@ -410,7 +410,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                     clone_count += 1
                     for i, rec in enumerate(clone, start=1):
                         pass_count += 1
-                        rec.annotations['clone'] = clone_count
+                        rec.setField('clone', str(clone_count))
                         result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
                         try:
                             pass_writer.writeReceptor(rec)
