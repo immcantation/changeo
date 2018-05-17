@@ -15,7 +15,7 @@ import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
-from subprocess import check_output, STDOUT
+from subprocess import check_output, CalledProcessError, STDOUT
 
 from textwrap import dedent
 from time import time
@@ -52,29 +52,34 @@ def runASN(fasta, template=None, tbl2asn_exec=default_tbl2asn_exec):
     Executes tbl2asn to generate Sequin files
 
     Arguments:
-      seq_list : a list of SeqRecord objects to align
-      aligner_exec : the MUSCLE executable
+      fasta : fsa file.
+      template : sbt file.
+      tbl2asn_exec : the name or path to the tbl2asn executable.
 
     Returns:
-      Bio.Align.MultipleSeqAlignment : Multiple alignment results.
+      str : tbl2asn console output.
     """
     # Basic command that requires .fsa and .tbl files in the same directory
     # tbl2asn -i records.fsa -a s -V vb -t template.sbt
 
     # Define tb2asn command
     cmd = [tbl2asn_exec,
-           '-i', fasta,
+           '-i', os.path.abspath(fasta),
            '-a', 's',
            '-V', 'vb']
     if template is not None:
-        cmd.extend(['-t', template])
+        cmd.extend(['-t', os.path.abspath(template)])
 
     # Execute tbl2asn
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
-    except:
-        sys.exit('Error: tbl2asn failed')
+    except CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
+
+    if 'Unable to read any FASTA records' in stdout_str:
+        sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
 
     return stdout_str
 
@@ -482,14 +487,15 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     # Set position offsets if required
     start_trim = 0 if start is None else start
     end_trim = 0 if end is None else len(record.sequence_input) - end
+    source_len = len(record.sequence_input) - end_trim
 
     # Define return object
     result = OrderedDict()
 
     # C_region
-    #     gene
-    #     db_xref
-    #     inference
+    #   gene
+    #   db_xref
+    #   inference
     c_region_start = record.j_seq_end + 1 - start_trim
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
     if c_region_length > 0:
@@ -500,10 +506,15 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
             c_region = []
 
         # Assign C_region feature
-        result[(c_region_start, '>%i' % (c_region_start + c_region_length - 1), 'C_region')] = c_region
+        c_region_end = c_region_start + c_region_length - 1
+        result[(c_region_start, '>%i' % c_region_end, 'C_region')] = c_region
 
         # Preserve J segment end position
         j_end = record.j_seq_end
+
+        # Check for range error
+        if c_region_end > source_len:
+            return None
     else:
         # Trim J segment end position
         j_end = record.j_seq_end + c_region_length
@@ -511,17 +522,20 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     # V_region
     variable_start = max(record.v_seq_start - start_trim, 1)
     variable_end = j_end - start_trim
-    variable_region = []
-    result[(variable_start, variable_end, 'V_region')] = variable_region
+    result[(variable_start, variable_end, 'V_region')] = []
+
+    # Check for range error
+    if variable_end > source_len:
+        return None
 
     # Product feature
     result[(variable_start, variable_end, 'misc_feature')] = [('note', '%s variable region' % product)]
 
     # V_segment
-    #     gene (gene name)
-    #     allele (allele only, without gene name, don't use if ambiguous)
-    #     db_xref (database link)
-    #     inference (reference alignment tool)
+    #   gene (gene name)
+    #   allele (allele only, without gene name, don't use if ambiguous)
+    #   db_xref (database link)
+    #   inference (reference alignment tool)
     v_segment = [('gene', v_gene)]
     if v_allele is not None:
         v_segment.append(('allele', v_allele))
@@ -532,10 +546,10 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     result[(variable_start, record.v_seq_end - start_trim, 'V_segment')] = v_segment
 
     # D_segment
-    #     gene
-    #     allele
-    #     db_xref
-    #     inference
+    #   gene
+    #   allele
+    #   db_xref
+    #   inference
     if d_gene:
         d_segment = [('gene', d_gene)]
         if d_allele is not None:
@@ -547,10 +561,10 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         result[(record.d_seq_start - start_trim, record.d_seq_end - start_trim, 'D_segment')] = d_segment
 
     # J_segment
-    #     gene
-    #     allele
-    #     db_xref
-    #     inference
+    #   gene
+    #   allele
+    #   db_xref
+    #   inference
     j_segment = [('gene', j_gene)]
     if j_allele is not None:
         j_segment.append(('allele', j_allele))
@@ -561,9 +575,9 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     result[(record.j_seq_start - start_trim, j_end - start_trim, 'J_segment')] = j_segment
 
     # CDS
-    #     codon_start (must indicate codon offset)
-    #     function = JUNCTION
-    #     inference
+    #   codon_start (must indicate codon offset)
+    #   function = JUNCTION
+    #   inference
     if record.junction_start is not None and record.junction_end is not None:
         # Define junction boundaries
         junction_start = record.junction_start - start_trim
@@ -777,7 +791,7 @@ def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     if build_asn:
         start_time = time()
         printMessage('Running tbl2asn', start_time=start_time, width=25)
-        result = runASN(fsa_handle.name, template_file, tbl2asn_exec=tbl2asn_exec)
+        result = runASN(fsa_handle.name, template=asn_template, tbl2asn_exec=tbl2asn_exec)
         printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Print ending console log
