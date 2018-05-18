@@ -21,9 +21,7 @@ from presto.IO import printLog, printMessage, printProgress
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines, \
-                       AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter
-from changeo.Receptor import AIRRSchema, ChangeoSchema
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines
 
 # Defaults
 default_seq_field = 'SEQUENCE_IMGT'
@@ -95,6 +93,8 @@ def getDGermline(receptor, references, d_field=default_d_field):
         # Define D germline sequence
         dseq = references[dgene]
         germ_dseq = dseq[dstart:(dstart + dlen)]
+    else:
+        germ_dseq = None
 
     return dgene, germ_dseq
 
@@ -130,6 +130,8 @@ def getJGermline(receptor, references, j_field=default_j_field):
         jpad = jlen - len(jseq[jstart:])
         if jpad < 0: jpad = 0
         germ_jseq = jseq[jstart:(jstart + jlen)] + ('N' * jpad)
+    else:
+        germ_jseq = None
 
     return jgene, germ_jseq
 
