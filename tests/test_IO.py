@@ -73,11 +73,7 @@ class Test_MakeDb(unittest.TestCase):
     def test_ChangeoReader(self):
         # Parse
         with open(self.ig_db_file, 'r') as f:
-            result = ChangeoReader(f, receptor=False)
-            for x in result: print(x)
-
-        with open(self.ig_db_file, 'r') as f:
-            result = ChangeoReader(f, receptor=True)
+            result = ChangeoReader(f)
             for x in result: print(x.toDict())
 
         self.fail('TODO')

@@ -33,15 +33,6 @@ class TSVReader:
     """
     Simple csv.DictReader wrapper to read format agnostic TSV files.
     """
-    @property
-    def fields(self):
-        """
-        Get list fields
-
-        Returns:
-          list : field names
-        """
-        return self.reader.fieldnames
 
     def __init__(self, handle):
         """
@@ -55,11 +46,12 @@ class TSVReader:
         """
         # Arguments
         self.handle = handle
+        self.receptor = False
         self.reader = csv.DictReader(self.handle, dialect='excel-tab')
 
     def __iter__(self):
         """
-        Iterator initializer.
+        Iterator initializer
 
         Returns:
           changeo.IO.TSVReader
@@ -68,19 +60,41 @@ class TSVReader:
 
     def __next__(self):
         """
-        Next method.
+        Next method
 
         Returns:
-          changeo.Receptor.Receptor : Parsed Change-O data
+          dist : row as a dictionary of field:value pairs.
         """
         # Get next row from reader iterator
         try:
-            row = next(self.reader)
+            record = next(self.reader)
         except StopIteration:
             self.handle.close()
             raise StopIteration
 
-        return row
+        return self._parse(record)
+
+    def _parse(self, record):
+        """
+        Parses a dictionary of fields
+
+        Arguments:
+          record : dict with fields and values to parse.
+
+        Returns:
+          dict : parsed dict.
+        """
+        return record
+
+    @property
+    def fields(self):
+        """
+        Get list fields
+
+        Returns:
+          list : field names
+        """
+        return self.reader.fieldnames
 
 
 class TSVWriter:
@@ -133,31 +147,34 @@ class TSVWriter:
             self.writer.writerows(records)
 
 
-class ChangeoReader:
+class ChangeoReader(TSVReader):
     """
     An iterator to read and parse Change-O formatted data.
     """
-
-    @property
-    def fields(self):
+    def __init__(self, handle):
         """
-        Get list fields
+        Initializer
+
+        Arguments:
+          handle : handle to an open Change-O formatted file
 
         Returns:
-          list : field names
+          changeo.IO.ChangeoReader
         """
-        return self.reader.fieldnames
+        # Arguments
+        self.handle = handle
+        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
 
-    @staticmethod
-    def _receptor(record):
+    def _parse(self, record):
         """
-        Parses a dictionary of fields in the Change-O to a Receptor object
+        Parses a dictionary to a Receptor object
 
         Arguments:
           record : dict with fields and values in the Change-O format
 
         Returns:
-          dict : a parsed dict
+          changeo.Receptor.Receptor : parsed Receptor object.
         """
         # Parse fields
         result = {}
@@ -167,78 +184,11 @@ class ChangeoReader:
 
         return Receptor(result)
 
-    def __init__(self, handle, receptor=True):
-        """
-        Initializer
 
-        Arguments:
-          handle : handle to an open Change-O formatted file
-          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
-
-        Returns:
-          changeo.IO.ChangeoReader
-        """
-        # Arguments
-        self.handle = handle
-        self.receptor = receptor
-        self.reader = csv.DictReader(self.handle, dialect='excel-tab')
-        self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
-
-    def __iter__(self):
-        """
-        Iterator initializer.
-
-        Returns:
-          changeo.IO.ChangeoReader
-        """
-        return self
-
-    def __next__(self):
-        """
-        Next method.
-
-        Returns:
-          changeo.Receptor.Receptor : Parsed Change-O data
-        """
-        # Get next row from reader iterator
-        try:
-            row = next(self.reader)
-        except StopIteration:
-            self.handle.close()
-            raise StopIteration
-
-        # Parse row
-        if self.receptor:
-            return ChangeoReader._receptor(row)
-        else:
-            return row
-
-
-class ChangeoWriter:
+class ChangeoWriter(TSVWriter):
     """
     Writes Change-O formatted data.
     """
-
-    @staticmethod
-    def _parseReceptor(record):
-        """
-        Parses a Receptor object to a Change-O dictionary
-
-        Arguments:
-          record : dict with fields and values in the Receptor format
-
-        Returns:
-          dict : a parsed dict
-        """
-        row = record.toDict()
-        # Parse known fields
-        result = {}
-        for k, v in row.items():
-            k = ChangeoSchema.fromReceptor(k)
-            result[k] = v
-
-        return result
-
     def __init__(self, handle, fields=ChangeoSchema.standard_fields, header=True):
         """
         Initializer
@@ -260,29 +210,24 @@ class ChangeoWriter:
         if header:
             self.writeHeader()
 
-    def writeHeader(self):
+    def _parseReceptor(self, record):
         """
-        Writes the header
-
-        Returns:
-          None
-        """
-        self.writer.writeheader()
-
-    def writeDict(self, records):
-        """
-        Writes a row from a Change-O dictionary
+        Parses a Receptor object to a Change-O dictionary
 
         Arguments:
-          records : Change-O dictionary of row data or an interable of such objects.
+          record : dict with fields and values in the Receptor format.
 
         Returns:
-          None
+          dict : parsed dict.
         """
-        if isinstance(records, dict):
-            self.writer.writerow(records)
-        else:
-            self.writer.writerows(records)
+        row = record.toDict()
+        # Parse known fields
+        result = {}
+        for k, v in row.items():
+            k = ChangeoSchema.fromReceptor(k)
+            result[k] = v
+
+        return result
 
     def writeReceptor(self, records):
         """
@@ -295,38 +240,48 @@ class ChangeoWriter:
           None
         """
         if isinstance(records, Receptor):
-            row = ChangeoWriter._parseReceptor(records)
+            row = self._parseReceptor(records)
             self.writer.writerow(row)
         else:
-            rows = (ChangeoWriter._parseReceptor(r) for r in records)
+            rows = (self._parseReceptor(r) for r in records)
             self.writer.writerows(rows)
 
 
-class AIRRReader:
+class AIRRReader(TSVReader):
     """
     An iterator to read and parse AIRR formatted data.
     """
-
-    @property
-    def fields(self):
+    def __init__(self, handle):
         """
-        Get list fields
+        Initializer
+
+        Arguments:
+          handle : handle to an open AIRR formatted file
+          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
 
         Returns:
-          list : field names
+          changeo.IO.AIRRReader
         """
-        return self.reader.fields
+        # Arguments
+        self.handle = handle
 
-    @staticmethod
-    def _receptor(record):
+        # Define reader
+        try:
+            import airr
+            self.reader = airr.io.RearrangementReader(self.handle, debug=False)
+        except ImportError:
+            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
+            self.reader = TSVReader(self.handle)
+
+    def _parse(self, record):
         """
-        Parses a dictionary of fields in the AIRR to a Receptor object
+        Parses a dictionary of AIRR records to a Receptor object
 
         Arguments:
           record : dict with fields and values in the AIRR format
 
         Returns:
-          dict : a parsed dict
+          changeo.Receptor.Receptor : parsed Receptor object.
         """
         # Parse fields
         result = {}
@@ -344,87 +299,11 @@ class AIRRReader:
 
         return Receptor(result)
 
-    def __init__(self, handle, receptor=True):
-        """
-        Initializer
 
-        Arguments:
-          handle : handle to an open AIRR formatted file
-          receptor : if True (default) iteration returns a Receptor object, otherwise it returns a dictionary.
-
-        Returns:
-          changeo.IO.AIRRReader
-        """
-        # Arguments
-        self.handle = handle
-        self.receptor = receptor
-
-        # Define reader
-        try:
-            import airr
-            self.reader = airr.io.RearrangementReader(self.handle, debug=False)
-        except ImportError:
-            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
-            self.reader = TSVReader(self.handle)
-
-    def __iter__(self):
-        """
-        Iterator initializer
-
-        Returns:
-          changeo.IO.AIRRReader
-        """
-        return self
-
-    def __next__(self):
-        """
-        Next method
-
-        Returns:
-          changeo.Receptor.Receptor : Parsed Change-O data
-        """
-        # Get next row from reader iterator
-        try:
-            row = next(self.reader)
-        except StopIteration:
-            self.handle.close()
-            raise StopIteration
-
-        # Parse row
-        if self.receptor:
-            return AIRRReader._receptor(row)
-        else:
-            return row
-
-
-class AIRRWriter:
+class AIRRWriter(TSVWriter):
     """
     Writes AIRR formatted data.
     """
-
-    @staticmethod
-    def _parseReceptor(record):
-        """
-        Parses a Receptor object to an AIRR dictionary
-
-        Arguments:
-          record : dict with fields and values in the Receptor format
-
-        Returns:
-          dict : a parsed dict
-        """
-        result = {}
-        row = record.toDict()
-        for k, v in row.items():
-            # Convert start positions to 0-based
-            if v is not None and v != '' and k in Receptor._start:
-                v = str(int(v) - 1)
-            # Convert field names
-            k = AIRRSchema.fromReceptor(k, False)
-            result[k] = v
-
-        return result
-
     def __init__(self, handle, fields=AIRRSchema.standard_fields):
         """
         Initializer
@@ -449,6 +328,28 @@ class AIRRWriter:
                 'Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
             self.writer = TSVWriter(self.handle, fields=fields)
 
+    def _parseReceptor(self, record):
+        """
+        Parses a Receptor object to an AIRR dictionary
+
+        Arguments:
+          record : dict with fields and values in the Receptor format
+
+        Returns:
+          dict : a parsed dict.
+        """
+        result = {}
+        row = record.toDict()
+        for k, v in row.items():
+            # Convert start positions to 0-based
+            if v is not None and v != '' and k in Receptor._start:
+                v = str(int(v) - 1)
+            # Convert field names
+            k = AIRRSchema.fromReceptor(k, False)
+            result[k] = v
+
+        return result
+
     def writeReceptor(self, records):
         """
         Writes a row from a Receptor object
@@ -459,17 +360,11 @@ class AIRRWriter:
         Returns:
           None
         """
-        # TODO: define any additional fields before writing first row
-        # if not self.writer.wroteMetadata:
-        #     self.writer.addFields("changeo", row.keys())
-        # print('\n===== RECORD START =====\n')
-        # for k, v in row.items(): print(k, v)
-
         if isinstance(records, Receptor):
-            row = AIRRWriter._parseReceptor(records)
+            row = self._parseReceptor(records)
             self.writer.write(row)
         else:
-            rows = (AIRRWriter._parseReceptor(r) for r in records)
+            rows = (self._parseReceptor(r) for r in records)
             for r in rows:  self.writer.write(r)
 
 
