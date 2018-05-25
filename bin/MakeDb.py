@@ -109,11 +109,14 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
 
     # Function to check for valid records strictly
     def _strict(rec):
+        try:  imgt_check = (rec.junction == rec.sequence_imgt[309:(309 + rec.junction_length)])
+        except TypeError:  imgt_check = False
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.j_call and rec.j_call != 'None',
                  rec.functional is not None,
-                 rec.sequence_vdj,
-                 rec.junction]
+                 rec.sequence_imgt,
+                 rec.junction,
+                 imgt_check]
         return all(valid)
 
     # Function to check for valid records loosely
