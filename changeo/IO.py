@@ -344,7 +344,7 @@ class AIRRWriter(TSVWriter):
         row = record.toDict()
         for k, v in row.items():
             # Convert field names
-            k = AIRRSchema.fromReceptor(k, False)
+            k = AIRRSchema.fromReceptor(k)
             # Convert start positions to 0-based
             if v is not None and v != '' and k in AIRRSchema.start_fields:
                 v = str(int(v) - 1)
