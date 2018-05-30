@@ -1,5 +1,5 @@
 #### Receptor object data definitions and mappings ####
-Receptor:
+receptor:
   sequence_id:
     type: identity
     description: Unique sequence identifier
@@ -40,8 +40,8 @@ Receptor:
     type: integer
     description: Start position of the junction in the query sequence.
     coordinate:
-      - start
-      - junction
+      group: junction
+      position: start
     changeo: null
     airr: null
     imgt: 'JUNCTION start'
@@ -49,8 +49,8 @@ Receptor:
     type: integer
     description: End position of the junction in the query sequence.
     coordinate:
-      - end
-      - junction
+      group: junction
+      position: end
     changeo: null
     airr: null
     imgt: 'JUNCTION end'
@@ -58,8 +58,8 @@ Receptor:
     type: integer
     description: Number of nucleotides in the junction region.
     coordinate:
-      - length
-      - junction
+      group: junction
+      position: length
     changeo: JUNCTION_LENGTH
     airr: junction_length
     imgt: 'JUNCTION-nt nb'
@@ -118,37 +118,37 @@ Receptor:
     airr: locus
     imgt: null
   rev_comp:
-    type: boolean
+    type: logical
     description: True if the the alignment is on the opposite strand (reverse complemented).
     changeo: REV_COMP
     airr: rev_comp
     imgt: 'Orientation'
   functional:
-    type: boolean
+    type: logical
     description: True if the V(D)J sequence is a functional gene and is predicted to be productive.
     changeo: FUNCTIONAL
     airr: productive
     imgt: 'V-DOMAIN Functionality'
   in_frame:
-    type: boolean
+    type: logical
     description: True if the V and J segment alignments are in-frame.
     changeo: IN_FRAME
     airr: vj_in_frame
     imgt: 'JUNCTION frame'
   stop:
-    type: boolean
+    type: logical
     description: True if the aligned sequence contains a stop codon.
     changeo: STOP
     airr: stop_codon
     imgt: 'V-DOMAIN Functionality comment'
   mutated_invariant:
-    type: boolean
+    type: logical
     description: True the aligment contains a mutated conserved amino acid.
     changeo: MUTATED_INVARIANT
     airr: mutated_invariant
     imgt: ['V-DOMAIN Functionality comment', 'V-REGION potential ins/del']
   indels:
-    type: boolean
+    type: logical
     description: True if the V(D)J sequence contains insertions and/or deletions.
     changeo: INDELS
     airr: indels
@@ -157,8 +157,8 @@ Receptor:
     type: integer
     description: Start position of the V segment in the query sequence.
     coordinate:
-      - start
-      - v_seq
+      group: v_seq
+      position: start
     changeo: V_SEQ_START
     airr: v_sequence_start
     imgt: 'V-REGION start'
@@ -166,8 +166,8 @@ Receptor:
     type: integer
     description: End of the V segment in the query sequence.
     coordinate:
-      - end
-      - v_seq
+      group: v_seq
+      position: end
     changeo: null
     airr: v_sequence_end
     imgt: 'V-REGION end'
@@ -175,8 +175,8 @@ Receptor:
     type: integer
     description: Length of the V segment in the query sequence.
     coordinate:
-      - length
-      - v_seq
+      group: v_seq
+      position: length
     changeo: V_SEQ_LENGTH
     airr: null
     imgt: null
@@ -184,8 +184,8 @@ Receptor:
     type: integer
     description: Alignment start position in the V reference sequence.
     coordinate:
-      - start
-      - v_germ_vdj
+      group: v_germ_vdj
+      position: start
     changeo: V_GERM_START_VDJ
     airr: null
     imgt: null
@@ -193,8 +193,8 @@ Receptor:
     type: integer
     description: Alignment end position in the V reference sequence.
     coordinate:
-      - end
-      - v_germ_vdj
+      group: v_germ_vdj
+      position: end
     changeo: null
     airr: null
     imgt: null
@@ -202,8 +202,8 @@ Receptor:
     type: integer
     description: Alignment length in the V reference sequence.
     coordinate:
-      - length
-      - v_germ_vdj
+      group: v_germ_vdj
+      position: length
     changeo: V_GERM_LENGTH_VDJ
     airr: null
     imgt: null
@@ -211,8 +211,8 @@ Receptor:
     type: integer
     description: Alignment start position in the IMGT-gapped V reference sequence.
     coordinate:
-      - start
-      - v_germ_imgt
+      group: v_germ_imgt
+      position: start
     changeo: V_GERM_START_IMGT
     airr: v_germline_start
     imgt: null
@@ -220,8 +220,8 @@ Receptor:
     type: integer
     description: Alignment end position in the IMGT-gapped V reference sequence.
     coordinate:
-      - end
-      - v_germ_imgt
+      group: v_germ_imgt
+      position: end
     changeo: null
     airr: v_germline_end
     imgt: null
@@ -229,8 +229,8 @@ Receptor:
     type: integer
     description: Alignment length in the IMGT-gapped V reference sequence.
     coordinate:
-      - length
-      - v_germ_imgt
+      group: v_germ_imgt
+      position: length
     changeo: V_GERM_LENGTH_IMGT
     airr: null
     imgt: null
@@ -238,8 +238,8 @@ Receptor:
     type: integer
     description: Start position of the nucleotides between the V and D segments or V and J segments.
     coordinate:
-      - start
-      - np1
+      group: np1
+      position: start
     changeo: null
     airr: null
     imgt: null
@@ -247,8 +247,8 @@ Receptor:
     type: integer
     description: End position of the nucleotides between the V and D segments or V and J segments.
     coordinate:
-      - end
-      - np1
+      group: np1
+      position: end
     changeo: null
     airr: null
     imgt: null
@@ -256,8 +256,8 @@ Receptor:
     type: integer
     description: Number of nucleotides between the V and D segments or V and J segments.
     coordinate:
-      - length
-      - np1
+      group: np1
+      position: length
     changeo: NP1_LENGTH
     airr: np1_length
     imgt: ["P3'V-nt nb", 'N-REGION-nt nb', 'N1-REGION-nt nb', "P5'D-nt nb"]
@@ -265,8 +265,8 @@ Receptor:
     type: integer
     description: Start position of the D segment in the query sequence.
     coordinate:
-      - d_seq
-      - start
+      group: d_seq
+      position: start
     changeo: D_SEQ_START
     airr: d_sequence_start
     imgt: 'D-REGION start'
@@ -274,8 +274,8 @@ Receptor:
     type: integer
     description: End position of the D segment in the query sequence.
     coordinate:
-      - end
-      - d_seq
+      group: d_seq
+      position: end
     changeo: null
     airr: d_sequence_end
     imgt: 'D-REGION end'
@@ -283,8 +283,8 @@ Receptor:
     type: integer
     description: Length of the D segment in the query sequence.
     coordinate:
-      - length
-      - d_seq
+      group: d_seq
+      position: length
     changeo: D_SEQ_LENGTH
     airr: null
     imgt: 'D-REGION-nt nb'
@@ -292,8 +292,8 @@ Receptor:
     type: integer
     description: Alignment start position in the D reference sequence.
     coordinate:
-      - start
-      - d_germ
+      group: d_germ
+      position: start
     changeo: D_GERM_START
     airr: d_germline_start
     imgt: "5'D-REGION trimmed-nt nb"
@@ -301,8 +301,8 @@ Receptor:
     type: integer
     description: Alignment end position in the D reference sequence.
     coordinate:
-      - end
-      - d_germ
+      group: d_germ
+      position: end
     changeo: null
     airr: d_germline_end
     imgt: null
@@ -310,8 +310,8 @@ Receptor:
     type: integer
     description: Length of the alignment to the D reference sequence.
     coordinate:
-      - length
-      - d_germ
+      group: d_germ
+      position: length
     changeo: D_GERM_LENGTH
     airr: null
     imgt: 'D-REGION-nt nb'
@@ -319,8 +319,8 @@ Receptor:
     type: integer
     description: Start position of the nucleotides between the D and J segments.
     coordinate:
-      - start
-      - np2
+      group: np2
+      position: start
     changeo: null
     airr: null
     imgt: null
@@ -328,8 +328,8 @@ Receptor:
     type: integer
     description: End position of the nucleotides between the D and J segments.
     coordinate:
-      - end
-      - np2
+      group: np2
+      position: end
     changeo: null
     airr: null
     imgt: null
@@ -337,8 +337,8 @@ Receptor:
     type: integer
     description: Number of nucleotides between the D and J segments.
     coordinate:
-      - length
-      - np2
+      group: np2
+      position: length
     changeo: NP2_LENGTH
     airr: np2_length
     imgt: ["P3'D-nt nb", 'N2-REGION-nt nb', "P5'J-nt nb"]
@@ -346,8 +346,8 @@ Receptor:
     type: integer
     description: Start position of the J segment in the query sequence.
     coordinate:
-      - start
-      - j_seq
+      group: j_seq
+      position: start
     changeo: J_SEQ_START
     airr: j_sequence_start
     imgt: 'J-REGION start'
@@ -355,8 +355,8 @@ Receptor:
     type: integer
     description: End position of the J segment in the query sequence.
     coordinate:
-      - end
-      - j_seq
+      group: j_seq
+      position: end
     changeo: null
     airr: j_sequence_end
     imgt: 'J-REGION end'
@@ -364,8 +364,8 @@ Receptor:
     type: integer
     description: Length of the J segment in the query sequence.
     coordinate:
-      - length
-      - j_seq
+      group: j_seq
+      position: length
     changeo: J_SEQ_LENGTH
     airr: null
     imgt: null
@@ -373,8 +373,8 @@ Receptor:
     type: integer
     description: Alignment start position in the J reference sequence.
     coordinate:
-      - start
-      - j_germ
+      group: j_germ
+      position: start
     changeo: J_GERM_START
     airr: j_germline_start
     imgt: "5'J-REGION trimmed-nt nb"
@@ -382,8 +382,8 @@ Receptor:
     type: integer
     description: Alignment start position in the J reference sequence.
     coordinate:
-      - end
-      - j_germ
+      group: j_germ
+      position: end
     changeo: null
     airr: j_germline_end
     imgt: null
@@ -391,8 +391,8 @@ Receptor:
     type: integer
     description: Alignment length of the J reference sequence.
     coordinate:
-      - length
-      - j_germ
+      group: j_germ
+      position: length
     changeo: J_GERM_LENGTH
     airr: null
     imgt: null
@@ -535,19 +535,19 @@ Receptor:
     airr: cdr3_end
     imgt: 'CDR3-IMGT end'
   v_score:
-    type: float
+    type: double
     description: V alignment score.
     changeo: V_SCORE
     airr: v_score
     imgt: 'V-REGION score'
   v_identity:
-    type: float
+    type: double
     description:  V alignment fractional identity.
     changeo: V_IDENTITY
     airr: v_identity
     imgt: 'V-REGION identity %'
   v_evalue:
-    type: float
+    type: double
     description: V alignment E-value.
     changeo: V_EVALUE
     airr: v_support
@@ -565,19 +565,19 @@ Receptor:
     airr: null
     imgt: null
   d_score:
-    type: float
+    type: double
     description: D alignment score.
     changeo: D_SCORE
     airr: d_score
     imgt: 'D-REGION score'
   d_identity:
-    type: float
+    type: double
     description:  D alignment fractional identity.
     changeo: D_IDENTITY
     airr: d_identity
     imgt: 'D-REGION identity %'
   d_evalue:
-    type: float
+    type: double
     description: D alignment E-value.
     changeo: D_EVALUE
     airr: d_support
@@ -595,19 +595,19 @@ Receptor:
     airr: null
     imgt: null
   j_score:
-    type: float
+    type: double
     description: J alignment score.
     changeo: J_SCORE
     airr: j_score
     imgt: 'J-REGION score'
   j_identity:
-    type: float
+    type: double
     description:  J alignment fractional identity.
     changeo: J_IDENTITY
     airr: j_identity
     imgt: 'J-REGION identity %'
   j_evalue:
-    type: float
+    type: double
     description: J alignment E-value.
     changeo: J_EVALUE
     airr: j_support
@@ -625,19 +625,19 @@ Receptor:
     airr: null
     imgt: null
   c_score:
-    type: float
+    type: double
     description: C region alignment score.
     changeo: C_SCORE
     airr: c_score
     imgt: null
   c_identity:
-    type: float
+    type: double
     description:  C region alignment fractional identity.
     changeo: C_IDENTITY
     airr: c_identity
     imgt: null
   c_evalue:
-    type: float
+    type: double
     description: C region alignment E-value.
     changeo: C_EVALUE
     airr: c_support
@@ -655,19 +655,19 @@ Receptor:
     airr: null
     imgt: null
   vdj_score:
-    type: float
+    type: double
     description: Alignment score for aligners that consider the full sequence.
     changeo: VDJ_SCORE
     airr: vdj_score
     imgt: null
   vdj_identity:
-    type: float
+    type: double
     description: Alignment fractional identity for aligners that consider the full sequence.
     changeo: VDJ_IDENTITY
     airr: vdj_identity
     imgt: null
   vdj_evalue:
-    type: float
+    type: double
     description: Alignment E-value for aligners that consider the full sequence.
     changeo: VDJ_EVALUE
     airr: vdj_support
@@ -753,7 +753,7 @@ Receptor:
 
 
 #### Change-O format output definition ####
-Changeo:
+changeo:
   out_type: tab
   standard:
     - SEQUENCE_ID
@@ -822,7 +822,7 @@ Changeo:
 
 
 #### AIRR Rearrangement format output definition ####
-AIRR:
+airr:
   out_type: tsv
   standard:
     - sequence_id

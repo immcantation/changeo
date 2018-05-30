@@ -278,7 +278,7 @@ class AIRRReader(TSVReader):
         Parses a dictionary of AIRR records to a Receptor object
 
         Arguments:
-          record : dict with fields and values in the AIRR format
+          record : dict with fields and values in the AIRR format.
 
         Returns:
           changeo.Receptor.Receptor : parsed Receptor object.
@@ -287,15 +287,17 @@ class AIRRReader(TSVReader):
         result = {}
         for k, v in record.items():
             # Convert start positions to 0-based
-            k = AIRRSchema.toReceptor(k)
-            if v is not None and v != '' and k in Receptor._start:
+            if v is not None and v != '' and k in AIRRSchema.start_fields:
                 v = str(int(v) + 1)
+            # Rename fields
+            k = AIRRSchema.toReceptor(k)
             result[k] = v
 
-        for k in Receptor._end:
-            if k in result and result[k] is not None:
-                start, length = Receptor._end[k]
-                result[length] = int(result[k]) - int(result[start]) + 1
+        # Assign length based on start and end
+        for i, (x, y) in AIRRSchema.end_fields.items():
+            end, start, length = map(AIRRSchema.toReceptor, (i, x, y))
+            if end in result and result[end] is not None:
+                result[length] = int(result[end]) - int(result[start]) + 1
 
         return Receptor(result)
 
@@ -341,11 +343,11 @@ class AIRRWriter(TSVWriter):
         result = {}
         row = record.toDict()
         for k, v in row.items():
-            # Convert start positions to 0-based
-            if v is not None and v != '' and k in Receptor._start:
-                v = str(int(v) - 1)
             # Convert field names
             k = AIRRSchema.fromReceptor(k, False)
+            # Convert start positions to 0-based
+            if v is not None and v != '' and k in AIRRSchema.start_fields:
+                v = str(int(v) - 1)
             result[k] = v
 
         return result

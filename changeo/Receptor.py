@@ -9,8 +9,10 @@ from changeo import __version__, __date__
 # Imports
 import re
 import sys
+import yaml
 from collections import OrderedDict
 from itertools import chain
+from pkg_resources import resource_stream
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
@@ -25,6 +27,80 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 
 allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
+
+
+class Schema:
+    """
+    Schema for mapping Receptor attributes to column names
+    """
+    def __init__(self, schema):
+        """
+        Initializer
+
+        Arguments:
+          schema (str): name of schema to load.
+
+        Returns:
+          changeo.Receptor.Schema
+        """
+        with resource_stream(__name__, 'data/receptor.yaml') as f:
+            data = yaml.load(f)
+            receptor = {v[schema]: k for k, v in data['receptor'].items()}
+            definition = data[schema]
+
+        # Output extension
+        self.out_type = definition['out_type']
+
+        # Field sets
+        self.fields = list(receptor.keys())
+        self.standard_fields = definition['standard']
+        self.custom_fields = definition['custom']
+
+        # Mapping of schema column names to Receptor attributes
+        self._schema_map = {k : receptor[k] for k in self.fields}
+        self._receptor_map = {v: k for k, v in self._schema_map.items()}
+
+        coordinates = {}
+        for k, v in data['receptor'].items():
+            if 'coordinate' in v:
+                print(k, v['coordinate'])
+                position = {v['coordinate']['position']: k}
+                group = coordinates.setdefault(v['coordinate']['group'], {})
+                group.update(position)
+
+        # Positional fields sets in the form {start: (length, end)}
+        self.start_fields = {x['start']: (x['length'], x['end']) for x in coordinates.values()}
+
+        # Positional fields sets in the form {length: (start, end)}
+        self.length_fields = {x['length']: (x['start'], x['end']) for x in coordinates.values()}
+
+        # Positional fields sets in the form {end: (start, length)}
+        self.end_fields = {x['end']: (x['start'], x['length']) for x in coordinates.values()}
+
+    def toReceptor(self, field):
+        """
+        Returns a Receptor attribute name from an Schema column name
+
+        Arguments:
+          field (str): schema column name.
+        Returns:
+          str: Receptor attribute name.
+        """
+        field = field.lower()
+        return self._schema_map.get(field, field)
+
+    def fromReceptor(self, field):
+        """
+        Returns a schema column name from a Receptor attribute name
+
+        Arguments:
+          field (str): Receptor attribute name.
+
+        Returns:
+          str: schema column name.
+        """
+        field = field.lower()
+        return self._receptor_map.get(field, field)
 
 
 class AIRRSchema:
@@ -125,6 +201,30 @@ class AIRRSchema:
     # Mapping of Receptor attributes to AIRR column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
 
+    # Positional fields sets in the form (start, length, end)
+    _coordinate_map = [('v_sequence_start', 'v_sequence_length', 'v_sequence_end'),
+                       ('v_germline_start', 'v_germline_length', 'v_germline_end'),
+                       ('d_sequence_start', 'd_sequence_length', 'd_sequence_end'),
+                       ('d_germline_start', 'd_germline_length', 'd_germline_end'),
+                       ('j_sequence_start', 'j_sequence_length', 'j_sequence_end'),
+                       ('j_germline_start', 'j_germline_length', 'j_germline_end'),
+                       ('fwr1_start', 'fwr1_length', 'fwr1_end'),
+                       ('fwr2_start', 'fwr2_length', 'fwr2_end'),
+                       ('fwr3_start', 'fwr3_length', 'fwr3_end'),
+                       ('fwr4_start', 'fwr4_length', 'fwr4_end'),
+                       ('cdr1_start', 'cdr1_length', 'cdr1_end'),
+                       ('cdr2_start', 'cdr2_length', 'cdr2_end'),
+                       ('cdr3_start', 'cdr3_length', 'cdr3_end')]
+
+    # Positional fields sets in the form {start: (length, end)}
+    start_fields = {x[0]: (x[1], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {length: (start, end)}
+    length_fields = {x[1]: (x[0], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {end: (start, length)}
+    end_fields = {x[2]: (x[0], x[1]) for x in _coordinate_map}
+
     @staticmethod
     def toReceptor(field):
         """
@@ -155,18 +255,6 @@ class AIRRSchema:
             return AIRRSchema._receptor_map.get(field, None)
         else:
             return AIRRSchema._receptor_map.get(field, field)
-
-    @staticmethod
-    def toChangeo(field):
-        """
-        Returns a Change-O column name from an AIRR column name
-
-        Arguments:
-          field : AIRR column name
-        Returns:
-          str : Change-O column name
-        """
-        return ChangeoSchema.fromReceptor(AIRRSchema.toReceptor(field))
 
 
 class ChangeoSchema:
@@ -255,6 +343,31 @@ class ChangeoSchema:
     # Mapping of Receptor attributes to Change-O column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
 
+    # Positional fields sets in the form (start, length, end)
+    _coordinate_map = [('V_SEQ_START', 'V_SEQ_LENGTH', 'V_SEQ_END'),
+                       ('V_GERM_START_IMGT', 'V_GERM_LENGTH_IMGT', 'V_GERM_END_IMGT'),
+                       ('V_GERM_START_VDJ', 'V_GERM_LENGTH_VDJ', 'V_GERM_END_VDJ'),
+                       ('D_SEQ_START', 'D_SEQ_LENGTH', 'D_SEQ_END'),
+                       ('D_GERM_START', 'D_GERM_LENGTH', 'D_GERM_END'),
+                       ('J_SEQ_START', 'J_SEQ_LENGTH', 'J_SEQ_END'),
+                       ('J_GERM_START', 'J_GERM_LENGTH', 'J_GERM_END'),
+                       ('FWR1_START', 'FWR1_LENGTH', 'FWR1_END'),
+                       ('FWR2_START', 'FWR2_LENGTH', 'FWR2_END'),
+                       ('FWR3_START', 'FWR3_LENGTH', 'FWR3_END'),
+                       ('FWR4_START', 'FWR4_LENGTH', 'FWR4_END'),
+                       ('CDR1_START', 'CDR1_LENGTH', 'CDR1_END'),
+                       ('CDR2_START', 'CDR2_LENGTH', 'CDR2_END'),
+                       ('CDR3_START', 'CDR3_LENGTH', 'CDR3_END')]
+
+    # Positional fields sets in the form {start: (length, end)}
+    start_fields = {x[0]: (x[1], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {length: (start, end)}
+    length_fields = {x[1]: (x[0], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {end: (start, length)}
+    end_fields = {x[2]: (x[0], x[1]) for x in _coordinate_map}
+
     @staticmethod
     def toReceptor(field):
         """
@@ -279,22 +392,10 @@ class ChangeoSchema:
         """
         return ChangeoSchema._receptor_map.get(field, field.upper())
 
-    @staticmethod
-    def toAIRR(field):
-        """
-        Returns an AIRR column name from a Change-O column name
 
-        Arguments:
-          field : Change-O column name
-        Returns:
-          str : AIRR column name
-        """
-        return AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(field))
-
-
-class Receptor:
+class ReceptorData:
     """
-    A class defining a V(D)J sequence and its annotations
+    A class containing type conversion methods for Receptor data attributes
 
     Attributes:
       sequence_id (str): unique sequence identifier.
@@ -393,125 +494,95 @@ class Receptor:
 
       annotations (dict): dictionary containing all unknown fields.
     """
+    #with resource_stream(__name__, 'data/receptor.yaml') as f:
+    #    data = yaml.load(f)
+    #    parsers = {k: v['type'] for k, v in data['receptor'].items()}
+
     # Mapping of member variables to parsing functions
-    _parsers = {'sequence_id': '_identity',
-                'rev_comp': '_logical',
-                'functional': '_logical',
-                'locus': '_identity',
-                'in_frame': '_logical',
-                'stop': '_logical',
-                'mutated_invariant': '_logical',
-                'indels': '_logical',
-                'sequence_input': '_nucleotide',
-                'sequence_imgt': '_nucleotide',
-                'sequence_vdj': '_nucleotide',
-                'junction': '_nucleotide',
-                'junction_aa': '_aminoacid',
-                'junction_length': '_integer',
-                'germline_imgt': '_nucleotide',
-                'germline_imgt_d_mask': '_nucleotide',
-                'germline_vdj': '_nucleotide',
-                'germline_vdj_d_mask': '_nucleotide',
-                'v_call': '_identity',
-                'd_call': '_identity',
-                'j_call': '_identity',
-                'c_call': '_identity',
-                'v_seq_start': '_integer',
-                'v_seq_length': '_integer',
-                'v_germ_start_imgt': '_integer',
-                'v_germ_length_imgt': '_integer',
-                'v_germ_start_vdj': '_integer',
-                'v_germ_length_vdj': '_integer',
-                'np1_start': '_integer',
-                'np1_length': '_integer',
-                'd_seq_start': '_integer',
-                'd_seq_length': '_integer',
-                'd_germ_start': '_integer',
-                'd_germ_length': '_integer',
-                'np2_start': '_integer',
-                'np2_length': '_integer',
-                'j_seq_start': '_integer',
-                'j_seq_length': '_integer',
-                'j_germ_start': '_integer',
-                'j_germ_length': '_integer',
-                'v_score': '_float',
-                'v_identity': '_float',
-                'v_evalue': '_float',
-                'v_btop': '_identity',
-                'v_cigar': '_identity',
-                'd_score': '_float',
-                'd_identity': '_float',
-                'd_evalue': '_float',
-                'd_btop': '_identity',
-                'd_cigar': '_identity',
-                'j_score': '_float',
-                'j_identity': '_float',
-                'j_evalue': '_float',
-                'j_btop': '_identity',
-                'j_cigar': '_identity',
-                'vdj_score': '_float',
-                'fwr1_imgt': '_nucleotide',
-                'fwr2_imgt': '_nucleotide',
-                'fwr3_imgt': '_nucleotide',
-                'fwr4_imgt': '_nucleotide',
-                'cdr1_imgt': '_nucleotide',
-                'cdr2_imgt': '_nucleotide',
-                'cdr3_imgt': '_nucleotide',
-                'n1_length': '_integer',
-                'n2_length': '_integer',
-                'p3v_length': '_integer',
-                'p5d_length': '_integer',
-                'p3d_length': '_integer',
-                'p5j_length': '_integer',
-                'd_frame': '_integer',
-                'cdr3_igblast': '_nucleotide',
-                'cdr3_igblast_aa': '_aminoacid',
-                'conscount': '_integer',
-                'dupcount': '_integer',
-                'clone': '_identity',
-                'cell': '_identity'}
-
-    # Positional fields sets in the form (start, length, end)
-    _coordinates = [('v_seq_start', 'v_seq_length', 'v_seq_end'),
-                    ('v_germ_start_imgt', 'v_germ_length_imgt', 'v_germ_end_imgt'),
-                    ('v_germ_start_vdj', 'v_germ_length_vdj', 'v_germ_end_vdj'),
-                    ('d_seq_start', 'd_seq_length', 'd_seq_end'),
-                    ('d_germ_start', 'd_germ_length', 'd_germ_end'),
-                    ('j_seq_start', 'j_seq_length', 'j_seq_end'),
-                    ('j_germ_start', 'j_germ_length', 'j_germ_end'),
-                    ('fwr1_start', 'fwr1_length', 'fwr1_end'),
-                    ('fwr2_start', 'fwr2_length', 'fwr2_end'),
-                    ('fwr3_start', 'fwr3_length', 'fwr3_end'),
-                    ('fwr4_start', 'fwr4_length', 'fwr4_end'),
-                    ('cdr1_start', 'cdr1_length','cdr1_end'),
-                    ('cdr2_start', 'cdr2_length', 'cdr2_end'),
-                    ('cdr3_start', 'cdr3_length', 'cdr3_end')]
-
-    # Positional fields sets in the form {start: (length, end)}
-    _start = {x[0]: (x[1], x[2]) for x in _coordinates}
-
-    # Positional fields sets in the form {length: (start, end)}
-    _length = {x[1]: (x[0], x[2]) for x in _coordinates}
-
-    # Positional fields sets in the form {end: (start, length)}
-    _end = {x[2]: (x[0], x[1]) for x in _coordinates}
-
-    # Mapping of derived properties to parsing functions
-    _derived = {'v_seq_end': '_integer',
-                'v_germ_end_vdj': '_integer',
-                'v_germ_end_imgt': '_integer',
-                'j_seq_end': '_integer',
-                'j_germ_end': '_integer',
-                'd_seq_end': '_integer',
-                'd_germ_end': '_integer'}
+    parsers = {'sequence_id': 'identity',
+               'rev_comp': 'logical',
+               'functional': 'logical',
+               'locus': 'identity',
+               'in_frame': 'logical',
+               'stop': 'logical',
+               'mutated_invariant': 'logical',
+               'indels': 'logical',
+               'sequence_input': 'nucleotide',
+               'sequence_imgt': 'nucleotide',
+               'sequence_vdj': 'nucleotide',
+               'junction': 'nucleotide',
+               'junction_aa': 'aminoacid',
+               'junction_length': 'integer',
+               'germline_imgt': 'nucleotide',
+               'germline_imgt_d_mask': 'nucleotide',
+               'germline_vdj': 'nucleotide',
+               'germline_vdj_d_mask': 'nucleotide',
+               'v_call': 'identity',
+               'd_call': 'identity',
+               'j_call': 'identity',
+               'c_call': 'identity',
+               'v_seq_start': 'integer',
+               'v_seq_length': 'integer',
+               'v_germ_start_imgt': 'integer',
+               'v_germ_length_imgt': 'integer',
+               'v_germ_start_vdj': 'integer',
+               'v_germ_length_vdj': 'integer',
+               'np1_start': 'integer',
+               'np1_length': 'integer',
+               'd_seq_start': 'integer',
+               'd_seq_length': 'integer',
+               'd_germ_start': 'integer',
+               'd_germ_length': 'integer',
+               'np2_start': 'integer',
+               'np2_length': 'integer',
+               'j_seq_start': 'integer',
+               'j_seq_length': 'integer',
+               'j_germ_start': 'integer',
+               'j_germ_length': 'integer',
+               'v_score': 'double',
+               'v_identity': 'double',
+               'v_evalue': 'double',
+               'v_btop': 'identity',
+               'v_cigar': 'identity',
+               'd_score': 'double',
+               'd_identity': 'double',
+               'd_evalue': 'double',
+               'd_btop': 'identity',
+               'd_cigar': 'identity',
+               'j_score': 'double',
+               'j_identity': 'double',
+               'j_evalue': 'double',
+               'j_btop': 'identity',
+               'j_cigar': 'identity',
+               'vdj_score': 'double',
+               'fwr1_imgt': 'nucleotide',
+               'fwr2_imgt': 'nucleotide',
+               'fwr3_imgt': 'nucleotide',
+               'fwr4_imgt': 'nucleotide',
+               'cdr1_imgt': 'nucleotide',
+               'cdr2_imgt': 'nucleotide',
+               'cdr3_imgt': 'nucleotide',
+               'n1_length': 'integer',
+               'n2_length': 'integer',
+               'p3v_length': 'integer',
+               'p5d_length': 'integer',
+               'p3d_length': 'integer',
+               'p5j_length': 'integer',
+               'd_frame': 'integer',
+               'cdr3_igblast': 'nucleotide',
+               'cdr3_igblast_aa': 'aminoacid',
+               'conscount': 'integer',
+               'dupcount': 'integer',
+               'clone': 'identity',
+               'cell': 'identity'}
 
     @staticmethod
-    def _identity(v, deparse=False):
+    def identity(v, deparse=False):
         return v
 
     # Logical type conversion
     @staticmethod
-    def _logical(v, deparse=False):
+    def logical(v, deparse=False):
         parse_map = {True: True, 'T': True, 'TRUE': True,
                      False: False, 'F': False, 'FALSE': False,
                      'NA': None, 'None': None, '': None}
@@ -525,7 +596,7 @@ class Receptor:
 
     # Integer type conversion
     @staticmethod
-    def _integer(v, deparse=False):
+    def integer(v, deparse=False):
         if not deparse:
             try:  return int(v)
             except:  return None
@@ -534,7 +605,7 @@ class Receptor:
 
     # Float type conversion
     @staticmethod
-    def _float(v, deparse=False):
+    def double(v, deparse=False):
         if not deparse:
             try:  return float(v)
             except:  return None
@@ -543,7 +614,7 @@ class Receptor:
 
     # Nucleotide sequence type conversion
     @staticmethod
-    def _nucleotide(v, deparse=False):
+    def nucleotide(v, deparse=False):
         if not deparse:
             try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.ambiguous_dna).upper()
             except:  return ''
@@ -552,12 +623,26 @@ class Receptor:
 
     # Sequence type conversion
     @staticmethod
-    def _aminoacid(v, deparse=False):
+    def aminoacid(v, deparse=False):
         if not deparse:
             try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.extended_protein).upper()
             except:  return ''
         else:
             return '' if v in ('NA', 'None') else str(v)
+
+
+class Receptor:
+    """
+    A class defining a V(D)J sequence and its annotations
+    """
+    # Mapping of derived properties to types
+    _derived = {'v_seq_end': 'integer',
+                'v_germ_end_vdj': 'integer',
+                'v_germ_end_imgt': 'integer',
+                'j_seq_end': 'integer',
+                'j_germ_end': 'integer',
+                'd_seq_end': 'integer',
+                'd_germ_end': 'integer'}
 
     def __init__(self, data):
         """
@@ -573,20 +658,20 @@ class Receptor:
         data = {k.lower(): v for k, v in data.items()}
 
         # Define known keys
-        required_keys = ('sequence_id',)
-        optional_keys = (x for x in Receptor._parsers if x not in required_keys)
+        required_keys = ('sequence_id', )
+        optional_keys = (x for x in ReceptorData.parsers if x not in required_keys)
 
         # Parse required fields
         try:
             for k in required_keys:
-                f = getattr(Receptor, Receptor._parsers[k])
+                f = getattr(ReceptorData, ReceptorData.parsers[k])
                 setattr(self, k, f(data.pop(k)))
         except:
             sys.exit('ERROR:  Input must contain valid %s values' % ','.join(required_keys))
 
         # Parse optional known fields
         for k in optional_keys:
-            f = getattr(Receptor, Receptor._parsers[k])
+            f = getattr(ReceptorData, ReceptorData.parsers[k])
             setattr(self, k, f(data.pop(k, None)))
 
         # Add remaining elements as annotations dictionary
@@ -604,13 +689,13 @@ class Receptor:
           None : updates attribute values and the annotations attribute.
         """
         # Partition data
-        attributes = {k.lower(): v for k, v in data.items() if k.lower() in Receptor._parsers}
+        attributes = {k.lower(): v for k, v in data.items() if k.lower() in ReceptorData.parsers}
         annotations = {k.lower(): v for k, v in data.items() if k.lower() not in attributes}
 
         # Update attributes
         for k, v in attributes.items():
             if parse:
-                f = getattr(Receptor, Receptor._parsers[k])
+                f = getattr(ReceptorData, ReceptorData.parsers[k])
                 setattr(self, k, f(v))
             else:
                 setattr(self, k, v)
@@ -631,10 +716,10 @@ class Receptor:
           None. Updates attribute or annotation.
         """
         field = field.lower()
-        if field in Receptor._parsers and parse:
-            f = getattr(Receptor, Receptor._parsers[field])
+        if field in ReceptorData.parsers and parse:
+            f = getattr(ReceptorData, ReceptorData.parsers[field])
             setattr(self, field, f(value))
-        elif field in Receptor._parsers:
+        elif field in ReceptorData.parsers:
             setattr(self, field, value)
         else:
             self.annotations[field] = value
@@ -651,7 +736,7 @@ class Receptor:
         """
         field = field.lower()
 
-        if field in Receptor._parsers:
+        if field in ReceptorData.parsers:
             return getattr(self, field)
         elif field in self.annotations:
             return self.annotations[field]
@@ -729,11 +814,11 @@ class Receptor:
             if k == 'annotations':
                 d.update(n['annotations'])
             else:
-                f = getattr(Receptor, Receptor._parsers[k])
+                f = getattr(ReceptorData, ReceptorData.parsers[k])
                 d[k] = f(v, deparse=True)
         # Parse properties
         for k in Receptor._derived:
-            f = getattr(Receptor, Receptor._derived[k])
+            f = getattr(ReceptorData, Receptor._derived[k])
             v = getattr(self, k)
             d[k] = f(v, deparse=True)
         return d

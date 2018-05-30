@@ -137,10 +137,9 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     db_iter = ChangeoReader(db_handle, receptor=True)
 
     # Set output fields replacing length with end fields
-    in_fields = [ChangeoSchema.toReceptor(f) for f in db_iter.fields]
-    out_fields = [Receptor._length[f][1] if f in Receptor._length else f \
-                  for f in in_fields]
-    out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
+    all_fields = (AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(f)) for f in db_iter.fields)
+    out_fields = [AIRRSchema.length_fields[f][1] if f in Receptor.length_fields else f \
+                  for f in all_fields]
 
     # Open output writer
     if out_file is not None:
@@ -201,10 +200,9 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     db_iter = AIRRReader(db_handle, receptor=True)
 
     # Set output fields replacing length with end fields
-    in_fields = [AIRRSchema.toReceptor(f) for f in db_iter.fields]
-    out_fields = [Receptor._end[f][1] if f in Receptor._end else f \
-                  for f in in_fields]
-    out_fields = [ChangeoSchema.fromReceptor(f) for f in out_fields]
+    all_fields = (ChangeoSchema.fromReceptor(AIRRSchema.toReceptor(f)) for f in db_iter.fields)
+    out_fields = [ChangeoSchema.end_fields[f][1] if f in ChangeoSchema.end_fields else f \
+                  for f in all_fields]
 
     # Open output writer
     if out_file is not None:
