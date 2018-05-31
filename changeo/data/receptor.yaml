@@ -2,7 +2,7 @@
 receptor:
   sequence_id:
     type: identity
-    description: Unique sequence identifier
+    description: Unique sequence identifier.
     changeo: SEQUENCE_ID
     airr: sequence_id
     imgt: 'Sequence ID'

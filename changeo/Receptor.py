@@ -60,6 +60,7 @@ class Schema:
         self._schema_map = {k : receptor[k] for k in self.fields}
         self._receptor_map = {v: k for k, v in self._schema_map.items()}
 
+        # Define coordinate field sets
         coordinates = {}
         for k, v in data['receptor'].items():
             if 'coordinate' in v:
