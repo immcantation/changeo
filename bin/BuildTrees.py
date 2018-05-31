@@ -14,12 +14,15 @@ from time import time
 # Presto and changeo imports
 from presto.Defaults import default_out_args
 from presto.IO import  printLog, printProgress
-from changeo.Defaults import default_format
+from changeo.Defaults import default_format, default_v_field, default_d_field, default_j_field
 from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, \
                        splitFileName, getDbFields, getFormatOperators, getRegions, getOutputHandle
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 from Bio.Seq import Seq
+default_seq_field = 'SEQUENCE_IMGT'
+
+
 
 def maskSplitCodons(receptor,recursive=False):
     """
@@ -384,6 +387,86 @@ def hasPTC(sequence):
             if sequence[i:(i+3)] in ptcs:
                 return i
     return -1
+'''
+def resolveClonalGermline(receptors, log=None,seq_field=default_seq_field,
+                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field):
+    """
+    Determine consensus clone sequence and create germline for clone
+
+    Arguments:
+      receptors : list of Receptor objects
+      seq_field : field in which to look for sequence
+      v_field : field in which to look for V call
+      d_field : field in which to look for D call
+      j_field : field in which to look for J call
+
+    Returns:
+      tuple : log dictionary, dictionary of {germline_type: germline_sequence},
+              dictionary of consensus {segment: gene call}
+    """
+    # Log
+    #log = OrderedDict()
+
+    # Create dictionaries to count observed V/J calls
+    v_dict = OrderedDict()
+    j_dict = OrderedDict()
+
+    # Find longest sequence in clone
+    max_length = 0
+    for rec in receptors:
+        v = rec.getVAllele(action='first', field=v_field)
+        v_dict[v] = v_dict.get(v, 0) + 1
+        j = rec.getJAllele(action='first', field=j_field)
+        j_dict[j] = j_dict.get(j, 0) + 1
+        seq_len = len(rec.getField(seq_field))
+        if seq_len > max_length:
+            max_length = seq_len
+
+    # Consensus V and J having most observations
+    v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
+    j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
+
+    # Consensus sequence(s) with consensus V/J calls and longest sequence
+    cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
+                                    x.getJAllele(action='first', field=j_field) in j_cons and \
+                                    len(x.getField(seq_field)) == max_length]
+    # Consensus sequence(s) with consensus V/J calls but not the longest sequence
+    if not cons:
+        cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
+                                        x.getJAllele(action='first', field=j_field) in j_cons]
+
+    # Return without germline if no sequence has both consensus V and J call
+    if not cons:
+        return None
+
+    # Select consensus Receptor, resolving ties by alphabetical ordering of sequence id.
+    cons = sorted(cons, key=lambda x: x.sequence_id)[0]
+
+    return cons.getField("germline_imgt_d_mask")
+    # Pad end of consensus sequence with gaps to make it the max length
+       
+    gap_length = max_length - len(cons.getField(seq_field))
+    if gap_length > 0:
+        cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
+        cons.setField(seq_field, cons.getSeq(seq_field) + ('N' * gap_length))
+
+    # Update lengths padded to longest sequence in clone
+    for rec in receptors:
+        x = max_length - len(rec.getField(seq_field))
+        rec.j_germ_length = int(rec.j_germ_length or 0) + x
+        rec.setField(seq_field, rec.getSeq(seq_field) + ('N' * x))
+
+    # Stitch consensus germline
+    #cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
+    #                                           d_field=d_field, j_field=j_field)
+
+    # Update log
+    log['CONSENSUS'] = cons.sequence_id
+    log.update(cons_log)
+
+    # Return log
+    return log, germlines, genes
+    '''
 
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
                   min_seq=0):
@@ -447,13 +530,35 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         for j in range(0,len(imgtar)):
             if c.getField("imgtpartlabels")[j] != imgtar[j]:
                 print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! ",c.clone)
-                print(c.getFeild("imgtpartlabels"))
+                print(c.getField("imgtpartlabels"))
                 print(imgtar)
                 print(str(j))
+                print(sequences[j])
                 exit(1)
 
+    #Resolve germline if there are differences, e.g. if reconstruction was done before clonal clustering
     nseqs = len(sequences)
     germline = clones[0].getField("germline_imgt_d_mask")
+    resolveglines = False
+    for c in clones:
+        if c.getField("germline_imgt_d_mask") != germline:
+            resolveglines = True
+
+    if resolveglines:
+        print("Predicted germlines are not the same among sequences in the same clone")
+        print("Be sure to cluster sequences into clones first and then predict germlines using --cloned")
+        print("Stopping.")
+        exit(1)
+        '''print("Resolving germline conflicts in ", str(c.clone))
+germline = resolveClonalGermline(clones, logs)
+print(germline)
+for c2 in clones:
+    if germline is None:
+        logs[c2.sequence_id]['PASS'] = False
+        logs[c2.sequence_id]['FAIL'] = "Failed to resolve germline"
+    print(c2.getField("germline_imgt_d_mask"))
+if germline is None:
+    return None'''
 
     if sites > (len(germline)):
         seqdiff = sites - len(germline)
@@ -670,6 +775,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     minseq_fail = 0
     other_fail = 0
     region_fail = 0
+    germlineptc = 0
     fdcount = 0
     totalreads = 0
     passreads = 0
@@ -686,6 +792,20 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
         totalreads += 1
         #printProgress(rec_count, rec_count, 0.05, start_time)
         ptcs = hasPTC(r.sequence_imgt)
+        gptcs = hasPTC(r.getField("germline_imgt_d_mask"))
+        if gptcs >= 0:
+            log = OrderedDict()
+            log['ID'] = r.sequence_id
+            log['CLONE'] = r.clone
+            log['SEQ_IN'] = r.sequence_input
+            log['SEQ_IMGT'] = r.sequence_imgt
+            logs[r.sequence_id] = log
+            logs[r.sequence_id]['PASS'] = False
+            logs[r.sequence_id]['FAIL'] = 'Germline PTC'
+            seq_fail += 1
+            germlineptc += 1
+            continue
+
         if r.functional and ptcs < 0:
             #If IMGT regions are provided, record their positions
             regions = getRegions(r.sequence_imgt,r.junction_length)
@@ -818,6 +938,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     log['FRAMESHIFT_INS'] = in_fail
     log['CLONETOOSMALL'] = minseq_fail
     log['CDRFWR_ERROR'] = region_fail
+    log['GERMLINE_PTC'] = germlineptc
     log['OTHER_FAIL'] = other_fail
 
     if imgt_warn is not None:
