@@ -69,7 +69,6 @@ c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 #         Returns:
 #           str: Receptor attribute name.
 #         """
-#         field = field.lower()
 #         return self._schema_map.get(field, field)
 #
 #     def fromReceptor(self, field):
@@ -82,7 +81,6 @@ c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 #         Returns:
 #           str: schema column name.
 #         """
-#         field = field.lower()
 #         return self._receptor_map.get(field, field)
 #
 #
@@ -196,30 +194,26 @@ class AIRRSchema:
         Returns a Receptor attribute name from an AIRR column name
 
         Arguments:
-          field : AIRR column name
+          field : AIRR column name.
         Returns:
-          str : Receptor attribute name
+          str: Receptor attribute name.
         """
         field = field.lower()
         return AIRRSchema._schema_map.get(field, field)
 
     @staticmethod
-    def fromReceptor(field, strict=False):
+    def fromReceptor(field):
         """
         Returns an AIRR column name from a Receptor attribute name
 
         Arguments:
-          field : Receptor attribute name
-          strict : if True return None if the field is not in the AIRR definition;
-                   otherwise return the input field name if it is undefined.
+          field : Receptor attribute name.
+
         Returns:
-          str : AIRR column name
+          str: AIRR column name.
         """
         field = field.lower()
-        if strict:
-            return AIRRSchema._receptor_map.get(field, None)
-        else:
-            return AIRRSchema._receptor_map.get(field, field)
+        return AIRRSchema._receptor_map.get(field, field)
 
 
 class ChangeoSchema:
@@ -316,9 +310,10 @@ class ChangeoSchema:
         Returns a Receptor attribute name from a Change-O column name
 
         Arguments:
-          field : Change-O column name
+          field : Change-O column name.
+
         Returns:
-          str : Receptor attribute name
+          str: Receptor attribute name.
         """
         return ChangeoSchema._schema_map.get(field, field.lower())
 
@@ -328,9 +323,10 @@ class ChangeoSchema:
         Returns a Change-O column name from a Receptor attribute name
 
         Arguments:
-          field : Receptor attribute name
+          field : Receptor attribute name.
+
         Returns:
-          str : Change-O column name
+          str: Change-O column name.
         """
         return ChangeoSchema._receptor_map.get(field, field.upper())
 
