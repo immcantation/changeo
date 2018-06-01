@@ -23,7 +23,7 @@ from presto.IO import getFileType
 from changeo.Defaults import default_csv_size
 from changeo.Receptor import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, \
                              parseAllele, decodeBTOP, encodeCIGAR, padAlignment, \
-                             AIRRSchema, ChangeoSchema, Receptor
+                             AIRRSchema, ChangeoSchema, Receptor, ReceptorData
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -286,16 +286,16 @@ class AIRRReader(TSVReader):
         # Parse fields
         result = {}
         for k, v in record.items():
-            # Convert start positions to 0-based
-            if v is not None and v != '' and k in AIRRSchema.start_fields:
-                v = str(int(v) + 1)
             # Rename fields
             k = AIRRSchema.toReceptor(k)
+            # Convert start positions to 0-based
+            if k in ReceptorData.start_fields and v is not None and v != '':
+                v = str(int(v) + 1)
+            # Assign new field
             result[k] = v
 
         # Assign length based on start and end
-        for i, (x, y) in AIRRSchema.end_fields.items():
-            end, start, length = map(AIRRSchema.toReceptor, (i, x, y))
+        for end, (start, length) in ReceptorData.end_fields.items():
             if end in result and result[end] is not None:
                 result[length] = int(result[end]) - int(result[start]) + 1
 
@@ -343,11 +343,11 @@ class AIRRWriter(TSVWriter):
         result = {}
         row = record.toDict()
         for k, v in row.items():
+            # Convert start positions to 0-based
+            if k in ReceptorData.start_fields and v is not None and v != '':
+                v = str(int(v) - 1)
             # Convert field names
             k = AIRRSchema.fromReceptor(k)
-            # Convert start positions to 0-based
-            if v is not None and v != '' and k in AIRRSchema.start_fields:
-                v = str(int(v) - 1)
             result[k] = v
 
         return result

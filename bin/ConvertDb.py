@@ -31,7 +31,7 @@ from changeo.Defaults import default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, TSVWriter
+                       ChangeoReader, ChangeoWriter, TSVReader, TSVWriter, ReceptorData
 from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema, Receptor
 
 # System settings
@@ -137,9 +137,10 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     db_iter = ChangeoReader(db_handle, receptor=True)
 
     # Set output fields replacing length with end fields
-    all_fields = (AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(f)) for f in db_iter.fields)
-    out_fields = [AIRRSchema.length_fields[f][1] if f in Receptor.length_fields else f \
-                  for f in all_fields]
+    in_fields = [ChangeoSchema.toReceptor(f) for f in db_iter.fields]
+    out_fields = [ReceptorData.length_fields[f][1] if f in ReceptorData.length_fields else f \
+                  for f in in_fields]
+    out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
     if out_file is not None:
@@ -200,9 +201,10 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     db_iter = AIRRReader(db_handle, receptor=True)
 
     # Set output fields replacing length with end fields
-    all_fields = (ChangeoSchema.fromReceptor(AIRRSchema.toReceptor(f)) for f in db_iter.fields)
-    out_fields = [ChangeoSchema.end_fields[f][1] if f in ChangeoSchema.end_fields else f \
-                  for f in all_fields]
+    in_fields = [AIRRSchema.toReceptor(f) for f in db_iter.fields]
+    out_fields = [ReceptorData.end_fields[f][1] if f in ReceptorData.end_fields else f \
+                  for f in in_fields]
+    out_fields = [ChangeoSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
     if out_file is not None:

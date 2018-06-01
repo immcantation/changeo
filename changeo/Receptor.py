@@ -60,24 +60,6 @@ c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 #         self._schema_map = {k : receptor[k] for k in self.fields}
 #         self._receptor_map = {v: k for k, v in self._schema_map.items()}
 #
-#         # Define coordinate field sets
-#         coordinates = {}
-#         for k, v in data['receptor'].items():
-#             if 'coordinate' in v:
-#                 print(k, v['coordinate'])
-#                 position = {v['coordinate']['position']: k}
-#                 group = coordinates.setdefault(v['coordinate']['group'], {})
-#                 group.update(position)
-#
-#         # Positional fields sets in the form {start: (length, end)}
-#         self.start_fields = {x['start']: (x['length'], x['end']) for x in coordinates.values()}
-#
-#         # Positional fields sets in the form {length: (start, end)}
-#         self.length_fields = {x['length']: (x['start'], x['end']) for x in coordinates.values()}
-#
-#         # Positional fields sets in the form {end: (start, length)}
-#         self.end_fields = {x['end']: (x['start'], x['length']) for x in coordinates.values()}
-#
 #     def toReceptor(self, field):
 #         """
 #         Returns a Receptor attribute name from an Schema column name
@@ -102,6 +84,10 @@ c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 #         """
 #         field = field.lower()
 #         return self._receptor_map.get(field, field)
+#
+#
+# AIRRSchema = Schema('airr')
+# ChangeoSchema = Schema('changeo')
 
 
 class AIRRSchema:
@@ -197,34 +183,12 @@ class AIRRSchema:
 
     # Mapping of AIRR column names to Receptor attributes
     _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
-    fields = list(_schema_map.keys())
 
     # Mapping of Receptor attributes to AIRR column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
 
-    # Positional fields sets in the form (start, length, end)
-    _coordinate_map = [('v_sequence_start', 'v_sequence_length', 'v_sequence_end'),
-                       ('v_germline_start', 'v_germline_length', 'v_germline_end'),
-                       ('d_sequence_start', 'd_sequence_length', 'd_sequence_end'),
-                       ('d_germline_start', 'd_germline_length', 'd_germline_end'),
-                       ('j_sequence_start', 'j_sequence_length', 'j_sequence_end'),
-                       ('j_germline_start', 'j_germline_length', 'j_germline_end'),
-                       ('fwr1_start', 'fwr1_length', 'fwr1_end'),
-                       ('fwr2_start', 'fwr2_length', 'fwr2_end'),
-                       ('fwr3_start', 'fwr3_length', 'fwr3_end'),
-                       ('fwr4_start', 'fwr4_length', 'fwr4_end'),
-                       ('cdr1_start', 'cdr1_length', 'cdr1_end'),
-                       ('cdr2_start', 'cdr2_length', 'cdr2_end'),
-                       ('cdr3_start', 'cdr3_length', 'cdr3_end')]
-
-    # Positional fields sets in the form {start: (length, end)}
-    start_fields = {x[0]: (x[1], x[2]) for x in _coordinate_map}
-
-    # Positional fields sets in the form {length: (start, end)}
-    length_fields = {x[1]: (x[0], x[2]) for x in _coordinate_map}
-
-    # Positional fields sets in the form {end: (start, length)}
-    end_fields = {x[2]: (x[0], x[1]) for x in _coordinate_map}
+    # All fields
+    fields = list(_schema_map.keys())
 
     @staticmethod
     def toReceptor(field):
@@ -339,35 +303,12 @@ class ChangeoSchema:
 
     # Mapping of Change-O column names to Receptor attributes
     _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
-    fields = list(_schema_map.keys())
 
     # Mapping of Receptor attributes to Change-O column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
 
-    # Positional fields sets in the form (start, length, end)
-    _coordinate_map = [('V_SEQ_START', 'V_SEQ_LENGTH', 'V_SEQ_END'),
-                       ('V_GERM_START_IMGT', 'V_GERM_LENGTH_IMGT', 'V_GERM_END_IMGT'),
-                       ('V_GERM_START_VDJ', 'V_GERM_LENGTH_VDJ', 'V_GERM_END_VDJ'),
-                       ('D_SEQ_START', 'D_SEQ_LENGTH', 'D_SEQ_END'),
-                       ('D_GERM_START', 'D_GERM_LENGTH', 'D_GERM_END'),
-                       ('J_SEQ_START', 'J_SEQ_LENGTH', 'J_SEQ_END'),
-                       ('J_GERM_START', 'J_GERM_LENGTH', 'J_GERM_END'),
-                       ('FWR1_START', 'FWR1_LENGTH', 'FWR1_END'),
-                       ('FWR2_START', 'FWR2_LENGTH', 'FWR2_END'),
-                       ('FWR3_START', 'FWR3_LENGTH', 'FWR3_END'),
-                       ('FWR4_START', 'FWR4_LENGTH', 'FWR4_END'),
-                       ('CDR1_START', 'CDR1_LENGTH', 'CDR1_END'),
-                       ('CDR2_START', 'CDR2_LENGTH', 'CDR2_END'),
-                       ('CDR3_START', 'CDR3_LENGTH', 'CDR3_END')]
-
-    # Positional fields sets in the form {start: (length, end)}
-    start_fields = {x[0]: (x[1], x[2]) for x in _coordinate_map}
-
-    # Positional fields sets in the form {length: (start, end)}
-    length_fields = {x[1]: (x[0], x[2]) for x in _coordinate_map}
-
-    # Positional fields sets in the form {end: (start, length)}
-    end_fields = {x[2]: (x[0], x[1]) for x in _coordinate_map}
+    # All fields
+    fields = list(_schema_map.keys())
 
     @staticmethod
     def toReceptor(field):
@@ -497,7 +438,26 @@ class ReceptorData:
     """
     #with resource_stream(__name__, 'data/receptor.yaml') as f:
     #    data = yaml.load(f)
-    #    parsers = {k: v['type'] for k, v in data['receptor'].items()}
+    #
+    # # Define type parsers
+    # parsers = {k: v['type'] for k, v in data['receptor'].items()}
+    #
+    # # Define coordinate field sets
+    # coordinates = {}
+    # for k, v in data['receptor'].items():
+    #     if 'coordinate' in v:
+    #         position = {v['coordinate']['position']: k}
+    #         group = coordinates.setdefault(v['coordinate']['group'], {})
+    #         group.update(position)
+    #
+    # # Positional fields sets in the form {start: (length, end)}
+    # self.start_fields = {x['start']: (x['length'], x['end']) for x in coordinates.values()}
+    #
+    # # Positional fields sets in the form {length: (start, end)}
+    # self.length_fields = {x['length']: (x['start'], x['end']) for x in coordinates.values()}
+    #
+    # # Positional fields sets in the form {end: (start, length)}
+    # self.end_fields = {x['end']: (x['start'], x['length']) for x in coordinates.values()}
 
     # Mapping of member variables to parsing functions
     parsers = {'sequence_id': 'identity',
@@ -576,6 +536,31 @@ class ReceptorData:
                'dupcount': 'integer',
                'clone': 'identity',
                'cell': 'identity'}
+
+    # Positional fields sets in the form (start, length, end)
+    _coordinate_map = [('v_seq_start', 'v_seq_length', 'v_seq_end'),
+                       ('v_germ_start_imgt', 'v_germ_length_imgt', 'v_germ_end_imgt'),
+                       ('v_germ_start_vdj', 'v_germ_length_vdj', 'v_germ_end_vdj'),
+                       ('d_seq_start', 'd_seq_length', 'd_seq_end'),
+                       ('d_germ_start', 'd_germ_length', 'd_germ_end'),
+                       ('j_seq_start', 'j_seq_length', 'j_seq_end'),
+                       ('j_germ_start', 'j_germ_length', 'j_germ_end'),
+                       ('fwr1_start', 'fwr1_length', 'fwr1_end'),
+                       ('fwr2_start', 'fwr2_length', 'fwr2_end'),
+                       ('fwr3_start', 'fwr3_length', 'fwr3_end'),
+                       ('fwr4_start', 'fwr4_length', 'fwr4_end'),
+                       ('cdr1_start', 'cdr1_length', 'cdr1_end'),
+                       ('cdr2_start', 'cdr2_length', 'cdr2_end'),
+                       ('cdr3_start', 'cdr3_length', 'cdr3_end')]
+
+    # Positional fields sets in the form {start: (length, end)}
+    start_fields = {x[0]: (x[1], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {length: (start, end)}
+    length_fields = {x[1]: (x[0], x[2]) for x in _coordinate_map}
+
+    # Positional fields sets in the form {end: (start, length)}
+    end_fields = {x[2]: (x[0], x[1]) for x in _coordinate_map}
 
     @staticmethod
     def identity(v, deparse=False):
