@@ -9,12 +9,12 @@ from changeo import __version__, __date__
 # Imports
 import re
 import sys
-import yaml
 from collections import OrderedDict
 from itertools import chain
-from pkg_resources import resource_stream
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+# import yaml
+# from pkg_resources import resource_stream
 
 # Ig and TCR Regular expressions
 allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
@@ -29,79 +29,79 @@ allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
 
-class Schema:
-    """
-    Schema for mapping Receptor attributes to column names
-    """
-    def __init__(self, schema):
-        """
-        Initializer
-
-        Arguments:
-          schema (str): name of schema to load.
-
-        Returns:
-          changeo.Receptor.Schema
-        """
-        with resource_stream(__name__, 'data/receptor.yaml') as f:
-            data = yaml.load(f)
-            receptor = {v[schema]: k for k, v in data['receptor'].items()}
-            definition = data[schema]
-
-        # Output extension
-        self.out_type = definition['out_type']
-
-        # Field sets
-        self.fields = list(receptor.keys())
-        self.standard_fields = definition['standard']
-        self.custom_fields = definition['custom']
-
-        # Mapping of schema column names to Receptor attributes
-        self._schema_map = {k : receptor[k] for k in self.fields}
-        self._receptor_map = {v: k for k, v in self._schema_map.items()}
-
-        # Define coordinate field sets
-        coordinates = {}
-        for k, v in data['receptor'].items():
-            if 'coordinate' in v:
-                print(k, v['coordinate'])
-                position = {v['coordinate']['position']: k}
-                group = coordinates.setdefault(v['coordinate']['group'], {})
-                group.update(position)
-
-        # Positional fields sets in the form {start: (length, end)}
-        self.start_fields = {x['start']: (x['length'], x['end']) for x in coordinates.values()}
-
-        # Positional fields sets in the form {length: (start, end)}
-        self.length_fields = {x['length']: (x['start'], x['end']) for x in coordinates.values()}
-
-        # Positional fields sets in the form {end: (start, length)}
-        self.end_fields = {x['end']: (x['start'], x['length']) for x in coordinates.values()}
-
-    def toReceptor(self, field):
-        """
-        Returns a Receptor attribute name from an Schema column name
-
-        Arguments:
-          field (str): schema column name.
-        Returns:
-          str: Receptor attribute name.
-        """
-        field = field.lower()
-        return self._schema_map.get(field, field)
-
-    def fromReceptor(self, field):
-        """
-        Returns a schema column name from a Receptor attribute name
-
-        Arguments:
-          field (str): Receptor attribute name.
-
-        Returns:
-          str: schema column name.
-        """
-        field = field.lower()
-        return self._receptor_map.get(field, field)
+# class Schema:
+#     """
+#     Schema for mapping Receptor attributes to column names
+#     """
+#     def __init__(self, schema):
+#         """
+#         Initializer
+#
+#         Arguments:
+#           schema (str): name of schema to load.
+#
+#         Returns:
+#           changeo.Receptor.Schema
+#         """
+#         with resource_stream(__name__, 'data/receptor.yaml') as f:
+#             data = yaml.load(f)
+#             receptor = {v[schema]: k for k, v in data['receptor'].items()}
+#             definition = data[schema]
+#
+#         # Output extension
+#         self.out_type = definition['out_type']
+#
+#         # Field sets
+#         self.fields = list(receptor.keys())
+#         self.standard_fields = definition['standard']
+#         self.custom_fields = definition['custom']
+#
+#         # Mapping of schema column names to Receptor attributes
+#         self._schema_map = {k : receptor[k] for k in self.fields}
+#         self._receptor_map = {v: k for k, v in self._schema_map.items()}
+#
+#         # Define coordinate field sets
+#         coordinates = {}
+#         for k, v in data['receptor'].items():
+#             if 'coordinate' in v:
+#                 print(k, v['coordinate'])
+#                 position = {v['coordinate']['position']: k}
+#                 group = coordinates.setdefault(v['coordinate']['group'], {})
+#                 group.update(position)
+#
+#         # Positional fields sets in the form {start: (length, end)}
+#         self.start_fields = {x['start']: (x['length'], x['end']) for x in coordinates.values()}
+#
+#         # Positional fields sets in the form {length: (start, end)}
+#         self.length_fields = {x['length']: (x['start'], x['end']) for x in coordinates.values()}
+#
+#         # Positional fields sets in the form {end: (start, length)}
+#         self.end_fields = {x['end']: (x['start'], x['length']) for x in coordinates.values()}
+#
+#     def toReceptor(self, field):
+#         """
+#         Returns a Receptor attribute name from an Schema column name
+#
+#         Arguments:
+#           field (str): schema column name.
+#         Returns:
+#           str: Receptor attribute name.
+#         """
+#         field = field.lower()
+#         return self._schema_map.get(field, field)
+#
+#     def fromReceptor(self, field):
+#         """
+#         Returns a schema column name from a Receptor attribute name
+#
+#         Arguments:
+#           field (str): Receptor attribute name.
+#
+#         Returns:
+#           str: schema column name.
+#         """
+#         field = field.lower()
+#         return self._receptor_map.get(field, field)
 
 
 class AIRRSchema:
