@@ -32,6 +32,10 @@ csv.field_size_limit(default_csv_size)
 class TSVReader:
     """
     Simple csv.DictReader wrapper to read format agnostic TSV files.
+
+    Attributes:
+      reader (iter): reader object.
+      fields (list): field names.
     """
 
     def __init__(self, handle):
@@ -48,6 +52,7 @@ class TSVReader:
         self.handle = handle
         self.receptor = False
         self.reader = csv.DictReader(self.handle, dialect='excel-tab')
+        self.fields = self.reader.fieldnames
 
     def __iter__(self):
         """
@@ -85,16 +90,6 @@ class TSVReader:
           dict : parsed dict.
         """
         return record
-
-    @property
-    def fields(self):
-        """
-        Get list fields
-
-        Returns:
-          list : field names
-        """
-        return self.reader.fieldnames
 
 
 class TSVWriter:
@@ -165,6 +160,7 @@ class ChangeoReader(TSVReader):
         self.handle = handle
         self.reader = csv.DictReader(self.handle, dialect='excel-tab')
         self.reader.fieldnames = [n.strip().upper() for n in self.reader.fieldnames]
+        self.fields = self.reader.fieldnames
 
     def _parse(self, record):
         """
@@ -272,6 +268,9 @@ class AIRRReader(TSVReader):
         except ImportError:
             sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
             self.reader = TSVReader(self.handle)
+
+        # Set field list
+        self.fields = self.reader.fields
 
     def _parse(self, record):
         """

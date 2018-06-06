@@ -134,7 +134,7 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
 
     # Open input
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle, receptor=True)
+    db_iter = ChangeoReader(db_handle)
 
     # Set output fields replacing length with end fields
     in_fields = [ChangeoSchema.toReceptor(f) for f in db_iter.fields]
@@ -198,7 +198,7 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
 
     # Open input
     db_handle = open(db_file, 'rt')
-    db_iter = AIRRReader(db_handle, receptor=True)
+    db_iter = AIRRReader(db_handle)
 
     # Set output fields replacing length with end fields
     in_fields = [AIRRSchema.toReceptor(f) for f in db_iter.fields]
