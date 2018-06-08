@@ -266,7 +266,7 @@ class AIRRReader(TSVReader):
             import airr
             self.reader = airr.io.RearrangementReader(self.handle, debug=False)
         except ImportError as e:
-            sys.exit('Error: AIRR library cannot be imported with error %s.' % e)
+            sys.exit('Error: AIRR library cannot be imported. %s.' % e)
             #sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
             #self.reader = TSVReader(self.handle)
 
@@ -326,7 +326,7 @@ class AIRRWriter(TSVWriter):
             import airr
             self.writer = airr.io.RearrangementWriter(self.handle, fields=fields, debug=False)
         except ImportError as e:
-            sys.exit('Error: AIRR library cannot be imported with error %s.' % e)
+            sys.exit('Error: AIRR library cannot be imported. %s.' % e)
             #sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
             #self.writer = TSVWriter(self.handle, fields=fields)
 
