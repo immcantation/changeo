@@ -266,7 +266,7 @@ class AIRRReader(TSVReader):
             import airr
             self.reader = airr.io.RearrangementReader(self.handle, debug=False)
         except ImportError:
-            sys.stderr.out('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
+            sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
             self.reader = TSVReader(self.handle)
 
         # Set field list
@@ -325,8 +325,7 @@ class AIRRWriter(TSVWriter):
             import airr
             self.writer = airr.io.RearrangementWriter(self.handle, fields=fields, debug=False)
         except ImportError:
-            sys.stderr.out(
-                'Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
+            sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
             self.writer = TSVWriter(self.handle, fields=fields)
 
     def _parseReceptor(self, record):
