@@ -5,22 +5,63 @@ Converts TSV files into IgPhyML input files
 
 # Imports
 import os
+import subprocess
 import sys
 from argparse import ArgumentParser
-from textwrap import dedent
 from collections import OrderedDict
+from textwrap import dedent
 from time import time
+from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog, printProgress
+from presto.IO import  printLog, printProgress, printMessage
 from changeo.Defaults import default_format, default_v_field, default_d_field, default_j_field
-from changeo.IO import AIRRReader, ChangeoReader, AIRRWriter, ChangeoWriter, \
-                       splitFileName, getDbFields, getFormatOperators, getRegions, getOutputHandle
+from changeo.IO import splitFileName, getDbFields, getFormatOperators, getRegions, getOutputHandle
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
-from Bio.Seq import Seq
 default_seq_field = 'SEQUENCE_IMGT'
+default_igphyml_exec = 'igphyml'
+
+
+def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
+               threads=1, exec=default_igphyml_exec):
+    """
+    Run IgPhyML
+
+    Arguments:
+      rep_file (str): repertoire tsv file.
+      rep_dir (str): directory containing input fasta files.
+      model (str): model to use.
+      motif (str): motifs argument.
+      threads : number of threads.
+      exec : the path to the IgPhyMl executable.
+
+    Returns:
+      str: name of the output tree file.
+    """
+    # cd rep_dir
+    # igphyml --repfile rep_file -m HLP17 --motifs FCH --omegaOpt e,e --run_id test -o tlr --threads 4 --minSeq 2
+
+    # Define igphyml command
+    cmd = [exec,
+           '--repfile', rep_file,
+           '-m', model,
+           '--motifs', motifs,
+           '--omegaOpt',  'e,e',
+           '-o', 'tlr',
+           '--minSeq', '2',
+           '--threads', str(threads)]
+
+    # Run IgPhyMl
+    try:
+        stdout_str = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=False,
+                                             universal_newlines=True, cwd=rep_dir)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
+
+    return None
 
 
 
@@ -387,86 +428,87 @@ def hasPTC(sequence):
             if sequence[i:(i+3)] in ptcs:
                 return i
     return -1
-'''
-def resolveClonalGermline(receptors, log=None,seq_field=default_seq_field,
-                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field):
-    """
-    Determine consensus clone sequence and create germline for clone
 
-    Arguments:
-      receptors : list of Receptor objects
-      seq_field : field in which to look for sequence
-      v_field : field in which to look for V call
-      d_field : field in which to look for D call
-      j_field : field in which to look for J call
 
-    Returns:
-      tuple : log dictionary, dictionary of {germline_type: germline_sequence},
-              dictionary of consensus {segment: gene call}
-    """
-    # Log
-    #log = OrderedDict()
+# def resolveClonalGermline(receptors, log=None,seq_field=default_seq_field,
+#                         v_field=default_v_field, d_field=default_d_field, j_field=default_j_field):
+#     """
+#     Determine consensus clone sequence and create germline for clone
+#
+#     Arguments:
+#       receptors : list of Receptor objects
+#       seq_field : field in which to look for sequence
+#       v_field : field in which to look for V call
+#       d_field : field in which to look for D call
+#       j_field : field in which to look for J call
+#
+#     Returns:
+#       tuple : log dictionary, dictionary of {germline_type: germline_sequence},
+#               dictionary of consensus {segment: gene call}
+#     """
+#     # Log
+#     #log = OrderedDict()
+#
+#     # Create dictionaries to count observed V/J calls
+#     v_dict = OrderedDict()
+#     j_dict = OrderedDict()
+#
+#     # Find longest sequence in clone
+#     max_length = 0
+#     for rec in receptors:
+#         v = rec.getVAllele(action='first', field=v_field)
+#         v_dict[v] = v_dict.get(v, 0) + 1
+#         j = rec.getJAllele(action='first', field=j_field)
+#         j_dict[j] = j_dict.get(j, 0) + 1
+#         seq_len = len(rec.getField(seq_field))
+#         if seq_len > max_length:
+#             max_length = seq_len
+#
+#     # Consensus V and J having most observations
+#     v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
+#     j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
+#
+#     # Consensus sequence(s) with consensus V/J calls and longest sequence
+#     cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
+#                                     x.getJAllele(action='first', field=j_field) in j_cons and \
+#                                     len(x.getField(seq_field)) == max_length]
+#     # Consensus sequence(s) with consensus V/J calls but not the longest sequence
+#     if not cons:
+#         cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
+#                                         x.getJAllele(action='first', field=j_field) in j_cons]
+#
+#     # Return without germline if no sequence has both consensus V and J call
+#     if not cons:
+#         return None
+#
+#     # Select consensus Receptor, resolving ties by alphabetical ordering of sequence id.
+#     cons = sorted(cons, key=lambda x: x.sequence_id)[0]
+#
+#     return cons.getField("germline_imgt_d_mask")
+#     # Pad end of consensus sequence with gaps to make it the max length
+#
+#     gap_length = max_length - len(cons.getField(seq_field))
+#     if gap_length > 0:
+#         cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
+#         cons.setField(seq_field, cons.getSeq(seq_field) + ('N' * gap_length))
+#
+#     # Update lengths padded to longest sequence in clone
+#     for rec in receptors:
+#         x = max_length - len(rec.getField(seq_field))
+#         rec.j_germ_length = int(rec.j_germ_length or 0) + x
+#         rec.setField(seq_field, rec.getSeq(seq_field) + ('N' * x))
+#
+#     # Stitch consensus germline
+#     #cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
+#     #                                           d_field=d_field, j_field=j_field)
+#
+#     # Update log
+#     log['CONSENSUS'] = cons.sequence_id
+#     log.update(cons_log)
+#
+#     # Return log
+#     return log, germlines, genes
 
-    # Create dictionaries to count observed V/J calls
-    v_dict = OrderedDict()
-    j_dict = OrderedDict()
-
-    # Find longest sequence in clone
-    max_length = 0
-    for rec in receptors:
-        v = rec.getVAllele(action='first', field=v_field)
-        v_dict[v] = v_dict.get(v, 0) + 1
-        j = rec.getJAllele(action='first', field=j_field)
-        j_dict[j] = j_dict.get(j, 0) + 1
-        seq_len = len(rec.getField(seq_field))
-        if seq_len > max_length:
-            max_length = seq_len
-
-    # Consensus V and J having most observations
-    v_cons = [k for k in list(v_dict.keys()) if v_dict[k] == max(v_dict.values())]
-    j_cons = [k for k in list(j_dict.keys()) if j_dict[k] == max(j_dict.values())]
-
-    # Consensus sequence(s) with consensus V/J calls and longest sequence
-    cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
-                                    x.getJAllele(action='first', field=j_field) in j_cons and \
-                                    len(x.getField(seq_field)) == max_length]
-    # Consensus sequence(s) with consensus V/J calls but not the longest sequence
-    if not cons:
-        cons = [x for x in receptors if x.getVAllele(action='first', field=v_field) in v_cons and \
-                                        x.getJAllele(action='first', field=j_field) in j_cons]
-
-    # Return without germline if no sequence has both consensus V and J call
-    if not cons:
-        return None
-
-    # Select consensus Receptor, resolving ties by alphabetical ordering of sequence id.
-    cons = sorted(cons, key=lambda x: x.sequence_id)[0]
-
-    return cons.getField("germline_imgt_d_mask")
-    # Pad end of consensus sequence with gaps to make it the max length
-       
-    gap_length = max_length - len(cons.getField(seq_field))
-    if gap_length > 0:
-        cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
-        cons.setField(seq_field, cons.getSeq(seq_field) + ('N' * gap_length))
-
-    # Update lengths padded to longest sequence in clone
-    for rec in receptors:
-        x = max_length - len(rec.getField(seq_field))
-        rec.j_germ_length = int(rec.j_germ_length or 0) + x
-        rec.setField(seq_field, rec.getSeq(seq_field) + ('N' * x))
-
-    # Stitch consensus germline
-    #cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
-    #                                           d_field=d_field, j_field=j_field)
-
-    # Update log
-    log['CONSENSUS'] = cons.sequence_id
-    log.update(cons_log)
-
-    # Return log
-    return log, germlines, genes
-    '''
 
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
                   min_seq=0):
@@ -496,7 +538,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             correctseqs = True
 
     if correctseqs:
-        print("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+        sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
               "Trying to correct this but check the alignment file to make sure things make sense." \
               % clones[0].clone)
         maxlen = sites
@@ -564,7 +606,7 @@ if germline is None:
         seqdiff = sites - len(germline)
         germline = germline + "N" * (seqdiff)
         if not correctseqs:
-            print("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+            sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
                   "Trying to correct this but check the alignment file to make sure things make sense." \
                   % clones[0].clone)
 
@@ -718,7 +760,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     log['COLLAPSE'] = collapse
     printLog(log)
 
-    start_time = time()
+    # Open output files
     pass_handle = getOutputHandle(db_file,
                                   out_label='lineages',
                                   out_dir=out_args['out_dir'],
@@ -781,7 +823,10 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     passreads = 0
     failreads = 0
     imgt_warn = None
-    print(" Correcting frames and indels of sequences..")
+
+    # Start indel correction
+    start_time = time()
+    printMessage('Correcting frames and indels of sequences', start_time=start_time, width=50)
     for r in records:
         if r.clone is None:
             print("Cannot export datasets until sequences are clustered into clones.")
@@ -877,10 +922,11 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             seq_fail += 1
             nf_fail += 1
 
+    # Start processing clones
     clonesizes = {}
     pass_count = 0
     nclones = 0
-    print(" Processing clones..")
+    printMessage('Processing clones', start_time=start_time, width=50)
     for k in clones.keys():
         if len(clones[str(k)]) < min_seq:
             for j in range(0, len(clones[str(k)])):
@@ -899,6 +945,9 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             seq_fail -= clonesizes[str(k)]
             minseq_fail  -= clonesizes[str(k)]
     fail_count = rec_count - pass_count
+
+    # End clone processing
+    printMessage('Done', start_time=start_time, end=True, width=50)
 
     log_handle = None
     if out_args['log_file'] is not None:
