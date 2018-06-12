@@ -260,6 +260,32 @@ see parameter estimates in
 parallelize the calculation across 2 threads using the ``--threads``
 flag.
 
+Heirarchical substitution models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Substitution models are specified using the ``-t`` for :math:`\kappa`
+(transition/transverion rate), ``--omegaOpt`` for :math:`\omega`
+(nonsynonymous/synonymous mutation rate), and ``--motifs`` and
+``--hotness`` for specifying the motif mutability models. The default
+for all of these is to estimate shared parameter values across all
+lineages, which is also specified by ``e``. The default motif model is
+symmetric WRC/GYW. So, the following two commands are equivalent::
+ 
+    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -o lr --run_id HLP
+ 
+    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -t e --omegaOpt e,e --motifs WRC_2:0,GYW_0:1 \
+        --hotness e,e -o lr --run_id HLP
+ 
+In both cases parameter estimates are recorded in
+``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. Note that here we use
+``-o lr``, which will only optimize branch lengths and substitution
+parameters. This will keep topologies the same as the GY94, but will
+estimate substitution parameters much more quickly. To estimate
+mutabilities of all six canonical hotspot motifs, use ``--motifs FCH``,
+for ‘Free coldspots and hotspots’, though this will result in extreme
+parameter values if there is insufficient information in the
+repertoire file.
+
 Partition models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
