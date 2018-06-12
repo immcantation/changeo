@@ -38,12 +38,6 @@ On Linux operating systems, you can usually just run::
 
     ./make_phyml_blas_omp
 
-on Ubuntu, or::
-
-    ./make_phyml_blas_omp_fedora
-
-on Red Hat based systems.
-
 If these commands dont work, you may need to install BLAS and LAPACK,
 which provide libraries for better doing matrix exponentiation
 operations. In Ubuntu Linux, these are provided in the packages
@@ -266,49 +260,6 @@ see parameter estimates in
 parallelize the calculation across 2 threads using the ``--threads``
 flag.
 
-Heirarchical substitution models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Substitution models are specified using the ``-t`` for :math:`\kappa`
-(transition/transverion rate), ``--omegaOpt`` for :math:`\omega`
-(nonsynonymous/synonymous mutation rate), and ``--motifs`` and
-``--hotness`` for specifying the motif mutability models. The default
-for all of these is to estimate a single parameter shared across all
-lineages, which is also specified by ``e``. The default motif model is
-symmetric WRC/GYW. So, the following two commands are equivalent::
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -o lr --run_id HLP
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -t e --omegaOpt e --motifs WRC_2:0,GYW_0:1 \
-        --hotness e,e -o lr --run_id HLP
- 
-In both cases parameter estimates are recorded in
-``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. Note that here we use
-``-o lr``, which will only optimize branch lengths and substitution
-parameters. This will keep topologies the same as the GY94, but will
-estimate substitution parameters much more quickly. To estimate
-mutabilities of all six canonical hotspot motifs, use ``--motifs FCH``,
-for ‘Free coldspots and hotspots’, though this will result in extreme
-parameter values if there is insufficient information in the
-repertoire file.
- 
-Alternatively to estimating parameters at the repertoire level, you
-can choose to estimate these parameters at the individual lineage
-level by specifying ``i`` instead of ``e``. For instance, to estimate
-:math:`\omega` for each lineage separately, while estimating all other
-parameters are the repertoire level::
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -t e --omegaOpt i --motifs WRC_2:0,GYW_0:1 \
-    --hotness e,e -o lr --run_id HLP
- 
-Here, ``ex_lineages.GY.tsv_igphyml_stats_HLP.txt`` will show the
-:math:`\omega` parameter estimates in the Submodels section, for each
-dataset individually.
- 
-.. note::
-
-    :math:`\pi` values are always estimated at the repertoire level.
-
 Partition models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -318,33 +269,9 @@ specify more than one value in the ``--omegaOpt`` option. For instance::
     igphyml --repfile ex_lineages.GY.tsv -m HLP17 --omegaOpt e,e -o lr --run_id HLP
  
 Will estimate a separate :math:`\omega` at the repertoire level for
-the FWRs (‘Omega 0’) and CDRs (‘Omega 1’) of each lineage.
-
-Confidence interval estimation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To understand uncertainty in parameter estimation, it is possible to
-estimate 95% confidence intervals (CI) for specified parameters using
-profile likelihoods. This essentially uses binary search to find a
-value of the specified parameter (while optimizing all other
-parameters) with a maximum likelihood of 1.96 log-likelihood units
-below the maximum likelihood with all parameters optimized. This can
-take a while, especially for small lineages which have large parameter
-bounds. To estimate the CI for any parameter, add a ’c’ to its
-designation, e.g. ’ce’ to estimate a repertoire-wide CI or ’ci’ for an
-individual lineage CI. To estimate a CI for :math:`\omega` parameters::
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 --omegaOpt ce -o lr --run_id HLP
- 
-Confidence intervals will be shown in the stats output file in
-parentheses next to the MLE parameter estimate. Here the CI for
-:math:`\omega` is (0.224764, 0.965389). This is a very time-consuming
-process, so be sure to use multiple threads and only calculate CIs for
-parameters of interest. Also, I have noticed some issues with CI
-estimation failing, which can happen especially when extreme parameter
-values are required. Let me know if you encounter these. I would
-recommend using BLAS optimization (see Installation) for this, to help
-with matrix exponentiation with higher parameter values.
+the FWRs (‘Omega 0’) and CDRs (‘Omega 1’) of each lineage. This is the default behavior
+if partition files are specified. If partition files are specified and you only
+want a single :math:`\omega` use ``--omegaOpt e``.
 
 Intermediate sequence reconstruction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

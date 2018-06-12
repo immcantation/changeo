@@ -591,16 +591,16 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         print("Be sure to cluster sequences into clones first and then predict germlines using --cloned")
         print("Stopping.")
         exit(1)
-        '''print("Resolving germline conflicts in ", str(c.clone))
-germline = resolveClonalGermline(clones, logs)
-print(germline)
-for c2 in clones:
-    if germline is None:
-        logs[c2.sequence_id]['PASS'] = False
-        logs[c2.sequence_id]['FAIL'] = "Failed to resolve germline"
-    print(c2.getField("germline_imgt_d_mask"))
-if germline is None:
-    return None'''
+#         '''print("Resolving germline conflicts in ", str(c.clone))
+# germline = resolveClonalGermline(clones, logs)
+# print(germline)
+# for c2 in clones:
+#     if germline is None:
+#         logs[c2.sequence_id]['PASS'] = False
+#         logs[c2.sequence_id]['FAIL'] = "Failed to resolve germline"
+#     print(c2.getField("germline_imgt_d_mask"))
+# if germline is None:
+#     return None'''
 
     if sites > (len(germline)):
         seqdiff = sites - len(germline)
