@@ -70,6 +70,11 @@ def filterMissing(data, seq_field=default_seq_field, v_field=default_v_field,
     # Define result object for iteration and get data records
     result = DbResult(data.id, data.data)
 
+    if not data:
+        result.data_pass = []
+        result.data_fail = data.data
+        return result
+
     result.data_pass = []
     result.data_fail = []
     for rec in data.data:
@@ -289,14 +294,9 @@ def distanceClones(result, seq_field=default_seq_field, model=default_distance_m
     # Define unique junction mapping
     seq_map = {}
     for rec in result.data_pass:
-        seq = rec.getSeq(seq_field)
-        # Check if sequence length is 0
-        if len(seq) == 0:
-            return None
-
-        seq = re.sub('[\.-]', 'N', str(seq))
+        seq = str(rec.getSeq(seq_field))
+        seq = re.sub('[\.-]', 'N', seq)
         if model == 'aa':  seq = translate(seq)
-
         seq_map.setdefault(seq, []).append(rec)
 
     # Define sequences
