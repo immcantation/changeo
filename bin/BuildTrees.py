@@ -221,37 +221,6 @@ def maskSplitCodons(receptor,recursive=False):
                                 receptor.sequence_input = ros
                                 receptor.sequence_imgt = ris
 
-                            '''
-                                message,site = mout[1]['FAIL'].split(":")
-                                if message == "FAILED_MATCH_QSTRING":
-                                    log['FAIL'] = "FRAME-SHIFTING INSERTION"
-                                    site = int(site)
-                                    if site != spos:
-                                        if debug:
-                                            print("frame fixed site %d %d" % (spos, site))
-                                        frameshifts += 1
-                                        qi = receptor.sequence_input
-                                        qi = qi[(receptor.v_seq_start - 1):]
-                                        si = receptor.sequence_imgt
-                                        nsi = ""
-                                        for i in range(0, len(si)):
-                                            if si[i] != "-":
-                                               nsi = nsi + si[i]
-                                        si = nsi
-                                        scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
-                                        qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
-                                        spos = ospos
-                                        qpos = oqpos
-                                        if debug:
-                                            print("just re-assigned "+scodons[spos] + "\t" + qcodons[qpos])
-                                        break
-                                if debug:
-                                    print(message)
-                                receptor.sequence_input = ros
-                                receptor.sequence_imgt = ris
-                                log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
-                                    #print(mout[1]['FAIL'] + "\t" + str(qpos) + "\t" + str(spos))
-                            '''
             elif spos >= s_end or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= s_end:
@@ -528,6 +497,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         int: number of clones.
     """
     duplicate = True # duplicate sequences in clones with only 1 sequence?
+    delim = "_"
     sites = len(sequences[0])
     imgtar = clones[0].getField("imgtpartlabels")
     s=""
@@ -559,7 +529,14 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             cimgt.extend([last]*(imgtdiff))
             clones[j].setField("imgtpartlabels",cimgt)
 
+    if meta_data is not None:
+        meta_data_ar = meta_data[0].split(",")
     for c in clones:
+        if meta_data is not None:
+            c.setField(meta_data[0],c.getField(meta_data_ar[0]))
+            for m in range(1,len(meta_data_ar)):
+                st = c.getField(meta_data[0])+":"+c.getField(meta_data_ar[m])
+                c.setField(meta_data[0],st)
         if len(c.getField("imgtpartlabels")) != len(imgtar):
             print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! ",c.clone)
             print(c.getField("imgtpartlabels"))
@@ -648,8 +625,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
 
     transtable = clones[0].sequence_id.maketrans(" ","_")
 
-    delim = "_"
-    useqs_f = {}
+    useqs_f = OrderedDict()
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
@@ -694,6 +670,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             cid = ""
             if meta_data is not None:
                 seq, cid = seq_f.split(delim)
+                clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
                 cid = delim + str(clones[num].getField(meta_data[0]))
             sid = clones[num].sequence_id.translate(transtable) + cid
             print(">%s\n%s" % (sid, seq), file=clonef)
@@ -707,6 +684,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         for j in range(0, nseqs):
             cid = ""
             if meta_data is not None:
+                clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
                 cid = delim+str(clones[j].getField(meta_data[0]))
             sid = clones[j].sequence_id.translate(transtable)+cid
             print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
