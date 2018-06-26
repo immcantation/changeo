@@ -8,8 +8,8 @@ import time
 import unittest
 
 # Presto and changeo imports
-from changeo.Receptor import Receptor, decodeBTOP, decodeCIGAR, encodeCIGAR, \
-                             padAlignment, alignmentPositions
+from changeo.Receptor import Receptor
+from changeo.Alignment import decodeBTOP, decodeCIGAR, encodeCIGAR, padAlignment, alignmentPositions
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))

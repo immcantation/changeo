@@ -2,6 +2,7 @@
 """
 Performs amino acid analysis of Ig sequences
 """
+
 # Info
 __author__ = 'Namita Gupta, Daniel Gadala-Maria'
 from changeo import __version__, __date__
@@ -22,7 +23,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
 from changeo.IO import getOutputHandle, getDbWriter, readDbFile, countDbFile
 
 # Defaults
-default_seq_field = 'JUNCTION'
+default_junction_field = 'JUNCTION'
 
 
 def gravy(aa_seq):
@@ -100,7 +101,7 @@ def AaProperties(seq):
     return props
 
 
-def analyzeAa(db_file, seq_field=default_seq_field, out_args=default_out_args):
+def analyzeAa(db_file, seq_field=default_junction_field, out_args=default_out_args):
     """
     Calculate amino acid properties for specified regions and add to database file
 
@@ -230,7 +231,7 @@ def getArgParser():
     parser.add_argument('--version', action='version',
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     parser.add_argument('--sf', action='store', dest='seq_field',
-                        default=default_seq_field,
+                        default=default_junction_field,
                         help='The name of the field to be analyzed')
     
     return parser

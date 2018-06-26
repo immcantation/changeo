@@ -2,6 +2,7 @@
 """
 Parses tab delimited database files
 """
+
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
@@ -15,7 +16,6 @@ import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
-from subprocess import check_output, CalledProcessError, STDOUT
 
 from textwrap import dedent
 from time import time
@@ -27,61 +27,24 @@ from Bio.Alphabet import IUPAC
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
 from presto.IO import printLog, printMessage, printProgress
-from changeo.Defaults import default_csv_size, default_format, default_out_args
+from changeo.Applications import default_tbl2asn_exec, runASN
+from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
+                             default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
+from changeo.Gene import c_gene_regex, parseAllele
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, TSVWriter, ReceptorData
-from changeo.Receptor import c_gene_regex, parseAllele, AIRRSchema, ChangeoSchema, Receptor
+                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData
+from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # System settings
 csv.field_size_limit(default_csv_size)
 
 # Defaults
-default_id_field = 'SEQUENCE_ID'
-default_seq_field = 'SEQUENCE_IMGT'
-default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_db_xref = 'IMGT/GENE-DB'
 default_molecule = 'mRNA'
 default_product = 'immunoglobulin heavy chain'
 default_allele_delim = '*'
-default_tbl2asn_exec='tbl2asn'
-
-def runASN(fasta, template=None, tbl2asn_exec=default_tbl2asn_exec):
-    """
-    Executes tbl2asn to generate Sequin files
-
-    Arguments:
-      fasta : fsa file.
-      template : sbt file.
-      tbl2asn_exec : the name or path to the tbl2asn executable.
-
-    Returns:
-      str : tbl2asn console output.
-    """
-    # Basic command that requires .fsa and .tbl files in the same directory
-    # tbl2asn -i records.fsa -a s -V vb -t template.sbt
-
-    # Define tb2asn command
-    cmd = [tbl2asn_exec,
-           '-i', os.path.abspath(fasta),
-           '-a', 's',
-           '-V', 'vb']
-    if template is not None:
-        cmd.extend(['-t', os.path.abspath(template)])
-
-    # Execute tbl2asn
-    try:
-        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
-                                  universal_newlines=True)
-    except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
-
-    if 'Unable to read any FASTA records' in stdout_str:
-        sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
-
-    return stdout_str
 
 
 def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
@@ -865,15 +828,15 @@ def getArgParser():
     # Subparser to convert changeo to AIRR files
     parser_airr = subparsers.add_parser('airr', parents=[default_parent],
                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Converts a Change-O database to an AIRR database.',
-                                       description='Converts a Change-O database to an AIRR database.')
+                                       help='Converts input to an AIRR TSV file.',
+                                       description='Converts input to an AIRR TSV file.')
     parser_airr.set_defaults(func=convertDbAIRR)
 
     # Subparser to convert AIRR to changeo files
     parser_airr = subparsers.add_parser('changeo', parents=[default_parent],
                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Converts an AIRR database to a Change-O database.',
-                                       description='Converts an AIRR database to a Change-O database.')
+                                       help='Converts input into a Change-O TSV file.',
+                                       description='Converts input into a Change-O TSV file.')
     parser_airr.set_defaults(func=convertDbChangeo)
 
     # Subparser to convert database entries to sequence file
@@ -920,8 +883,8 @@ def getArgParser():
     # Subparser to convert database entries to a GenBank fasta and feature table file
     parser_gb = subparsers.add_parser('genbank', parents=[genbank_parent],
                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Creates a fasta and feature table file for GenBank submissions.',
-                                       description='Creates a fasta and feature table file for GenBank submissions.')
+                                       help='Creates files for GenBank/TLS submissions.',
+                                       description='Creates files for GenBank/TLS submissions.')
     group_gb = parser_gb.add_argument_group('conversion arguments')
     group_gb.add_argument('--product', action='store', dest='product', default=default_product,
                           help='''The product name, such as "immunoglobulin heavy chain".''')

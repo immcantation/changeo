@@ -1,13 +1,11 @@
 """
-Sequence manipulation and annotation functions
+Receptor data structure
 """
 
 # Info
 __author__ = 'Jason Anthony Vander Heiden, Namita Gupta, Scott Christley'
-from changeo import __version__, __date__
 
 # Imports
-import re
 import sys
 from collections import OrderedDict
 from itertools import chain
@@ -16,18 +14,9 @@ from Bio.Alphabet import IUPAC
 # import yaml
 # from pkg_resources import resource_stream
 
-# Ig and TCR Regular expressions
-allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
-gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*))')
-family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+))')
-
-v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-
-allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
-c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
-
+# Presto and changeo imports
+from changeo.Gene import allele_number_regex, allele_regex, gene_regex, family_regex, \
+                         parseAllele
 
 # class Schema:
 #     """
@@ -1131,159 +1120,3 @@ class Receptor:
             return self.junction_start + self.junction_length - gaps - 1
         except TypeError:
             return None
-
-
-# TODO:  might be cleaner as getAllele(), getGene(), getFamily()
-def parseAllele(alleles, regex, action='first'):
-    """
-    Extract alleles from strings
-
-    Arguments:
-      alleles : string with allele calls
-      regex : compiled regular expression for allele match
-      action : action to perform for multiple alleles;
-               one of ('first', 'set', 'list').
-    Returns:
-      str : String of the allele when action is 'first';
-      tuple : Tuple of allele calls for 'set' or 'list' actions.
-    """
-    try:
-        match = [x.group(0) for x in regex.finditer(alleles)]
-    except:
-        match = None
-
-    if action == 'first':
-        return match[0] if match else None
-    elif action == 'set':
-        return tuple(sorted(set(match))) if match else None
-    elif action == 'list':
-        return tuple(sorted(match)) if match else None
-    else:
-        return None
-
-
-def decodeBTOP(btop):
-    """
-    Parse a BTOP string into a list of tuples in CIGAR annotation.
-
-    Arguments:
-      btop : BTOP string.
-
-    Returns:
-      list : tuples of (operation, length) for each operation in the BTOP string using CIGAR annotation.
-    """
-    # Determine chunk type and length
-    def _recode(m):
-        if m.isdigit():  return ('=', int(m))
-        elif m[0] == '-':  return ('I', len(m) // 2)
-        elif m[1] == '-':  return ('D', len(m) // 2)
-        else:  return ('X', len(m) // 2)
-
-    # Split BTOP string into sections
-    btop_split = re.sub(r'(\d+|[-A-Z]{2})', r'\1;', btop)
-    # Parse each chunk of encoding
-    matches = re.finditer(r'(\d+)|([A-Z]{2};)+|(-[A-Z];)+|([A-Z]-;)+', btop_split)
-
-    return [_recode(m.group().replace(';', '')) for m in matches]
-
-
-def decodeCIGAR(cigar):
-    """
-    Parse a CIGAR string into a list of tuples.
-
-    Arguments:
-      cigar : CIGAR string.
-
-    Returns:
-      list : tuples of (operation, length) for each operation in the CIGAR string.
-    """
-    matches = re.findall(r'(\d+)([A-Z])', cigar)
-
-    return [(m[1], int(m[0])) for m in matches]
-
-
-def encodeCIGAR(alignment):
-    """
-    Encodes a list of tuple with alignment information into a CIGAR string.
-
-    Arguments:
-      tuple : tuples of (type, length) for each alignment operation.
-
-    Returns:
-      str : CIGAR string.
-    """
-    return ''.join(['%i%s' % (x, s) for s, x in alignment])
-
-
-def padAlignment(alignment, q_start, r_start):
-    """
-    Pads the start of an alignment based on query and reference positions.
-
-    Arguments:
-      alignment : tuples of (operation, length) for each alignment operation.
-      q_start : query (input) start position (0-based)
-      r_start : reference (subject) start position (0-based)
-
-    Returns:
-      list : updated list of tuples of (operation, length) for the alignment.
-    """
-    # Copy list to avoid weirdness
-    result = alignment[:]
-
-    # Add query deletions
-    if result [0][0] == 'S':
-        result[0] = ('S', result[0][1] + q_start)
-    elif q_start > 0:
-        result.insert(0, ('S', q_start))
-
-    # Add reference padding if present
-    if result[0][0] == 'N':
-        result[0] = ('N', result[0][1] + r_start)
-    elif result [0][0] == 'S' and result[1][0] == 'N':
-        result[1] = ('N', result[1][1] + r_start)
-    elif result[0][0] == 'S' and r_start > 0:
-        result.insert(1, ('N', r_start))
-    elif r_start > 0:
-        result.insert(0, ('N', r_start))
-
-    return result
-
-
-def alignmentPositions(alignment):
-    """
-    Extracts start position and length from an alignment
-
-    Arguments:
-      alignment : tuples of (operation, length) for each alignment operation.
-
-    Returns:
-      dict : query (q) and reference (r) start and length information with keys
-             {q_start, q_length, r_start, r_length}.
-    """
-    # Return object
-    result = {'q_start': 0,
-              'q_length': 0,
-              'r_start': 0,
-              'r_length': 0}
-
-    # Query start
-    if alignment[0][0] == 'S':
-        result['q_start'] = alignment[0][1]
-
-    # Reference start
-    if alignment[0][0] == 'N':
-        result['r_start'] = alignment[0][1]
-    elif alignment[0][0] == 'S' and alignment[1][0] == 'N':
-        result['r_start'] = alignment[1][1]
-
-    # Reference length
-    for x, i in alignment:
-        if x in ('M', '=', 'X'):
-            result['r_length'] += i
-            result['q_length'] += i
-        elif x == 'D':
-            result['r_length'] += i
-        elif x == 'I':
-            result['q_length'] += i
-
-    return result

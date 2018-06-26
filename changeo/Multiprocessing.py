@@ -1,9 +1,9 @@
 """
-Multiprocessing functions
+Multiprocessing
 """
+
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from changeo import __version__, __date__
 
 # Imports
 import os
@@ -116,6 +116,10 @@ def feedDbQueue(alive, data_queue, db_file, reader=ChangeoReader, group_func=Non
         db_handle = open(db_file, 'rt')
         db_iter = reader(db_handle)
         if group_func is not None:
+            # import cProfile
+            # prof = cProfile.Profile()
+            # group_dict = prof.runcall(group_func, db_iter, **group_args)
+            # prof.dump_stats('feed-%d.prof' % os.getpid())
             group_dict = group_func(db_iter, **group_args)
             group_iter = iter(group_dict.items())
         else:

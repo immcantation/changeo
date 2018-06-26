@@ -2,6 +2,7 @@
 """
 Parses tab delimited database files
 """
+
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
@@ -18,7 +19,8 @@ from time import time
 
 # Presto and changeo imports
 from presto.IO import printLog, printProgress, printMessage
-from changeo.Defaults import default_csv_size, default_out_args
+from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
+                             default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, getOutputHandle, splitFileName, TSVReader, TSVWriter
 
@@ -26,9 +28,6 @@ from changeo.IO import countDbFile, getOutputHandle, splitFileName, TSVReader, T
 csv.field_size_limit(default_csv_size)
 
 # Defaults
-default_id_field = 'SEQUENCE_ID'
-default_seq_field = 'SEQUENCE_IMGT'
-default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_index_field = 'INDEX'
 
 

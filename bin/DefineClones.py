@@ -2,6 +2,7 @@
 """
 Assign Ig sequences into clones
 """
+
 # Info
 __author__ = 'Namita Gupta, Jason Anthony Vander Heiden, Gur Yaari, Mohamed Uduman'
 from changeo import __version__, __date__
@@ -21,7 +22,7 @@ from Bio.Seq import translate
 from presto.Defaults import default_out_args
 from presto.IO import printLog, printProgress
 from presto.Multiprocessing import manageProcesses
-from changeo.Defaults import default_format, default_v_field, default_j_field
+from changeo.Defaults import default_format, default_v_field, default_j_field, default_junction_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
@@ -34,7 +35,6 @@ default_distance = 0.0
 default_index_mode = 'gene'
 default_index_action = 'set'
 default_distance_model = 'ham'
-default_seq_field = 'JUNCTION'
 default_norm = 'len'
 default_sym = 'avg'
 default_linkage = 'single'
@@ -44,7 +44,7 @@ choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f',
                           'hs1f_compat', 'm1n_compat')
 
 
-def filterMissing(data, seq_field=default_seq_field, v_field=default_v_field,
+def filterMissing(data, seq_field=default_junction_field, v_field=default_v_field,
                   j_field=default_j_field, max_missing=default_max_missing):
     """
     Splits a set of sequence into passed and failed groups based on the number
@@ -256,7 +256,7 @@ def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=def
     return clone_index
 
 
-def distanceClones(result, seq_field=default_seq_field, model=default_distance_model,
+def distanceClones(result, seq_field=default_junction_field, model=default_distance_model,
                    distance=default_distance, dist_mat=None, norm=default_norm, sym=default_sym,
                    linkage=default_linkage):
     """
@@ -481,7 +481,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
     return None
 
 
-def defineClones(db_file, seq_field=default_seq_field, v_field=default_v_field,
+def defineClones(db_file, seq_field=default_junction_field, v_field=default_v_field,
                  j_field=default_j_field, max_missing=default_max_missing,
                  group_fields=None, group_func=groupByGene, group_args={},
                  clone_func=distanceClones, clone_args={},
@@ -616,7 +616,7 @@ def getArgParser():
 
     # Distance cloning method
     group = parser.add_argument_group('cloning arguments')
-    group.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
+    group.add_argument('--sf', action='store', dest='seq_field', default=default_junction_field,
                         help='Field to be used to calculate distance between records.')
     group.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
                         help='Field containing the germline V segment call.')
@@ -687,7 +687,7 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # # Set default fields if not specified.
-    # default_fields = {'seq_field': default_seq_field,
+    # default_fields = {'seq_field': default_junction_field,
     #                   'v_field': default_v_field,
     #                   'j_field': default_j_field}
     #

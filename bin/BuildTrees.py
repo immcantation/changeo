@@ -3,9 +3,12 @@
 Converts TSV files into IgPhyML input files
 """
 
+# Info
+__author__ = 'Kenneth Hoehn'
+from changeo import __version__, __date__
+
 # Imports
 import os
-import subprocess
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -15,54 +18,11 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog, printProgress, printMessage
-from changeo.Defaults import default_format, default_v_field, default_d_field, default_j_field
-from changeo.IO import splitFileName, getDbFields, getFormatOperators, getRegions, getOutputHandle
+from presto.IO import  printLog, printMessage
+from changeo.Defaults import default_format
+from changeo.IO import splitFileName, getDbFields, getFormatOperators, getOutputHandle
+from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-
-default_seq_field = 'SEQUENCE_IMGT'
-default_igphyml_exec = 'igphyml'
-
-
-def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
-               threads=1, exec=default_igphyml_exec):
-    """
-    Run IgPhyML
-
-    Arguments:
-      rep_file (str): repertoire tsv file.
-      rep_dir (str): directory containing input fasta files.
-      model (str): model to use.
-      motif (str): motifs argument.
-      threads : number of threads.
-      exec : the path to the IgPhyMl executable.
-
-    Returns:
-      str: name of the output tree file.
-    """
-    # cd rep_dir
-    # igphyml --repfile rep_file -m HLP17 --motifs FCH --omegaOpt e,e --run_id test -o tlr --threads 4 --minSeq 2
-
-    # Define igphyml command
-    cmd = [exec,
-           '--repfile', rep_file,
-           '-m', model,
-           '--motifs', motifs,
-           '--omegaOpt',  'e,e',
-           '-o', 'tlr',
-           '--minSeq', '2',
-           '--threads', str(threads)]
-
-    # Run IgPhyMl
-    try:
-        stdout_str = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=False,
-                                             universal_newlines=True, cwd=rep_dir)
-    except subprocess.CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
-
-    return None
-
 
 
 def maskSplitCodons(receptor,recursive=False):

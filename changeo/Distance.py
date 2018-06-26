@@ -1,9 +1,9 @@
 """
-Distance data structures and functions
+Distance calculations
 """
+
 # Info
 __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
-from changeo import __version__, __date__
 
 # Imports
 import numpy as np

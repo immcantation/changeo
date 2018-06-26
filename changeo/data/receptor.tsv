@@ -1,0 +1,111 @@
+Name	Type	Description	Change-O	AIRR	IMGT
+sequence_id	Unique sequence identifier	identity	SEQUENCE_ID	sequence_id	Sequence ID
+sequence_input	Query nucleotide sequence.	nucleotide	SEQUENCE_INPUT	sequence	Sequence
+sequence_vdj	Aligned V(D)J sequence.	nucleotide	SEQUENCE_VDJ		['V-D-J-REGION', 'V-J-REGION', 'V-REGION']
+sequence_imgt	IMGT-gapped, aligned V(D)J sequence.	nucleotide	SEQUENCE_IMGT	sequence_alignment	['V-D-J-REGION', 'V-J-REGION', 'V-REGION']
+junction	Junction region nucleotide sequence.	nucleotide	JUNCTION	junction	JUNCTION
+junction_aa	Junction region amino acid sequence.	aminoacid	JUNCTION_AA	junction_aa	AA JUNCTION
+junction_start	Start position of the junction in the query sequence.	integer			JUNCTION start
+junction_end	End position of the junction in the query sequence.	integer			JUNCTION end
+junction_length	Number of nucleotides in the junction region.	integer	JUNCTION_LENGTH	junction_length	JUNCTION-nt nb
+germline_vdj	Inferred germline sequence aligned with the 'sequence_align' field.	nucleotide	GERMLINE_VDJ		
+germline_vdj_d_mask	Inferred germline sequence aligned with the 'sequence_align' field and having the D segment masked.	nucleotide	GERMLINE_VDJ_D_MASK		
+germline_imgt	Inferred germline sequence aligned with the 'sequence_imgt' field.	nucleotide	GERMLINE_IMGT	germline_alignment	
+germline_imgt_d_mask	Inferred germline sequence aligned with the 'sequence_imgt' field and having the D segment masked.	nucleotide	GERMLINE_IMGT_D_MASK	germline_alignment_d_mask	
+v_call	V gene with allele.	identity	V_CALL	v_call	V-GENE and allele
+d_call	D gene with allele.	identity	D_CALL	d_call	D-GENE and allele
+j_call	J gene with allele.	identity	J_CALL	j_call	J-GENE and allele
+c_call	C region with allele.	identity	C_CALL	c_call	
+locus	Gene locus.	identity	LOCUS	locus	
+rev_comp	True if the the alignment is on the opposite strand (reverse complemented).	boolean	REV_COMP	rev_comp	Orientation
+functional	True if the V(D)J sequence is a functional gene and is predicted to be productive.	boolean	FUNCTIONAL	productive	V-DOMAIN Functionality
+in_frame	True if the V and J segment alignments are in-frame.	boolean	IN_FRAME	vj_in_frame	JUNCTION frame
+stop	True if the aligned sequence contains a stop codon.	boolean	STOP	stop_codon	V-DOMAIN Functionality comment
+mutated_invariant	True the aligment contains a mutated conserved amino acid.	boolean	MUTATED_INVARIANT	mutated_invariant	['V-DOMAIN Functionality comment', 'V-REGION potential ins/del']
+indels	True if the V(D)J sequence contains insertions and/or deletions.	boolean	INDELS	indels	['V-REGION potential ins/del', 'V-REGION insertions', 'V-REGION deletions']
+v_seq_start	Start position of the V segment in the query sequence.	integer	V_SEQ_START	v_sequence_start	V-REGION start
+v_seq_end	End of the V segment in the query sequence.	integer		v_sequence_end	V-REGION end
+v_seq_length	Length of the V segment in the query sequence.	integer	V_SEQ_LENGTH		
+v_germ_start_vdj	Alignment start position in the V reference sequence.	integer	V_GERM_START_VDJ		
+v_germ_end_vdj	Alignment end position in the V reference sequence.	integer			
+v_germ_length_vdj	Alignment length in the V reference sequence.	integer	V_GERM_LENGTH_VDJ		
+v_germ_start_imgt	Alignment start position in the IMGT-gapped V reference sequence.	integer	V_GERM_START_IMGT	v_germline_start	
+v_germ_end_imgt	Alignment end position in the IMGT-gapped V reference sequence.	integer		v_germline_end	
+v_germ_length_imgt	Alignment length in the IMGT-gapped V reference sequence.	integer	V_GERM_LENGTH_IMGT		
+np1_start	Start position of the nucleotides between the V and D segments or V and J segments.	integer			
+np1_end	End position of the nucleotides between the V and D segments or V and J segments.	integer			
+np1_length	Number of nucleotides between the V and D segments or V and J segments.	integer	NP1_LENGTH	np1_length	"[""P3'V-nt nb"", 'N-REGION-nt nb', 'N1-REGION-nt nb', ""P5'D-nt nb""]"
+d_seq_start	Start position of the D segment in the query sequence.	integer	D_SEQ_START	d_sequence_start	D-REGION start
+d_seq_end	End position of the D segment in the query sequence.	integer		d_sequence_end	D-REGION end
+d_seq_length	Length of the D segment in the query sequence.	integer	D_SEQ_LENGTH		D-REGION-nt nb
+d_germ_start	Alignment start position in the D reference sequence.	integer	D_GERM_START	d_germline_start	5'D-REGION trimmed-nt nb
+d_germ_end	Alignment end position in the D reference sequence.	integer		d_germline_end	
+d_germ_length	Length of the alignment to the D reference sequence.	integer	D_GERM_LENGTH		D-REGION-nt nb
+np2_start	Start position of the nucleotides between the D and J segments.	integer			
+np2_end	End position of the nucleotides between the D and J segments.	integer			
+np2_length	Number of nucleotides between the D and J segments.	integer	NP2_LENGTH	np2_length	"[""P3'D-nt nb"", 'N2-REGION-nt nb', ""P5'J-nt nb""]"
+j_seq_start	Start position of the J segment in the query sequence.	integer	J_SEQ_START	j_sequence_start	J-REGION start
+j_seq_end	End position of the J segment in the query sequence.	integer		j_sequence_end	J-REGION end
+j_seq_length	Length of the J segment in the query sequence.	integer	J_SEQ_LENGTH		
+j_germ_start	Alignment start position in the J reference sequence.	integer	J_GERM_START	j_germline_start	5'J-REGION trimmed-nt nb
+j_germ_end	Alignment start position in the J reference sequence.	integer		j_germline_end	
+j_germ_length	Alignment length of the J reference sequence.	integer	J_GERM_LENGTH		
+np1	Nucleotide sequence of the combined N/P region between the V and D segments or V and J segments.	nucleotide	NP1	np1	"[""P3'V"", 'N-REGION', 'N1-REGION', ""P5'D""]"
+np2	Nucleotide sequence of the combined N/P region between the D and J segments.	nucleotide	NP2	np2	"[""P3'D"", 'N2-REGION', ""P5'J""]"
+fwr1	Nucleotide sequence of the aligned FWR1 region.	nucleotide	FWR1_IMGT	fwr1	FR1-IMGT
+fwr2	Nucleotide sequence of the aligned FWR2 region.	nucleotide	FWR2_IMGT	fwr2	FR2-IMGT
+fwr3	Nucleotide sequence of the aligned FWR3 region.	nucleotide	FWR3_IMGT	fwr3	FR3-IMGT
+fwr4	Nucleotide sequence of the aligned FWR4 region.	nucleotide	FWR4_IMGT	fwr4	FR4-IMGT
+cdr1	Nucleotide sequence of the aligned CDR1 region.	nucleotide	CDR1_IMGT	cdr1	CDR1-IMGT
+cdr2	Nucleotide sequence of the aligned CDR2 region.	nucleotide	CDR2_IMGT	cdr2	CDR2-IMGT
+cdr3	Nucleotide sequence of the aligned CDR3 region.	nucleotide	CDR3_IMGT	cdr3	CDR3-IMGT
+fwr1_start	FWR1 start position in the query sequence.	integer		fwr1_start	FR1-IMGT start
+fwr1_end	FWR1 end position in the query sequence.	integer		fwr1_end	FR1-IMGT end
+fwr2_start	FWR2 start position in the query sequence.	integer		fwr2_start	FR2-IMGT start
+fwr2_end	FWR2 end position in the query sequence.	integer		fwr2_end	FR2-IMGT end
+fwr3_start	FWR3 start position in the query sequence.	integer		fwr3_start	FR3-IMGT start
+fwr3_end	FWR3 end position in the query sequence.	integer		fwr3_end	FR3-IMGT end
+fwr4_start	FWR4 start position in the query sequence.	integer		fwr4_start	FR4-IMGT start
+fwr4_end	FWR4 end position in the query sequence.	integer		fwr4_end	FR4-IMGT end
+cdr1_start	CDR1 start position in the query sequence.	integer		cdr1_start	CDR1-IMGT start
+cdr1_end	CDR1 end position in the query sequence.	integer		cdr1_end	CDR1-IMGT end
+cdr2_start	CDR2 start position in the query sequence.	integer		cdr2_start	CDR2-IMGT start
+cdr2_end	CDR2 end position in the query sequence.	integer		cdr2_end	CDR2-IMGT end
+cdr3_start	CDR3 start position in the query sequence.	integer		cdr3_start	CDR3-IMGT start
+cdr3_end	CDR3 end position in the query sequence.	integer		cdr3_end	CDR3-IMGT end
+v_score	V alignment score.	float	V_SCORE	v_score	V-REGION score
+v_identity	V alignment fractional identity.	float	V_IDENTITY	v_identity	V-REGION identity %
+v_evalue	V alignment E-value.	float	V_EVALUE	v_support	
+v_cigar	V alignment CIGAR string.	identity	V_CIGAR	v_cigar	
+v_btop	V alignment BTOP string.	identity	V_BTOP		
+d_score	D alignment score.	float	D_SCORE	d_score	D-REGION score
+d_identity	D alignment fractional identity.	float	D_IDENTITY	d_identity	D-REGION identity %
+d_evalue	D alignment E-value.	float	D_EVALUE	d_support	
+d_cigar	D alignment CIGAR string.	identity	D_CIGAR	d_cigar	
+d_btop	D alignment BTOP string.	identity	D_BTOP		
+j_score	J alignment score.	float	J_SCORE	j_score	J-REGION score
+j_identity	J alignment fractional identity.	float	J_IDENTITY	j_identity	J-REGION identity %
+j_evalue	J alignment E-value.	float	J_EVALUE	j_support	
+j_cigar	J alignment CIGAR string.	identity	J_CIGAR	j_cigar	
+j_btop	V alignment BTOP string.	identity	J_BTOP		
+c_score	C region alignment score.	float	C_SCORE	c_score	
+c_identity	C region alignment fractional identity.	float	C_IDENTITY	c_identity	
+c_evalue	C region alignment E-value.	float	C_EVALUE	c_support	
+c_cigar	C region alignment CIGAR string.	identity	C_CIGAR	c_cigar	
+c_btop	V alignment BTOP string.	identity	C_BTOP		
+vdj_score	Alignment score for aligners that consider the full sequence.	float	VDJ_SCORE	vdj_score	
+vdj_identity	Alignment fractional identity for aligners that consider the full sequence.	float	VDJ_IDENTITY	vdj_identity	
+vdj_evalue	Alignment E-value for aligners that consider the full sequence.	float	VDJ_EVALUE	vdj_support	
+vdj_cigar	CIGAR string for the full V(D)J alignment.	identity	VDJ_CIGAR	vdj_cigar	
+vdj_btop	BTOP string for the full V(D)J alignment.	identity	VDJ_BTOP		
+n1_length	Number of untemplated nucleotides 5' of the D segment.	integer	N1_LENGTH	n1_length	['N-REGION-nt nb', 'N1-REGION-nt nb']
+n2_length	Number of untemplated nucleotides 3' of the D segment.	integer	N2_LENGTH	n2_length	N2-REGION-nt nb
+p3v_length	Number of palindromic nucleotides 3' of the V segment.	integer	P3V_LENGTH	p3v_length	P3'V-nt nb
+p5d_length	Number of palindromic nucleotides 5' of the D segment.	integer	P5D_LENGTH	p5d_length	P5'D-nt nb
+p3d_length	Number of palindromic nucleotides 3' of the D segment.	integer	P3D_LENGTH	p3d_length	P3'D-nt nb
+p5j_length	Number of palindromic nucleotides 5' of the J segment.	integer	P5J_LENGTH	p5j_length	P5'J-nt nb
+d_frame	Reading frame of the D segment.	integer	D_FRAME		D-REGION reading frame
+dupcount	Copy number or number of duplicate observations of the sequence.	integer	DUPCOUNT	duplicate_count	
+conscount	Number of reads contributing to the (UMI) consensus for this sequence.	integer	CONSCOUNT	consensus_count	
+clone	Clonal cluster assignment for the query sequence.	identity	CLONE	clone_id	
+cell	Cell identifier.	identity	CELL	cell_id	

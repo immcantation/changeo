@@ -4,7 +4,6 @@ Default parameters
 
 # Info
 __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
-from changeo import __version__, __date__
 
 # System settings
 default_csv_size = 2**24
@@ -13,6 +12,10 @@ default_csv_size = 2**24
 default_v_field = 'V_CALL'
 default_d_field = 'D_CALL'
 default_j_field = 'J_CALL'
+default_id_field = 'SEQUENCE_ID'
+default_seq_field = 'SEQUENCE_IMGT'
+default_germ_field = 'GERMLINE_IMGT_D_MASK'
+default_junction_field = 'JUNCTION'
 default_clone_field = 'CLONE'
 
 # Commandline arguments
