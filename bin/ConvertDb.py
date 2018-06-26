@@ -27,14 +27,15 @@ from Bio.Alphabet import IUPAC
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
 from presto.IO import printLog, printMessage, printProgress
+from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
-from changeo.Gene import c_gene_regex, parseAllele
+from changeo.Gene import c_gene_regex, parseAllele, buildGermline
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData
+                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # System settings
@@ -52,13 +53,13 @@ def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
     Parses a database record into a SeqRecord
 
     Arguments: 
-    db_record = a dictionary containing a database record
-    id_field = the field containing identifiers
-    seq_field = the field containing sequences
-    meta_fields = a list of fields to add to sequence annotations
+      db_record : a dictionary containing a database record.
+      id_field : the field containing identifiers.
+      seq_field : the field containing sequences.
+      meta_fields : a list of fields to add to sequence annotations.
 
     Returns: 
-    a SeqRecord
+      Bio.SeqRecord.SeqRecord: record.
     """
     # Return None if ID or sequence fields are empty
     if not db_record[id_field] or not db_record[seq_field]:
@@ -75,6 +76,47 @@ def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
                            id=desc_str, name=desc_str, description='')
         
     return seq_record
+
+
+def correctIMGTFields(receptor, references):
+    """
+    Add IMGT-gaps to IMGT fields in a Receptor object
+
+    Arguments:
+      receptor (changeo.Receptor.Receptor): Receptor object to modify.
+      references (dict): dictionary of IMGT-gapped references sequences.
+
+    Returns:
+      changeo.Receptor.Receptor: modified Receptor with IMGT-gapped fields.
+    """
+    # Initialize update object
+    imgt_dict = {'sequence_imgt': None,
+                 'v_germ_start_imgt': None,
+                 'v_germ_length_imgt': None,
+                 'germline_imgt': None}
+
+    try:
+        if not all([receptor.sequence_imgt,
+                    receptor.v_germ_start_imgt,
+                    receptor.v_germ_length_imgt,
+                    receptor.v_call]):
+            raise AttributeError
+    except AttributeError:
+        return receptor
+
+    # Update IMGT fields
+    gapped = gapV(receptor.sequence_imgt,
+                  receptor.v_germ_start_imgt,
+                  receptor.v_germ_length_imgt,
+                  receptor.v_call,
+                  references)
+    __, germlines, __ = buildGermline(receptor, references)
+    gapped['germline_imgt'] = None if germlines is None else germlines['full']
+
+    imgt_dict.update(gapped)
+    receptor.setDict(imgt_dict, parse=True)
+
+    return receptor
 
 
 def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
@@ -141,12 +183,13 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     return pass_handle.name
 
 
-def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
+def convertDbChangeo(db_file, repo=None, out_file=None, out_args=default_out_args):
     """
     Converts a AIRR formatted file into an Change-O formatted file
 
     Arguments:
       db_file = the database file name.
+      repo : folder with germline repertoire files. If None, do not updated IMGT sequence columns.
       out_file : output file name. Automatically generated from the input file if None.
       out_args = common output argument dictionary from parseCommonArgs.
 
@@ -180,6 +223,9 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
     # Count records
     result_count = countDbFile(db_file)
 
+    # Load references
+    references = readGermlines(repo) if repo is not None else None
+
     # Iterate over records
     start_time = time()
     rec_count = 0
@@ -187,6 +233,9 @@ def convertDbChangeo(db_file, out_file=None, out_args=default_out_args):
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
+        # Update IMGT fields
+        if references is not None:
+            rec = correctIMGTFields(rec, references)
         # Write records
         pass_writer.writeReceptor(rec)
 
@@ -827,17 +876,26 @@ def getArgParser():
 
     # Subparser to convert changeo to AIRR files
     parser_airr = subparsers.add_parser('airr', parents=[default_parent],
-                                       formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Converts input to an AIRR TSV file.',
-                                       description='Converts input to an AIRR TSV file.')
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Converts input to an AIRR TSV file.',
+                                        description='Converts input to an AIRR TSV file.')
+    group_airr = parser_airr.add_argument_group('conversion arguments')
     parser_airr.set_defaults(func=convertDbAIRR)
 
     # Subparser to convert AIRR to changeo files
-    parser_airr = subparsers.add_parser('changeo', parents=[default_parent],
+    parser_changeo = subparsers.add_parser('changeo', parents=[default_parent],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Converts input into a Change-O TSV file.',
                                        description='Converts input into a Change-O TSV file.')
-    parser_airr.set_defaults(func=convertDbChangeo)
+    group_changeo = parser_changeo.add_argument_group('conversion arguments')
+    group_changeo.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+                               help='''List of folders and/or fasta files containing
+                                    IMGT-gapped germline sequences corresponding to the
+                                    set of germlines used for the alignment. Specifying 
+                                    this argument is not required, but doing so will add IMGT-gaps 
+                                    to the sequence_alignment and rebuild the germline_alignment. 
+                                    Requires the v_germline_start and v_germline_end fields.''')
+    parser_changeo.set_defaults(func=convertDbChangeo)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],

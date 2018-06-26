@@ -39,7 +39,7 @@ def addGermline(receptor, references):
     Returns:
       changeo.Receptor.Receptor: modified Receptor with the germline_imgt attribute added.
     """
-    log, germlines, __ = buildGermline(receptor, references)
+    __, germlines, __ = buildGermline(receptor, references)
     germline_seq = None if germlines is None else germlines['full']
     receptor.setField('germline_imgt', germline_seq)
 
@@ -483,7 +483,8 @@ def getArgParser():
                   V_SEQ_START, V_SEQ_LENGTH,
                   D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
                   J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
-                  JUNCTION_LENGTH, JUNCTION, NP1_LENGTH, NP2_LENGTH,
+                  NP1_LENGTH, NP2_LENGTH,
+                  JUNCTION_LENGTH, JUNCTION, GERMLINE_IMGT, 
                   FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
                   CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
 
