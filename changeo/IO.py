@@ -772,7 +772,7 @@ class IMGTReader:
           junction : dictionary containing one row of the '6_Junction' file.
 
         Returns:
-          dict : database entry for the row.
+          dict: database entry for the row.
         """
         # Check that rows are syncronized
         id_set = [summary['Sequence ID'],

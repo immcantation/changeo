@@ -242,7 +242,8 @@ class ChangeoSchema:
                                  ('J_GERM_START', 'j_germ_start'),
                                  ('J_GERM_LENGTH', 'j_germ_length'),
                                  ('JUNCTION', 'junction'),
-                                 ('JUNCTION_LENGTH', 'junction_length')])
+                                 ('JUNCTION_LENGTH', 'junction_length'),
+                                 ('GERMLINE_IMGT', 'germline_imgt')])
     standard_fields = list(_standard_map.keys())
 
     # Custom fields

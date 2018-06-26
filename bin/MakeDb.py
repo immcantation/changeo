@@ -22,9 +22,28 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+from changeo.Gene import buildGermline
 from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
                        AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
+
+
+def addGermline(receptor, references):
+    """
+    Add full length germline to Receptor object
+
+    Arguments:
+      receptor (changeo.Receptor.Receptor): Receptor object to modify.
+      references (dict): dictionary of IMGT-gapped references sequences.
+
+    Returns:
+      changeo.Receptor.Receptor: modified Receptor with the germline_imgt attribute added.
+    """
+    log, germlines, __ = buildGermline(receptor, references)
+    germline_seq = None if germlines is None else germlines['full']
+    receptor.setField('germline_imgt', germline_seq)
+
+    return receptor
 
 
 def getIDforIMGT(seq_file):
@@ -217,7 +236,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
 
 
 # TODO:  may be able to merge with other mains
-def parseIMGT(aligner_file, seq_file=None, partial=False, asis_id=True,
+def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=True,
               parse_scores=False, parse_regions=False, parse_junction=False,
               format=default_format, out_file=None, out_args=default_out_args):
     """
@@ -226,6 +245,7 @@ def parseIMGT(aligner_file, seq_file=None, partial=False, asis_id=True,
     Arguments:
       aligner_file : zipped file or unzipped folder output by IMGT.
       seq_file : FASTA file input to IMGT (from which to get seqID).
+      repo : folder with germline repertoire files.
       partial : If True put incomplete alignments in the pass file.
       asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       parse_scores : if True add alignment score fields to output file.
@@ -278,8 +298,19 @@ def parseIMGT(aligner_file, seq_file=None, partial=False, asis_id=True,
             open(imgt_files['gapped'], 'r') as gapped_handle, \
             open(imgt_files['ntseq'], 'r') as ntseq_handle, \
             open(imgt_files['junction'], 'r') as junction_handle:
+
+        # Open parser
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle)
-        output = writeDb(parse_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+
+        # Add germline sequence
+        if repo is None:
+            germ_iter = parse_iter
+        else:
+            references = readGermlines(repo)
+            germ_iter = (addGermline(x, references) for x in parse_iter)
+
+        # Write db
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          id_dict=id_dict, asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -333,7 +364,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = readGermlines(repo, asis=asis_calls)
+    references = readGermlines(repo, asis=asis_calls)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define format operators
@@ -351,8 +382,9 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = IgBLASTReader(f, seq_dict, repo_dict, asis_calls=asis_calls)
-        output = writeDb(parse_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+        parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
+        germ_iter = (addGermline(x, references) for x in parse_iter)
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          partial=partial, asis_id=asis_id,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -400,7 +432,7 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
     # Get input sequence dictionary
     seq_dict = getSeqDict(seq_file)
     # Create germline repo dictionary
-    repo_dict = readGermlines(repo)
+    references = readGermlines(repo)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
     # Define format operators
@@ -418,8 +450,9 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = IHMMuneReader(f, seq_dict, repo_dict)
-        output = writeDb(parse_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+        parse_iter = IHMMuneReader(f, seq_dict, references)
+        germ_iter = (addGermline(x, references) for x in parse_iter)
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -548,10 +581,17 @@ def getArgParser():
                                   folder containing unzipped IMGT output files (which must
                                   include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
                                   and 6_Junction).''')
-    group_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files',
-                             required=False,
-                             help='''List of input FASTA files (with .fasta, .fna or .fa
-                                  extension) containing sequences.''')
+    group_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files', required=False,
+                            help='''List of FASTA files (with .fasta, .fna or .fa
+                                  extension) that were submitted to IMGT/HighV-QUEST. 
+                                  If unspecified, sequence identifiers truncated by IMGT/HighV-QUEST
+                                  will not be corrected.''')
+    group_imgt.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+                            help='''List of folders and/or fasta files containing
+                                 IMGT-gapped germline sequences corresponding to the
+                                 set of germlines used by IMGT/HighV-QUEST. If unspecified, 
+                                 the germline sequence reconstruction will not be included in 
+                                 the output.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -637,18 +677,11 @@ if __name__ == "__main__":
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
     
-    if args.command == 'imgt':
-        for i, f in enumerate(args.__dict__['aligner_files']):
-            args_dict['aligner_file'] = f
-            args_dict['seq_file'] = args.__dict__['seq_files'][i] \
-                                    if args.__dict__['seq_files'] else None
-            args_dict['out_file'] = args.__dict__['out_files'][i] \
-                                    if args.__dict__['out_files'] else None
-            args.func(**args_dict)
-    elif args.command == 'igblast' or args.command == 'ihmm':
-        for i, f in enumerate(args.__dict__['aligner_files']):
-            args_dict['aligner_file'] =  f
-            args_dict['seq_file'] = args.__dict__['seq_files'][i]
-            args_dict['out_file'] = args.__dict__['out_files'][i] \
-                                    if args.__dict__['out_files'] else None
-            args.func(**args_dict)
+    # Call main
+    for i, f in enumerate(args.__dict__['aligner_files']):
+        args_dict['aligner_file'] = f
+        args_dict['seq_file'] = args.__dict__['seq_files'][i] \
+                                if args.__dict__['seq_files'] else None
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+                                if args.__dict__['out_files'] else None
+        args.func(**args_dict)
