@@ -30,7 +30,7 @@ from presto.IO import printLog, printMessage, printProgress
 from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
-                             default_csv_size, default_format, default_out_args
+                             default_csv_size, default_format, default_out_args, choices_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
 from changeo.Gene import c_gene_regex, parseAllele, buildGermline
@@ -119,12 +119,15 @@ def correctIMGTFields(receptor, references):
     return receptor
 
 
-def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
+def convertToAIRR(db_file, repo=None, format=default_format,
+                  out_file=None, out_args=default_out_args):
     """
     Converts a Change-O formatted file into an AIRR formatted file
 
     Arguments:
       db_file : the database file name.
+      repo : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
+      format : input format.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -137,12 +140,18 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     log['FILE'] = os.path.basename(db_file)
     printLog(log)
 
+    # Define format operators
+    try:
+        reader, __, schema = getFormatOperators(format)
+    except ValueError:
+        sys.exit('Error:  Invalid format %s' % format)
+
     # Open input
     db_handle = open(db_file, 'rt')
-    db_iter = ChangeoReader(db_handle)
+    db_iter = reader(db_handle)
 
     # Set output fields replacing length with end fields
-    in_fields = [ChangeoSchema.toReceptor(f) for f in db_iter.fields]
+    in_fields = [schema.toReceptor(f) for f in db_iter.fields]
     out_fields = [ReceptorData.length_fields[f][1] if f in ReceptorData.length_fields else f \
                   for f in in_fields]
     out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
@@ -158,6 +167,9 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     # Count records
     result_count = countDbFile(db_file)
 
+    # Load references
+    references = readGermlines(repo) if repo is not None else None
+
     # Iterate over records
     start_time = time()
     rec_count = 0
@@ -165,6 +177,9 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += 1
+        # Update IMGT fields
+        if references is not None:
+            rec = correctIMGTFields(rec, references)
         # Write records
         pass_writer.writeReceptor(rec)
 
@@ -183,15 +198,15 @@ def convertDbAIRR(db_file, out_file=None, out_args=default_out_args):
     return pass_handle.name
 
 
-def convertDbChangeo(db_file, repo=None, out_file=None, out_args=default_out_args):
+def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_args):
     """
-    Converts a AIRR formatted file into an Change-O formatted file
+    Converts an AIRR formatted file into an Change-O formatted file
 
     Arguments:
-      db_file = the database file name.
+      db_file: the database file name.
       repo : folder with germline repertoire files. If None, do not updated IMGT sequence columns.
       out_file : output file name. Automatically generated from the input file if None.
-      out_args = common output argument dictionary from parseCommonArgs.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       str : output file name.
@@ -256,7 +271,7 @@ def convertDbChangeo(db_file, repo=None, out_file=None, out_args=default_out_arg
 
 # TODO:  SHOULD ALLOW FOR UNSORTED CLUSTER COLUMN
 # TODO:  SHOULD ALLOW FOR GROUPING FIELDS
-def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
+def convertToBaseline(db_file, id_field=default_id_field, seq_field=default_seq_field,
                       germ_field=default_germ_field, cluster_field=None,
                       meta_fields=None, out_file=None, out_args=default_out_args):
     """
@@ -356,8 +371,8 @@ def convertDbBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     return pass_handle.name
 
 
-def convertDbFasta(db_file, id_field=default_id_field, seq_field=default_seq_field,
-                 meta_fields=None, out_file=None, out_args=default_out_args):
+def convertToFasta(db_file, id_field=default_id_field, seq_field=default_seq_field,
+                   meta_fields=None, out_file=None, out_args=default_out_args):
     """
     Builds fasta files from database records
 
@@ -691,7 +706,7 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
     return result
 
 
-def convertDbGenbank(db_file, inference=None, db_xref=None, organism=None, sex=None,
+def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=None,
                      isolate=None, tissue=None, cell_type=None, molecule=default_molecule,
                      product=default_product, c_field=None, label=None,
                      count_field=None, index_field=None, allow_stop=False,
@@ -880,7 +895,21 @@ def getArgParser():
                                         help='Converts input to an AIRR TSV file.',
                                         description='Converts input to an AIRR TSV file.')
     group_airr = parser_airr.add_argument_group('conversion arguments')
-    parser_airr.set_defaults(func=convertDbAIRR)
+    group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+                            help='''List of folders and/or fasta files containing
+                                    IMGT-gapped germline sequences corresponding to the
+                                    set of germlines used for the alignment. Specifying 
+                                    this argument is not required, but doing so will add IMGT-gaps 
+                                    to SEQUENCE_IMGT (sequence_alignment) and rebuild 
+                                    GERMLINE_IMGT (germline_alignment). Requires the 
+                                    V_GERM_START_IMGT (v_germline_start) and 
+                                    V_GERM_LENGTH_IMGT (v_germline_end) fields.''')
+    group_airr.add_argument('--format', action='store', dest='format', default=default_format,
+                            choices=choices_format,
+                            help='''Specify the input format. Output will always be AIRR TSV, but 
+                                 specifying AIRR input will allow IMGT-gapping of the alignment 
+                                 columns.''')
+    parser_airr.set_defaults(func=convertToAIRR)
 
     # Subparser to convert AIRR to changeo files
     parser_changeo = subparsers.add_parser('changeo', parents=[default_parent],
@@ -893,9 +922,11 @@ def getArgParser():
                                     IMGT-gapped germline sequences corresponding to the
                                     set of germlines used for the alignment. Specifying 
                                     this argument is not required, but doing so will add IMGT-gaps 
-                                    to the sequence_alignment and rebuild the germline_alignment. 
-                                    Requires the v_germline_start and v_germline_end fields.''')
-    parser_changeo.set_defaults(func=convertDbChangeo)
+                                    to sequence_alignment (SEQUENCE_IMGT) and rebuild 
+                                    germline_alignment (GERMLINE_IMGT). Requires the 
+                                    v_germline_start (V_GERM_START_IMGT) and 
+                                    v_germline_end (V_GERM_LENGTH_IMGT) fields.''')
+    parser_changeo.set_defaults(func=convertToChangeo)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],
@@ -911,7 +942,7 @@ def getArgParser():
                               help='The name of the field containing sequences')
     group_fasta.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                               help='List of annotation fields to add to the sequence description')
-    parser_fasta.set_defaults(func=convertDbFasta)
+    parser_fasta.set_defaults(func=convertToFasta)
     
     # Subparser to convert database entries to clip-fasta file
     parser_baseln = subparsers.add_parser('baseline', parents=[default_parent],
@@ -936,7 +967,7 @@ def getArgParser():
                                help='The name of the field containing containing sorted clone IDs')
     group_baseln.add_argument('--mf', nargs='+', action='store', dest='meta_fields',
                                help='List of annotation fields to add to the sequence description')
-    parser_baseln.set_defaults(func=convertDbBaseline)
+    parser_baseln.set_defaults(func=convertToBaseline)
 
     # Subparser to convert database entries to a GenBank fasta and feature table file
     parser_gb = subparsers.add_parser('genbank', parents=[genbank_parent],
@@ -1008,7 +1039,7 @@ def getArgParser():
                                argument to tbl2asn.''')
     group_gb.add_argument('--exec', action='store', dest='tbl2asn_exec', default=default_tbl2asn_exec,
                           help='The name or location of the tbl2asn executable.')
-    parser_gb.set_defaults(func=convertDbGenbank)
+    parser_gb.set_defaults(func=convertToGenbank)
 
     return parser
 
