@@ -111,10 +111,10 @@ def correctIMGTFields(receptor, references):
                   receptor.v_call,
                   references)
     __, germlines, __ = buildGermline(receptor, references)
-    gapped['germline_imgt'] = None if germlines is None else germlines['full']
+    gapped['germline_imgt'] = '' if germlines is None else germlines['full']
 
     imgt_dict.update(gapped)
-    receptor.setDict(imgt_dict, parse=True)
+    receptor.setDict(imgt_dict, parse=False)
 
     return receptor
 
