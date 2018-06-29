@@ -142,10 +142,10 @@ def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
     except KeyError:
         sys.exit('Error: Invalid receptor type %s' % receptor)
 
-    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
-    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
-    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
-    auxilary = os.path.join([igdata, 'optional_file', '%s_gl.aux'])
+    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
+    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
+    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
+    auxilary = os.path.join([igdata, 'optional_file', '%s_gl.aux' % organism])
 
     # Define IgBLAST command
     cmd = [exec,
