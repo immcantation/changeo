@@ -8,8 +8,10 @@ Version 0.4.0.999:  May 10, 2018
   all relevant tools.
 + All tools will no longer create empty pass or fail files if there are no
   records meeting the appropriate criteria for output.
-+ Numerous API changes and internal structural changes to commandline tools.
 + Fixed duplicate newline issue on Windows.
++ Most tools now allow explicit specification of the output file name via
+  the optional ``-o`` argument.
++ Numerous API changes and internal structural changes to commandline tools.
 
 AlignRecords:
 
@@ -54,8 +56,11 @@ MakeDb:
 + Renamed ``--noparse`` argument to ``--asis-id``.
 + Added ``asis-calls`` argument to igblast subcommand to allow use with
   non-standard gene names.
++ Added the ``GERMLINE_IMGT`` column to the default output.
 + Changed junction inference in igblast subcommand to use IgBLAST's CDR3
   assignment for IgBLAST versions greater than or equal to 1.7.0.
++ Added a verification that the ``SEQUENCE_IMGT`` and ``JUNCTION`` fields
+  are in agreement for records to pass.
 + Changed behavior of the igblast subcommand's translation of the junction
   sequence to truncate junction that are not multiples of 3, rather than
   pad to a multiple of 3 (removes trailing X character).
