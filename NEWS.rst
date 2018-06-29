@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.0.999:  May 10, 2018
+Version 0.4.0.999:  June 29, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
