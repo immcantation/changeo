@@ -8,31 +8,31 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import os
 import sys
-import subprocess
 from subprocess import check_output, STDOUT, CalledProcessError
 
 # Defaults
 default_tbl2asn_exec='tbl2asn'
 default_igphyml_exec = 'igphyml'
+default_igblast_exec = 'igblastn'
 
 
-def runASN(fasta, template=None, tbl2asn_exec=default_tbl2asn_exec):
+def runASN(fasta, template=None, exec=default_tbl2asn_exec):
     """
     Executes tbl2asn to generate Sequin files
 
     Arguments:
-      fasta : fsa file.
-      template : sbt file.
-      tbl2asn_exec : the name or path to the tbl2asn executable.
+      fasta (str): fsa file name.
+      template (str): sbt file name.
+      exec (str): the name or path to the tbl2asn executable.
 
     Returns:
-      str : tbl2asn console output.
+      str: tbl2asn console output.
     """
     # Basic command that requires .fsa and .tbl files in the same directory
     # tbl2asn -i records.fsa -a s -V vb -t template.sbt
 
     # Define tb2asn command
-    cmd = [tbl2asn_exec,
+    cmd = [exec,
            '-i', os.path.abspath(fasta),
            '-a', 's',
            '-V', 'vb']
@@ -84,10 +84,93 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
 
     # Run IgPhyMl
     try:
-        stdout_str = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=False,
-                                             universal_newlines=True, cwd=rep_dir)
-    except subprocess.CalledProcessError as e:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True, cwd=rep_dir)
+    except CalledProcessError as e:
         sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
         sys.exit(e.output)
 
     return None
+
+
+def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
+               threads=1, exec=default_igblast_exec):
+    """
+    Runs IgBLAST on a sequence file
+
+    Arguments:
+      fasta (str): fasta file containing sequences.
+      igdata (str): path to the IgBLAST database directory (IGDATA environment).
+      receptor (str): receptor type; one of 'ig' or 'tr'.
+      organism (str): species name.
+      output (str): output file name. If None, automatically generate from the fasta file name.
+      threads (int): number of threads for igblastn.
+      exec (str): the name or path to the igblastn executable.
+
+    Returns:
+      str: IgBLAST console output.
+
+    """
+    # export
+    # IGDATA
+    # declare - A
+    # SEQTYPE
+    # SEQTYPE[ig] = "Ig"
+    # SEQTYPE[tr] = "TCR"
+    # GERMLINE_V = "imgt_${SPECIES}_${RECEPTOR}_v"
+    # GERMLINE_D = "imgt_${SPECIES}_${RECEPTOR}_d"
+    # GERMLINE_J = "imgt_${SPECIES}_${RECEPTOR}_j"
+    # AUXILIARY = "${SPECIES}_gl.aux"
+    # IGBLAST_DB = "${IGDATA}/database"
+    # IGBLAST_CMD = "igblastn \
+    #     -germline_db_V ${IGBLAST_DB}/${GERMLINE_V} \
+    #     -germline_db_D ${IGBLAST_DB}/${GERMLINE_D} \
+    #     -germline_db_J ${IGBLAST_DB}/${GERMLINE_J} \
+    #     -auxiliary_data ${IGDATA}/optional_file/${AUXILIARY} \
+    #     -ig_seqtype ${SEQTYPE[${RECEPTOR}]} -organism ${SPECIES} \
+    #     -domain_system imgt -outfmt '7 std qseq sseq btop'"
+    #
+    # # Set run commmand
+    # OUTFILE =$(basename ${READFILE})
+    # OUTFILE = "${OUTDIR}/${OUTFILE%.fasta}.fmt7"
+    # IGBLAST_VER =$(${IGBLAST_CMD} -version | grep 'Package' | sed s / 'Package: ' //)
+    # IGBLAST_RUN = "${IGBLAST_CMD} -query ${READFILE} -out ${OUTFILE} -num_threads ${NPROC}"
+
+
+    try:
+        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[receptor]
+    except KeyError:
+        sys.exit('Error: Invalid receptor type %s' % receptor)
+
+    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
+    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
+    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v'])
+    auxilary = os.path.join([igdata, 'optional_file', '%s_gl.aux'])
+
+    # Define IgBLAST command
+    cmd = [exec,
+           '-query', os.path.abspath(fasta),
+           '-out', os.path.abspath(output),
+           '-num_threads', str(threads),
+           '-germline_db_V', str(v_germ),
+           '-germline_db_D', str(d_germ),
+           '-germline_db_J', str(j_germ),
+           '-auxiliary_data', str(auxilary),
+           '-ig_seqtype', seqtype,
+           '-organism', organism,
+           '-domain_system', 'imgt',
+           '-outfmt', '"7 std qseq sseq btop"']
+
+
+    # Execute IgBLAST
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
+    except CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
+
+    #if 'Unable to read any FASTA records' in stdout_str:
+    #    sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
+
+    return stdout_str

@@ -818,7 +818,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     if build_asn:
         start_time = time()
         printMessage('Running tbl2asn', start_time=start_time, width=25)
-        result = runASN(fsa_handle.name, template=asn_template, tbl2asn_exec=tbl2asn_exec)
+        result = runASN(fsa_handle.name, template=asn_template, exec=tbl2asn_exec)
         printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Print ending console log
