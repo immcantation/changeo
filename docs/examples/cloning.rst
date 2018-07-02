@@ -24,8 +24,8 @@ Before running :ref:`DefineClones`, it is important to determine an
 appropriate threshold for trimming the hierarchical clustering into B cell
 clones. The `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
 function in the `SHazaM <http://shazam.readthedocs.io>`__ R package calculates
-the distance between each sequence in the data and its nearest neighbor. The
-resulting distribution is bimodal, with the first mode representing sequences
+the distance between each sequence in the data and its nearest-neighbor. The
+resulting distribution should be bimodal, with the first mode representing sequences
 with clonal relatives in the dataset and the second mode representing singletons.
 The ideal threshold for separating clonal groups is the value that separates
 the two modes of this distribution and can be found using the 
@@ -34,35 +34,29 @@ function in the `SHazaM <http://shazam.readthedocs.io>`__ R package. The
 `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
 function allows selection of all parameters that are available in :ref:`DefineClones`. 
 Using the length normalization parameter ensures that mutations are weighted equally
-regardless of junction sequence length. The distance to nearest neighbor distribution
-for the example data is shown below. The threshold is ``0.16`` - indicated
+regardless of junction sequence length. The distance to nearest-neighbor distribution
+for the example data is shown below. The threshold is approximately ``0.15`` - indicated
 by the red dotted line.
 
-.. figure:: figures/DistToNearest.svg
+.. figure:: figures/cloning_threshold.svg
     :align: center
-
-:download:`Download the R Script <scripts/DistNearest.R>` to generate
-the distance to nearest neighbor distribution.
+    :width: 100%
 
 .. seealso::
 
-    For additional details see the
-    `distToNearest <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__
-    documentation.
+    For additional details see the vignette on
+    `tuning clonal assignment thresholds <http://shazam.readthedocs.io/en/latest/vignettes/DistToNearest-Vignette>`__.
 
 Assigning clones
 --------------------------------------------------------------------------------
 
 There are several parameter choices when grouping Ig sequences into B cell
 clones. The argument :option:`--act set <DefineClones --act>`
-accounts for ambiguous V-gene and J-gene calls when grouping similar sequences. The
+accounts for ambiguous V gene and J gene calls when grouping similar sequences. The
 distance metric :option:`--model ham <DefineClones --model>`
-is nucleotide Hamming distance. Because
-the :option:`ham <DefineClones --model>` distance model is symmetric,
-the :option:`--sym min <DefineClones --sym>` argument can be left as default.
-Because the threshold was generated using length normalized distances, the
-:option:`--norm len <DefineClones --norm>` argument is selected with the
-resultant threshold :option:`--dist 0.16 <DefineClones --dist>`::
+is nucleotide Hamming distance. Because the threshold was generated using length
+normalized distances, the :option:`--norm len <DefineClones --norm>` argument is
+selected with the previously determined threshold :option:`--dist 0.15 <DefineClones --dist>`::
 
     DefineClones.py -d S43_db-pass_parse-select.tab --act set --model ham \
-    --sym min --norm len --dist 0.16
+        --norm len --dist 0.15

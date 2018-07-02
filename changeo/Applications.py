@@ -161,7 +161,6 @@ def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
            '-domain_system', 'imgt',
            '-outfmt', '"7 std qseq sseq btop"']
 
-
     # Execute IgBLAST
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
