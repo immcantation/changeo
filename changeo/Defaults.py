@@ -18,6 +18,11 @@ default_germ_field = 'GERMLINE_IMGT_D_MASK'
 default_junction_field = 'JUNCTION'
 default_clone_field = 'CLONE'
 
+# External applications
+default_igblast_exec = 'igblastn'
+default_tbl2asn_exec = 'tbl2asn'
+default_igphyml_exec = 'igphyml'
+
 # Commandline arguments
 choices_format = ('changeo', 'airr')
 default_format = 'changeo'

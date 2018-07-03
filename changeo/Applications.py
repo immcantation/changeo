@@ -10,10 +10,8 @@ import os
 import sys
 from subprocess import check_output, STDOUT, CalledProcessError
 
-# Defaults
-default_tbl2asn_exec='tbl2asn'
-default_igphyml_exec = 'igphyml'
-default_igblast_exec = 'igblastn'
+# Presto and changeo imports
+from changeo.Defaults import default_igblast_exec, default_tbl2asn_exec, default_igphyml_exec
 
 
 def runASN(fasta, template=None, exec=default_tbl2asn_exec):
@@ -93,7 +91,7 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
     return None
 
 
-def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
+def runIgBLAST(fasta, igdata, locus='ig', organism='human', output=None,
                threads=1, exec=default_igblast_exec):
     """
     Runs IgBLAST on a sequence file
@@ -101,7 +99,7 @@ def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
     Arguments:
       fasta (str): fasta file containing sequences.
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
-      receptor (str): receptor type; one of 'ig' or 'tr'.
+      locus (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
       output (str): output file name. If None, automatically generate from the fasta file name.
       threads (int): number of threads for igblastn.
@@ -111,10 +109,8 @@ def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
       str: IgBLAST console output.
 
     """
-    # export
-    # IGDATA
-    # declare - A
-    # SEQTYPE
+    # export IGDATA
+    # declare -A SEQTYPE
     # SEQTYPE[ig] = "Ig"
     # SEQTYPE[tr] = "TCR"
     # GERMLINE_V = "imgt_${SPECIES}_${RECEPTOR}_v"
@@ -138,13 +134,13 @@ def runIgBLAST(fasta, igdata, receptor='ig', organism='human', output=None,
 
 
     try:
-        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[receptor]
+        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[locus]
     except KeyError:
-        sys.exit('Error: Invalid receptor type %s' % receptor)
+        sys.exit('Error: Invalid receptor type %s' % locus)
 
-    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
-    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
-    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, receptor)])
+    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
+    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
+    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
     auxilary = os.path.join([igdata, 'optional_file', '%s_gl.aux' % organism])
 
     # Define IgBLAST command
