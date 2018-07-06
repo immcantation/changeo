@@ -32,6 +32,7 @@ if __license__ is None:
 
 # Define installation path for commandline tools
 scripts = ['AlignRecords.py',
+           'AssignGenes.py',
            'BuildTrees.py',
            'ConvertDb.py',
            'CreateGermlines.py',

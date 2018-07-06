@@ -9,9 +9,11 @@ __author__ = 'Jason Anthony Vander Heiden'
 import os
 import sys
 from subprocess import check_output, STDOUT, CalledProcessError
-
 # Presto and changeo imports
 from changeo.Defaults import default_igblast_exec, default_tbl2asn_exec, default_igphyml_exec
+
+# Defaults
+default_igblast_output = 'legacy'
 
 
 def runASN(fasta, template=None, exec=default_tbl2asn_exec):
@@ -91,17 +93,18 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
     return None
 
 
-def runIgBLAST(fasta, igdata, locus='ig', organism='human', output=None,
-               threads=1, exec=default_igblast_exec):
+def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
+               format=default_igblast_output, threads=1, exec=default_igblast_exec):
     """
     Runs IgBLAST on a sequence file
 
     Arguments:
       fasta (str): fasta file containing sequences.
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
-      locus (str): receptor type; one of 'ig' or 'tr'.
+      loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
       output (str): output file name. If None, automatically generate from the fasta file name.
+      format (str): output format. One of 'legacy' or 'airr'.
       threads (int): number of threads for igblastn.
       exec (str): the name or path to the igblastn executable.
 
@@ -134,14 +137,21 @@ def runIgBLAST(fasta, igdata, locus='ig', organism='human', output=None,
 
 
     try:
-        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[locus]
+        outfmt = {'legacy': '7 std qseq sseq btop', 'airr': '19'}[format]
     except KeyError:
-        sys.exit('Error: Invalid receptor type %s' % locus)
+        sys.exit('Error: Invalid output format %s' % format)
 
-    v_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
-    d_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
-    j_germ = os.path.join([igdata, 'database', 'imgt_%s_%s_v' % (organism, locus)])
-    auxilary = os.path.join([igdata, 'optional_file', '%s_gl.aux' % organism])
+    try:
+        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[loci]
+    except KeyError:
+        sys.exit('Error: Invalid receptor type %s' % loci)
+
+
+    # Database directory locations
+    v_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    d_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    j_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    auxilary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
 
     # Define IgBLAST command
     cmd = [exec,
@@ -154,12 +164,14 @@ def runIgBLAST(fasta, igdata, locus='ig', organism='human', output=None,
            '-auxiliary_data', str(auxilary),
            '-ig_seqtype', seqtype,
            '-organism', organism,
-           '-domain_system', 'imgt',
-           '-outfmt', '"7 std qseq sseq btop"']
+           '-outfmt', outfmt,
+           '-domain_system', 'imgt']
 
     # Execute IgBLAST
+    env = os.environ.copy()
+    env['IGDATA'] = igdata
     try:
-        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False, env=env,
                                   universal_newlines=True)
     except CalledProcessError as e:
         sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))

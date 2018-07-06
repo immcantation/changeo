@@ -21,30 +21,85 @@ from presto.IO import printLog, printMessage, printProgress
 from changeo.Applications import runIgBLAST
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Defaults import default_igblast_exec, default_out_args
+from changeo.IO import splitFileName
 
 # Defaults
-default_igdata = '~/share/igblast'
+choices_format = ('legacy', 'airr')
+choices_organism = ('human', 'mouse')
+choices_loci = ('ig', 'tr')
 
-def assignIgBLAST(seq_file, igdata=default_igdata, locus='ig', organism='human',
-                  exec=default_igblast_exec,
-                  out_file=None, out_args=default_out_args, nproc=None):
+default_igdata = '~/share/igblast'
+default_format = 'legacy'
+default_organism = 'human'
+default_loci = 'ig'
+
+
+def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=None):
+    """
+    Creates and output filename from an existing filename
+
+    Arguments:
+      file : filename to base output file name on.
+      out_label : text to be inserted before the file extension;
+                  if None do not add a label.
+      out_type : the file extension of the output file;
+                 if None use input file extension.
+      out_dir : the output directory;
+                if None use directory of input file
+      out_name : the short filename to use for the output file;
+                 if None use input file short name.
+
+    Returns:
+      str: file name.
+    """
+    # Get in_file components
+    dir_name, file_name = os.path.split(file)
+    short_name, ext_name = os.path.splitext(file_name)
+
+    # Define output directory
+    if out_dir is None:
+        out_dir = dir_name
+    else:
+        out_dir = os.path.abspath(out_dir)
+        if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    # Define output file prefix
+    if out_name is None:  out_name = short_name
+    # Define output file extension
+    if out_type is None:  out_type = ext_name.lstrip('.')
+
+    # Define output file name
+    if out_label is None:
+        out_file = os.path.join(out_dir, '%s.%s' % (out_name, out_type))
+    else:
+        out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
+
+    # Return file name
+    return out_file
+
+
+def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', format=default_format,
+                  igblast_exec=default_igblast_exec, out_file=None, out_args=default_out_args,
+                  nproc=None):
     """
     Performs clustering on sets of sequences
 
     Arguments:
-      seq_file : the sample sequence file name.
+      seq_file (str): the sample sequence file name.
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
-      locus (str): receptor type; one of 'ig' or 'tr'.
+      loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
-      exec : the path to the igblastn executable.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
-      nproc : the number of processQueue processes;
+      format (str): output format. One of 'legacy' or 'airr'.
+      exec (str): the path to the igblastn executable.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): the number of processQueue processes;
               if None defaults to the number of CPUs.
 
     Returns:
       str: the output file name
     """
+    format_map = {'legacy': 'fmt7', 'airr': 'tsv'}
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AssignGenes'
@@ -53,14 +108,16 @@ def assignIgBLAST(seq_file, igdata=default_igdata, locus='ig', organism='human',
     log['NPROC'] = nproc
     printLog(log)
 
-    out_file = ''
-    igdata = ''
+    # Open output writer
+    if out_file is None:
+        out_file = getOutputName(seq_file, out_label='igblast', out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'], out_type=format_map[format])
 
     # Run IgBLAST clustering
     start_time = time()
     printMessage('Running IgBLAST', start_time=start_time, width=25)
-    console_out = runIgBLAST(seq_file, igdata, locus=locus, organism=organism, output=out_file,
-                             threads=nproc, exec=exec)
+    console_out = runIgBLAST(seq_file, igdata, loci=loci, organism=organism, output=out_file,
+                             format=format, threads=nproc, exec=igblast_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Print log
@@ -86,8 +143,8 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-                 fmt7
-                    IgBLAST output.
+                 igblast
+                    Reference alignment results from IgBLAST.
              ''')
 
     # Define ArgumentParser
@@ -103,7 +160,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parent_parser = getCommonArgParser(multiproc=True)
+    parent_parser = getCommonArgParser(db_in=False, format=False, multiproc=True)
 
     # Subparser to run IgBLAT
     parser_igblast = subparsers.add_parser('igblast', parents=[parent_parser],
@@ -111,20 +168,23 @@ def getArgParser():
                                            help='Executes IgBLAST.',
                                            description='Executes IgBLAST.')
     group_igblast = parser_igblast.add_argument_group('alignment arguments')
-    group_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-                               help='''List of folders and/or fasta files containing
-                                    IMGT-gapped germline sequences corresponding to the
-                                    set of germlines used for the alignment. Specifying 
-                                    this argument is not required, but doing so will add IMGT-gaps 
-                                    to SEQUENCE_IMGT (sequence_alignment) and rebuild 
-                                    GERMLINE_IMGT (germline_alignment). Requires the 
-                                    V_GERM_START_IMGT (v_germline_start) and 
-                                    V_GERM_LENGTH_IMGT (v_germline_end) fields.''')
+    group_igblast.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
+                               help='A list of FASTA/FASTQ files containing sequences to process.')
+    group_igblast.add_argument('-b', action='store', dest='igdata', required=True,
+                               help='IgBLAST database directory (IGDATA).')
+    group_igblast.add_argument('--organism', action='store', dest='organism', default=default_organism,
+                               choices=choices_organism, help='Organism name.')
+    group_igblast.add_argument('--loci', action='store', dest='loci', default=default_loci,
+                               choices=choices_loci, help='The receptor type - Ig or TR.')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
-                               help='''Specify the input format. Output will always be AIRR TSV, but 
-                                    specifying AIRR input will allow IMGT-gapping of the alignment 
-                                    columns.''')
+                               help='''Specify the output format. The "legacy" will result in
+                                    the IgBLAST "-outfmt 7 std qseq sseq btop" output format.
+                                    Specifying "airr" will output the AIRR TSV format provided by
+                                    the IgBLAST argument "-outfmt 19".''')
+    group_igblast.add_argument('--exec', action='store', dest='igblast_exec',
+                              default=default_igblast_exec,
+                              help='Path to the igblastn executable.')
     parser_igblast.set_defaults(func=assignIgBLAST)
 
     return parser
@@ -144,10 +204,15 @@ if __name__ == '__main__':
     if not shutil.which(args_dict['igblast_exec']):
         parser.error('%s executable not found' % args_dict['igblast_exec'])
 
-    # Call cluster main function for each input file
+    # Clean arguments dictionary
     del args_dict['seq_files']
+    if 'out_files' in args_dict: del args_dict['out_files']
     del args_dict['func']
     del args_dict['command']
-    for f in args.__dict__['seq_files']:
+
+    # Call main function for each input file
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         args.func(**args_dict)
