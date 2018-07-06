@@ -7,8 +7,10 @@ __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import os
+import re
 import sys
 from subprocess import check_output, STDOUT, CalledProcessError
+
 # Presto and changeo imports
 from changeo.Defaults import default_igblast_exec, default_tbl2asn_exec, default_igphyml_exec
 
@@ -181,3 +183,29 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
     #    sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
 
     return stdout_str
+
+def getIgBLASTVersion(exec=default_igblast_exec):
+    """
+    Gets the version of the IgBLAST executable
+
+    Arguments:
+      exec (str): the name or path to the igblastn executable.
+
+    Returns:
+      str: version number.
+    """
+    # Build commandline
+    cmd = [exec, '-version']
+
+    # Run
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
+    except CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
+
+    # Extract version number
+    match = re.search('(?<=Package: igblast )(\d+\.\d+\.\d+)', stdout_str)
+    version = match.group(0)
+
+    return version

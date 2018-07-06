@@ -14,14 +14,12 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
 from time import time
-from Bio import SeqIO
 
 # Presto imports
-from presto.IO import printLog, printMessage, printProgress
-from changeo.Applications import runIgBLAST
+from presto.IO import printLog, printMessage
+from changeo.Applications import runIgBLAST, getIgBLASTVersion
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Defaults import default_igblast_exec, default_out_args
-from changeo.IO import splitFileName
 
 # Defaults
 choices_format = ('legacy', 'airr')
@@ -98,18 +96,20 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
     Returns:
       str: the output file name
     """
-    format_map = {'legacy': 'fmt7', 'airr': 'tsv'}
-
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AssignGenes'
     log['COMMAND'] = 'igblast'
+    log['VERSION'] = getIgBLASTVersion(exec=igblast_exec)
     log['FILE'] = os.path.basename(seq_file)
+    log['ORGANISM'] = organism
+    log['LOCI'] = loci
     log['NPROC'] = nproc
     printLog(log)
 
     # Open output writer
     if out_file is None:
+        format_map = {'legacy': 'fmt7', 'airr': 'tsv'}
         out_file = getOutputName(seq_file, out_label='igblast', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=format_map[format])
 
