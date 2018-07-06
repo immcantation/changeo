@@ -137,7 +137,6 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
     # IGBLAST_VER =$(${IGBLAST_CMD} -version | grep 'Package' | sed s / 'Package: ' //)
     # IGBLAST_RUN = "${IGBLAST_CMD} -query ${READFILE} -out ${OUTFILE} -num_threads ${NPROC}"
 
-
     try:
         outfmt = {'legacy': '7 std qseq sseq btop', 'airr': '19'}[format]
     except KeyError:

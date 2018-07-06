@@ -96,11 +96,21 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
     Returns:
       str: the output file name
     """
+    # Check format argument
+    try:
+        out_type = {'legacy': 'fmt7', 'airr': 'tsv'}[format]
+    except KeyError:
+        sys.exit('Error: Invalid output format %s' % format)
+
+    # TODO: check for compability. IgBLAST >=1.6; >=1.9 for airr format.
+    # Get IgBLAST version
+    version = getIgBLASTVersion(exec=igblast_exec)
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AssignGenes'
     log['COMMAND'] = 'igblast'
-    log['VERSION'] = getIgBLASTVersion(exec=igblast_exec)
+    log['VERSION'] = version
     log['FILE'] = os.path.basename(seq_file)
     log['ORGANISM'] = organism
     log['LOCI'] = loci
@@ -109,9 +119,8 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
 
     # Open output writer
     if out_file is None:
-        format_map = {'legacy': 'fmt7', 'airr': 'tsv'}
         out_file = getOutputName(seq_file, out_label='igblast', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=format_map[format])
+                                 out_name=out_args['out_name'], out_type=out_type)
 
     # Run IgBLAST clustering
     start_time = time()
