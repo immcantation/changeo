@@ -407,13 +407,13 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
     gap_length = max_length - len(cons.getField(seq_field))
     if gap_length > 0:
         cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
-        cons.setField(seq_field, cons.getSeq(seq_field) + ('N' * gap_length))
+        cons.setField(seq_field, cons.getField(seq_field) + ('N' * gap_length))
 
     # Update lengths padded to longest sequence in clone
     for rec in receptors:
         x = max_length - len(rec.getField(seq_field))
         rec.j_germ_length = int(rec.j_germ_length or 0) + x
-        rec.setField(seq_field, rec.getSeq(seq_field) + ('N' * x))
+        rec.setField(seq_field, rec.getField(seq_field) + ('N' * x))
 
     # Stitch consensus germline
     cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,

@@ -78,7 +78,7 @@ def filterMissing(data, seq_field=default_junction_field, v_field=default_v_fiel
     result.data_pass = []
     result.data_fail = []
     for rec in data.data:
-        seq = str(rec.getSeq(seq_field))
+        seq = rec.getField(seq_field)
         if _pass(seq):  result.data_pass.append(rec)
         else:  result.data_fail.append(rec)
 
@@ -294,7 +294,7 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
     # Define unique junction mapping
     seq_map = {}
     for rec in result.data_pass:
-        seq = str(rec.getSeq(seq_field))
+        seq = rec.getField(seq_field)
         seq = re.sub('[\.-]', 'N', seq)
         if model == 'aa':  seq = translate(seq)
         seq_map.setdefault(seq, []).append(rec)
@@ -411,7 +411,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                     for i, rec in enumerate(clone, start=1):
                         pass_count += 1
                         rec.setField('clone', str(clone_count))
-                        result.log['CLONE%i-%i' % (clone_count, i)] = str(rec.junction)
+                        result.log['CLONE%i-%i' % (clone_count, i)] = rec.junction
                         try:
                             pass_writer.writeReceptor(rec)
                         except AttributeError:
@@ -424,7 +424,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                     # Write failed sequences
                     for i, rec in enumerate(result.data_fail, start=1):
                         fail_count += 1
-                        result.log['FAIL%i-%i' % (clone_count, i)] = str(rec.junction)
+                        result.log['FAIL%i-%i' % (clone_count, i)] = rec.junction
                         if out_args['failed']:
                             try:
                                 fail_writer.writeReceptor(rec)
@@ -436,7 +436,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                 # Write failing records
                 for i, rec in enumerate(result.data, start=1):
                     fail_count += 1
-                    result.log['CLONE0-%i' % (i)] = str(rec.junction)
+                    result.log['CLONE0-%i' % (i)] = rec.junction
                     if out_args['failed']:
                         try:
                             fail_writer.writeReceptor(rec)

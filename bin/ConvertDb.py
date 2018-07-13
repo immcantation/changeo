@@ -620,7 +620,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         # Check for valid translation
         junction_seq = record.sequence_input[(junction_start - 1):junction_end]
         if len(junction_seq) % 3 > 0:  junction_seq = junction_seq + 'N' * (3 - len(junction_seq) % 3)
-        junction_aa = junction_seq.translate()
+        junction_aa = Seq(junction_seq).translate()
 
         # Return invalid record upon junction stop codon
         if '*' in junction_aa and not allow_stop:
@@ -662,7 +662,7 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
                               'end': end position in raw sequence}
     """
     # Replace gaps with N
-    seq = str(record.sequence_input)
+    seq = record.sequence_input
     seq = seq.replace('-', 'N').replace('.', 'N')
 
     # Strip leading and trailing Ns

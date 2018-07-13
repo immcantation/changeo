@@ -591,8 +591,11 @@ class ReceptorData:
     @staticmethod
     def nucleotide(v, deparse=False):
         if not deparse:
-            try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.ambiguous_dna).upper()
-            except:  return ''
+            try:
+                #return '' if v in ('NA', 'None') else Seq(v, IUPAC.ambiguous_dna).upper()
+                return '' if v in ('NA', 'None') else v.upper()
+            except:
+                return ''
         else:
             return '' if v in ('NA', 'None') else str(v)
 
@@ -600,8 +603,11 @@ class ReceptorData:
     @staticmethod
     def aminoacid(v, deparse=False):
         if not deparse:
-            try:  return '' if v in ('NA', 'None') else Seq(v, IUPAC.extended_protein).upper()
-            except:  return ''
+            try:
+                #return '' if v in ('NA', 'None') else Seq(v, IUPAC.extended_protein).upper()
+                return '' if v in ('NA', 'None') else v.upper()
+            except:
+                return ''
         else:
             return '' if v in ('NA', 'None') else str(v)
 
@@ -728,12 +734,12 @@ class Receptor:
         Returns:
           Bio.Seq.Seq : Value in the field as a Seq object
         """
-        value = self.getField(field)
+        v = self.getField(field)
 
-        if isinstance(value, Seq):
-            return value
-        elif isinstance(value, str):
-            return Seq(value, IUPAC.ambiguous_dna)
+        if isinstance(v, Seq):
+            return v
+        elif isinstance(v, str):
+            return Seq(v)
         else:
             return None
 
