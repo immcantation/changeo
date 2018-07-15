@@ -23,6 +23,9 @@ Requirements
 +  `pandas 0.15 <http://pandas.pydata.org>`__
 +  `Biopython 1.65 <http://biopython.org>`__
 +  `presto 0.5 <http://presto.readthedocs.io>`__
++  AlignRecords requires `MUSCLE v3.8 <http://www.drive5.com/muscle>`__
++  ConvertDb-genbank requires `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__
++  AIRR format support requires the `airr <https://docs.airr-community.org>`__ reference library.
 
 Linux
 --------------------------------------------------------------------------------
