@@ -894,21 +894,21 @@ def getArgParser():
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Converts input to an AIRR TSV file.',
                                         description='Converts input to an AIRR TSV file.')
-    group_airr = parser_airr.add_argument_group('conversion arguments')
-    group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-                            help='''List of folders and/or fasta files containing
-                                    IMGT-gapped germline sequences corresponding to the
-                                    set of germlines used for the alignment. Specifying 
-                                    this argument is not required, but doing so will add IMGT-gaps 
-                                    to SEQUENCE_IMGT (sequence_alignment) and rebuild 
-                                    GERMLINE_IMGT (germline_alignment). Requires the 
-                                    V_GERM_START_IMGT (v_germline_start) and 
-                                    V_GERM_LENGTH_IMGT (v_germline_end) fields.''')
-    group_airr.add_argument('--format', action='store', dest='format', default=default_format,
-                            choices=choices_format,
-                            help='''Specify the input format. Output will always be AIRR TSV, but 
-                                 specifying AIRR input will allow IMGT-gapping of the alignment 
-                                 columns.''')
+    # group_airr = parser_airr.add_argument_group('conversion arguments')
+    # group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+    #                         help='''List of folders and/or fasta files containing
+    #                                 IMGT-gapped germline sequences corresponding to the
+    #                                 set of germlines used for the alignment. Specifying
+    #                                 this argument is not required, but doing so will add IMGT-gaps
+    #                                 to SEQUENCE_IMGT (sequence_alignment) and rebuild
+    #                                 GERMLINE_IMGT (germline_alignment). Requires the
+    #                                 V_GERM_START_IMGT (v_germline_start) and
+    #                                 V_GERM_LENGTH_IMGT (v_germline_end) fields.''')
+    # group_airr.add_argument('--format', action='store', dest='format', default=default_format,
+    #                         choices=choices_format,
+    #                         help='''Specify the input format. Output will always be AIRR TSV, but
+    #                              specifying AIRR input will allow IMGT-gapping of the alignment
+    #                              columns.''')
     parser_airr.set_defaults(func=convertToAIRR)
 
     # Subparser to convert AIRR to changeo files
@@ -916,16 +916,16 @@ def getArgParser():
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Converts input into a Change-O TSV file.',
                                        description='Converts input into a Change-O TSV file.')
-    group_changeo = parser_changeo.add_argument_group('conversion arguments')
-    group_changeo.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-                               help='''List of folders and/or fasta files containing
-                                    IMGT-gapped germline sequences corresponding to the
-                                    set of germlines used for the alignment. Specifying 
-                                    this argument is not required, but doing so will add IMGT-gaps 
-                                    to sequence_alignment (SEQUENCE_IMGT) and rebuild 
-                                    germline_alignment (GERMLINE_IMGT). Requires the 
-                                    v_germline_start (V_GERM_START_IMGT) and 
-                                    v_germline_end (V_GERM_LENGTH_IMGT) fields.''')
+    # group_changeo = parser_changeo.add_argument_group('conversion arguments')
+    # group_changeo.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+    #                            help='''List of folders and/or fasta files containing
+    #                                 IMGT-gapped germline sequences corresponding to the
+    #                                 set of germlines used for the alignment. Specifying
+    #                                 this argument is not required, but doing so will add IMGT-gaps
+    #                                 to sequence_alignment (SEQUENCE_IMGT) and rebuild
+    #                                 germline_alignment (GERMLINE_IMGT). Requires the
+    #                                 v_germline_start (V_GERM_START_IMGT) and
+    #                                 v_germline_end (V_GERM_LENGTH_IMGT) fields.''')
     parser_changeo.set_defaults(func=convertToChangeo)
 
     # Subparser to convert database entries to sequence file
