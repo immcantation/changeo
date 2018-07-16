@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.1:  July 15, 2018
+Version 0.4.1:  July 16, 2018
 -------------------------------------------------------------------------------
 
 + Added support for the AIRR standard TSV via the ``--format airr`` argument to
@@ -17,17 +17,6 @@ AlignRecords:
 
 + Fixed a bug arising when space characters are present in the sequence
   identifiers.
-
-AssignGenes:
-
-+ New tool.
-+ Simple IgBLAST wrapper, similar in function to the ``run_igblast.sh`` script
-  included in the Immcantation docker image prior to this release.
-
-BuildTrees:
-
-+ New tool.
-+ Converts tab-delimited database files into IgPhyML inputs.
 
 ConvertDb:
 
