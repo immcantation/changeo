@@ -4,13 +4,15 @@ Release Notes
 Version 0.4.1:  July 16, 2018
 -------------------------------------------------------------------------------
 
-+ Added support for the AIRR standard TSV via the ``--format airr`` argument to
-  all relevant tools.
++ Fixed installation incompatibility with pip 10.
++ Fixed duplicate newline issue on Windows.
 + All tools will no longer create empty pass or fail files if there are no
   records meeting the appropriate criteria for output.
-+ Fixed duplicate newline issue on Windows.
 + Most tools now allow explicit specification of the output file name via
   the optional ``-o`` argument.
++ Added support for the AIRR standard TSV via the ``--format airr`` argument to
+  all relevant tools.
++ Replaced V, D and J ``BTOP`` columns with ``CIGAR`` columns in data standard.
 + Numerous API changes and internal structural changes to commandline tools.
 
 AlignRecords:
@@ -23,10 +25,9 @@ ConvertDb:
 + New tool.
 + Includes the airr and changeo subcommand to convert between AIRR and Change-O
   formatted TSV files.
-+ The genbank subcommand creates tbl2asn input files for submission to
++ The genbank subcommand creates MiAIRR compliant files for submission to
   GenBank/TLS.
-+ Contains the baseline and fasta subcommands previously in
-  ParseDb.
++ Contains the baseline and fasta subcommands previously in ParseDb.
 
 CreateGermlines
 
