@@ -353,27 +353,27 @@ class ReceptorData:
       j_call (str): J allele assignment(s).
       c_call (str): C region assignment.
 
-      v_seq_start (int): position of the first V nucleotide in the input sequence.
+      v_seq_start (int): position of the first V nucleotide in the input sequence (1-based).
       v_seq_length (int): number of V nucleotides in the input sequence.
-      v_germ_start_imgt (int): position of the first V nucleotide in IMGT-gapped V germline sequence alignment.
+      v_germ_start_imgt (int): position of the first V nucleotide in IMGT-gapped V germline sequence alignment (1-based).
       v_germ_length_imgt (int): length of the IMGT numbered germline V alignment.
-      v_germ_start_vdj (int): position of the first nucleotide in ungapped V germline sequence alignment.
+      v_germ_start_vdj (int): position of the first nucleotide in ungapped V germline sequence alignment (1-based).
       v_germ_length_vdj (int): length of the ungapped germline V alignment.
 
-      np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence.
+      np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence (1-based).
       np1_length (int): number of untemplated nucleotides between the V and D segments.
 
-      d_seq_start (int): position of the first D nucleotide in the input sequence.
+      d_seq_start (int): position of the first D nucleotide in the input sequence (1-based).
       d_seq_length (int): number of D nucleotides in the input sequence.
-      d_germ_start (int): position of the first nucleotide in D germline sequence alignment.
+      d_germ_start (int): position of the first nucleotide in D germline sequence alignment (1-based).
       d_germ_length (int): length of the germline D alignment.
 
-      np2_start (int): position of the first untemplated nucleotide between the D and J segments in the input sequence.
+      np2_start (int): position of the first untemplated nucleotide between the D and J segments in the input sequence (1-based).
       np2_length (int): number of untemplated nucleotides between the D and J segments.
 
-      j_seq_start (int): position of the first J nucleotide in the input sequence.
+      j_seq_start (int): position of the first J nucleotide in the input sequence (1-based).
       j_seq_length (int): number of J nucleotides in the input sequence.
-      j_germ_start (int): position of the first nucleotide in J germline sequence alignment.
+      j_germ_start (int): position of the first nucleotide in J germline sequence alignment (1-based).
       j_germ_length (int): length of the germline J alignment.
 
       v_score (float): alignment score for the V.

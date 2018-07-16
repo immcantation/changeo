@@ -109,7 +109,7 @@ def alignmentPositions(alignment):
       alignment : tuples of (operation, length) for each alignment operation.
 
     Returns:
-      dict : query (q) and reference (r) start and length information with keys
+      dict : query (q) and reference (r) start (0-based) and length information with keys
              {q_start, q_length, r_start, r_length}.
     """
     # Return object
@@ -147,8 +147,8 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
 
     Arguments:
       seq (str): V(D)J sequence alignment (SEQUENCE_VDJ).
-      v_germ_start (int): start position V segment alignment in the germline (V_GERM_START_VDJ).
-      v_germ_length (int): length of the V segment alignment against the germline (V_GERM_LENGTH_VDJ).
+      v_germ_start (int): start position V segment alignment in the germline (V_GERM_START_VDJ, 1-based).
+      v_germ_length (int): length of the V segment alignment against the germline (V_GERM_LENGTH_VDJ, 1-based).
       v_call (str): V segment allele assignment (V_CALL).
       references (dict): dictionary of IMGT-gapped reference sequences.
       asis_calls (bool): if True do not parse v_call for allele names and just split by comma.
@@ -203,7 +203,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
 
     Arguments:
       seq (str): IMGT-gapped V(D)J sequence alignment (SEQUENCE_IMGT).
-      j_germ_start (int): start position J segment alignment in the germline (J_GERM_START).
+      j_germ_start (int): start position J segment alignment in the germline (J_GERM_START, 1-based).
       j_germ_length (int): length of the J segment alignment against the germline (J_GERM_LENGTH).
       j_call (str): J segment allele assignment (J_CALL).
       references (dict): dictionary of IMGT-gapped reference sequences.
