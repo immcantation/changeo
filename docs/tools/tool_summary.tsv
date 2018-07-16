@@ -3,8 +3,9 @@ Tool	Subcommand	Description
 	across	Aligns sequence columns within groups and across rows
 	within	Aligns sequence fields within rows
 	block	Aligns sequence groups across both columns and rows
-:ref:`BuildTrees`		Converts tab-delimited database file into IgPhyML input files.
 :ref:`ConvertDb`		Converts tab delimited database files
+	airr	Converts input to an AIRR TSV file
+	changeo	Converts input into a Change-O TSV file
 	fasta	Creates a fasta file from database records
 	baseline	Creates a special BASELINe formatted fasta file from a database
 	genbank	Creates fasta and feature table files for input to tbl2asn
@@ -22,5 +23,6 @@ Tool	Subcommand	Description
 	rename	Renames fields
 	select	Selects specific records
 	sort	Sorts records by a field
-	split	Splits database files by field values
 	update	Updates field and value pairs
+	merge	Merge files
+	split	Splits database files by field values

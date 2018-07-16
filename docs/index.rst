@@ -50,6 +50,7 @@
     Alakazam <http://alakazam.readthedocs.io>
     SHazaM <http://shazam.readthedocs.io>
     TIgGER <http://tigger.readthedocs.io>
+    RDI <http://rdi.readthedocs.io>
 
 
 Indices
