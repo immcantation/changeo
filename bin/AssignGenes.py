@@ -22,12 +22,12 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
 from changeo.Defaults import default_igblast_exec, default_out_args
 
 # Defaults
-choices_format = ('legacy', 'airr')
+choices_format = ('blast', 'airr')
 choices_organism = ('human', 'mouse')
 choices_loci = ('ig', 'tr')
 
 default_igdata = '~/share/igblast'
-default_format = 'legacy'
+default_format = 'blast'
 default_organism = 'human'
 default_loci = 'ig'
 
@@ -86,7 +86,7 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
       loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
-      format (str): output format. One of 'legacy' or 'airr'.
+      format (str): output format. One of 'blast' or 'airr'.
       exec (str): the path to the igblastn executable.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
@@ -98,7 +98,7 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
     """
     # Check format argument
     try:
-        out_type = {'legacy': 'fmt7', 'airr': 'tsv'}[format]
+        out_type = {'blast': 'fmt7', 'airr': 'tsv'}[format]
     except KeyError:
         sys.exit('Error: Invalid output format %s' % format)
 
@@ -187,7 +187,7 @@ def getArgParser():
                                choices=choices_loci, help='The receptor type - Ig or TR.')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
-                               help='''Specify the output format. The "legacy" will result in
+                               help='''Specify the output format. The "blast" will result in
                                     the IgBLAST "-outfmt 7 std qseq sseq btop" output format.
                                     Specifying "airr" will output the AIRR TSV format provided by
                                     the IgBLAST argument "-outfmt 19".''')
