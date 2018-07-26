@@ -468,9 +468,9 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             correctseqs = True
 
     if correctseqs:
-        sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
-              "Trying to correct this but check the alignment file to make sure things make sense." \
-              % clones[0].clone)
+      #  sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+       #       "Trying to correct this but check the alignment file to make sure things make sense." \
+        #      % clones[0].clone)
         maxlen = sites
         maximgt = len(imgtar)
         for j in range(0,len(sequences)):
@@ -512,8 +512,9 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
                 print(c.getField("imgtpartlabels"))
                 print(imgtar)
                 print(str(j))
-                print(sequences[j])
-                exit(1)
+                #print(sequences[j])
+                #exit(1)
+                return -1
 
     #Resolve germline if there are differences, e.g. if reconstruction was done before clonal clustering
     nseqs = len(sequences)
@@ -542,10 +543,10 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     if sites > (len(germline)):
         seqdiff = sites - len(germline)
         germline = germline + "N" * (seqdiff)
-        if not correctseqs:
-            sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
-                  "Trying to correct this but check the alignment file to make sure things make sense." \
-                  % clones[0].clone)
+        #if not correctseqs:
+        #    sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+        #          "Trying to correct this but check the alignment file to make sure things make sense." \
+        #          % clones[0].clone)
 
     if sites % 3 != 0:
         print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
@@ -589,6 +590,14 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
+
+        #replace dots with gaps for compatability with other programs
+        conseq = conseq.replace('.','-')
+        #transtable2 = conseq.maketrans(" ", "_")
+        #conseq.translate(transtable2)
+        #print(conseq)
+        #exit()
+
         if meta_data is not None:
             if isinstance(clones[j].getField(meta_data[0]), str):
                 clones[j].setField(meta_data[0],clones[j].getField(meta_data[0]).replace("_",""))
@@ -821,6 +830,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                 imgtpartlabels = [0] * len(r.sequence_imgt)
                 r.setField("imgtpartlabels", imgtpartlabels)
 
+            #print(r.sequence_imgt)
             mout = maskSplitCodons(r)
             mask_seq = mout[0]
             ptcs = hasPTC(mask_seq)
