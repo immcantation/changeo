@@ -592,7 +592,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
 
         #replace dots with gaps for compatability with other programs
-        conseq = conseq.replace('.','-')
+        #conseq = conseq.replace('.','-')
         #transtable2 = conseq.maketrans(" ", "_")
         #conseq.translate(transtable2)
         #print(conseq)
@@ -642,13 +642,13 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
                 clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
                 cid = delim + str(clones[num].getField(meta_data[0]))
             sid = clones[num].sequence_id.translate(transtable) + cid
-            print(">%s\n%s" % (sid, seq), file=clonef)
+            print(">%s\n%s" % (sid, seq.replace(".","-")), file=clonef)
             if len(useqs_f) == 1 and duplicate:
                 if meta_data is not None:
                     if meta_data[0] == "DUPCOUNT":
                         cid = delim + "0"
                 sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
-                print(">%s\n%s" % (sid, seq), file=clonef)
+                print(">%s\n%s" % (sid, seq.replace(".","-")), file=clonef)
     else:
         for j in range(0, nseqs):
             cid = ""
@@ -656,17 +656,17 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
                 clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
                 cid = delim+str(clones[j].getField(meta_data[0]))
             sid = clones[j].sequence_id.translate(transtable)+cid
-            print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
+            print(">%s\n%s" % (sid, conseqs[j].replace(".","-")), file=clonef)
             if nseqs == 1 and duplicate:
                 if meta_data is not None:
                     if meta_data[0] == "DUPCOUNT":
                         cid = delim + "0"
                 sid = clones[j].sequence_id.translate(transtable)+"_1"+cid
-                print(">%s\n%s" % (sid, conseqs[j]), file=clonef)
+                print(">%s\n%s" % (sid, conseqs[j].replace(".","-")), file=clonef)
 
     print(">%s_GERM" % clones[0].clone, file=clonef)
     for i in range(0, len(newgerm)):
-        print("%s" % newgerm[i], end='', file=clonef)
+        print("%s" % newgerm[i].replace(".","-"), end='', file=clonef)
     print("\n", end='', file=clonef)
     clonef.close()
 
