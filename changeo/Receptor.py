@@ -386,7 +386,7 @@ class ReceptorData:
       d_identity (float): alignment identity for the D.
       d_evalue (float): E-value for the alignment of the D.
       d_btop (str): BTOP for the alignment of the D.
-      D_cigar (str): CIGAR for the alignment of the D.
+      d_cigar (str): CIGAR for the alignment of the D.
 
       j_score (float): alignment score for the J.
       j_identity (float): alignment identity for the J.

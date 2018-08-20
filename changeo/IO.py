@@ -290,8 +290,8 @@ class AIRRReader(TSVReader):
             # Rename fields
             k = AIRRSchema.toReceptor(k)
             # Convert start positions to 0-based
-            if k in ReceptorData.start_fields and v is not None and v != '':
-                v = str(int(v) + 1)
+            # if k in ReceptorData.start_fields and v is not None and v != '':
+            #     v = str(int(v) + 1)
             # Assign new field
             result[k] = v
 
@@ -345,8 +345,8 @@ class AIRRWriter(TSVWriter):
         row = record.toDict()
         for k, v in row.items():
             # Convert start positions to 0-based
-            if k in ReceptorData.start_fields and v is not None and v != '':
-                v = str(int(v) - 1)
+            # if k in ReceptorData.start_fields and v is not None and v != '':
+            #     v = str(int(v) - 1)
             # Convert field names
             k = AIRRSchema.fromReceptor(k)
             result[k] = v
