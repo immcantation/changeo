@@ -106,7 +106,7 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
       loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
       output (str): output file name. If None, automatically generate from the fasta file name.
-      format (str): output format. One of 'legacy' or 'airr'.
+      format (str): output format. One of 'blast' or 'airr'.
       threads (int): number of threads for igblastn.
       exec (str): the name or path to the igblastn executable.
 
@@ -138,7 +138,7 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
     # IGBLAST_RUN = "${IGBLAST_CMD} -query ${READFILE} -out ${OUTFILE} -num_threads ${NPROC}"
 
     try:
-        outfmt = {'legacy': '7 std qseq sseq btop', 'airr': '19'}[format]
+        outfmt = {'blast': '7 std qseq sseq btop', 'airr': '19'}[format]
     except KeyError:
         sys.exit('Error: Invalid output format %s' % format)
 

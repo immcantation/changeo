@@ -12,6 +12,7 @@ import shutil
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
+from pkg_resources import parse_version
 from textwrap import dedent
 from time import time
 
@@ -102,9 +103,12 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
     except KeyError:
         sys.exit('Error: Invalid output format %s' % format)
 
-    # TODO: check for compability. IgBLAST >=1.6; >=1.9 for airr format.
     # Get IgBLAST version
     version = getIgBLASTVersion(exec=igblast_exec)
+    if parse_version(version) < parse_version('1.6'):
+        sys.exit('Error: IgBLAST version is %s and 1.6 or higher is required.' % version)
+    if format == 'airr' and parse_version(version) < parse_version('1.9'):
+        sys.exit('Error: IgBLAST version is %s and 1.9 or higher is required for AIRR format support.' % version)
 
     # Print parameter info
     log = OrderedDict()
@@ -178,13 +182,13 @@ def getArgParser():
                                            description='Executes IgBLAST.')
     group_igblast = parser_igblast.add_argument_group('alignment arguments')
     group_igblast.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
-                               help='A list of FASTA/FASTQ files containing sequences to process.')
+                               help='A list of FASTA files containing sequences to process.')
     group_igblast.add_argument('-b', action='store', dest='igdata', required=True,
                                help='IgBLAST database directory (IGDATA).')
     group_igblast.add_argument('--organism', action='store', dest='organism', default=default_organism,
                                choices=choices_organism, help='Organism name.')
     group_igblast.add_argument('--loci', action='store', dest='loci', default=default_loci,
-                               choices=choices_loci, help='The receptor type - Ig or TR.')
+                               choices=choices_loci, help='The receptor type.')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
                                help='''Specify the output format. The "blast" will result in
