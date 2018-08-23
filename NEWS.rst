@@ -1,6 +1,19 @@
 Release Notes
 ===============================================================================
 
+Version 0.4.1.999:  August 23, 2018
+-------------------------------------------------------------------------------
+
++ Updated support for the AIRR Rearrangement schema to v1.2 and added the
+  associated airr library dependency.
+
+MakeDb:
+
++ Changed the output of ``SEQUENCE_VDJ`` from the igblast subcommand to retain
+  insertions in the query sequence rather than delete them as is done in the
+  ``SEQUENCE_IMGT`` field.
+
+
 Version 0.4.1:  July 16, 2018
 -------------------------------------------------------------------------------
 

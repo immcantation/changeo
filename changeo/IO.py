@@ -1167,25 +1167,30 @@ class IgBLASTReader:
         return result
 
     @staticmethod
-    def _removeInsertions(seq, hits, start):
+    def _appendSeq(seq, hits, start, trim=True):
         """
         Remove insertions from aligned query sequences
 
         Arguments:
-          seq :  sequence to modify
-          hits : hit table row for the sequence
-          start : start position of the query sequence
+          seq :  sequence to modify.
+          hits : hit table row for the sequence.
+          start : start position of the query sequence.
+          trim : if True then remove insertions from the hit sequence before appending.
 
         Returns:
-          str : modified sequence
+          str: modified sequence.
         """
         if 'subject seq' not in hits or 'query seq' not in hits:
             return None
 
-        for m in re.finditer(r'-', hits['subject seq']):
-            ins = m.start()
-            seq += hits['query seq'][start:ins]
-            start = ins + 1
+        # Remove insertions
+        if trim:
+            for m in re.finditer(r'-', hits['subject seq']):
+                ins = m.start()
+                seq += hits['query seq'][start:ins]
+                start = ins + 1
+
+        # Append
         seq += hits['query seq'][start:]
 
         return seq
@@ -1204,12 +1209,14 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['sequence_vdj']
+        seq_trim = db['sequence_trim']
         v_hit = next(x for x in hits if x['segment'] == 'V')
 
         # Alignment positions
         result.update(IgBLASTReader._parseVHitPos(v_hit))
-        # Update VDJ sequence, removing insertions
-        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, v_hit, 0)
+        # Update VDJ sequence with and without removing insertions
+        result['sequence_vdj'] = IgBLASTReader._appendSeq(seq_vdj, v_hit, 0, trim=False)
+        result['sequence_trim'] = IgBLASTReader._appendSeq(seq_trim, v_hit, 0, trim=True)
 
         return result
 
@@ -1227,9 +1234,9 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['sequence_vdj']
+        seq_trim = db['sequence_trim']
         d_hit = next(x for x in hits if x['segment'] == 'D')
 
-        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
         overlap = 0
         if db['v_call']:
@@ -1243,11 +1250,14 @@ class IgBLASTReader:
                 np1_end = int(d_hit['q. start']) - 1
                 if seq_vdj is not None:
                     seq_vdj += db['sequence_input'][np1_start:np1_end]
+                if seq_trim is not None:
+                    seq_trim += db['sequence_input'][np1_start:np1_end]
 
         # D alignment positions
         result.update(IgBLASTReader._parseDHitPos(d_hit, overlap))
-        # Update VDJ sequence, removing insertions
-        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, d_hit, overlap)
+        # Update VDJ sequence with and without removing insertions
+        result['sequence_vdj'] = IgBLASTReader._appendSeq(seq_vdj, d_hit, overlap, trim=False)
+        result['sequence_trim'] = IgBLASTReader._appendSeq(seq_trim, d_hit, overlap, trim=True)
 
         return result
 
@@ -1265,9 +1275,9 @@ class IgBLASTReader:
         """
         result = {}
         seq_vdj = db['sequence_vdj']
+        seq_trim = db['sequence_trim']
         j_hit = next(x for x in hits if x['segment'] == 'J')
 
-        # TODO:  this is kinda gross.  not sure how else to fix the alignment overlap problem though.
         # Determine N-region length and amount of J overlap with V or D alignment
         overlap = 0
         if db['d_call']:
@@ -1280,7 +1290,9 @@ class IgBLASTReader:
                 n2_start = db['d_seq_start'] + db['d_seq_length'] - 1
                 n2_end = int(j_hit['q. start']) - 1
                 if seq_vdj is not None:
-                    seq_vdj += db['sequence_input'][n2_start: n2_end]
+                    seq_vdj += db['sequence_input'][n2_start:n2_end]
+                if seq_trim is not None:
+                    seq_trim += db['sequence_input'][n2_start:n2_end]
         elif db['v_call']:
             np1_len = int(j_hit['q. start']) - (db['v_seq_start'] + db['v_seq_length'])
             if np1_len < 0:
@@ -1292,13 +1304,16 @@ class IgBLASTReader:
                 np1_end = int(j_hit['q. start']) - 1
                 if seq_vdj is not None:
                     seq_vdj += db['sequence_input'][np1_start: np1_end]
+                if seq_trim is not None:
+                    seq_trim += db['sequence_input'][np1_start: np1_end]
         else:
             result['np1_length'] = 0
 
         # J alignment positions
         result.update(IgBLASTReader._parseJHitPos(j_hit, overlap))
-        # Update VDJ sequence, removing insertions
-        result['sequence_vdj'] = IgBLASTReader._removeInsertions(seq_vdj, j_hit, overlap)
+        # Update VDJ sequence with and without removing insertions
+        result['sequence_vdj'] = IgBLASTReader._appendSeq(seq_vdj, j_hit, overlap, trim=False)
+        result['sequence_trim'] = IgBLASTReader._appendSeq(seq_trim, j_hit, overlap, trim=True)
 
         return result
 
@@ -1436,6 +1451,7 @@ class IgBLASTReader:
         # Parse hit table
         if 'hits' in sections:
             db['sequence_vdj'] = ''
+            db['sequence_trim'] = ''
             if db['v_call']:
                 db.update(self._parseVHits(sections['hits'], db))
                 db.update(self._parseHitScores(sections['hits'], 'v'))
@@ -1447,14 +1463,15 @@ class IgBLASTReader:
                 db.update(self._parseHitScores(sections['hits'], 'j'))
 
         # Create IMGT-gapped sequence
-        if ('v_call' in db and db['v_call']) and ('sequence_vdj' in db and db['sequence_vdj']):
-            imgt_dict = gapV(db['sequence_vdj'],
+        if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
+            imgt_dict = gapV(db['sequence_trim'],
                              v_germ_start=db['v_germ_start_vdj'],
                              v_germ_length=db['v_germ_length_vdj'],
                              v_call=db['v_call'],
                              references=self.references,
                              asis_calls=self.asis_calls)
             db.update(imgt_dict)
+            del db['sequence_trim']
 
         # Add junction
         if 'subregion' in sections and 'cdr3_igblast_start' in sections['subregion']:
