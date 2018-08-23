@@ -235,7 +235,6 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     return output
 
 
-# TODO:  may be able to merge with other mains
 def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=True,
               parse_scores=False, parse_regions=False, parse_junction=False,
               format=default_format, out_file=None, out_args=default_out_args):
@@ -320,7 +319,6 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
     return output
 
 
-# TODO:  may be able to merge with other mains
 def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis_calls=False,
                  parse_regions=False, parse_scores=False, parse_igblast_cdr3=False,
                  format='changeo', out_file=None, out_args=default_out_args):
@@ -391,7 +389,6 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     return output
 
 
-# TODO:  may be able to merge with other mains
 def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
               parse_scores=False, parse_regions=False,
               format=default_format, out_file=None, out_args=default_out_args):
@@ -495,10 +492,10 @@ def getArgParser():
 
               igblast specific output fields:
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
-                  V_EVALUE, V_SCORE, V_IDENTITY, V_BTOP,
-                  J_EVALUE, J_SCORE, J_IDENTITY, J_BTOP.
-                  CDR3_IGBLAST, CDR3_IGBLAST_AA, 
-                  CDR3_IGBLAST_START, CDR3_IGBLAST_END
+                  V_EVALUE, V_SCORE, V_IDENTITY, V_CIGAR,
+                  D_EVALUE, D_SCORE, D_IDENTITY, D_CIGAR,
+                  J_EVALUE, J_SCORE, J_IDENTITY, J_CIGAR,
+                  CDR3_IGBLAST, CDR3_IGBLAST_AA
 
               ihmm specific output fields:
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ, VDJ_SCORE
@@ -539,12 +536,14 @@ def getArgParser():
                                      extension), containing sequences.''')
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
-                                     the pass file instead of the fail file.''')
+                                     the pass file instead of the fail file. An incomplete alignment
+                                     is defined as a record for which a valid IMGT-gapped sequence 
+                                     cannot be built or that is missing a V gene assignment, 
+                                     J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--scores', action='store_true', dest='parse_scores',
                                 help='''Specify if alignment score metrics should be
-                                     included in the output. Adds the V_SCORE, V_IDENTITY,
-                                     V_EVALUE, V_BTOP, J_SCORE, J_IDENTITY,
-                                     J_BTOP, and J_EVALUE columns.''')
+                                     included in the output. Adds the <VDJ>_SCORE, <VDJ>_IDENTITY,
+                                     <VDJ>_EVALUE, <VDJ>_CIGAR columns.''')
     group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
                                 help='''Specify if IMGT FWR and CDRs should be
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
@@ -601,11 +600,13 @@ def getArgParser():
                                   Note, unrecognized header formats will default to this behavior.''')
     group_imgt.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
-                                  the pass file instead of the fail file.''')
+                                  the pass file instead of the fail file. An incomplete alignment
+                                  is defined as a record that is missing a V gene assignment, 
+                                  J gene assignment, junction region, or productivity call.''')
     group_imgt.add_argument('--scores', action='store_true', dest='parse_scores',
                              help='''Specify if alignment score metrics should be
-                                  included in the output. Adds the V_SCORE, V_IDENTITY,
-                                  J_SCORE and J_IDENTITY.''')
+                                  included in the output. Adds the <VDJ>_SCORE and 
+                                  <VDJ>_IDENTITY> columns.''')
     group_imgt.add_argument('--regions', action='store_true', dest='parse_regions',
                              help='''Specify if IMGT FWRs and CDRs should be
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
@@ -643,7 +644,10 @@ def getArgParser():
                                   Note, unrecognized header formats will default to this behavior.''')
     group_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
-                                  the pass file instead of the fail file.''')
+                                  the pass file instead of the fail file. An incomplete alignment
+                                     is defined as a record for which a valid IMGT-gapped sequence 
+                                     cannot be built or that is missing a V gene assignment, 
+                                     J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--scores', action='store_true', dest='parse_scores',
                              help='''Specify if alignment score metrics should be
                                   included in the output. Adds the path score of the
