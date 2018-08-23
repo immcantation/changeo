@@ -24,7 +24,7 @@ from changeo.Defaults import default_igblast_exec, default_out_args
 
 # Defaults
 choices_format = ('blast', 'airr')
-choices_organism = ('human', 'mouse')
+choices_organism = ('human', 'mouse', 'rabbit', 'rat', 'rhesus_monkey')
 choices_loci = ('ig', 'tr')
 
 default_igdata = '~/share/igblast'
@@ -76,9 +76,10 @@ def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=No
     return out_file
 
 
-def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', format=default_format,
-                  igblast_exec=default_igblast_exec, out_file=None, out_args=default_out_args,
-                  nproc=None):
+def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
+                  vdb=None, ddb=None, jdb=None, format=default_format,
+                  igblast_exec=default_igblast_exec, out_file=None,
+                  out_args=default_out_args, nproc=None):
     """
     Performs clustering on sets of sequences
 
@@ -87,6 +88,9 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
       loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
+      vdb (str): name of a custom V reference in the database folder to use.
+      ddb (str): name of a custom D reference in the database folder to use.
+      jdb (str): name of a custom J reference in the database folder to use.
       format (str): output format. One of 'blast' or 'airr'.
       exec (str): the path to the igblastn executable.
       out_file (str): output file name. Automatically generated from the input file if None.
@@ -129,7 +133,8 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human', 
     # Run IgBLAST clustering
     start_time = time()
     printMessage('Running IgBLAST', start_time=start_time, width=25)
-    console_out = runIgBLAST(seq_file, igdata, loci=loci, organism=organism, output=out_file,
+    console_out = runIgBLAST(seq_file, igdata, loci=loci, organism=organism,
+                             vdb=vdb, ddb=ddb, jdb=jdb, output=out_file,
                              format=format, threads=nproc, exec=igblast_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
@@ -189,6 +194,18 @@ def getArgParser():
                                choices=choices_organism, help='Organism name.')
     group_igblast.add_argument('--loci', action='store', dest='loci', default=default_loci,
                                choices=choices_loci, help='The receptor type.')
+    group_igblast.add_argument('--vdb', action='store', dest='vdb', default=None,
+                               help='''Name of the custom V reference in the IgBLAST database folder.
+                                    If not specified, then a default database name with the form 
+                                    imgt_<organism>_<loci>_v will be used.''')
+    group_igblast.add_argument('--ddb', action='store', dest='ddb', default=None,
+                               help='''Name of the custom D reference in the IgBLAST database folder.
+                                    If not specified, then a default database name with the form 
+                                    imgt_<organism>_<loci>_d will be used.''')
+    group_igblast.add_argument('--jdb', action='store', dest='jdb', default=None,
+                               help='''Name of the custom J reference in the IgBLAST database folder.
+                                    If not specified, then a default database name with the form 
+                                    imgt_<organism>_<loci>_j will be used.''')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
                                help='''Specify the output format. The "blast" will result in

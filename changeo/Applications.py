@@ -95,7 +95,7 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
     return None
 
 
-def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
+def runIgBLAST(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, jdb=None, output=None,
                format=default_igblast_output, threads=1, exec=default_igblast_exec):
     """
     Runs IgBLAST on a sequence file
@@ -105,6 +105,9 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
       loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
+      vdb (str): name of a custom V reference in the database folder to use.
+      ddb (str): name of a custom D reference in the database folder to use.
+      jdb (str): name of a custom J reference in the database folder to use.
       output (str): output file name. If None, automatically generate from the fasta file name.
       format (str): output format. One of 'blast' or 'airr'.
       threads (int): number of threads for igblastn.
@@ -147,24 +150,29 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
     except KeyError:
         sys.exit('Error: Invalid receptor type %s' % loci)
 
-
-    # Database directory locations
-    v_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
-    d_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
-    j_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    # Set auxilary data
     auxilary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
+    # Set V database
+    if vdb is not None:  v_germ = os.path.join(igdata, 'database', vdb)
+    else:  v_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    # Set D database
+    if ddb is not None:  d_germ = os.path.join(igdata, 'database', ddb)
+    else:  d_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_d' % (organism, loci))
+    # Set J database
+    if jdb is not None:  j_germ = os.path.join(igdata, 'database', jdb)
+    else:  j_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_j' % (organism, loci))
 
     # Define IgBLAST command
     cmd = [exec,
            '-query', os.path.abspath(fasta),
            '-out', os.path.abspath(output),
            '-num_threads', str(threads),
+           '-ig_seqtype', seqtype,
+           '-organism', organism,
+           '-auxiliary_data', str(auxilary),
            '-germline_db_V', str(v_germ),
            '-germline_db_D', str(d_germ),
            '-germline_db_J', str(j_germ),
-           '-auxiliary_data', str(auxilary),
-           '-ig_seqtype', seqtype,
-           '-organism', organism,
            '-outfmt', outfmt,
            '-domain_system', 'imgt']
 
@@ -182,6 +190,7 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', output=None,
     #    sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
 
     return stdout_str
+
 
 def getIgBLASTVersion(exec=default_igblast_exec):
     """
