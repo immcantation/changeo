@@ -20,7 +20,7 @@ from Bio.Seq import translate
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import printLog, printProgress
+from presto.IO import printLog, printProgress, printCount, printWarning, printError
 from presto.Multiprocessing import manageProcesses
 from changeo.Defaults import default_format, default_v_field, default_j_field, default_junction_field
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
@@ -238,7 +238,7 @@ def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=def
         key = _get_key(rec, action)
 
         # Print progress
-        printProgress(rec_count, step=1000, start_time=start_time, task='Grouping sequences')
+        printCount(rec_count, step=1000, start_time=start_time, task='Grouping sequences')
         rec_count += 1
 
         # Assigned passed preclone records to key and failed to index None
@@ -248,7 +248,7 @@ def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=def
         else:
             clone_index.setdefault(None, []).append(rec)
 
-    printProgress(rec_count, step=1000, start_time=start_time, task='Grouping sequences', end=True)
+    printCount(rec_count, step=1000, start_time=start_time, task='Grouping sequences', end=True)
 
     if action == 'set':
         clone_index = _flatten_dict(clone_index)
@@ -400,7 +400,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
             if result is None:  break
 
             # Print progress for previous iteration and update record count
-            printProgress(rec_count, result_count, 0.05, start_time, task='Assigning clones')
+            printProgress(rec_count, result_count, 0.05, start_time=start_time, task='Assigning clones')
             rec_count += len(result.data)
             
             # Write passed and failed records
@@ -448,12 +448,12 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
             # Write log
             printLog(result.log, handle=log_handle)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s>  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
         
         # Print total counts
-        printProgress(rec_count, result_count, 0.05, start_time, task='Assigning clones')
+        printProgress(rec_count, result_count, 0.05, start_time=start_time, task='Assigning clones')
 
         # Update return list
         log = OrderedDict()
@@ -533,7 +533,7 @@ def defineClones(db_file, seq_field=default_junction_field, v_field=default_v_fi
     try:
         reader, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
 
     # Translate to Receptor attribute names
     seq_field = schema.toReceptor(seq_field)
@@ -667,7 +667,7 @@ def getArgParser():
                         default=default_max_missing,
                         help='''The maximum number of non-ACGT characters (gaps or Ns) to 
                              permit in the junction sequence before excluding the record 
-                             from clonal assignment. Warning, under single linkage 
+                             from clonal assignment. Note, under single linkage 
                              non-informative positions can create artifactual links 
                              between unrelated sequences. Use with caution.''')
     parser.set_defaults(group_func=groupByGene)

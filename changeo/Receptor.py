@@ -6,15 +6,14 @@ Receptor data structure
 __author__ = 'Jason Anthony Vander Heiden, Namita Gupta, Scott Christley'
 
 # Imports
-import sys
 from collections import OrderedDict
 from itertools import chain
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
 # import yaml
 # from pkg_resources import resource_stream
 
 # Presto and changeo imports
+from presto.IO import printError, printWarning
 from changeo.Gene import allele_number_regex, allele_regex, gene_regex, family_regex, \
                          parseAllele
 
@@ -648,7 +647,7 @@ class Receptor:
                 f = getattr(ReceptorData, ReceptorData.parsers[k])
                 setattr(self, k, f(data.pop(k)))
         except:
-            sys.exit('ERROR:  Input must contain valid %s values' % ','.join(required_keys))
+            printError('Input must contain valid %s values.' % ','.join(required_keys))
 
         # Parse optional known fields
         for k in optional_keys:

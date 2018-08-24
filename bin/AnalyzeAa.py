@@ -154,7 +154,7 @@ def analyzeAa(db_file, seq_field=default_junction_field, out_args=default_out_ar
     fail_count = 0
     for i,row in enumerate(reader):
         # Print progress bar
-        printProgress(i, rec_count, 0.05, start_time)
+        printProgress(i, rec_count, 0.05, start_time=start_time)
 
         # Check that sequence field is not empty and has length a multiple of three
         if(row[seq_field] != '' and len(row[seq_field])%3 == 0):
@@ -172,7 +172,7 @@ def analyzeAa(db_file, seq_field=default_junction_field, out_args=default_out_ar
                 fail_writer.writerow(row)
         
     # Print log    
-    printProgress(i+1, rec_count, 0.05, start_time)
+    printProgress(i + 1, rec_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = pass_handle.name
     log['PASS'] = pass_count

@@ -9,7 +9,6 @@ from changeo import __version__, __date__
 # Imports
 import os
 import shutil
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from pkg_resources import parse_version
@@ -17,10 +16,11 @@ from textwrap import dedent
 from time import time
 
 # Presto imports
-from presto.IO import printLog, printMessage
+from presto.IO import printLog, printMessage, printError, printWarning
 from changeo.Applications import runIgBLAST, getIgBLASTVersion
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Defaults import default_igblast_exec, default_out_args
+from changeo.IO import getOutputName
 
 # Defaults
 choices_format = ('blast', 'airr')
@@ -31,49 +31,6 @@ default_igdata = '~/share/igblast'
 default_format = 'blast'
 default_organism = 'human'
 default_loci = 'ig'
-
-
-def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=None):
-    """
-    Creates and output filename from an existing filename
-
-    Arguments:
-      file : filename to base output file name on.
-      out_label : text to be inserted before the file extension;
-                  if None do not add a label.
-      out_type : the file extension of the output file;
-                 if None use input file extension.
-      out_dir : the output directory;
-                if None use directory of input file
-      out_name : the short filename to use for the output file;
-                 if None use input file short name.
-
-    Returns:
-      str: file name.
-    """
-    # Get in_file components
-    dir_name, file_name = os.path.split(file)
-    short_name, ext_name = os.path.splitext(file_name)
-
-    # Define output directory
-    if out_dir is None:
-        out_dir = dir_name
-    else:
-        out_dir = os.path.abspath(out_dir)
-        if not os.path.exists(out_dir):  os.mkdir(out_dir)
-    # Define output file prefix
-    if out_name is None:  out_name = short_name
-    # Define output file extension
-    if out_type is None:  out_type = ext_name.lstrip('.')
-
-    # Define output file name
-    if out_label is None:
-        out_file = os.path.join(out_dir, '%s.%s' % (out_name, out_type))
-    else:
-        out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
-
-    # Return file name
-    return out_file
 
 
 def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
@@ -105,14 +62,14 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
     try:
         out_type = {'blast': 'fmt7', 'airr': 'tsv'}[format]
     except KeyError:
-        sys.exit('Error: Invalid output format %s' % format)
+        printError('Invalid output format %s.' % format)
 
     # Get IgBLAST version
     version = getIgBLASTVersion(exec=igblast_exec)
     if parse_version(version) < parse_version('1.6'):
-        sys.exit('Error: IgBLAST version is %s and 1.6 or higher is required.' % version)
+        printError('IgBLAST version is %s and 1.6 or higher is required.' % version)
     if format == 'airr' and parse_version(version) < parse_version('1.9'):
-        sys.exit('Error: IgBLAST version is %s and 1.9 or higher is required for AIRR format support.' % version)
+        printError('IgBLAST version is %s and 1.9 or higher is required for AIRR format support.' % version)
 
     # Print parameter info
     log = OrderedDict()

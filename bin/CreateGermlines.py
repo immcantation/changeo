@@ -9,7 +9,6 @@ from changeo import __version__, __date__
 
 # Imports
 import os
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby
@@ -18,7 +17,7 @@ from time import time
 
 # Presto and change imports
 from presto.Defaults import default_out_args
-from presto.IO import printLog, printMessage, printProgress
+from presto.IO import printLog, printMessage, printProgress, printError, printWarning
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_seq_field, default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
@@ -70,7 +69,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     try:
         reader, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s' % format)
     out_args['out_type'] = schema.out_type
 
     # TODO: this won't work for AIRR necessarily
@@ -97,10 +96,14 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Count input
     total_count = countDbFile(db_file)
 
+    # Check for IMGT-gaps in germlines
+    if all('...' not in x for x in references.values()):
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+
     # Check for existence of fields
     for f in [v_field, d_field, j_field, seq_field]:
         if f not in reader.fields:
-            sys.exit('Error: %s field does not exist in input database file.' % f)
+            printError('%s field does not exist in input database file.' % f)
 
     # Translate to Receptor attribute names
     v_field = schema.toReceptor(v_field)
@@ -134,7 +137,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Iterate over rows
     for key, records in receptor_iter:
         # Print progress
-        printProgress(rec_count, total_count, 0.05, start_time)
+        printProgress(rec_count, total_count, 0.05, start_time=start_time)
 
         # Define iteration variables
         records = list(records)
@@ -202,7 +205,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         printLog(rec_log, handle=log_handle)
 
     # Print log
-    printProgress(rec_count, total_count, 0.05, start_time)
+    printProgress(rec_count, total_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
     log['RECORDS'] = rec_count
@@ -246,8 +249,7 @@ def getArgParser():
                     database with records failing germline assignment.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_VDJ or SEQUENCE_IMGT,
-                 V_CALL, D_CALL, J_CALL,
+                 SEQUENCE_ID, SEQUENCE_IMGT, V_CALL, D_CALL, J_CALL,
                  V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
                  J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
@@ -259,7 +261,6 @@ def getArgParser():
 
 
              output fields:
-                 GERMLINE_VDJ, GERMLINE_VDJ_D_MASK, GERMLINE_VDJ_V_REGION,
                  GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
                  GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
                  GERMLINE_REGIONS
@@ -273,7 +274,12 @@ def getArgParser():
     group = parser.add_argument_group('germline construction arguments')
     group.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                         help='''List of folders and/or fasta files (with .fasta, .fna or .fa
-                         extension) with germline sequences.''')
+                         extension) with germline sequences. When using the default
+                         Change-O sequence and coordinate fields, these reference sequences 
+                         must contain IMGT-numbering spacers (gaps) in the V segment. 
+                         Alternative numbering schemes, or no numbering, may work for alternative 
+                         sequence and coordinate definitions that define a valid alignment, but 
+                         a warning will be issued.''')
     group.add_argument('-g', action='store', dest='germ_types', default=default_germ_types,
                         nargs='+', choices=('full', 'dmask', 'vonly', 'regions'),
                         help='''Specify type(s) of germlines to include full germline,
@@ -284,7 +290,7 @@ def getArgParser():
                              used for the entire clone within the
                              GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
     group.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
-                        help='Field containing the aligned sequence..')
+                        help='Field containing the aligned sequence.')
     group.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
                         help='Field containing the germline V segment call.')
     group.add_argument('--df', action='store', dest='d_field', default=default_d_field,

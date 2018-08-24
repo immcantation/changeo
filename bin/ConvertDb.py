@@ -12,7 +12,6 @@ import csv
 import os
 import re
 import shutil
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
@@ -26,7 +25,7 @@ from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
-from presto.IO import printLog, printMessage, printProgress
+from presto.IO import printLog, printMessage, printProgress, printError, printWarning
 from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
@@ -144,7 +143,7 @@ def convertToAIRR(db_file, repo=None, format=default_format,
     try:
         reader, __, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
 
     # Open input
     db_handle = open(db_file, 'rt')
@@ -175,7 +174,7 @@ def convertToAIRR(db_file, repo=None, format=default_format,
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Update IMGT fields
         if references is not None:
@@ -184,7 +183,7 @@ def convertToAIRR(db_file, repo=None, format=default_format,
         pass_writer.writeReceptor(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -246,7 +245,7 @@ def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_arg
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Update IMGT fields
         if references is not None:
@@ -255,7 +254,7 @@ def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_arg
         pass_writer.writeReceptor(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -319,7 +318,7 @@ def convertToBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     cluster_last = None
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         
         # Update cluster ID
@@ -354,7 +353,7 @@ def convertToBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
         cluster_last = cluster
         
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -414,7 +413,7 @@ def convertToFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Get SeqRecord
@@ -428,7 +427,7 @@ def convertToFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
             fail_count += 1
         
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -756,7 +755,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     try:
         reader, __, __ = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
 
     # Open input
     db_handle = open(db_file, 'rt')
@@ -784,7 +783,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
     rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Extract table dictionary
@@ -812,7 +811,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
             fail_count += 1
 
     # Final progress bar
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
 
     # Run tbl2asn
     if build_asn:

@@ -15,6 +15,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
                      RawDescriptionHelpFormatter
 
 # Changeo imports
+from presto.IO import printWarning, printError
 from changeo.Defaults import choices_format, default_format
 
 
@@ -33,7 +34,7 @@ def yamlArguments(file, args):
         yaml_args = yaml.load(open(file, 'r'))
         yaml_args = {k.lower(): v for k, v in yaml_args.items() if k.lower() in args}
     except:
-        sys.exit('Error:  YAML arguments file is invalid.')
+        printError('YAML arguments file is invalid.')
 
     return yaml_args
 
@@ -167,72 +168,72 @@ def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
         input_count = len(args_dict[in_arg] or [])
         input_files = args_dict[in_arg]
     else:
-        sys.exit('ERROR:  Cannot determine input file argument')
+        printError('Cannot determine input file argument.')
 
     # Verify sequence files
     if 'seq_files' in args_dict and args_dict['seq_files']:
         for f in args_dict['seq_files']:
             if not os.path.isfile(f):
-                sys.exit('ERROR:  Sequence file %s does not exist' % f)
+                printError('Sequence file %s does not exist.' % f)
             if os.path.splitext(f)[-1].lower() not in seq_types:
-                sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
-                         % (f, ', '.join(seq_types)))
+                printError('Sequence file %s is not a supported type. Must be one: %s.' \
+                           % (f, ', '.join(seq_types)))
 
     # Verify database files
     if 'db_files' in args_dict and args_dict['db_files']:
         for f in args_dict['db_files']:
             if not os.path.isfile(f):
-                sys.exit('ERROR:  Database file %s does not exist' % f)
+                printError('Database file %s does not exist.' % f)
             if os.path.splitext(f)[-1].lower() not in db_types:
-                sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
-                         % (f, ', '.join(db_types)))
+                printError('Database file %s is not a supported type. Must be one: %s.' \
+                           % (f, ', '.join(db_types)))
 
     # Verify non-standard input files
     if in_arg is not None and in_arg in args_dict and args_dict[in_arg]:
         files = args_dict[in_arg] if isinstance(args_dict[in_arg], list) else [args_dict[in_arg]]
         for f in files:
             if not os.path.exists(f):
-                sys.exit('ERROR:  Input %s does not exist' % f)
+                printError('Input %s does not exist.' % f)
             if in_types is not None and os.path.splitext(f)[-1].lower() not in in_types:
-                sys.exit('ERROR:  Input %s is not a supported type. Must be one: %s' \
+                printError('Input %s is not a supported type. Must be one: %s.' \
                          % (f, ', '.join(in_types)))
 
     # Verify output file arguments and exit if anything is hinky
     if args_dict.get('out_files', None) is not None \
             or args_dict.get('out_file', None) is not None:
         if args_dict.get('out_dir', None) is not None:
-            sys.exit('ERROR:  The -o argument may not be specified with the --outdir argument')
+            printError('The -o argument may not be specified with the --outdir argument.')
         if args_dict.get('out_name', None) is not None:
-            sys.exit('ERROR:  The -o argument may not be specified with the --outname argument')
+            printError('The -o argument may not be specified with the --outname argument.')
         if args_dict.get('failed', False):
-            sys.exit('ERROR:  The -o argument may not be specified with the --failed argument')
+            printError('The -o argument may not be specified with the --failed argument.')
     if args_dict.get('out_files', None) is not None:
         if len(args_dict['out_files']) != input_count:
-            sys.exit('ERROR:  The -o argument requires one output file name per input file')
+            printError('The -o argument requires one output file name per input file.')
         for f in args_dict['out_files']:
             if f in input_files:
-                sys.exit('ERROR:  Output files and input files cannot have the same names.')
+                printError('Output files and input files cannot have the same names.')
         for f in args_dict['out_files']:
             if os.path.isfile(f):
-                sys.stderr.write('WARNING:  Output file %s already exists and will be overwritten.' % f)
+                printWarning('Output file %s already exists and will be overwritten.' % f)
     if args_dict.get('out_file', None) is not None:
         if args_dict['out_file'] in input_files:
-            sys.exit('ERROR:  Output files and input files cannot have the same names.')
+            printError('Output files and input files cannot have the same names.')
         if os.path.isfile(args_dict['out_file']):
-            sys.stderr.write('WARNING:  Output file %s already exists and will be overwritten.' % args_dict['out_file'])
+            printWarning('Output file %s already exists and will be overwritten.' % args_dict['out_file'])
 
     # Exit if output names or log files are specified with multiple input files
     if args_dict.get('out_name', None) is not None \
             and input_count > 1 and not in_list:
-        sys.exit('ERROR:  The --outname argument may not be specified with multiple input files')
+        printError('The --outname argument may not be specified with multiple input files.')
     if args_dict.get('log_file', None) is not None \
             and input_count > 1 and not in_list:
-        sys.exit('ERROR:  The --log argument may not be specified with multiple input files')
+        printError('The --log argument may not be specified with multiple input files.')
     
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir']:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):
-            sys.exit('ERROR:  Path %s exists but it is not a directory' % args_dict['out_dir'])
+            printError('Path %s exists but it is not a directory.' % args_dict['out_dir'])
 
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'out_dir', 'out_name', 'out_type', 'failed']

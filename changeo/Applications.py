@@ -8,10 +8,10 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import os
 import re
-import sys
 from subprocess import check_output, STDOUT, CalledProcessError
 
 # Presto and changeo imports
+from presto.IO import printError, printWarning
 from changeo.Defaults import default_igblast_exec, default_tbl2asn_exec, default_igphyml_exec
 
 # Defaults
@@ -46,11 +46,10 @@ def runASN(fasta, template=None, exec=default_tbl2asn_exec):
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     if 'Unable to read any FASTA records' in stdout_str:
-        sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
+        printError('%s failed: %s' % (' '.join(cmd), stdout_str))
 
     return stdout_str
 
@@ -89,8 +88,7 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True, cwd=rep_dir)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     return None
 
@@ -143,12 +141,12 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, j
     try:
         outfmt = {'blast': '7 std qseq sseq btop', 'airr': '19'}[format]
     except KeyError:
-        sys.exit('Error: Invalid output format %s' % format)
+        printError('Invalid output format %s.' % format)
 
     try:
         seqtype = {'ig': 'Ig', 'tr': 'TCR'}[loci]
     except KeyError:
-        sys.exit('Error: Invalid receptor type %s' % loci)
+        printError('Invalid receptor type %s.' % loci)
 
     # Set auxilary data
     auxilary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
@@ -183,8 +181,7 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, j
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False, env=env,
                                   universal_newlines=True)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     #if 'Unable to read any FASTA records' in stdout_str:
     #    sys.stderr.write('\n%s failed: %s\n' % (' '.join(cmd), stdout_str))
@@ -209,8 +206,7 @@ def getIgBLASTVersion(exec=default_igblast_exec):
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     # Extract version number
     match = re.search('(?<=Package: igblast )(\d+\.\d+\.\d+)', stdout_str)

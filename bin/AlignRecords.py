@@ -10,7 +10,6 @@ from changeo import __version__, __date__
 # Imports
 import os
 import shutil
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
@@ -20,7 +19,7 @@ from Bio.SeqRecord import SeqRecord
 # Presto and changeo import
 from presto.Defaults import default_out_args, default_muscle_exec
 from presto.Applications import runMuscle
-from presto.IO import printLog
+from presto.IO import printLog, printError, printWarning
 from presto.Multiprocessing import manageProcesses
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbFields, getFormatOperators
@@ -240,7 +239,7 @@ def alignRecords(db_file, seq_fields, group_func, align_func, group_args={}, ali
     try:
         reader, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
 
     # Define feeder function and arguments
     if 'group_fields' in group_args and group_args['group_fields'] is not None:

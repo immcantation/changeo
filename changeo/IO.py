@@ -19,7 +19,7 @@ from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 
 # Presto and changeo imports
-from presto.IO import getFileType
+from presto.IO import getFileType, printError, printWarning
 from changeo.Defaults import default_csv_size
 from changeo.Gene import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, \
                          parseAllele
@@ -267,9 +267,7 @@ class AIRRReader(TSVReader):
             import airr
             self.reader = airr.io.RearrangementReader(self.handle, debug=False)
         except ImportError as e:
-            sys.exit('Error: AIRR library cannot be imported. %s.' % e)
-            #sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV reader.')
-            #self.reader = TSVReader(self.handle)
+            printError('AIRR library cannot be imported: %s.' % e)
 
         # Set field list
         self.fields = self.reader.fields
@@ -327,9 +325,7 @@ class AIRRWriter(TSVWriter):
             import airr
             self.writer = airr.io.RearrangementWriter(self.handle, fields=fields, debug=False)
         except ImportError as e:
-            sys.exit('Error: AIRR library cannot be imported. %s.' % e)
-            #sys.stderr.write('Warning: AIRR standard library is not available. Falling back to non-validating TSV writer.')
-            #self.writer = TSVWriter(self.handle, fields=fields)
+            printError('AIRR library cannot be imported: %s.' % e)
 
     def _parseReceptor(self, record):
         """
@@ -780,7 +776,7 @@ class IMGTReader:
                   ntseq['Sequence ID'],
                   junction['Sequence ID']]
         if len(set(id_set)) != 1:
-            sys.exit('Error: IMGT files are corrupt starting with Summary file record %s' % id_set[0])
+            printError('IMGT files are corrupt starting with Summary file record %s.' % id_set[0])
 
         # Initialize db with query ID and sequence
         db = {'sequence_id': summary['Sequence ID'],
@@ -2034,8 +2030,7 @@ def readGermlines(repo, asis=False):
 
     # Catch instances where no valid fasta files were passed in
     if len(repo_files) < 1:
-        sys.exit('\nERROR: No valid germline fasta files (.fasta, .fna, .fa) were found in %s' \
-                 % ','.join(repo))
+        printError('No valid germline fasta files (.fasta, .fna, .fa) were found in %s.' % ','.join(repo))
 
     references = {}
     for file_name in repo_files:
@@ -2093,11 +2088,11 @@ def extractIMGT(imgt_output):
         # Define file dictionary
         imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
     else:
-        sys.exit('ERROR: Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
+        printError('Unsupported IGMT output file. Must be either a zipped file (.zip), LZMA compressed tarfile (.txz) or a folder.')
 
     # Check extraction for errors
     if len(imgt_dict) != len(imgt_names):
-        sys.exit('ERROR: Extra files or missing necessary file IMGT output %s.' % imgt_output)
+        printError('Extra files or missing necessary file IMGT output %s.' % imgt_output)
 
     return temp_dir, imgt_dict
 
@@ -2119,11 +2114,11 @@ def countDbFile(file):
             for i, __ in enumerate(db_records):  pass
         db_count = i
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % file)
+        printError('File %s cannot be read.' % file)
     except:
-        sys.exit('ERROR:  File %s is invalid' % file)
+        printError('File %s is invalid.' % file)
     else:
-        if db_count == 0:  sys.exit('ERROR:  File %s is empty' % file)
+        if db_count == 0:  printError('File %s is empty.' % file)
 
     return db_count
 
@@ -2145,9 +2140,9 @@ def getDbFields(file, add=None, exclude=None, reader=TSVReader):
         with open(file, 'rt') as handle:
             fields = reader(handle).fields
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % file)
+        printError('File %s cannot be read.' % file)
     except:
-        sys.exit('ERROR:  File %s is invalid' % file)
+        printError('File %s is invalid.' % file)
 
     # Add extra fields
     if add is not None:
@@ -2159,23 +2154,6 @@ def getDbFields(file, add=None, exclude=None, reader=TSVReader):
         fields = [f for f in fields if f not in exclude]
 
     return fields
-
-
-def splitFileName(file):
-    """
-    Extract the extension from a file name
-
-    Arguments:
-      file (str): file name.
-
-    Returns:
-      tuple : tuple of the file basename and extension.
-    """
-    dir_name, file_name = os.path.split(file)
-    short_name, ext_name = os.path.splitext(file_name)
-    file_type = ext_name.lower().lstrip('.')
-
-    return short_name, file_type
 
 
 def getFormatOperators(format):
@@ -2203,38 +2181,54 @@ def getFormatOperators(format):
     return reader, writer, schema
 
 
-def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_type=None):
+def splitName(file):
     """
-    Opens an output file handle
+    Extract the extension from a file name
 
     Arguments:
-      in_file : Input filename
-      out_label : Text to be inserted before the file extension;
-                  if None do not add a label
+      file (str): file name.
+
+    Returns:
+      tuple : tuple of the file directory, basename and extension.
+    """
+    directory, filename = os.path.split(file)
+    basename, extension = os.path.splitext(filename)
+    extension = extension.lower().lstrip('.')
+
+    return directory, basename, extension
+
+
+def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=None):
+    """
+    Creates and output filename from an existing filename
+
+    Arguments:
+      file : filename to base output file name on.
+      out_label : text to be inserted before the file extension;
+                  if None do not add a label.
       out_type : the file extension of the output file;
-                 if None use input file extension
+                 if None use input file extension.
       out_dir : the output directory;
                 if None use directory of input file
       out_name : the short filename to use for the output file;
-                 if None use input file short name
+                 if None use input file short name.
 
     Returns:
-      file : File handle
+      str: file name.
     """
-    # Get in_file components
-    dir_name, file_name = os.path.split(in_file)
-    short_name, ext_name = os.path.splitext(file_name)
+    # Get filename components
+    directory, basename, extension = splitName(file)
 
     # Define output directory
     if out_dir is None:
-        out_dir = dir_name
+        out_dir = directory
     else:
         out_dir = os.path.abspath(out_dir)
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
     # Define output file prefix
-    if out_name is None:  out_name = short_name
+    if out_name is None:  out_name = basename
     # Define output file extension
-    if out_type is None:  out_type = ext_name.lstrip('.')
+    if out_type is None:  out_type = extension
 
     # Define output file name
     if out_label is None:
@@ -2242,8 +2236,33 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     else:
         out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
 
+    # Return file name
+    return out_file
+
+
+def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=None):
+    """
+    Opens an output file handle
+
+    Arguments:
+      file : filename to base output file name on.
+      out_label : text to be inserted before the file extension;
+                  if None do not add a label.
+      out_type : the file extension of the output file;
+                 if None use input file extension.
+      out_dir : the output directory;
+                if None use directory of input file
+      out_name : the short filename to use for the output file;
+                 if None use input file short name.
+
+    Returns:
+      file : File handle
+    """
+    out_file = getOutputName(file, out_label=out_label, out_dir=out_dir,
+                             out_name=out_name, out_type=out_type)
+
     # Open and return handle
     try:
         return open(out_file, mode='w')
     except:
-        sys.exit('ERROR:  File %s cannot be opened' % out_file)
+        printError('File %s cannot be opened.' % out_file)

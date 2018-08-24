@@ -9,7 +9,6 @@ from changeo import __version__, __date__
 
 # Imports
 import os
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -18,9 +17,9 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog, printMessage
+from presto.IO import  printLog, printMessage, printWarning, printError
 from changeo.Defaults import default_format
-from changeo.IO import splitFileName, getDbFields, getFormatOperators, getOutputHandle
+from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle
 from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
@@ -468,7 +467,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             correctseqs = True
 
     if correctseqs:
-      #  sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+      #  printWarning("Sequences or IMGT assignments within clone %s are not the same length!\n" \
        #       "Trying to correct this but check the alignment file to make sure things make sense." \
         #      % clones[0].clone)
         maxlen = sites
@@ -544,7 +543,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         seqdiff = sites - len(germline)
         germline = germline + "N" * (seqdiff)
         #if not correctseqs:
-        #    sys.stderr.write("WARNING! Sequences or IMGT assignments within clone %s are not the same length!\n" \
+        #    printWarning("Sequences or IMGT assignments within clone %s are not the same length!\n" \
         #          "Trying to correct this but check the alignment file to make sure things make sense." \
         #          % clones[0].clone)
 
@@ -717,7 +716,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     dir_name, __ = os.path.split(pass_handle.name)
 
     if out_args['out_name'] is None:
-        clone_name, __ = splitFileName(db_file)
+        __, clone_name, __ = splitName(db_file)
     else:
         clone_name = out_args['out_name']
     # clone_dir = outdir/out_name
@@ -732,7 +731,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     try:
         reader, writer, __ = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
     out_fields = getDbFields(db_file, reader=reader)
 
     # open input file

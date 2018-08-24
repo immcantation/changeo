@@ -19,7 +19,7 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from presto.Annotation import parseAnnotation
-from presto.IO import countSeqFile, printLog, printMessage, printProgress, readSeqFile
+from presto.IO import countSeqFile, printLog, printMessage, printProgress, printError, printWarning, readSeqFile
 from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import buildGermline
@@ -163,7 +163,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     start_time = time()
 
     # Validate and write output
-    printProgress(0, total_count, 0.05, start_time)
+    printProgress(0, total_count, 0.05, start_time=start_time)
     for i, record in enumerate(records, start=1):
         # Replace sequence description with full string, if required
         if id_dict is not None and record.sequence_id in id_dict:
@@ -188,7 +188,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 asis_id = True
-                sys.stderr.write('\nWARNING: Sequence annotation format not recognized. Sequence headers will not be parsed.\n')
+                printWarning('Sequence annotation format not recognized. Sequence headers will not be parsed.')
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
@@ -213,7 +213,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                     fail_writer.writeReceptor(record)
 
         # Print progress
-        printProgress(i, total_count, 0.05, start_time)
+        printProgress(i, total_count, 0.05, start_time=start_time)
 
     # Print consol log
     log = OrderedDict()
@@ -283,7 +283,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
     try:
         __, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
     out_args['out_type'] = schema.out_type
 
     # Define output fields
@@ -306,6 +306,9 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
             germ_iter = parse_iter
         else:
             references = readGermlines(repo)
+            # Check for IMGT-gaps in germlines
+            if all('...' not in x for x in references.values()):
+                printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
             germ_iter = (addGermline(x, references) for x in parse_iter)
 
         # Write db
@@ -365,11 +368,15 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     references = readGermlines(repo, asis=asis_calls)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
+    # Check for IMGT-gaps in germlines
+    if all('...' not in x for x in references.values()):
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+
     # Define format operators
     try:
         __, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
     out_args['out_type'] = schema.out_type
 
     # Define output fields
@@ -432,11 +439,15 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
     references = readGermlines(repo)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
+    # Check for IMGT-gaps in germlines
+    if all('...' not in x for x in references.values()):
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+
     # Define format operators
     try:
         __, writer, schema = getFormatOperators(format)
     except ValueError:
-        sys.exit('Error:  Invalid format %s' % format)
+        printError('Invalid format %s.' % format)
     out_args['out_type'] = schema.out_type
 
     # Define output fields
@@ -528,8 +539,9 @@ def getArgParser():
                                      (IgBLAST argument \'-outfmt "7 std qseq sseq btop"\').''')
     group_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                                 help='''List of folders and/or fasta files containing
-                                     IMGT-gapped germline sequences corresponding to the
-                                     set of germlines used in the IgBLAST alignment.''')
+                                     the same germline set used in the IgBLAST alignment. These
+                                     reference sequences must contain IMGT-numbering spacers (gaps)
+                                     in the V segment.''')
     group_igblast.add_argument('-s', action='store', nargs='+', dest='seq_files',
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
@@ -588,10 +600,10 @@ def getArgParser():
                                   will not be corrected.''')
     group_imgt.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
                             help='''List of folders and/or fasta files containing
-                                 IMGT-gapped germline sequences corresponding to the
-                                 set of germlines used by IMGT/HighV-QUEST. If unspecified, 
-                                 the germline sequence reconstruction will not be included in 
-                                 the output.''')
+                                 the germline sequence set used by IMGT/HighV-QUEST. 
+                                 These reference sequences must contain IMGT-numbering spacers (gaps)
+                                 in the V segment. If unspecified, the germline sequence reconstruction 
+                                 will not be included in the output.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -630,8 +642,9 @@ def getArgParser():
                              help='''iHMMune-Align output file.''')
     group_ihmm.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                              help='''List of folders and/or FASTA files containing
-                                  IMGT-gapped germline sequences corresponding to the
-                                  set of germlines used in the IgBLAST alignment.''')
+                                   the set of germline sequences used by iHMMune-Align. These
+                                   reference sequences must contain IMGT-numbering spacers (gaps)
+                                   in the V segment.''')
     group_ihmm.add_argument('-s', action='store', nargs='+', dest='seq_files',
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa

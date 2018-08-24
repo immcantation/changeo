@@ -12,7 +12,7 @@ from collections import OrderedDict
 from time import time
 
 # Presto and changeo imports
-from presto.IO import printProgress, printLog
+from presto.IO import printProgress, printLog, printError, printWarning
 from changeo.Defaults import default_out_args
 from changeo.IO import countDbFile, getOutputHandle, ChangeoReader, ChangeoWriter
 from changeo.Receptor import Receptor
@@ -141,7 +141,7 @@ def feedDbQueue(alive, data_queue, db_file, reader=ChangeoReader, group_func=Non
             # Feed queue
             data_queue.put(DbData(*data))
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
@@ -189,12 +189,12 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
             # Feed results to result queue
             result_queue.put(result)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing data with ID: %s.\n' % str(data.id))
+        printError('Processing data with ID: %s.' % str(data.id), exit=False)
         raise
 
     return None
@@ -262,7 +262,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(rec_count, result_count, 0.05, start_time)
+            printProgress(rec_count, result_count, 0.05, start_time=start_time)
 
             # Update counts for current iteration
             set_count += 1
@@ -293,12 +293,12 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
                         fail_handle, fail_writer = _open('fail')
                         fail_writer.writeReceptor(result.data)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
 
         # Print total counts
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
 
         # Update log
         log = OrderedDict()

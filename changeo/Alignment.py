@@ -7,10 +7,10 @@ __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import re
-import sys
 from Bio.Seq import Seq
 
 # Presto and changeo imports
+from presto.IO import printError, printWarning
 from changeo.Gene import parseAllele, v_allele_regex, j_allele_regex
 
 
@@ -191,8 +191,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
         imgt_dict['v_germ_start_imgt'] = 1
         imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
     else:
-        sys.stderr.write('WARNING: %s was not found in the germline repository. IMGT-gapped sequence cannot be determined.\n' \
-                         % vgene)
+        printWarning('%s was not found in the germline repository. IMGT-gapped sequence cannot be determined.' % vgene)
 
     return imgt_dict
 

@@ -22,7 +22,7 @@ from presto.IO import printLog, printProgress, printMessage
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getOutputHandle, splitFileName, TSVReader, TSVWriter
+from changeo.IO import countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -58,7 +58,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
@@ -96,7 +96,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
 
         # Iterate over records
         for row in db_iter:
-            printProgress(count, rec_count, 0.05, start_time)
+            printProgress(count, rec_count, 0.05, start_time=start_time)
             count += 1
             # Write row to appropriate file
             tag = row[field]
@@ -124,14 +124,14 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
 
         # Iterate over records
         for row in db_iter:
-            printProgress(count, rec_count, 0.05, start_time)
+            printProgress(count, rec_count, 0.05, start_time=start_time)
             count += 1
             tag = row[field]
             tag = 'under' if float(tag) < num_split else 'atleast'
             writers_dict[tag].writeDict(row)
 
     # Write log
-    printProgress(count, rec_count, 0.05, start_time)
+    printProgress(count, rec_count, 0.05, start_time=start_time)
     log = OrderedDict()
     for i, k in enumerate(handles_dict):
         log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
@@ -172,7 +172,7 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
     # Open inut
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Add fields
     out_fields = list(db_iter.fields)
@@ -197,14 +197,14 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Write updated row
         rec.update(add_dict)
         pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -241,7 +241,7 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Append index field
     out_fields = list(db_iter.fields)
@@ -263,7 +263,7 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Add count and write updated row
@@ -271,7 +271,7 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
         pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -308,7 +308,7 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Exclude dropped field from output
     out_fields = [f for f in db_iter.fields if f not in fields]
@@ -329,13 +329,13 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Write row
         pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -389,7 +389,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Open output
     if out_file is not None:
@@ -407,7 +407,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Check for deletion values in all fields
         delete = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
@@ -420,7 +420,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
             fail_count += 1
         
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -461,7 +461,7 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
     # Open file handles
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Get header and rename fields
     out_fields = list(db_iter.fields)
@@ -485,7 +485,7 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
     rec_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # TODO:  repeating renaming is unnecessary.
         # Rename fields
@@ -495,7 +495,7 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
         pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -552,7 +552,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Open output
     if out_file is not None:
@@ -570,7 +570,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     rec_count, pass_count, fail_count = 0, 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Check for selection values in all fields
@@ -584,7 +584,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
             fail_count += 1
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -630,7 +630,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Open output
     if out_file is not None:
@@ -657,14 +657,14 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     rec_count = 0
     for key in sorted_keys:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Write records
         pass_writer.writeDict(db_dict[key])
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -706,7 +706,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
-    __, out_args['out_type'] = splitFileName(db_file)
+    __, __, out_args['out_type'] = splitName(db_file)
 
     # Open output
     if out_file is not None:
@@ -724,7 +724,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     rec_count, pass_count = 0, 0
     for rec in db_iter:
         # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
 
         # Updated values if found
@@ -737,7 +737,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
         pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -790,7 +790,7 @@ def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args)
     if out_file is not None:
         pass_handle = open(out_file, 'w')
     else:
-        __, out_args['out_type'] = splitFileName(db_files[0])
+        __, __, out_args['out_type'] = splitName(db_files[0])
         pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'], out_type=out_args['out_type'])
     pass_writer = TSVWriter(pass_handle, out_fields)
@@ -801,14 +801,14 @@ def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args)
     for db in db_iters:
         for rec in db:
             # Print progress for previous iteration
-            printProgress(rec_count, result_count, 0.05, start_time)
+            printProgress(rec_count, result_count, 0.05, start_time=start_time)
             rec_count += 1
 
             # Write records
             pass_writer.writeDict(rec)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
