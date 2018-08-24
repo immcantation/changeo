@@ -325,9 +325,9 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
         log['ERROR'] = 'Sequence is missing from the %s field' % seq_field
         return log, None, None
 
-    if len(germ_seq) != len(receptor.getField(seq_field)):
-        log['ERROR'] = 'Germline sequence is %d nucleotides longer than input sequence' % \
-                              (len(germlines['full']) - len(receptor.getField(seq_field)))
+    len_check = len(germ_seq) - len(receptor.getField(seq_field))
+    if len_check != 0:
+        log['ERROR'] = 'Germline sequence differs in length from input sequence by %i nucleotides.' % abs(len_check)
         return log, None, None
 
     # Define return germlines object
