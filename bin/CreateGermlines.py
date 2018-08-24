@@ -22,7 +22,8 @@ from changeo.Defaults import default_v_field, default_d_field, default_j_field, 
                              default_seq_field, default_format
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import buildGermline, buildClonalGermline
-from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines
+from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines, \
+                       checkFields
 
 # Defaults
 default_germ_types = 'dmask'
@@ -91,18 +92,26 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     # Get repertoire and open Db reader
     references = readGermlines(repo)
     db_handle = open(db_file, 'rt')
-    reader = reader(db_handle)
+    db_iter = reader(db_handle)
 
-    # Count input
-    total_count = countDbFile(db_file)
+    # Check for required columns
+    try:
+        required = ['v_germ_start_imgt', 'd_germ_start', 'j_germ_start',
+                    'np1_length', 'np2_length']
+        checkFields(required, db_iter.fields, schema=schema)
+    except LookupError as e:
+        printError(e)
 
     # Check for IMGT-gaps in germlines
     if all('...' not in x for x in references.values()):
         printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
 
+    # Count input
+    total_count = countDbFile(db_file)
+
     # Check for existence of fields
     for f in [v_field, d_field, j_field, seq_field]:
-        if f not in reader.fields:
+        if f not in db_iter.fields:
             printError('%s field does not exist in input database file.' % f)
 
     # Translate to Receptor attribute names
@@ -116,11 +125,11 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     if cloned:
         start_time = time()
         printMessage('Sorting by clone', start_time=start_time, width=20)
-        sorted_records = sorted(reader, key=lambda x: x.getField(clone_field))
+        sorted_records = sorted(db_iter, key=lambda x: x.getField(clone_field))
         printMessage('Done', start_time=start_time, end=True, width=20)
         receptor_iter = groupby(sorted_records, lambda x: x.getField(clone_field))
     else:
-        receptor_iter = ((x.sequence_id, [x]) for x in reader)
+        receptor_iter = ((x.sequence_id, [x]) for x in db_iter)
 
     # Define log handle
     if out_args['log_file'] is None:

@@ -2266,3 +2266,27 @@ def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=
         return open(out_file, mode='w')
     except:
         printError('File %s cannot be opened.' % out_file)
+
+
+def checkFields(attributes, header, schema=ChangeoSchema):
+    """
+    Checks that a file header contains a required set of Receptor attributes
+
+    Arguments:
+        attributes (list): list of Receptor attributes to check for.
+        header (list): list of fields names in the file header.
+        schema (object): schema object to convert field names to Receptor attributes.
+
+    Returns:
+        bool: True if all attributes mapping fields are found.
+
+    Raises:
+        LookupError:
+    """
+    columns = [schema.fromReceptor(f) for f in attributes]
+    missing = [x for x in columns if x not in header]
+
+    if len(missing) > 0:
+        raise LookupError('Missing required fields: %s' % ', '.join(missing))
+
+    return True

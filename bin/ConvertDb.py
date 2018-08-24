@@ -34,7 +34,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
                                 yamlArguments
 from changeo.Gene import c_gene_regex, parseAllele, buildGermline
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines
+                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, checkFields
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # System settings
@@ -753,13 +753,23 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
 
     # Define format operators
     try:
-        reader, __, __ = getFormatOperators(format)
+        reader, __, schema = getFormatOperators(format)
     except ValueError:
         printError('Invalid format %s.' % format)
 
     # Open input
     db_handle = open(db_file, 'rt')
     db_iter = reader(db_handle)
+
+    # Check for required columns
+    try:
+        required = ['sequence_input',
+                    'v_call', 'd_call', 'j_call',
+                    'v_seq_start', 'd_seq_start', 'j_seq_start',
+                    'np1_length', 'np2_length']
+        checkFields(required, db_iter.fields, schema=schema)
+    except LookupError as e:
+        printError(e)
 
     # Open output
     if out_file is not None:
@@ -863,10 +873,11 @@ def getArgParser():
 
              required fields:
                  SEQUENCE_ID, SEQUENCE_INPUT, JUNCTION, V_CALL, D_CALL, J_CALL, 
-                 V_SEQ_START, V_SEQ_LENGTH, D_SEQ_START, D_SEQ_LENGTH, J_SEQ_START, J_SEQ_LENGTH
+                 V_SEQ_START, V_SEQ_LENGTH, D_SEQ_START, D_SEQ_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
+                 NP1_LENGTH, NP2_LENGTH
                  
              optional fields:
-                 SEQUENCE_IMGT, GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, CREGION
+                 SEQUENCE_IMGT, GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, C_CALL
                 
              output fields:
                  None
