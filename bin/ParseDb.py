@@ -870,7 +870,7 @@ def getArgParser():
 
     # Define parent parsers
     default_parent = getCommonArgParser(failed=False, log=False, format=False)
-    multi_parent = getCommonArgParser(db_out=False, failed=False, log=False, format=False)
+    multi_parent = getCommonArgParser(out_file=False, failed=False, log=False, format=False)
 
     # Subparser to add records
     parser_add = subparsers.add_parser('add', parents=[default_parent],

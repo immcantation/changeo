@@ -64,21 +64,22 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
     pass
 
 
-def getCommonArgParser(db_in=True, db_out=True, failed=True, log=True,
+def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=True,
                        format=True, multiproc=False, add_help=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments:
-      db_in : if True include tab delimited database input arguments.
-      db_out : if True include explicit output file name argument.
-      failed : if True include arguments for output of failed results.
-      log : if True include log arguments.
-      format : input and output type arguments.
-      multiproc : if True include multiprocessing arguments.
+      db_in (bool): if True include tab delimited database input arguments.
+      db_out (bool): if True include explicit output file name argument.
+      out_file (bool): if True add explicit output file name arguments.
+      failed (bool): if True include arguments for output of failed results.
+      log (bool): if True include log arguments.
+      format (bool): input and output type arguments.
+      multiproc (bool): if True include multiprocessing arguments.
 
     Returns:
-      argparse.ArgumentParser : an argument parser
+      argparse.ArgumentParser : an argument parser.
     """
     parser = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
 
@@ -97,9 +98,24 @@ def getCommonArgParser(db_in=True, db_out=True, failed=True, log=True,
         group.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
                            help='A list of tab delimited database files.')
     if db_out:
+        # Place holder for the future
+        pass
+
+    # Output filename
+    if out_file:
         group.add_argument('-o', nargs='+', action='store', dest='out_files', default=None,
                            help='''Explicit output file name. Note, this argument cannot be used with 
-                                 the --failed, --outdir, or --outname arguments.''')
+                                 the --failed, --outdir, or --outname arguments. If unspecified, then
+                                 the output filename will be based on the input filename(s).''')
+
+    # Universal arguments
+    group.add_argument('--outdir', action='store', dest='out_dir', default=None,
+                       help='''Specify to changes the output directory to the location specified.
+                            The input file directory is used if this is not specified.''')
+    group.add_argument('--outname', action='store', dest='out_name', default=None,
+                       help='''Changes the prefix of the successfully processed output file
+                            to the string specified. May not be specified with multiple
+                            input files.''')
 
     # Log arguments
     if log:
@@ -112,16 +128,6 @@ def getCommonArgParser(db_in=True, db_out=True, failed=True, log=True,
         group.add_argument('--failed', action='store_true', dest='failed',
                            help='''If specified create files containing records that
                                 fail processing.''')
-
-    # Universal arguments
-    group.add_argument('--outdir', action='store', dest='out_dir', default=None,
-                       help='''Specify to changes the output directory to the location specified.
-                            The input file directory is used if this is not specified.''')
-    group.add_argument('--outname', action='store', dest='out_name', default=None,
-                       help='''Changes the prefix of the successfully processed output file
-                            to the string specified. May not be specified with multiple
-                            input files.''')
-
     # Format arguments
     if format:
         group.add_argument('--format', action='store', dest='format', default=default_format,
