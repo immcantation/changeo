@@ -29,7 +29,7 @@ from presto.IO import printLog, printMessage, printProgress, printError, printWa
 from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
-                             default_csv_size, default_format, default_out_args, choices_format
+                             default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 yamlArguments
 from changeo.Gene import c_gene_regex, parseAllele, buildGermline

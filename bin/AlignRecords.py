@@ -303,7 +303,6 @@ def getArgParser():
                  <field>
                      user specified sequence fields to align.
 
-
              output fields:
                  <field>_ALIGN
              ''')

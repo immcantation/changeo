@@ -280,7 +280,7 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
         try:
             dist_mat = distance_models[model]
         except KeyError:
-            sys.exit('Unrecognized distance model: %s' % args_dict['model'])
+            printError('Unrecognized distance model: %s' % args_dict['model'])
 
     # TODO:  can be cleaned up with abstract model class
     # Determine length of n-mers
@@ -289,7 +289,7 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
     elif model in ['hh_s5f', 'mk_rs5nf']:
         nmer_len = 5
     else:
-        sys.exit('Unrecognized distance model: %s.\n' % model)
+        printError('Unrecognized distance model: %s.\n' % model)
 
     # Define unique junction mapping
     seq_map = {}
@@ -716,7 +716,7 @@ if __name__ == '__main__':
     try:
         args_dict['clone_args']['dist_mat'] = distance_models[args_dict['model']]
     except KeyError:
-        sys.exit('Unrecognized distance model: %s' % args_dict['model'])
+        printError('Unrecognized distance model: %s' % args_dict['model'])
 
     # Clean argument dictionary
     del args_dict['action']

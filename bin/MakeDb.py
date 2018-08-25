@@ -10,7 +10,6 @@ from changeo import __version__, __date__
 # Imports
 import os
 import re
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -151,7 +150,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     elif writer == AIRRWriter:
         _annotate = _airr
     else:
-        sys.exit('Invalid output writer')
+        printError('Invalid output writer')
 
     # Set pass criteria
     _pass = _gentle if partial else _strict

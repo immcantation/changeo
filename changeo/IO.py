@@ -9,7 +9,6 @@ __author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 import csv
 import os
 import re
-import sys
 import tarfile
 import zipfile
 from itertools import chain, groupby, zip_longest
