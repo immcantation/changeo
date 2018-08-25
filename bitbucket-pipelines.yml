@@ -2,7 +2,7 @@ image:
   name: kleinstein/immcantation:test
 
 pipelines:
-  branches:
+  custom:
     default:
       - step:
           script:
