@@ -24,13 +24,14 @@ from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
-def maskSplitCodons(receptor,recursive=False):
+def maskSplitCodons(receptor,recursive=False,mask=True):
     """
     Identify junction region by IMGT definition.
 
     Arguments:
       receptor : Receptor object.
       recursive (bool) : was this method part of a recursive call?
+      mask (bool) : mask split codons for use with igphyml?
     Returns:
       str : modified IMGT gapped sequence.
     """
@@ -108,105 +109,110 @@ def maskSplitCodons(receptor,recursive=False):
     frameshifts = 0
     s_end = 0 #adjust for the fact that IMGT sequences can end on gaps
     for i in range(spos, len(scodons)):
-        if scodons[i] != '...' and len(scodons[i]) == 3:
+        if scodons[i] != '...' and len(scodons[i]) == 3 and scodons[i] != "NNN":
             s_end = i
     if debug:
         print(str(s_end) + ":" + str(len(scodons)))
         print(scodons[s_end])
     s_end += 1
     qpos = 0
+
     # TODO: for loop with zip()
-    while spos < s_end and qpos < len(qcodons):
-        if debug:
-            print(scodons[spos] + "\t" + qcodons[qpos])
-        if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
-            spos += 1
-        elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
-            spos += 1
-            qpos += 1
-        else: # if not the same, mask IMGT at that site and scan forward until you find a codon that matches next site
+    if mask:
+        while spos < s_end and qpos < len(qcodons):
             if debug:
-                print("checking %s at position %d %d" % (scodons[spos], spos, qpos))
-            ospos=spos
-            oqpos=qpos
-            spos += 1
-            qpos += 1
-            while spos < s_end and scodons[spos] == "...": #possible next codon is just a gap
+                print(scodons[spos] + "\t" + qcodons[qpos])
+            if scodons[spos] == '...' and qcodons[qpos] != '...': #if IMGT gap, move forward in imgt
                 spos += 1
-            while qpos < len(qcodons) and spos < s_end and scodons[spos] != qcodons[qpos]:
-                if debug:
-                    print("Checking " + scodons[spos]+ "\t" + qcodons[qpos])
+            elif scodons[spos] == qcodons[qpos]: # if both are the same, move both forward
+                spos += 1
                 qpos += 1
-            if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
-                qpos -= 1
-                spos = ospos
+            elif qcodons[qpos] == "N": # possible that SEQ-IMGT ends on a bunch of Ns
+                qpos += 1
+                spos += 1
+            else: # if not the same, mask IMGT at that site and scan forward until you find a codon that matches next site
                 if debug:
-                    print("But codon was apparently preserved")
-                if 'IN-FRAME' in  log:
-                    log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
-                else:
-                    log['IN-FRAME'] = str(spos)
-            elif qpos >= len(qcodons) and spos < s_end:
-                if debug:
-                    print("FAILING MATCH")
-                log['PASS'] = False #if no match for the adjacent codon was found, something's up.
-                log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
-                #figure out if this was due to a frame-shift by repeating this method but with an edited input sequence
-                if not recursive:
-                    for ins in range(1,3):
-                        ros = receptor.sequence_input
-                        ris = receptor.sequence_imgt
-                        psite = receptor.v_seq_start-1+oqpos*3
-                        pisite = ospos * 3
-                        if (psite+3 + ins) < len(ros) and (pisite+3) < len(ris):
-                        #cut out 1 or 2 nucleotides downstream of offending codon
-                            receptor.sequence_input = ros[0:(psite+3)]+ros[(psite+3 + ins):]
-                            receptor.sequence_imgt = ris[0:(pisite+3)] + ris[(pisite+3):]
-                            if debug:
-                                print(ros + "\n"+receptor.sequence_input)
-                                print(ris + "\n" + receptor.sequence_imgt)
-                                print("RUNNING %d\n"%ins)
-                            mout = maskSplitCodons(receptor,recursive=True)
-                            if mout[1]['PASS']:
-                                #if debug:
-                                receptor.sequence_input = ros
-                                receptor.sequence_imgt = ris
-                                frameshifts += 1
-                                if debug:
-                                    print("FRAMESHIFT of length %d!" % ins)
-                                log['FAIL'] = "SINGLE FRAME-SHIFTING INSERTION"
-                                break
-                            else:
-                                receptor.sequence_input = ros
-                                receptor.sequence_imgt = ris
-
-            elif spos >= s_end or qcodons[qpos] != scodons[spos]:
-                scodons[ospos] = "NNN"
-                if spos >= s_end:
+                    print("checking %s at position %d %d" % (scodons[spos], spos, qpos))
+                ospos=spos
+                oqpos=qpos
+                spos += 1
+                qpos += 1
+                while spos < s_end and scodons[spos] == "...": #possible next codon is just a gap
+                    spos += 1
+                while qpos < len(qcodons) and spos < s_end and scodons[spos] != qcodons[qpos]:
                     if debug:
-                        print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
-                    #log[str(spos)] = "END"
-                    if 'END-MASKED' in log:
-                        log['END-MASKED'] = log['END-MASKED'] + "," + str(spos)
+                        print("Checking " + scodons[spos]+ "\t" + qcodons[qpos])
+                    qpos += 1
+                if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
+                    qpos -= 1
+                    spos = ospos
+                    if debug:
+                        print("But codon was apparently preserved")
+                    if 'IN-FRAME' in  log:
+                        log['IN-FRAME'] = log['IN-FRAME'] + "," +  str(spos)
                     else:
-                        log['END-MASKED'] = str(spos)
-                else:
+                        log['IN-FRAME'] = str(spos)
+                elif qpos >= len(qcodons) and spos < s_end:
                     if debug:
-                        print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
-                    log['PASS']=False
-                    log['FAIL']="FAILED_MATCH:"+str(spos)
-            elif qcodons[qpos] == scodons[spos]:
-                if debug:
-                    print("Masked %s at position %d" % (scodons[ospos], ospos))
-                scodons[ospos] = "NNN"
-                if 'MASKED' in  log:
-                    log['MASKED'] = log['MASKED'] + "," + str(spos)
-                else:
-                    log['MASKED'] = str(spos)
+                        print("FAILING MATCH")
+                    log['PASS'] = False #if no match for the adjacent codon was found, something's up.
+                    log['FAIL'] = "FAILED_MATCH_QSTRING:"+str(spos)
+                    #figure out if this was due to a frame-shift by repeating this method but with an edited input sequence
+                    if not recursive:
+                        for ins in range(1,3):
+                            ros = receptor.sequence_input
+                            ris = receptor.sequence_imgt
+                            psite = receptor.v_seq_start-1+oqpos*3
+                            pisite = ospos * 3
+                            if (psite+3 + ins) < len(ros) and (pisite+3) < len(ris):
+                            #cut out 1 or 2 nucleotides downstream of offending codon
+                                receptor.sequence_input = ros[0:(psite+3)]+ros[(psite+3 + ins):]
+                                receptor.sequence_imgt = ris[0:(pisite+3)] + ris[(pisite+3):]
+                                if debug:
+                                    print(ros + "\n"+receptor.sequence_input)
+                                    print(ris + "\n" + receptor.sequence_imgt)
+                                    print("RUNNING %d\n"%ins)
+                                mout = maskSplitCodons(receptor,recursive=True)
+                                if mout[1]['PASS']:
+                                    #if debug:
+                                    receptor.sequence_input = ros
+                                    receptor.sequence_imgt = ris
+                                    frameshifts += 1
+                                    if debug:
+                                        print("FRAMESHIFT of length %d!" % ins)
+                                    log['FAIL'] = "SINGLE FRAME-SHIFTING INSERTION"
+                                    break
+                                else:
+                                    receptor.sequence_input = ros
+                                    receptor.sequence_imgt = ris
 
-            else:
-                log['PASS'] = False
-                log['FAIL'] = "UNKNOWN"
+                elif spos >= s_end or qcodons[qpos] != scodons[spos]:
+                    scodons[ospos] = "NNN"
+                    if spos >= s_end:
+                        if debug:
+                            print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                        #log[str(spos)] = "END"
+                        if 'END-MASKED' in log:
+                            log['END-MASKED'] = log['END-MASKED'] + "," + str(spos)
+                        else:
+                            log['END-MASKED'] = str(spos)
+                    else:
+                        if debug:
+                            print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                        log['PASS']=False
+                        log['FAIL']="FAILED_MATCH:"+str(spos)
+                elif qcodons[qpos] == scodons[spos]:
+                    if debug:
+                        print("Masked %s at position %d" % (scodons[ospos], ospos))
+                    scodons[ospos] = "NNN"
+                    if 'MASKED' in  log:
+                        log['MASKED'] = log['MASKED'] + "," + str(spos)
+                    else:
+                        log['MASKED'] = str(spos)
+
+                else:
+                    log['PASS'] = False
+                    log['FAIL'] = "UNKNOWN"
 
     if not log['PASS'] and not recursive:
         #if log['FAIL'] == "FRAME-SHIFTING INSERTION":
@@ -217,10 +223,10 @@ def maskSplitCodons(receptor,recursive=False):
         else:
             scodons[-1] = "NNN"
         #log[str(len(scodons))] = "MASKED"
-        if 'MASKED' in log:
-            log['MASKED'] = log['MASKED'] + "," + str(len(scodons))
+        if 'END-MASKED' in log:
+            log['END-MASKED'] = log['END-MASKED'] + "," + str(len(scodons))
         else:
-            log['MASKED'] = str(spos)
+            log['END-MASKED'] = str(spos)
 
     concatenated_seq = Seq("")
     for i in scodons:
