@@ -135,7 +135,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parent_parser = getCommonArgParser(db_in=False, format=False, multiproc=True)
+    parent_parser = getCommonArgParser(db_in=False, log=False, failed=False, format=False, multiproc=True)
 
     # Subparser to run IgBLAT
     parser_igblast = subparsers.add_parser('igblast', parents=[parent_parser],

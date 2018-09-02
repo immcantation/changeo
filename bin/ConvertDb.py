@@ -1077,7 +1077,7 @@ if __name__ == '__main__':
             template_file = args_dict['asn_template']
             tbl2asn_exec = args_dict['tbl2asn_exec']
             if not shutil.which(tbl2asn_exec):
-                parser.error('%s does not exist' % tbl2asn_exec)
+                parser.error('%s does not exist or is not executable.' % tbl2asn_exec)
             if template_file is not None and not os.path.exists(template_file):
                 parser.error('%s does not exist' % template_file)
 
@@ -1102,4 +1102,3 @@ if __name__ == '__main__':
         args_dict['out_file'] = args.__dict__['out_files'][i] \
             if args.__dict__['out_files'] else None
         args.func(**args_dict)
-

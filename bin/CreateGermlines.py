@@ -185,7 +185,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
             except AttributeError:
                 # Create output file handle and writer
                 if out_file is not None:
-                    handle = open(out_file, 'w')
+                    pass_handle = open(out_file, 'w')
                 else:
                     pass_handle = getOutputHandle(db_file,
                                                   out_label='germ-pass',

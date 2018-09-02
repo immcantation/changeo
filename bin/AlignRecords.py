@@ -408,7 +408,7 @@ if __name__ == '__main__':
 
     # Check if a valid MUSCLE executable was specified for muscle mode
     if not shutil.which(args.muscle_exec):
-        parser.error('%s does not exist' % args.muscle_exec)
+        parser.error('%s does not exist or is not executable.' % args.muscle_exec)
     # Define align_args
     args_dict['align_args'] = {'muscle_exec': args_dict['muscle_exec']}
     del args_dict['muscle_exec']

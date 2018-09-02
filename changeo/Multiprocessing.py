@@ -218,8 +218,8 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-      None : Adds a dictionary with key value pairs to collect_queue containing
-            'log' defining a log object along with the 'pass' and 'fail' output file names.
+      None: Adds a dictionary with key value pairs to collect_queue containing
+           'log' defining a log object along with the 'pass' and 'fail' output file names.
     """
     # Wrapper for opening handles and writers
     def _open(x, fields=fields, writer=writer, label=label, out_file=out_file):
