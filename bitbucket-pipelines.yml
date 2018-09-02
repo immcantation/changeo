@@ -2,9 +2,8 @@ image:
   name: kleinstein/immcantation:test
 
 pipelines:
-  custom:
-    default:
-      - step:
-          script:
-            - python3 setup.py install
-            - python3 -m unittest
+  default:
+    - step:
+        script:
+          - python3 setup.py install
+          - python3 -m unittest
