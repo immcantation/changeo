@@ -1,17 +1,38 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.1.999:  August 23, 2018
+Version 0.4.1.999:  September 3, 2018
 -------------------------------------------------------------------------------
 
 + Updated support for the AIRR Rearrangement schema to v1.2 and added the
   associated airr library dependency.
+
+AssignGenes:
+
++ New tool.
++ Provides a simple IgBLAST wrapper as the ``igblast`` subcommand.
+
+ConvertDb:
+
++ The ``genbank`` subcommand will perform a check for some of the required
+  columns in the input file and exit if they are not found.
+
+CreateGermlines:
+
++ Will now perform a naive verification that the reference sequences provided
+  to the ``-r`` argument are IMGT-gapped. A warning will be issued to standard
+  error if the reference sequence fail the check.
++ Will perform a check for some of the required columns in the input file and
+  exit if they are not found.
 
 MakeDb:
 
 + Changed the output of ``SEQUENCE_VDJ`` from the igblast subcommand to retain
   insertions in the query sequence rather than delete them as is done in the
   ``SEQUENCE_IMGT`` field.
++ Will now perform a naive verification that the reference sequences provided
+  to the ``-r`` argument are IMGT-gapped. A warning will be issued to standard
+  error if the reference sequence fail the check.
 
 
 Version 0.4.1:  July 16, 2018

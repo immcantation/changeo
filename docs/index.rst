@@ -14,8 +14,8 @@
     :maxdepth: 2
     :caption: Examples
 
-    examples/imgt
     examples/igblast
+    examples/imgt
     examples/filtering
     examples/cloning
     examples/germlines

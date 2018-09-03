@@ -17,20 +17,19 @@ from time import time
 
 # Presto imports
 from presto.IO import printLog, printMessage, printError, printWarning
+from changeo.Defaults import default_igblast_exec, default_out_args
 from changeo.Applications import runIgBLAST, getIgBLASTVersion
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.Defaults import default_igblast_exec, default_out_args
 from changeo.IO import getOutputName
 
 # Defaults
 choices_format = ('blast', 'airr')
-choices_organism = ('human', 'mouse', 'rabbit', 'rat', 'rhesus_monkey')
 choices_loci = ('ig', 'tr')
-
-default_igdata = '~/share/igblast'
+choices_organism = ('human', 'mouse', 'rabbit', 'rat', 'rhesus_monkey')
 default_format = 'blast'
-default_organism = 'human'
 default_loci = 'ig'
+default_organism = 'human'
+default_igdata = '~/share/igblast'
 
 
 def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
