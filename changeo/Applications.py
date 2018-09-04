@@ -36,7 +36,6 @@ def runASN(fasta, template=None, exec=default_tbl2asn_exec):
     # Define tb2asn command
     cmd = [exec,
            '-i', os.path.abspath(fasta),
-           '-a', 's',
            '-V', 'vb']
     if template is not None:
         cmd.extend(['-t', os.path.abspath(template)])
