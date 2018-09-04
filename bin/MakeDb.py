@@ -86,7 +86,7 @@ def getSeqDict(seq_file):
 def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=False, asis_id=True,
             writer=ChangeoWriter, out_file=None, out_args=default_out_args):
     """
-    Writes tab-delimited database file in output directory.
+    Writes parsed records to an output file
     
     Arguments:
       records : a iterator of Receptor objects containing alignment data.
@@ -126,16 +126,21 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
         fields.extend(f)
         return fields
 
+    # Function to verify IMGT-gapped sequence and junction concur
+    def _imgt_check(rec):
+        try:  check = (rec.junction == rec.sequence_imgt[309:(309 + rec.junction_length)])
+        except TypeError:  check = False
+        return check
+
     # Function to check for valid records strictly
     def _strict(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.j_call and rec.j_call != 'None',
                  rec.functional is not None,
                  rec.sequence_imgt,
-                 rec.junction]
-        try:  imgt_check = (rec.junction == rec.sequence_imgt[309:(309 + rec.junction_length)])
-        except TypeError:  imgt_check = False
-        return all(valid) and imgt_check
+                 rec.junction,
+                 _imgt_check(rec)]
+        return all(valid)
 
     # Function to check for valid records loosely
     def _gentle(rec):
@@ -150,10 +155,16 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     elif writer == AIRRWriter:
         _annotate = _airr
     else:
-        printError('Invalid output writer')
+        printError('Invalid output writer.')
 
     # Set pass criteria
     _pass = _gentle if partial else _strict
+
+    # Define log handle
+    if out_args['log_file'] is None:
+        log_handle = None
+    else:
+        log_handle = open(out_args['log_file'], 'w')
 
     # Initialize handles, writers and counters
     pass_handle, pass_writer = None, None
@@ -199,7 +210,6 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                 # Open pass file and writer
                 pass_handle, pass_writer = _open('pass')
                 pass_writer.writeReceptor(record)
-
         else:
             fail_count += 1
             # Write row to fail file if specified
@@ -210,6 +220,16 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                     # Open fail file and writer
                     fail_handle, fail_writer = _open('fail')
                     fail_writer.writeReceptor(record)
+
+        # Write log
+        if log_handle is not None:
+            log = OrderedDict([('ID', record.sequence_id),
+                               ('V_CALL', record.v_call),
+                               ('D_CALL', record.d_call),
+                               ('J_CALL', record.j_call),
+                               ('FUNCTIONAL', record.functional),
+                               ('IMGT_PASS', _imgt_check(record))])
+            printLog(log, log_handle)
 
         # Print progress
         printProgress(i, total_count, 0.05, start_time=start_time)
@@ -524,7 +544,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(db_in=False, log=False)
+    parser_parent = getCommonArgParser(db_in=False)
 
     # IgBlast Aligner
     parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],

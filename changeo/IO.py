@@ -1431,7 +1431,6 @@ class IgBLASTReader:
         Returns:
           dict : db entries.
         """
-
         # Initialize dictionary with input sequence and id
         db = {}
         if 'query' in sections:
@@ -1459,12 +1458,18 @@ class IgBLASTReader:
 
         # Create IMGT-gapped sequence
         if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
-            imgt_dict = gapV(db['sequence_trim'],
-                             v_germ_start=db['v_germ_start_vdj'],
-                             v_germ_length=db['v_germ_length_vdj'],
-                             v_call=db['v_call'],
-                             references=self.references,
-                             asis_calls=self.asis_calls)
+            try:
+                imgt_dict = gapV(db['sequence_trim'],
+                                 v_germ_start=db['v_germ_start_vdj'],
+                                 v_germ_length=db['v_germ_length_vdj'],
+                                 v_call=db['v_call'],
+                                 references=self.references,
+                                 asis_calls=self.asis_calls)
+            except KeyError as e:
+                imgt_dict = {'sequence_imgt': None,
+                             'v_germ_start_imgt': None,
+                             'v_germ_length_imgt': None}
+                printWarning(e)
             db.update(imgt_dict)
             del db['sequence_trim']
 
@@ -1946,18 +1951,22 @@ class IHMMuneReader:
         db.update(IHMMuneReader._assembleVDJ(record, db))
 
         # Create IMGT-gapped sequence
-        if 'v_call' in db and db['v_call'] and \
-                'sequence_vdj' in db and db['sequence_vdj']:
-            imgt_dict = gapV(db['sequence_vdj'],
-                             v_germ_start=db['v_germ_start_vdj'],
-                             v_germ_length=db['v_germ_length_vdj'],
-                             v_call=db['v_call'],
-                             references=self.references)
+        if 'v_call' in db and db['v_call'] and 'sequence_vdj' in db and db['sequence_vdj']:
+            try:
+                imgt_dict = gapV(db['sequence_vdj'],
+                                 v_germ_start=db['v_germ_start_vdj'],
+                                 v_germ_length=db['v_germ_length_vdj'],
+                                 v_call=db['v_call'],
+                                 references=self.references)
+            except KeyError as e:
+                imgt_dict = {'sequence_imgt': None,
+                             'v_germ_start_imgt': None,
+                             'v_germ_length_imgt': None}
+                printWarning(e)
             db.update(imgt_dict)
 
         # Infer IMGT junction
-        if ('j_call' in db and db['j_call']) and \
-                ('sequence_imgt' in db and db['sequence_imgt']):
+        if ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
             junc_dict = inferJunction(db['sequence_imgt'],
                                       j_germ_start=db['j_germ_start'],
                                       j_germ_length=db['j_germ_length'],

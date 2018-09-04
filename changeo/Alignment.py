@@ -154,7 +154,10 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
       asis_calls (bool): if True do not parse v_call for allele names and just split by comma.
 
     Returns:
-      dict : dictionary containing IMGT-gapped query sequences and germline positions.
+      dict: dictionary containing IMGT-gapped query sequences and germline positions.
+
+    Raises:
+      KeyError: raised if the v_call is not found in the reference dictionary.
     """
     # Initialize return object
     imgt_dict = {'sequence_imgt': None,
@@ -171,7 +174,8 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
         vgene = v_call.split(',')[0]
 
     # Find gapped germline V segment
-    if vgene in references:
+    try:
+    #if vgene in references:
         vgap = references[vgene]
         # Iterate over gaps in the germline segment
         gaps = re.finditer(r'\.', vgap)
@@ -190,8 +194,10 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
         # Update IMGT positioning information for V
         imgt_dict['v_germ_start_imgt'] = 1
         imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
-    else:
-        printWarning('%s was not found in the germline repository. IMGT-gapped sequence cannot be determined.' % vgene)
+    except KeyError as e:
+        raise KeyError('%s was not found in the germline repository.' % vgene)
+    #else:
+    #    printWarning('%s was not found in the germline repository. IMGT-gapped sequence cannot be determined.' % vgene)
 
     return imgt_dict
 
