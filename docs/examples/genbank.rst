@@ -88,8 +88,15 @@ and the GenBank record file ``S43_update_genbank.gbf`` is similar to what the su
 will look like once it has been accepted by GenBank.
 
 The command above manually specifies several required and optional annotations.
-Alternatively, this information can be specified in a separate yaml file and
-provided via the :option:`-y <ConvertDb genbank -y>` argument.
+Alternatively, sample information (``organism``, ``sex``, ``isolate``, ``tissue_type``,
+``cell_type``) can be specified in a separate yaml file and provided via the
+:option:`-y <ConvertDb genbank -y>` argument. Additional harmonized
+`BioSample attributes <https://www.ncbi.nlm.nih.gov/biosample/docs/attributes>`__,
+which are not convered by the existing commandline arguments, may be provided
+in the yaml file. Note, the yaml file adds only sample features, so it cannot be used
+to specify source features (``--product``, ``--mol``, ``--inf`` and ``--db`` arguments), parsing
+arguments, or run parameters (`--label``, ``--exec``, etc). Features specified in the yaml
+file will override equivalent features specified through the corresponding commandline arguments.
 
 .. note::
 
@@ -100,6 +107,15 @@ provided via the :option:`-y <ConvertDb genbank -y>` argument.
     required to run :program:`tbl2asn` manually via the command::
 
         tbl2asn -p . -a s -V vb -t S43_template.sbt
+
+.. warning::
+
+    There is a known issue with the :option:`--asn <ConvertDb genbank --asn>` argument.
+    In some environments, for reasons that are presently unknown, :program:`tbl2asn`
+    may fail to recongizing the input fasta file and report an error stating
+    **Unable to read any FASTA records**. Running :program:`tbl2asn` manually should
+    resolve the issue.
+
 
 Submitting to GenBank/TLS using SequinMacroSend
 --------------------------------------------------------------------------------

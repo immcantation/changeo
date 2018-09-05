@@ -31,7 +31,7 @@ from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
-                                yamlArguments
+                                yamlDict
 from changeo.Gene import c_gene_regex, parseAllele, buildGermline
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
                        ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, checkFields
@@ -635,9 +635,8 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     return result
 
 
-def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, isolate=None,
-                        tissue=None, cell_type=None, count_field=None, index_field=None,
-                        molecule=default_molecule):
+def makeGenbankSequence(record, name=None, label=None, count_field=None, index_field=None,
+                        molecule=default_molecule, features=None):
     """
     Creates a sequence for GenBank submissions
 
@@ -646,19 +645,15 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
       name : sequence identifier for the output sequence. If None,
              use the original sequence identifier.
       label : a string to use as a label for the ID. if None do not add a field label.
-      organism : scientific name of the organism.
-      sex : sex.
-      isolate : sample identifier.
-      tissue : tissue type.
-      cell_type : cell type.
       count_field : field name to populate the AIRR_READ_COUNT note.
       index_field : field name to populate the AIRR_CELL_INDEX note.
       molecule : source molecule (eg, "mRNA", "genomic DNA")
+      features : dictionary of sample features (BioSample attributes) to add to the description of each record.
 
     Returns:
-      dict : dictionary with {'record': SeqRecord,
-                              'start': start position in raw sequence,
-                              'end': end position in raw sequence}
+      dict: dictionary with {'record': SeqRecord,
+                             'start': start position in raw sequence,
+                             'end': end position in raw sequence}
     """
     # Replace gaps with N
     seq = record.sequence_input
@@ -675,16 +670,9 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
         name = record.sequence_id.split(' ')[0]
     if label is not None:
         name = '%s=%s' % (label, name)
-    if organism is not None:
-        name = '%s [organism=%s]' % (name, organism)
-    if sex is not None:
-        name = '%s [sex=%s]' % (name, sex)
-    if isolate is not None:
-        name = '%s [isolate=%s]' % (name, isolate)
-    if tissue is not None:
-        name = '%s [tissue-type=%s]' % (name, tissue)
-    if cell_type is not None:
-        name = '%s [cell-type=%s]' % (name, cell_type)
+    if features is not None:
+        sample_desc = ' '.join(['[%s=%s]' % (k, v) for k, v in features.items()])
+        name = '%s %s' % (name, sample_desc)
     name = '%s [moltype=%s] [keyword=TLS; Targeted Locus Study; AIRR; MiAIRR:1.0]' % (name, molecule)
 
     # Notes
@@ -705,9 +693,8 @@ def makeGenbankSequence(record, name=None, label=None, organism=None, sex=None, 
     return result
 
 
-def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=None,
-                     isolate=None, tissue=None, cell_type=None, molecule=default_molecule,
-                     product=default_product, c_field=None, label=None,
+def convertToGenbank(db_file, inference=None, db_xref=None, molecule=default_molecule,
+                     product=default_product, features=None, c_field=None, label=None,
                      count_field=None, index_field=None, allow_stop=False,
                      asis_id=False, asis_calls=False, allele_delim=default_allele_delim,
                      build_asn=False, asn_template=None, tbl2asn_exec=default_tbl2asn_exec,
@@ -720,13 +707,9 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
       db_file : the database file name.
       inference : reference alignment tool.
       db_xref : reference database link.
-      organism : scientific name of the organism.
-      sex : sex.
-      isolate : sample identifier.
-      tissue : tissue type.
-      cell_type : cell type.
       molecule : source molecule (eg, "mRNA", "genomic DNA")
       product : Product (protein) name.
+      features : dictionary of sample features (BioSample attributes) to add to the description of each record.
       c_field : column containing the C region gene call.
       label : a string to use as a label for the ID. if None do not add a field label.
       count_field : field name to populate the AIRR_READ_COUNT note.
@@ -798,9 +781,8 @@ def convertToGenbank(db_file, inference=None, db_xref=None, organism=None, sex=N
 
         # Extract table dictionary
         name = None if asis_id else rec_count
-        seq = makeGenbankSequence(rec, name=name, label=label, organism=organism, sex=sex, isolate=isolate,
-                                  tissue=tissue, cell_type=cell_type, count_field=count_field, index_field=index_field,
-                                  molecule=molecule)
+        seq = makeGenbankSequence(rec, name=name, label=label, count_field=count_field, index_field=index_field,
+                                  molecule=molecule, features=features)
         tbl = makeGenbankFeatures(rec, start=seq['start'], end=seq['end'], product=product,
                                   db_xref=db_xref, inference=inference, c_field=c_field,
                                   allow_stop=allow_stop, asis_calls=asis_calls, allele_delim=allele_delim)
@@ -984,70 +966,78 @@ def getArgParser():
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Creates files for GenBank/TLS submissions.',
                                        description='Creates files for GenBank/TLS submissions.')
-    group_gb = parser_gb.add_argument_group('conversion arguments')
-    group_gb.add_argument('--product', action='store', dest='product', default=default_product,
+    # Genbank source information arguments
+    group_gb_src = parser_gb.add_argument_group('source information arguments')
+    group_gb_src.add_argument('--product', action='store', dest='product', default=default_product,
                           help='''The product name, such as "immunoglobulin heavy chain".''')
-    group_gb.add_argument('--inf', action='store', dest='inference', default=None,
+    group_gb_src.add_argument('--inf', action='store', dest='inference', default=None,
                           help='''Name and version of the inference tool used for reference alignment in the 
                                form tool:version.''')
-    group_gb.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
+    group_gb_src.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
                           help='Name of the reference database used for alignment.')
-    group_gb.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
+    group_gb_src.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
                           help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
-    group_gb.add_argument('--organism', action='store', dest='organism', default=None,
+    # Genbank sample information arguments
+    group_gb_sam = parser_gb.add_argument_group('sample information arguments')
+    group_gb_sam.add_argument('--organism', action='store', dest='organism', default=None,
                           help='The scientific name of the organism.')
-    group_gb.add_argument('--sex', action='store', dest='sex', default=None,
+    group_gb_sam.add_argument('--sex', action='store', dest='sex', default=None,
                           help='''If specified, adds the given sex annotation 
                                to the fasta headers.''')
-    group_gb.add_argument('--isolate', action='store', dest='isolate', default=None,
+    group_gb_sam.add_argument('--isolate', action='store', dest='isolate', default=None,
                           help='''If specified, adds the given isolate annotation 
                                (sample label) to the fasta headers.''')
-    group_gb.add_argument('--tissue', action='store', dest='tissue', default=None,
+    group_gb_sam.add_argument('--tissue', action='store', dest='tissue', default=None,
                           help='''If specified, adds the given tissue-type annotation 
                                to the fasta headers.''')
-    group_gb.add_argument('--cell-type', action='store', dest='cell_type', default=None,
+    group_gb_sam.add_argument('--cell-type', action='store', dest='cell_type', default=None,
                           help='''If specified, adds the given cell-type annotation 
                                to the fasta headers.''')
-    group_gb.add_argument('--label', action='store', dest='label', default=None,
-                          help='''If specified, add a field name to the sequence identifier. 
-                               Sequence identifiers will be output in the form <label>=<id>.''')
-    group_gb.add_argument('--cf', action='store', dest='c_field', default=None,
-                          help='''Field containing the C region call. If unspecified, the C region gene 
-                               call will be excluded from the feature table.''')
-    group_gb.add_argument('--nf', action='store', dest='count_field', default=None,
-                          help='''If specified, use the provided column to add the AIRR_READ_COUNT 
-                               note to the feature table.''')
-    group_gb.add_argument('--if', action='store', dest='index_field', default=None,
-                          help='''If specified, use the provided column to add the AIRR_CELL_INDEX 
-                               note to the feature table.''')
-    group_gb.add_argument('--allow-stop', action='store_true', dest='allow_stop',
-                          help='''If specified, retain records in the output with stop codons in the junction region.
-                               In such records the CDS will be removed and replaced with a similar misc_feature in 
-                               the feature table.''')
-    group_gb.add_argument('--asis-id', action='store_true', dest='asis_id',
-                          help='''If specified, use the existing sequence identifier for the output identifier. 
-                               By default, only the row number will be used as the identifier to avoid
-                               the 50 character limit.''')
-    group_gb.add_argument('--asis-calls', action='store_true', dest='asis_calls',
-                          help='''Specify to prevent alleles from being parsed using the IMGT nomenclature.
-                               Note, this requires the gene assignments to be exact matches to valid 
-                               records in the references database specified by the --db argument.''')
-    group_gb.add_argument('--allele-delim', action='store', dest='allele_delim', default=default_allele_delim,
-                          help='''The delimiter to use for splitting the gene name from the allele number.
-                               Note, this only applies when specifying --asis-calls. By default,
-                               this argument will be ignored and allele numbers extracted under the
-                               expectation of IMGT nomenclature consistency.''')
-    group_gb.add_argument('-y', action='store', dest='yaml_config', default=None,
-                          help='''A yaml file specifying conversion details containing one row per argument 
-                               in the form \'variable: value\'. If specified, any arguments provided in the 
-                               yaml file will override those provided at the commandline.''')
-    group_gb.add_argument('--asn', action='store_true', dest='build_asn',
+    group_gb_sam.add_argument('-y', action='store', dest='yaml_config', default=None,
+                          help='''A yaml file specifying sample features (BioSample attributes) 
+                               in the form \'variable: value\'. If specified, any features provided in the 
+                               yaml file will override those provided at the commandline. Note,
+                               this config file applies to sample features only and
+                               cannot be used for required source features such as 
+                               the --product or --mol argument.''')
+    # General genbank conversion arguments
+    group_gb_cvt = parser_gb.add_argument_group('conversion arguments')
+    group_gb_cvt.add_argument('--label', action='store', dest='label', default=None,
+                              help='''If specified, add a field name to the sequence identifier. 
+                                Sequence identifiers will be output in the form <label>=<id>.''')
+    group_gb_cvt.add_argument('--cf', action='store', dest='c_field', default=None,
+                              help='''Field containing the C region call. If unspecified, the C region gene 
+                                call will be excluded from the feature table.''')
+    group_gb_cvt.add_argument('--nf', action='store', dest='count_field', default=None,
+                              help='''If specified, use the provided column to add the AIRR_READ_COUNT 
+                                note to the feature table.''')
+    group_gb_cvt.add_argument('--if', action='store', dest='index_field', default=None,
+                              help='''If specified, use the provided column to add the AIRR_CELL_INDEX 
+                                note to the feature table.''')
+    group_gb_cvt.add_argument('--allow-stop', action='store_true', dest='allow_stop',
+                              help='''If specified, retain records in the output with stop codons in the junction region.
+                                In such records the CDS will be removed and replaced with a similar misc_feature in 
+                                the feature table.''')
+    group_gb_cvt.add_argument('--asis-id', action='store_true', dest='asis_id',
+                              help='''If specified, use the existing sequence identifier for the output identifier. 
+                                By default, only the row number will be used as the identifier to avoid
+                                the 50 character limit.''')
+    group_gb_cvt.add_argument('--asis-calls', action='store_true', dest='asis_calls',
+                              help='''Specify to prevent alleles from being parsed using the IMGT nomenclature.
+                                Note, this requires the gene assignments to be exact matches to valid 
+                                records in the references database specified by the --db argument.''')
+    group_gb_cvt.add_argument('--allele-delim', action='store', dest='allele_delim', default=default_allele_delim,
+                              help='''The delimiter to use for splitting the gene name from the allele number.
+                                Note, this only applies when specifying --asis-calls. By default,
+                                this argument will be ignored and allele numbers extracted under the
+                                expectation of IMGT nomenclature consistency.''')
+    group_gb_cvt.add_argument('--asn', action='store_true', dest='build_asn',
                           help='''If specified, run tbl2asn to generate the .sqn submission file after making 
                                the .fsa and .tbl files.''')
-    group_gb.add_argument('--sbt', action='store', dest='asn_template', default=None,
+    group_gb_cvt.add_argument('--sbt', action='store', dest='asn_template', default=None,
                           help='''If provided along with --asn, use the specified file for the template file
                                argument to tbl2asn.''')
-    group_gb.add_argument('--exec', action='store', dest='tbl2asn_exec', default=default_tbl2asn_exec,
+    group_gb_cvt.add_argument('--exec', action='store', dest='tbl2asn_exec', default=default_tbl2asn_exec,
                           help='The name or location of the tbl2asn executable.')
     parser_gb.set_defaults(func=convertToGenbank)
 
@@ -1064,13 +1054,36 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
-    # Overwrite genbank args with yaml file if provided
-    if args.command == 'genbank' and args_dict['yaml_config'] is not None:
-        yaml_config = args_dict['yaml_config']
-        if not os.path.exists(yaml_config):
-            parser.error('%s does not exist' % yaml_config)
-        else:
-            args_dict.update(yamlArguments(yaml_config, args_dict))
+    # Genbank mode
+    if args.command == 'genbank':
+        # Create sample feature dictionary
+        features = OrderedDict()
+        if args_dict['organism'] is not None:
+            features['organism'] = args_dict['organism']
+        if args_dict['sex'] is not None:
+            features['sex'] = args_dict['sex']
+        if args_dict['isolate'] is not None:
+            features['isolate'] = args_dict['isolate']
+        if args_dict['tissue'] is not None:
+            features['tissue_type'] = args_dict['tissue']
+        if args_dict['cell_type'] is not None:
+            features['cell_type'] = args_dict['cell_type']
+        # Add yaml values
+        if args_dict['yaml_config'] is not None:
+            yaml_config = args_dict['yaml_config']
+            if not os.path.exists(yaml_config):
+                parser.error('%s does not exist' % yaml_config)
+            else:
+                features.update(yamlDict(yaml_config))
+        # Update arguments
+        args_dict['features'] = features
+        # Clean arguments dictionary
+        del args_dict['organism']
+        del args_dict['sex']
+        del args_dict['isolate']
+        del args_dict['tissue']
+        del args_dict['cell_type']
+        del args_dict['yaml_config']
 
         # Check tbl2asn execution arguments
         if args_dict['build_asn']:
@@ -1093,7 +1106,6 @@ if __name__ == '__main__':
     del args_dict['command']
     del args_dict['func']
     del args_dict['db_files']
-    if args.command == 'genbank':  del args_dict['yaml_config']
     if 'out_files' in args_dict: del args_dict['out_files']
 
     # Call main function for each input file

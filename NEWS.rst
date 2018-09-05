@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.1.999:  September 3, 2018
+Version 0.4.2:  September 5, 2018
 -------------------------------------------------------------------------------
 
 + Updated support for the AIRR Rearrangement schema to v1.2 and added the
@@ -16,6 +16,9 @@ ConvertDb:
 
 + The ``genbank`` subcommand will perform a check for some of the required
   columns in the input file and exit if they are not found.
++ Changed the behavior of the ``-y`` argument in the ``genbank`` subcommand.
+  This argument is now featured to sample features only, but allows
+  for the inclusion of any BioSample attribute.
 
 CreateGermlines:
 

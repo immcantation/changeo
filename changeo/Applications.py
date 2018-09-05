@@ -33,9 +33,10 @@ def runASN(fasta, template=None, exec=default_tbl2asn_exec):
     # Basic command that requires .fsa and .tbl files in the same directory
     # tbl2asn -i records.fsa -a s -V vb -t template.sbt
 
-    # Define tb2asn command
+    # Define tbl2asn command
     cmd = [exec,
            '-i', os.path.abspath(fasta),
+           '-a', 's',
            '-V', 'vb']
     if template is not None:
         cmd.extend(['-t', os.path.abspath(template)])
