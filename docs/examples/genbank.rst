@@ -132,5 +132,6 @@ submission system and it will be routed accordingly.
     Currently, the SequinMacroSend system cannot accept files over 512MB in size.
     For submissions over the size limit, you must split them into smaller files
     and note in the submission comments that they are a part of a split submission.
-    See the :program:`split` subcommand of  :ref:`ParseDb` for one approach to
-    logically dividing large submissions.
+    Note, the ``.sqn`` files used for submission are usually about 30 times the size
+    of the original tab-delimited Change-O file. See the :program:`split` subcommand
+    of :ref:`ParseDb` for one approach to logically dividing large submissions.

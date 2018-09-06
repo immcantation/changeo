@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.2:  September 5, 2018
+Version 0.4.2:  September 6, 2018
 -------------------------------------------------------------------------------
 
 + Updated support for the AIRR Rearrangement schema to v1.2 and added the
