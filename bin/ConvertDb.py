@@ -15,7 +15,6 @@ import shutil
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain
-
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -30,11 +29,11 @@ from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_format, default_out_args
-from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
-                                yamlDict
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import c_gene_regex, parseAllele, buildGermline
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, checkFields
+                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, \
+                       checkFields, yamlDict
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # System settings

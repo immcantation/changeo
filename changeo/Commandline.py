@@ -9,7 +9,6 @@ from changeo import __version__, __date__
 # Imports
 import os
 import sys
-import yaml
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
                      RawDescriptionHelpFormatter
@@ -17,41 +16,6 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
 # Changeo imports
 from presto.IO import printWarning, printError
 from changeo.Defaults import choices_format, default_format
-
-
-def yamlDict(file):
-    """
-    Returns a dictionary from a yaml file
-
-    Arguments:
-      file (str): simple yaml file with rows in the form 'argument: value'.
-
-    Returns:
-      dict: dictionary of key:value pairs in the file.
-    """
-    try:
-        yaml_dict = dict(yaml.load(open(file, 'r')))
-    except:
-        printError('YAML file is invalid.')
-
-    return yaml_dict
-
-
-def yamlArguments(file, args):
-    """
-    Returns a dictionary of argument from a yaml file
-
-    Arguments:
-      file (str): simple yaml file with rows in the form 'argument: value'.
-      args (dict): output of parseCommonArgs defining valid arguments.
-
-    Returns:
-      dict: dictionary of arguments.
-    """
-    yaml_args = yamlDict(file)
-    yaml_args = {k.lower(): v for k, v in yaml_args.items() if k.lower() in args}
-
-    return yaml_args
 
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):

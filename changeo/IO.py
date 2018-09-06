@@ -1,7 +1,6 @@
 """
 File I/O and parsers
 """
-
 # Info
 __author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 
@@ -10,6 +9,7 @@ import csv
 import os
 import re
 import tarfile
+import yaml
 import zipfile
 from itertools import chain, groupby, zip_longest
 from tempfile import TemporaryDirectory
@@ -2298,3 +2298,21 @@ def checkFields(attributes, header, schema=ChangeoSchema):
         raise LookupError('Missing required fields: %s' % ', '.join(missing))
 
     return True
+
+
+def yamlDict(file):
+    """
+    Returns a dictionary from a yaml file
+
+    Arguments:
+      file (str): simple yaml file with rows in the form 'argument: value'.
+
+    Returns:
+      dict: dictionary of key:value pairs in the file.
+    """
+    try:
+        yaml_dict = dict(yaml.load(open(file, 'r')))
+    except:
+        printError('YAML file is invalid.')
+
+    return yaml_dict
