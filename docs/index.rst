@@ -19,6 +19,7 @@
     examples/filtering
     examples/cloning
     examples/germlines
+    examples/igphyml
     examples/genbank
 
 .. toctree::

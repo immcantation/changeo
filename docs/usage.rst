@@ -8,6 +8,7 @@ Commandline Usage
 
     tools/AlignRecords
     tools/AssignGenes
+    tools/BuildTrees
     tools/ConvertDb
     tools/CreateGermlines
     tools/DefineClones

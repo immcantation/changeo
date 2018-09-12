@@ -64,20 +64,24 @@ available through ``homebrew``, as well as ``autoconf`` and
 (http://brew.sh/index.html). If it’s already installed be
 sure it’s at the latest version (``brew update``). You may need to install
 Xcode as well. Next, install ``autoconf``, ``automake``, and ``llvm``::
+
     brew install autoconf
     brew install automake
     brew install llvm
+
 Specify the ``llvm`` version of ``clang`` in ``Makefile.am`` and
 ``src/Makefile.am`` by adding the line ``CC=<path to llvm clang>``
 to the beginning of both files. You will also need to add
 ``MACOMP=<path to omp.h>`` and ``MACLLVM=<path to llvm lib>`` to
 ``src/Makefile.am``. For instance, if you’ve install ``llvm 3.9.1``
-via homebrew, you will likely need to add the line:
+via homebrew, you will likely need to add the line
 ``CC=/usr/local/Cellar/llvm/3.9.1/bin/clang``
 to ``Makefile.am`` and the lines::
+
     CC=/usr/local/Cellar/llvm/3.9.1/bin/clang
     MACOMP=/usr/local/Cellar/llvm/3.9.1/lib/clang/3.9.1/include/omp.h
     MACLLVM=/usr/local/Cellar/llvm/3.9.1/lib
+
 to ``src/Makefile.am``.
 Your specific path may look different, but you can check locations
 of these files and folders by looking around in
