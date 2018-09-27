@@ -29,7 +29,7 @@ from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHa
 default_germ_types = 'dmask'
 
 
-def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_v_field,
+def createGermlines(db_file, references, seq_field=default_seq_field, v_field=default_v_field,
                     d_field=default_d_field, j_field=default_j_field,
                     cloned=False, clone_field=default_clone_field, germ_types=default_germ_types,
                     format=default_format, out_file=None, out_args=default_out_args):
@@ -37,21 +37,21 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
     Write germline sequences to tab-delimited database file
 
     Arguments:
-      db_file : input tab-delimited database file
-      repo : folder with germline repertoire files
-      seq_field : field in which to look for sequence
-      v_field : field in which to look for V call
-      d_field : field in which to look for D call
-      j_field : field in which to look for J call
-      cloned : if True build germlines by clone, otherwise build individual germlines
+      db_file : input tab-delimited database file.
+      references : folders and/or files containing germline repertoire data in FASTA format.
+      seq_field : field in which to look for sequence.
+      v_field : field in which to look for V call.
+      d_field : field in which to look for D call.
+      j_field : field in which to look for J call.
+      cloned : if True build germlines by clone, otherwise build individual germlines.
       clone_field : field containing clone identifiers; ignored if cloned=False.
       germ_types : list of germline sequence types to be output from the set of 'full', 'dmask', 'vonly', 'regions'
-      format : input and output format
+      format : input and output format.
       out_file : output file name. Automatically generated from the input file if None.
-      out_args : arguments for output preferences
+      out_args : arguments for output preferences.
 
     Returns:
-      dict : names of the 'pass' and 'fail' output files.
+      dict: names of the 'pass' and 'fail' output files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -90,7 +90,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
                              reader=reader)
 
     # Get repertoire and open Db reader
-    references = readGermlines(repo)
+    reference_dict = readGermlines(references)
     db_handle = open(db_file, 'rt')
     db_iter = reader(db_handle)
 
@@ -103,7 +103,7 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
         printError(e)
 
     # Check for IMGT-gaps in germlines
-    if all('...' not in x for x in references.values()):
+    if all('...' not in x for x in reference_dict.values()):
         printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
 
     # Count input
@@ -155,10 +155,10 @@ def createGermlines(db_file, repo, seq_field=default_seq_field, v_field=default_
 
         # Build germline for records
         if len(records) == 1:
-            germ_log, germlines, genes = buildGermline(records[0], references, seq_field=seq_field, v_field=v_field,
+            germ_log, germlines, genes = buildGermline(records[0], reference_dict, seq_field=seq_field, v_field=v_field,
                                                        d_field=d_field, j_field=j_field)
         else:
-            germ_log, germlines, genes = buildClonalGermline(records, references, seq_field=seq_field, v_field=v_field,
+            germ_log, germlines, genes = buildClonalGermline(records, reference_dict, seq_field=seq_field, v_field=v_field,
                                                              d_field=d_field, j_field=j_field)
         rec_log.update(germ_log)
 
@@ -281,7 +281,7 @@ def getArgParser():
 
     # Germlines arguments
     group = parser.add_argument_group('germline construction arguments')
-    group.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+    group.add_argument('-r', nargs='+', action='store', dest='references', required=True,
                         help='''List of folders and/or fasta files (with .fasta, .fna or .fa
                          extension) with germline sequences. When using the default
                          Change-O sequence and coordinate fields, these reference sequences 
@@ -338,6 +338,11 @@ if __name__ == '__main__':
     #     for f in default_fields:
     #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.fromReceptor(default_fields[f])
     #         else: args_dict[f] = args_dict[f].lower()
+
+    # Check that reference files exist
+    for f in args_dict['references']:
+        if not os.path.exists(f):
+            parser.error('Germline reference file or folder %s does not exist.' % f)
 
     # Clean arguments dictionary
     del args_dict['db_files']

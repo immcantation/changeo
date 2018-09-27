@@ -1,13 +1,17 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.2.999:  September 12, 2018
+Version 0.4.2.999:  September 27, 2018
 -------------------------------------------------------------------------------
 
 BuildTrees:
 
 + New tool.
 + Converts tab-delimited database files into IgPhyML inputs.
+
+CreateGermlines:
+
++ Now verifies that all files/folder passed to the ``-r`` argument exist.
 
 
 Version 0.4.2:  September 6, 2018

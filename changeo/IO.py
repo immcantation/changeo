@@ -2014,41 +2014,41 @@ class IHMMuneReader:
             return db
 
 
-def readGermlines(repo, asis=False):
+def readGermlines(references, asis=False):
     """
     Parses germline repositories
 
     Arguments:
-      repo : list of strings specifying directories and/or files from which to read germline records.
-      asis : if True use sequence ID as record name and do not parse headers for allele names.
+      references (list): list of strings specifying directories and/or files from which to read germline records.
+      asis (bool): if True use sequence ID as record name and do not parse headers for allele names.
 
     Returns:
-      dict : Dictionary of {allele: sequence} germlines
+      dict: Dictionary of germlines in the form {allele: sequence}.
     """
     repo_files = []
     # Iterate over items passed to commandline
-    for r in repo:
-        # If directory, get fasta files from within
+    for r in references:
         if os.path.isdir(r):
+            # If directory, get fasta files from within
             repo_files.extend([os.path.join(r, f) for f in os.listdir(r) \
                           if getFileType(f) == 'fasta'])
-        # If file, make sure file is fasta
-        if os.path.isfile(r) and getFileType(r) == 'fasta':
+        elif os.path.isfile(r) and getFileType(r) == 'fasta':
+            # If file, make sure file is fasta
             repo_files.extend([r])
 
     # Catch instances where no valid fasta files were passed in
     if len(repo_files) < 1:
-        printError('No valid germline fasta files (.fasta, .fna, .fa) were found in %s.' % ','.join(repo))
+        printError('No valid germline fasta files (.fasta, .fna, .fa) were found at %s.' % ','.join(references))
 
-    references = {}
+    repo_dict = {}
     for file_name in repo_files:
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
                 germ_key = parseAllele(g.description, allele_regex, 'first') if not asis else g.id
-                references[germ_key] = str(g.seq).upper()
+                repo_dict[germ_key] = str(g.seq).upper()
 
-    return references
+    return repo_dict
 
 
 def extractIMGT(imgt_output):
