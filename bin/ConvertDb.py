@@ -102,12 +102,22 @@ def correctIMGTFields(receptor, references):
     except AttributeError:
         return receptor
 
+    # for m in re.finditer(r'-', hits['subject seq']):
+    #     ins = m.start()
+    #     seq += hits['query seq'][start:ins]
+    #     start = ins + 1
+
     # Update IMGT fields
-    gapped = gapV(receptor.sequence_imgt,
-                  receptor.v_germ_start_imgt,
-                  receptor.v_germ_length_imgt,
-                  receptor.v_call,
-                  references)
+    try:
+        gapped = gapV(receptor.sequence_imgt,
+                      receptor.v_germ_start_imgt,
+                      receptor.v_germ_length_imgt,
+                      receptor.v_call,
+                      references)
+    except KeyError as e:
+        printWarning(e)
+        return None
+
     __, germlines, __ = buildGermline(receptor, references)
     gapped['germline_imgt'] = '' if germlines is None else germlines['full']
 
@@ -175,7 +185,7 @@ def insertGaps(db_file, references=None, format=default_format,
 
     # Iterate over records
     start_time = time()
-    rec_count = 0
+    rec_count = pass_count = 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
@@ -183,13 +193,17 @@ def insertGaps(db_file, references=None, format=default_format,
         # Update IMGT fields
         rec = correctIMGTFields(rec, reference_dict)
         # Write records
-        pass_writer.writeReceptor(rec)
+        if rec is not None:
+            pass_count += 1
+            pass_writer.writeReceptor(rec)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
+    log['PASS'] = pass_count
+    log['FAIL'] = rec_count - pass_count
     log['END'] = 'ConvertDb'
     printLog(log)
 

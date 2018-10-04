@@ -1164,7 +1164,7 @@ class IgBLASTReader:
     @staticmethod
     def _appendSeq(seq, hits, start, trim=True):
         """
-        Remove insertions from aligned query sequences
+        Append aligned query sequence segment
 
         Arguments:
           seq :  sequence to modify.
