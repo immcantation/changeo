@@ -117,14 +117,96 @@ def correctIMGTFields(receptor, references):
     return receptor
 
 
-def convertToAIRR(db_file, repo=None, format=default_format,
+def insertGaps(db_file, references=None, format=default_format,
+               out_file=None, out_args=default_out_args):
+    """
+    Inserts IMGT numbering into V fields
+
+    Arguments:
+      db_file : the database file name.
+      references : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
+      format : input format.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
+
+    Returns:
+     str : output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'ConvertDb'
+    log['COMMAND'] = 'imgt'
+    log['FILE'] = os.path.basename(db_file)
+    printLog(log)
+
+    # Define format operators
+    try:
+        reader, writer, schema = getFormatOperators(format)
+    except ValueError:
+        printError('Invalid format %s.' % format)
+
+    # Open input
+    db_handle = open(db_file, 'rt')
+    db_iter = reader(db_handle)
+
+    # Check for required columns
+    try:
+        required = ['sequence_imgt', 'v_germ_start_imgt']
+        checkFields(required, db_iter.fields, schema=schema)
+    except LookupError as e:
+        printError(e)
+
+    # Load references
+    reference_dict = readGermlines(references)
+
+    # Check for IMGT-gaps in germlines
+    if all('...' not in x for x in reference_dict.values()):
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+
+    # Open output writer
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(db_file, out_label='gap', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=schema.out_type)
+    pass_writer = writer(pass_handle, fields=db_iter.fields)
+
+    # Count records
+    result_count = countDbFile(db_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
+        rec_count += 1
+        # Update IMGT fields
+        rec = correctIMGTFields(rec, reference_dict)
+        # Write records
+        pass_writer.writeReceptor(rec)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['END'] = 'ConvertDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    db_handle.close()
+
+    return pass_handle.name
+
+
+def convertToAIRR(db_file, format=default_format,
                   out_file=None, out_args=default_out_args):
     """
     Converts a Change-O formatted file into an AIRR formatted file
 
     Arguments:
       db_file : the database file name.
-      repo : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
       format : input format.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -165,9 +247,6 @@ def convertToAIRR(db_file, repo=None, format=default_format,
     # Count records
     result_count = countDbFile(db_file)
 
-    # Load references
-    references = readGermlines(repo) if repo is not None else None
-
     # Iterate over records
     start_time = time()
     rec_count = 0
@@ -175,9 +254,6 @@ def convertToAIRR(db_file, repo=None, format=default_format,
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
-        # Update IMGT fields
-        if references is not None:
-            rec = correctIMGTFields(rec, references)
         # Write records
         pass_writer.writeReceptor(rec)
 
@@ -196,13 +272,12 @@ def convertToAIRR(db_file, repo=None, format=default_format,
     return pass_handle.name
 
 
-def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_args):
+def convertToChangeo(db_file, out_file=None, out_args=default_out_args):
     """
     Converts an AIRR formatted file into an Change-O formatted file
 
     Arguments:
       db_file: the database file name.
-      repo : folder with germline repertoire files. If None, do not updated IMGT sequence columns.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
@@ -236,9 +311,6 @@ def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_arg
     # Count records
     result_count = countDbFile(db_file)
 
-    # Load references
-    references = readGermlines(repo) if repo is not None else None
-
     # Iterate over records
     start_time = time()
     rec_count = 0
@@ -246,9 +318,6 @@ def convertToChangeo(db_file, repo=None, out_file=None, out_args=default_out_arg
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
-        # Update IMGT fields
-        if references is not None:
-            rec = correctIMGTFields(rec, references)
         # Write records
         pass_writer.writeReceptor(rec)
 
@@ -856,9 +925,10 @@ def getArgParser():
                  SEQUENCE_ID, SEQUENCE_INPUT, JUNCTION, V_CALL, D_CALL, J_CALL, 
                  V_SEQ_START, V_SEQ_LENGTH, D_SEQ_START, D_SEQ_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
                  NP1_LENGTH, NP2_LENGTH
+                 SEQUENCE_IMGT, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT
                  
              optional fields:
-                 SEQUENCE_IMGT, GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, C_CALL
+                 GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, C_CALL
                 
              output fields:
                  None
@@ -878,28 +948,13 @@ def getArgParser():
 
     # Define parent parsers
     default_parent = getCommonArgParser(failed=False, log=False, format=False)
-    genbank_parent = getCommonArgParser(failed=False, log=False)
+    format_parent = getCommonArgParser(failed=False, log=False)
 
     # Subparser to convert changeo to AIRR files
     parser_airr = subparsers.add_parser('airr', parents=[default_parent],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Converts input to an AIRR TSV file.',
                                         description='Converts input to an AIRR TSV file.')
-    # group_airr = parser_airr.add_argument_group('conversion arguments')
-    # group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-    #                         help='''List of folders and/or fasta files containing
-    #                                 IMGT-gapped germline sequences corresponding to the
-    #                                 set of germlines used for the alignment. Specifying
-    #                                 this argument is not required, but doing so will add IMGT-gaps
-    #                                 to SEQUENCE_IMGT (sequence_alignment) and rebuild
-    #                                 GERMLINE_IMGT (germline_alignment). Requires the
-    #                                 V_GERM_START_IMGT (v_germline_start) and
-    #                                 V_GERM_LENGTH_IMGT (v_germline_end) fields.''')
-    # group_airr.add_argument('--format', action='store', dest='format', default=default_format,
-    #                         choices=choices_format,
-    #                         help='''Specify the input format. Output will always be AIRR TSV, but
-    #                              specifying AIRR input will allow IMGT-gapping of the alignment
-    #                              columns.''')
     parser_airr.set_defaults(func=convertToAIRR)
 
     # Subparser to convert AIRR to changeo files
@@ -907,17 +962,26 @@ def getArgParser():
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Converts input into a Change-O TSV file.',
                                        description='Converts input into a Change-O TSV file.')
-    # group_changeo = parser_changeo.add_argument_group('conversion arguments')
-    # group_changeo.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-    #                            help='''List of folders and/or fasta files containing
-    #                                 IMGT-gapped germline sequences corresponding to the
-    #                                 set of germlines used for the alignment. Specifying
-    #                                 this argument is not required, but doing so will add IMGT-gaps
-    #                                 to sequence_alignment (SEQUENCE_IMGT) and rebuild
-    #                                 germline_alignment (GERMLINE_IMGT). Requires the
-    #                                 v_germline_start (V_GERM_START_IMGT) and
-    #                                 v_germline_end (V_GERM_LENGTH_IMGT) fields.''')
     parser_changeo.set_defaults(func=convertToChangeo)
+
+    # Subparser to insert IMGT-gaps
+    desc_gap = dedent('''
+                      Inserts IMGT numbering spacers into the observed sequence 
+                      (SEQUENCE_IMGT, sequence_alignment) and rebuilds the germline sequence 
+                      (GERMLINE_IMGT, germline_alignment) if present. Also adjusts the values 
+                      in the V germline coordinate fields (V_GERM_START_IMGT, V_GERM_LENGTH_IMGT; 
+                      v_germline_end, v_germline_start), which are required.
+                      ''')
+    parser_gap = subparsers.add_parser('gap', parents=[format_parent],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Inserts IMGT numbering spacers into the V region.',
+                                        description=desc_gap)
+    group_gap = parser_gap.add_argument_group('conversion arguments')
+    group_gap.add_argument('-r', nargs='+', action='store', dest='references', required=False,
+                            help='''List of folders and/or fasta files containing
+                                    IMGT-gapped germline sequences corresponding to the
+                                    set of germlines used for the alignment.''')
+    parser_gap.set_defaults(func=insertGaps)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],
@@ -961,7 +1025,7 @@ def getArgParser():
     parser_baseln.set_defaults(func=convertToBaseline)
 
     # Subparser to convert database entries to a GenBank fasta and feature table file
-    parser_gb = subparsers.add_parser('genbank', parents=[genbank_parent],
+    parser_gb = subparsers.add_parser('genbank', parents=[format_parent],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Creates files for GenBank/TLS submissions.',
                                        description='Creates files for GenBank/TLS submissions.')

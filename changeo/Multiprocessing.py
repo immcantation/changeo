@@ -222,7 +222,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
            'log' defining a log object along with the 'pass' and 'fail' output file names.
     """
     # Wrapper for opening handles and writers
-    def _open(x, fields=fields, writer=writer, label=label, out_file=out_file):
+    def _open(x, f, writer=writer, label=label, out_file=out_file):
         if out_file is not None and x == 'pass':
             handle = open(out_file, 'w')
         else:
@@ -231,7 +231,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
                                      out_type=out_args['out_type'])
-        return handle, writer(handle, fields=fields)
+        return handle, writer(handle, fields=f)
 
     try:
         # Count input
@@ -280,7 +280,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
                     pass_writer.writeReceptor(result.results)
                 except AttributeError:
                     # Open pass file and define writer object
-                    pass_handle, pass_writer = _open('pass')
+                    pass_handle, pass_writer = _open('pass', fields)
                     pass_writer.writeReceptor(result.results)
             else:
                 # Write failing data
@@ -290,7 +290,7 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
                         fail_writer.writeReceptor(result.data)
                     except AttributeError:
                         # Open fail file and define writer object
-                        fail_handle, fail_writer = _open('fail')
+                        fail_handle, fail_writer = _open('fail', fields)
                         fail_writer.writeReceptor(result.data)
         else:
             sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \

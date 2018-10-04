@@ -104,7 +104,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
       None
     """
     # Wrapper for opening handles and writers
-    def _open(x, fields=fields, writer=writer, out_file=out_file):
+    def _open(x, f, writer=writer, out_file=out_file):
         if out_file is not None and x == 'pass':
             handle = open(out_file, 'w')
         else:
@@ -113,18 +113,18 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
                                      out_type=out_args['out_type'])
-        return handle, writer(handle, fields=fields)
+        return handle, writer(handle, fields=f)
 
     # Function to convert fasta header annotations to changeo columns
-    def _changeo(fields, header):
-        f = [ChangeoSchema.fromReceptor(x) for x in header if x.upper() not in fields]
-        fields.extend(f)
-        return fields
+    def _changeo(f, header):
+        h = [ChangeoSchema.fromReceptor(x) for x in header if x.upper() not in f]
+        f.extend(h)
+        return f
 
-    def _airr(fields, header):
-        f = [AIRRSchema.fromReceptor(x) for x in header if x.lower() not in fields]
-        fields.extend(f)
-        return fields
+    def _airr(f, header):
+        h = [AIRRSchema.fromReceptor(x) for x in header if x.lower() not in f]
+        f.extend(h)
+        return f
 
     # Function to verify IMGT-gapped sequence and junction concur
     def _imgt_check(rec):
@@ -208,7 +208,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                 pass_writer.writeReceptor(record)
             except AttributeError:
                 # Open pass file and writer
-                pass_handle, pass_writer = _open('pass')
+                pass_handle, pass_writer = _open('pass', fields)
                 pass_writer.writeReceptor(record)
         else:
             fail_count += 1
@@ -218,7 +218,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                     fail_writer.writeReceptor(record)
                 except AttributeError:
                     # Open fail file and writer
-                    fail_handle, fail_writer = _open('fail')
+                    fail_handle, fail_writer = _open('fail', fields)
                     fail_writer.writeReceptor(record)
 
         # Write log

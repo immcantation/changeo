@@ -317,12 +317,12 @@ class AIRRWriter(TSVWriter):
         """
         # Arguments
         self.handle = handle
-        fields = [f.lower() for f in fields]
+        self.fields = [f.lower() for f in fields]
 
         # Define writer
         try:
             import airr
-            self.writer = airr.io.RearrangementWriter(self.handle, fields=fields, debug=False)
+            self.writer = airr.io.RearrangementWriter(self.handle, fields=self.fields, debug=False)
         except ImportError as e:
             printError('AIRR library cannot be imported: %s.' % e)
 

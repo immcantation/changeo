@@ -1,8 +1,11 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.2.999:  September 27, 2018
+Version 0.4.2.999:  October 5, 2018
 -------------------------------------------------------------------------------
+
++ Updated airr library requirement to v1.2.1 to fix empty V(D)J start
+  coordinate values when specifying ``--format airr`` to tools.
 
 BuildTrees:
 

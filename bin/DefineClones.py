@@ -357,7 +357,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
             'log' defining a log object along with the 'pass' and 'fail' output file names.
     """
     # Wrapper for opening handles and writers
-    def _open(x, fields=fields, writer=writer, out_file=out_file):
+    def _open(x, f, writer=writer, out_file=out_file):
         if out_file is not None and x == 'pass':
             handle = open(out_file, 'w')
         else:
@@ -366,7 +366,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
                                      out_type=out_args['out_type'])
-        return handle, writer(handle, fields=fields)
+        return handle, writer(handle, fields=f)
 
     # Open log file
     try:
@@ -416,7 +416,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                             pass_writer.writeReceptor(rec)
                         except AttributeError:
                             # Open pass file and define writer object
-                            pass_handle, pass_writer = _open('pass')
+                            pass_handle, pass_writer = _open('pass', fields)
                             pass_writer.writeReceptor(rec)
 
                 # Write failed sequences from passing sets
@@ -430,7 +430,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                                 fail_writer.writeReceptor(rec)
                             except AttributeError:
                                 # Open fail file and define writer object
-                                fail_handle, fail_writer = _open('fail')
+                                fail_handle, fail_writer = _open('fail', fields)
                                 fail_writer.writeReceptor(rec)
             else:
                 # Write failing records
@@ -442,7 +442,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
                             fail_writer.writeReceptor(rec)
                         except AttributeError:
                             # Open fail file and define writer object
-                            fail_handle, fail_writer = _open('fail')
+                            fail_handle, fail_writer = _open('fail', fields)
                             fail_writer.writeReceptor(rec)
                     
             # Write log
