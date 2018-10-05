@@ -5,4 +5,4 @@ biopython>=1.65
 PyYAML>=3.12
 setuptools>=2.0
 presto>=0.5.9
-airr>=1.2.0
+airr>=1.2.1
