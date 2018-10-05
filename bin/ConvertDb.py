@@ -102,11 +102,6 @@ def correctIMGTFields(receptor, references):
     except AttributeError:
         return receptor
 
-    # for m in re.finditer(r'-', hits['subject seq']):
-    #     ins = m.start()
-    #     seq += hits['query seq'][start:ins]
-    #     start = ins + 1
-
     # Update IMGT fields
     try:
         gapped = gapV(receptor.sequence_imgt,
@@ -118,9 +113,13 @@ def correctIMGTFields(receptor, references):
         printWarning(e)
         return None
 
+    # Rebuild germline sequence
     __, germlines, __ = buildGermline(receptor, references)
-    gapped['germline_imgt'] = '' if germlines is None else germlines['full']
+    if germlines is None:
+        return None
 
+    # Update Receptor with gapped fields.
+    gapped['germline_imgt'] = germlines['full']
     imgt_dict.update(gapped)
     receptor.setDict(imgt_dict, parse=False)
 
