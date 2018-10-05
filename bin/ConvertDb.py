@@ -100,7 +100,7 @@ def correctIMGTFields(receptor, references):
                     receptor.v_call]):
             raise AttributeError
     except AttributeError:
-        return receptor
+        return None
 
     # Update IMGT fields
     try:
@@ -113,17 +113,25 @@ def correctIMGTFields(receptor, references):
         printWarning(e)
         return None
 
+    # Verify IMGT-gapped sequence and junction concur
+    try:
+        check = (receptor.junction == gapped['sequence_imgt'][309:(309 + receptor.junction_length)])
+    except TypeError:
+        check = False
+    if not check:
+        return None
+
     # Rebuild germline sequence
     __, germlines, __ = buildGermline(receptor, references)
     if germlines is None:
         return None
+    else:
+        gapped['germline_imgt'] = germlines['full']
 
-    # Update Receptor with gapped fields.
-    gapped['germline_imgt'] = germlines['full']
+    # Update return object
     imgt_dict.update(gapped)
-    receptor.setDict(imgt_dict, parse=False)
 
-    return receptor
+    return imgt_dict
 
 
 def insertGaps(db_file, references=None, format=default_format,
@@ -190,10 +198,11 @@ def insertGaps(db_file, references=None, format=default_format,
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Update IMGT fields
-        rec = correctIMGTFields(rec, reference_dict)
+        imgt_dict = correctIMGTFields(rec, reference_dict)
         # Write records
-        if rec is not None:
+        if imgt_dict is not None:
             pass_count += 1
+            rec.setDict(imgt_dict, parse=False)
             pass_writer.writeReceptor(rec)
 
     # Print counts
