@@ -106,7 +106,7 @@ def checkFrameShifts(receptor,oqpos,ospos,log,debug):
     return frameshifts
 
 
-def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug):
+def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive):
     """
     Find and mask split codons
     Arguments:
@@ -121,7 +121,8 @@ def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug):
 
     Returns:
       void
-    """   
+    """
+    frameshifts = 0
     while spos < s_end and qpos < len(qcodons):
         if debug:
             print(scodons[spos] + "\t" + qcodons[qpos])
@@ -264,7 +265,7 @@ def maskSplitCodons(receptor,recursive=False,mask=True):
 
     # TODO: for loop with zip()
     if mask:
-        findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug)
+        findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive)
 
     if not log["PASS"] and not recursive:
         log["FRAMESHIFTS"] = frameshifts
@@ -672,7 +673,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
     else:
         return nseqs
 
-def maskCodonsLoop(r,clones,cloneseqs,logs,fails):
+def maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer):
     """
     Masks codons split by alignment to IMGT reference
 
@@ -860,7 +861,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     start_time = time()
     printMessage("Correcting frames and indels of sequences", start_time=start_time, width=50)
     for r in records:
-        maskCodonsLoop(r,clones,cloneseqs,logs,fails)
+        maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer)
 
     # Start processing clones
     clonesizes = {}
