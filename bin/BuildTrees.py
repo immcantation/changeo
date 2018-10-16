@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 
 # Imports
 import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -23,25 +24,37 @@ from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHand
 from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
-def correctMidCodonStart(scodons,qi,debug):
+
+def printDebug(message, debug=True):
+    """
+    Prints a debug message to standard error
+
+    Arguments:
+      message (str): message.
+      debug (bool): if True print the message.
+    """
+    if debug:
+        sys.stderr.write('DEBUG> %s\n' % message)
+
+def correctMidCodonStart(scodons, qi, debug):
     """
     Find and mask split codons
+
     Arguments:
-      scodons (list): list of codons in IMGT sequence
-      qi (str) : input sequence
-      spos (int) : starting position of IMGT sequence in input sequence
-      debug (bool) : print debugging statements?
+      scodons (list): list of codons in IMGT sequence.
+      qi (str) : input sequence.
+      spos (int) : starting position of IMGT sequence in input sequence.
+      debug (bool) : print debugging statements.
+
     Returns:
-      qi (str) : modified input sequence
-      spos : modified starting position of IMGT sequence in input sequence
+      tuple: (modified input sequence, modified starting position of IMGT sequence in input sequence).
     """
     spos = 0   
     for i in range(0, len(scodons)):
-        if debug:
-            print(scodons[i],qi[0:3])
+        printDebug("%s %s" % (scodons[i], qi[0:3]), debug)
         if scodons[i] != "...":
             if scodons[i][0:2] == "..":
-                scodons[i] = "NN"+scodons[i][2]
+                scodons[i] = "NN" + scodons[i][2]
                 #sometimes IMGT will just cut off first letter if non-match, at which point we"ll just want to mask the
                 #first codon in the IMGT seq, other times it will be legitimately absent from the query, at which point
                 #we have to shift the frame. This attempts to correct for this by looking at the next codon over in the
@@ -60,64 +73,67 @@ def correctMidCodonStart(scodons,qi,debug):
                 spos = i
                 break
 
-    return qi,spos
+    return qi, spos
 
 
-def checkFrameShifts(receptor,oqpos,ospos,log,debug):
+def checkFrameShifts(receptor, oqpos, ospos, log, debug):
     """
     Checks whether a frameshift occured in a sequence
-    Arguments:
-      receptor : Receptor object.
-      oqpos (int) : position of interest in input sequence
-      ospos (int) : position of interest in IMGT sequence
-      log (dict) : log of information for each sequence
-      debug (bool) : print debugging statements?
 
-    Returns:
-      void
+    Arguments:
+      receptor (changeo.Receptor.Receptor): Receptor object.
+      oqpos (int) : position of interest in input sequence.
+      ospos (int) : position of interest in IMGT sequence.
+      log (dict) : log of information for each sequence.
+      debug (bool) : print debugging statements.
     """   
     frameshifts = 0
-    for ins in range(1,3):
+    for ins in range(1, 3):
         ros = receptor.sequence_input
         ris = receptor.sequence_imgt
-        psite = receptor.v_seq_start-1+oqpos*3
+        psite = receptor.v_seq_start - 1 + oqpos*3
         pisite = ospos * 3
-        if (psite+3 + ins) < len(ros) and (pisite+3) < len(ris):
+        if (psite + 3 + ins) < len(ros) and (pisite + 3) < len(ris):
         #cut out 1 or 2 nucleotides downstream of offending codon
-            receptor.sequence_input = ros[0:(psite+3)]+ros[(psite+3 + ins):]
-            receptor.sequence_imgt = ris[0:(pisite+3)] + ris[(pisite+3):]
-            if debug:
-                print(ros + "\n"+receptor.sequence_input)
-                print(ris + "\n" + receptor.sequence_imgt)
-                print("RUNNING %d\n"%ins)
-            mout = maskSplitCodons(receptor,recursive=True)
+            receptor.sequence_input = ros[0:(psite + 3)] + ros[(psite + 3 + ins):]
+            receptor.sequence_imgt = ris[0:(pisite + 3)] + ris[(pisite + 3):]
+
+            # Debug sequence modifications
+            printDebug(ros, debug)
+            printDebug(receptor.sequence_input, debug)
+            printDebug(ris, debug)
+            printDebug(receptor.sequence_imgt, debug)
+            printDebug("RUNNING %d" % ins, debug)
+
+            mout = maskSplitCodons(receptor, recursive=True)
             if mout[1]["PASS"]:
                 #if debug:
                 receptor.sequence_input = ros
                 receptor.sequence_imgt = ris
                 frameshifts += 1
-                if debug:
-                    print("FRAMESHIFT of length %d!" % ins)
+                printDebug("FRAMESHIFT of length %d!" % ins, debug)
                 log["FAIL"] = "SINGLE FRAME-SHIFTING INSERTION"
                 break
             else:
                 receptor.sequence_input = ros
                 receptor.sequence_imgt = ris
+
     return frameshifts
 
 
-def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive):
+def findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recursive):
     """
     Find and mask split codons
+
     Arguments:
-      receptor : Receptor object.
+      receptor (changeo.Receptor.Receptor): Receptor object.
       scodons (list): list of codons in IMGT sequence
       qcodons (list): list of codons in input sequence
-      spos (int) : starting position of IMGT sequence in input sequence
-      s_end : end of IMGT sequence
-      qpos : starting position of input sequence in IMGT sequence
-      log (dict) : log of information for each sequence
-      debug (boo) : print debugging statements?
+      spos (int): starting position of IMGT sequence in input sequence
+      s_end (int): end of IMGT sequence
+      qpos (int): starting position of input sequence in IMGT sequence
+      log (dict): log of information for each sequence
+      debug (bool): print debugging statements?
 
     Returns:
       void
@@ -144,44 +160,38 @@ def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive):
             while spos < s_end and scodons[spos] == "...": #possible next codon is just a gap
                 spos += 1
             while qpos < len(qcodons) and spos < s_end and scodons[spos] != qcodons[qpos]:
-                if debug:
-                    print("Checking " + scodons[spos]+ "\t" + qcodons[qpos])
+                printDebug("Checking " + scodons[spos]+ "\t" + qcodons[qpos], debug)
                 qpos += 1
             if qcodons[qpos-1] == scodons[ospos]: #if codon in previous position is equal to original codon, it was preserved
                 qpos -= 1
                 spos = ospos
-                if debug:
-                    print("But codon was apparently preserved")
-                if "IN-FRAME" in  log:
+                printDebug("But codon was apparently preserved", debug)
+                if "IN-FRAME" in log:
                     log["IN-FRAME"] = log["IN-FRAME"] + "," +  str(spos)
                 else:
                     log["IN-FRAME"] = str(spos)
             elif qpos >= len(qcodons) and spos < s_end:
-                if debug:
-                    print("FAILING MATCH")
+                printDebug("FAILING MATCH", debug)
                 log["PASS"] = False #if no match for the adjacent codon was found, something"s up.
                 log["FAIL"] = "FAILED_MATCH_QSTRING:"+str(spos)
                 #figure out if this was due to a frame-shift by repeating this method but with an edited input sequence
                 if not recursive:
-                    frameshifts += checkFrameShifts(receptor,oqpos,ospos,log,debug)
+                    frameshifts += checkFrameShifts(receptor, oqpos, ospos, log, debug)
 
             elif spos >= s_end or qcodons[qpos] != scodons[spos]:
                 scodons[ospos] = "NNN"
                 if spos >= s_end:
-                    if debug:
-                        print("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos))
+                    printDebug("Masked %s at position %d, at end of subject sequence" % (scodons[ospos], ospos), debug)
                     if "END-MASKED" in log:
                         log["END-MASKED"] = log["END-MASKED"] + "," + str(spos)
                     else:
                         log["END-MASKED"] = str(spos)
                 else:
-                    if debug:
-                        print("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos))
+                    printDebug("Masked %s at position %d, but couldn't find upstream match" % (scodons[ospos], ospos), debug)
                     log["PASS"]=False
                     log["FAIL"]="FAILED_MATCH:"+str(spos)
             elif qcodons[qpos] == scodons[spos]:
-                if debug:
-                    print("Masked %s at position %d" % (scodons[ospos], ospos))
+                printDebug("Masked %s at position %d" % (scodons[ospos], ospos), debug)
                 scodons[ospos] = "NNN"
                 if "MASKED" in  log:
                     log["MASKED"] = log["MASKED"] + "," + str(spos)
@@ -192,17 +202,17 @@ def findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive):
                 log["FAIL"] = "UNKNOWN"
 
 
-def maskSplitCodons(receptor,recursive=False,mask=True):
+def maskSplitCodons(receptor, recursive=False, mask=True):
     """
     Identify junction region by IMGT definition.
 
     Arguments:
-      receptor : Receptor object.
+      receptor (changeo.Receptor.Receptor): Receptor object.
       recursive (bool) : was this method part of a recursive call?
       mask (bool) : mask split codons for use with igphyml?
 
     Returns:
-      str : modified IMGT gapped sequence.
+      str: modified IMGT gapped sequence.
     """
     debug = False
     qi = receptor.sequence_input
@@ -233,8 +243,7 @@ def maskSplitCodons(receptor,recursive=False,mask=True):
             curgap += 1
         elif i == 0 and curgap != 0:
             if curgap % 3 != 0 :
-                if debug:
-                    print("Frame-shifting gap detected! Refusing to include sequence.")
+                printDebug("Frame-shifting gap detected! Refusing to include sequence.", debug)
                 log["PASS"] = False
                 log["FAIL"] = "FRAME-SHIFTING DELETION"
                 log["SEQ_IN"] = receptor.sequence_input
@@ -248,7 +257,7 @@ def maskSplitCodons(receptor,recursive=False,mask=True):
     scodons = [si[i:i + 3] for i in range(0, len(si), 3)]
 
     # deal with the fact that it's possible to start mid-codon
-    qi,spos = correctMidCodonStart(scodons,qi,debug)
+    qi,spos = correctMidCodonStart(scodons, qi, debug)
 
     qcodons = [qi[i:i + 3] for i in range(0, len(qi), 3)]
 
@@ -257,15 +266,14 @@ def maskSplitCodons(receptor,recursive=False,mask=True):
     for i in range(spos, len(scodons)):
         if scodons[i] != "..." and len(scodons[i]) == 3 and scodons[i] != "NNN":
             s_end = i
-    if debug:
-        print(str(s_end) + ":" + str(len(scodons)))
-        print(scodons[s_end])
+
+    printDebug("%i:%i:%s" % (s_end, len(scodons), scodons[s_end]), debug)
     s_end += 1
     qpos = 0
 
     # TODO: for loop with zip()
     if mask:
-        findAndMask(receptor,scodons,qcodons,spos,s_end,qpos,log,debug,recursive)
+        findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recursive)
 
     if not log["PASS"] and not recursive:
         log["FRAMESHIFTS"] = frameshifts
@@ -302,20 +310,21 @@ def maskSplitCodons(receptor,recursive=False,mask=True):
     return concatenated_seq, log
 
 
-def unAmbigDist(seq1,seq2,fbreak=False):
+def unAmbigDist(seq1, seq2, fbreak=False):
     """
     Calculate the distance between two sequences counting only A,T,C,Gs
-    Args:
-        seq1 (str): sequence 1
-        seq2 (str): sequence 2
-        fbreak (bool): break after first difference found?
+
+    Arguments:
+      seq1 (str): sequence 1
+      seq2 (str): sequence 2
+      fbreak (bool): break after first difference found?
 
     Returns:
-        Number of ACGT differences
+      int: number of ACGT differences.
     """
     if len(seq1) != len(seq2):
-        print("Sequences are not the same length! %s %s",seq1,seq2)
-        exit()
+        printError("Sequences are not the same length! %s %s" % (seq1, seq2))
+
     dist = 0
     for i in range(0,len(seq1)):
         if seq1[i] != "N" and seq1[i] != "-" and seq1[i] != ".":
@@ -324,20 +333,23 @@ def unAmbigDist(seq1,seq2,fbreak=False):
                     dist += 1
                     if fbreak:
                         break
+
     return dist
 
 
-def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
+def deduplicate(useqs, receptors, log=None, meta_data=None, delim=":"):
     """
-    Args:
-        useqs (dict): unique sequences within a clone. sequence -> index in receptor list
-        receptors (dict): receptors within a clone (index is value in useqs dict)
-        log (ordered dict): log of sequence errors
-        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
-        delmi (str): delimited to use when appending meta_data
+    Collapses identical sequences
 
-        Returns:
-        list of deduplicated receptors within a clone
+    Argument:
+      useqs (dict): unique sequences within a clone. maps sequence to index in Receptor list.
+      receptors (dict): receptors within a clone (index is value in useqs dict).
+      log (collections.OrderedDict): log of sequence errors.
+      meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
+      delim (str): delimited to use when appending meta_data.
+
+    Returns:
+      list: deduplicated receptors within a clone.
     """
 
     keys = list(useqs.keys())
@@ -402,34 +414,35 @@ def deduplicate(useqs, receptors, log=None, meta_data=None,delim=":"):
 
 def hasPTC(sequence):
     """
+    Determines whether a PTC exits in a sequence
+
     Arguments:
-        sequence (str): IMGT gapped sequence in frame 1
+      sequence (str): IMGT gapped sequence in frame 1.
 
     Returns:
-        dist (int): negative if not PTCs, position of PTC if found
+      int: negative if not PTCs, position of PTC if found.
 
     """
-    ptcs = ("TAA","TGA","TAG","TRA","TRG","TAR","TGR","TRR")
+    ptcs = ("TAA", "TGA", "TAG", "TRA", "TRG", "TAR", "TGR", "TRR")
     for i in range(0, len(sequence), 3):
             if sequence[i:(i+3)] in ptcs:
                 return i
     return -1
 
 
-def characterizePartitionErrors(sequences,clones,meta_data):
+def characterizePartitionErrors(sequences, clones, meta_data):
     """
     Characterize potential mismatches between IMGT labels within a clone
 
     Arguments:
-        sequences (list) : list of sequences in clones
-        clones (list) : list of receptor objects
-        meta_data (str) : Field to append to sequence IDs. Splits identical sequences with different meta_data
+      sequences (list): list of sequences in clones.
+      clones (list): list of Receptor objects.
+      meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
         
     Returns:
-        imgtar (list) : list of IMGT positions for first sequence in clone.
-        germline (str) : germline sequence of first receptor in clones
-        sites (int) : length of first sequence in clones
-        nseqs (int) : number of sequences in clone
+      tuple: tuple of length four containing a list of IMGT positions for first sequence in clones,
+             the germline sequence of the first receptor in clones, the length of the first sequence in clones,
+             and the number of sequences in clones.
     """
     sites = len(sequences[0])
     nseqs = len(sequences)
@@ -469,6 +482,8 @@ def characterizePartitionErrors(sequences,clones,meta_data):
             for m in range(1,len(meta_data_ar)):
                 st = c.getField(meta_data[0])+":"+c.getField(meta_data_ar[m])
                 c.setField(meta_data[0],st)
+
+        # TODO: restructure into printError
         if len(c.getField("imgtpartlabels")) != len(imgtar):
             print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! ",c.clone)
             print(c.getField("imgtpartlabels"))
@@ -485,7 +500,6 @@ def characterizePartitionErrors(sequences,clones,meta_data):
                 print(imgtar)
                 print(str(j))
                 exit(1)
-                #return -1
 
     #Resolve germline if there are differences, e.g. if reconstruction was done before clonal clustering
     resolveglines = False
@@ -494,117 +508,114 @@ def characterizePartitionErrors(sequences,clones,meta_data):
             resolveglines = True
 
     if resolveglines:
-        print("Predicted germlines are not the same among sequences in the same clone")
-        print("Be sure to cluster sequences into clones first and then predict germlines using --cloned")
-        print("Stopping.")
-        exit(1)
+        printError("%s %s" % ("Predicted germlines are not the same among sequences in the same clone.",
+                              "Be sure to cluster sequences into clones first and then predict germlines using --cloned"))
 
     if sites > (len(germline)):
         seqdiff = sites - len(germline)
         germline = germline + "N" * (seqdiff)
 
     if sites % 3 != 0:
-        print("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
-        exit(1)
+        printError("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
 
     return imgtar, germline, sites, nseqs
 
 
-def outputSeqPartFiles(out_dir,useqs_f,meta_data,clones,collapse,nseqs,delim,newgerm,conseqs,duplicate,imgt):
+def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, delim, newgerm, conseqs, duplicate, imgt):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
     Arguments:
         out_dir (str): directory for sequence files.
-        useqs_f (dict): unique sequences mapped to ids
-        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
+        useqs_f (dict): unique sequences mapped to ids.
+        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
         clones (list) : list of receptor objects.
-        collpase (bool) : deduplicate sequences?
-        nseqs (int): number of sequences
-        delim (str) : delimiter for extracting metadata from ID
-        newgerm (str) : modified germline of clonal lineage
-        conseqs (list) : consensus sequences
-        duplicate (bool) : duplicate sequence if only one in a clone?
-        imgt (list) : IMGT numbering of clonal positions 
+        collpase (bool) : deduplicate sequences.
+        nseqs (int): number of sequences.
+        delim (str) : delimiter for extracting metadata from ID.
+        newgerm (str) : modified germline of clonal lineage.
+        conseqs (list) : consensus sequences.
+        duplicate (bool) : duplicate sequence if only one in a clone.
+        imgt (list) : IMGT numbering of clonal positions .
     """
-    transtable = clones[0].sequence_id.maketrans(" ","_")
-    outfile = out_dir + "/" + clones[0].clone + ".fa"
-    clonef = open(outfile, "w")
-    if collapse:
-        for seq_f, num in useqs_f.items():
-            seq = seq_f
-            cid = ""
-            if meta_data is not None:
-                seq, cid = seq_f.split(delim)
-                clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
-                cid = delim + str(clones[num].getField(meta_data[0]))
-            sid = clones[num].sequence_id.translate(transtable) + cid
-            print(">%s\n%s" % (sid, seq.replace(".","-")), file=clonef)
-            if len(useqs_f) == 1 and duplicate:
+    transtable = clones[0].sequence_id.maketrans(" ", "_")
+    outfile = os.path.join(out_dir, "%s.fasta" % clones[0].clone)
+    with open(outfile, "w") as clonef:
+        if collapse:
+            for seq_f, num in useqs_f.items():
+                seq = seq_f
+                cid = ""
                 if meta_data is not None:
-                    if meta_data[0] == "DUPCOUNT":
-                        cid = delim + "0"
-                sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
-                print(">%s\n%s" % (sid, seq.replace(".","-")), file=clonef)
-    else:
-        for j in range(0, nseqs):
-            cid = ""
-            if meta_data is not None:
-                clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
-                cid = delim+str(clones[j].getField(meta_data[0]))
-            sid = clones[j].sequence_id.translate(transtable)+cid
-            print(">%s\n%s" % (sid, conseqs[j].replace(".","-")), file=clonef)
-            if nseqs == 1 and duplicate:
+                    seq, cid = seq_f.split(delim)
+                    clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
+                    cid = delim + str(clones[num].getField(meta_data[0]))
+                sid = clones[num].sequence_id.translate(transtable) + cid
+                clonef.write(">%s\n%s" % (sid, seq.replace(".", "-")))
+                if len(useqs_f) == 1 and duplicate:
+                    if meta_data is not None:
+                        if meta_data[0] == "DUPCOUNT":
+                            cid = delim + "0"
+                    sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
+                    clonef.write(">%s\n%s" % (sid, seq.replace(".", "-")))
+        else:
+            for j in range(0, nseqs):
+                cid = ""
                 if meta_data is not None:
-                    if meta_data[0] == "DUPCOUNT":
-                        cid = delim + "0"
-                sid = clones[j].sequence_id.translate(transtable)+"_1"+cid
-                print(">%s\n%s" % (sid, conseqs[j].replace(".","-")), file=clonef)
+                    clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
+                    cid = delim+str(clones[j].getField(meta_data[0]))
+                sid = clones[j].sequence_id.translate(transtable) + cid
+                clonef.write(">%s\n%s" % (sid, conseqs[j].replace(".", "-")))
+                if nseqs == 1 and duplicate:
+                    if meta_data is not None:
+                        if meta_data[0] == "DUPCOUNT":
+                            cid = delim + "0"
+                    sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
+                    clonef.write(">%s\n%s" % (sid, conseqs[j].replace(".", "-")))
 
-    print(">%s_GERM" % clones[0].clone, file=clonef)
-    for i in range(0, len(newgerm)):
-        print("%s" % newgerm[i].replace(".","-"), end="", file=clonef)
-    print("\n", end="", file=clonef)
-    clonef.close()
+        clonef.write(">%s_GERM" % clones[0].clone)
+        for i in range(0, len(newgerm)):
+            clonef.write("%s" % newgerm[i].replace(".","-"))
+        clonef.write("\n")
 
     #output partition file
-    partfile = out_dir + "/" + clones[0].clone + ".part.txt"
-    partf = open(partfile, "w")
-    print("%d %d" % (2, len(newgerm)), file=partf)
-    print("FWR:IMGT", file=partf)
-    print("CDR:IMGT", file=partf)
-    print("%s" % (clones[0].v_call.split("*")[0]),file=partf)
-    print("%s" % (clones[0].j_call.split("*")[0]),file=partf)
-    print(",".join(map(str, imgt)), file=partf)
+    partfile = os.path.join(out_dir, "%s.part.txt" % clones[0].clone)
+    with open(partfile, "w") as partf:
+        partf.write("%d %d" % (2, len(newgerm)))
+        partf.write("FWR:IMGT")
+        partf.write("CDR:IMGT")
+        partf.write("%s" % (clones[0].v_call.split("*")[0]))
+        partf.write("%s" % (clones[0].j_call.split("*")[0]))
+        partf.write(",".join(map(str, imgt)))
 
 
-def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, fail_writer=None, out_dir=None,
-                  min_seq=0):
+def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
+                  fail_writer=None, out_dir=None, min_seq=1):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
     Arguments:
-        clones (list): receptor objects within the same clone.
-        sequences (list): sequences within the same clone (share indexes with clones parameter).
-        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
-        collapse (bool): if True collapse identical sequences.
-        logs (dict of OrderedDicts): contains log information for each sequence
-        out_dir (str): directory for output files.
-        fail_writer (handle): file of failed sequences
-        min_seq (int): minimum number of data sequences to include
+      clones (list): receptor objects within the same clone.
+      sequences (list): sequences within the same clone (share indexes with clones parameter).
+      meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
+      collapse (bool): if True collapse identical sequences.
+      logs (dict): contains log information for each sequence
+      out_dir (str): directory for output files.
+      fail_writer (changeo.IO.TSVWriter): failed sequences writer object.
+      min_seq (int): minimum number of data sequences to include.
+
     Returns:
-        int: number of clones.
+      int: number of clones.
     """
-    s=""
+    s = ""
     delim = "_"
     duplicate = True # duplicate sequences in clones with only 1 sequence?
-    imgtar, germline, sites, nseqs = characterizePartitionErrors(sequences,clones,meta_data)
+    imgtar, germline, sites, nseqs = characterizePartitionErrors(sequences, clones, meta_data)
 
     tallies = []
     for i in range(0, sites, 3):
         tally = 0
         for j in range(0, nseqs):
-            if sequences[j][i:(i+3)] != "...":
+            if sequences[j][i:(i + 3)] != "...":
                 tally += 1
         tallies.append(tally)
 
@@ -625,7 +636,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
             imgt.append(imgtar[i])
 
     if len(lcodon) == 2:
-        newgerm[-1]=newgerm[-1]+"N"
+        newgerm[-1] = newgerm[-1] + "N"
     elif len(lcodon) == 1:
         newgerm[-1] = newgerm[-1] + "NN"
 
@@ -635,7 +646,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
         if meta_data is not None:
             if isinstance(clones[j].getField(meta_data[0]), str):
-                clones[j].setField(meta_data[0],clones[j].getField(meta_data[0]).replace("_",""))
+                clones[j].setField(meta_data[0],clones[j].getField(meta_data[0]).replace("_", ""))
             conseq_f = "".join([str(seq_rec) for seq_rec in newseqs[j]])+delim+str(clones[j].getField(meta_data[0]))
         else:
             conseq_f = conseq
@@ -651,45 +662,45 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None, 
         conseqs.append(conseq)
 
     if collapse:
-        useqs_f = deduplicate(useqs_f,clones,logs,meta_data,delim)
+        useqs_f = deduplicate(useqs_f, clones, logs, meta_data, delim)
 
     if collapse and len(useqs_f) < min_seq:
         for seq_f, num in useqs_f.items():
             logs[clones[num].sequence_id]["FAIL"] = "Clone too small: " + str(len(useqs_f))
             logs[clones[num].sequence_id]["PASS"] = False
         return -len(useqs_f)
-
-    if not collapse and len(conseqs) < min_seq:
+    elif not collapse and len(conseqs) < min_seq:
         for j in range(0, nseqs):
             logs[clones[j].sequence_id]["FAIL"] = "Clone too small: " + str(len(conseqs))
             logs[clones[j].sequence_id]["PASS"] = False
         return -len(conseqs)
 
     # Output fasta file of masked, concatenated sequences
-    outputSeqPartFiles(out_dir,useqs_f,meta_data,clones,collapse,nseqs,delim,newgerm,conseqs,duplicate,imgt)
+    outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs,
+                       delim, newgerm, conseqs, duplicate, imgt)
 
     if collapse:
         return len(useqs_f)
     else:
         return nseqs
 
-def maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer):
+
+def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
     """
     Masks codons split by alignment to IMGT reference
 
     Arguments:
-        r (receptor): receptor object for a particular sequence
-        clones (list): list of receptors
-        cloneseqs (list): list of masked clone sequences
-        logs (dict of OrderedDicts): contains log information for each sequence
-        fails (dict): counts of various sequence processing failures
-    Returns:
-        None: outputs files for IgPhyML.
+      r (changeo.Receptor.Receptor): receptor object for a particular sequence.
+      clones (list): list of receptors.
+      cloneseqs (list): list of masked clone sequences.
+      logs (dict): contains log information for each sequence.
+      fails (dict): counts of various sequence processing failures.
 
+    Returns:
+      None: returns None if an error occurs.
     """
     if r.clone is None:
-        print("Cannot export datasets until sequences are clustered into clones.")
-        exit(1)
+        printError("Cannot export datasets until sequences are clustered into clones.")
     if r.dupcount is None:
         r.dupcount = 1
     fails["rec_count"] += 1
@@ -708,23 +719,24 @@ def maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer):
         logs[r.sequence_id]["FAIL"] = "Germline PTC"
         fails["seq_fail"] += 1
         fails["germlineptc"] += 1
-        return
+        return None
 
     if r.functional and ptcs < 0:
         #If IMGT regions are provided, record their positions
-        regions = getRegions(r.sequence_imgt,r.junction_length)
+        regions = getRegions(r.sequence_imgt, r.junction_length)
         #print(regions["cdr3_imgt"])
         if regions["cdr3_imgt"] is not "":
-            simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + regions["fwr3_imgt"] \
-            + regions["cdr3_imgt"] + regions["fwr4_imgt"]
+            simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
+                    regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
             if len(simgt) < len(r.sequence_imgt):
                 r.fwr4_imgt = r.fwr4_imgt +  ("."*(len(r.sequence_imgt) - len(simgt)))
-                simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions[
-                    "cdr2_imgt"] + regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
+                simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + \
+                        regions["cdr2_imgt"] + regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
             imgtpartlabels = [13]*len(regions["fwr1_imgt"]) + [30]*len(regions["cdr1_imgt"]) + [45]*len(regions["fwr2_imgt"]) + \
-                               [60]*len(regions["cdr2_imgt"]) + [80]*len(regions["fwr3_imgt"]) + [108] * len(regions["cdr3_imgt"]) \
-                               +[120] * len(regions["fwr4_imgt"])
-            r.setField("imgtpartlabels",imgtpartlabels)
+                             [60]*len(regions["cdr2_imgt"]) + [80]*len(regions["fwr3_imgt"]) + [108] * len(regions["cdr3_imgt"]) + \
+                             [120] * len(regions["fwr4_imgt"])
+            r.setField("imgtpartlabels", imgtpartlabels)
+
             if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
                 log = OrderedDict()
                 log["ID"] = r.sequence_id
@@ -737,19 +749,20 @@ def maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer):
                 logs[r.sequence_id]["FWRCDRSEQ"] = simgt
                 fails["seq_fail"] += 1
                 fails["region_fail"] += 1
-                return
+                return None
         else:
-            imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data.\n"
+            #imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data.\n"
             imgtpartlabels = [0] * len(r.sequence_imgt)
             r.setField("imgtpartlabels", imgtpartlabels)
         #print(r.sequence_imgt)
         mout = maskSplitCodons(r)
         mask_seq = mout[0]
         ptcs = hasPTC(mask_seq)
+        # TODO: Be gone! write to log, printWarning or printError
         if ptcs >= 0:
             print(r.sequence_id)
             print("Masked sequence suddenly has a PTC..")
-        logs[mout[1]["ID"]]=mout[1]
+        logs[mout[1]["ID"]] = mout[1]
         if mout[1]["PASS"]:
             #passreads += r.dupcount
             if r.clone in clones:
@@ -776,26 +789,27 @@ def maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer):
         log["PASS"] = False
         log["FAIL"] = "NONFUNCTIONAL/PTC"
         log["SEQ_IN"] = r.sequence_input
-        logs[r.sequence_id]=log
+        logs[r.sequence_id] = log
         if out_args["failed"]:
             fail_writer.writeReceptor(r)
         fails["seq_fail"] += 1
         fails["nf_fail"] += 1
 
+
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
     Arguments:
-        db_file (str): input tab-delimited database file.
-        meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
-        collapse (bool): if True collapse identical sequences.
-        format (str): input and output format.
-        out_args (dict): arguments for output preferences.
-    Returns:
-        None: outputs files for IgPhyML.
+      db_file (str): input tab-delimited database file.
+      meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
+      collapse (bool): if True collapse identical sequences.
+      format (str): input and output format.
+      out_args (dict): arguments for output preferences.
 
+    Returns:
+      dict: dictionary of output pass and fail files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -845,27 +859,22 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
                                       out_type=out_args["out_type"])
         fail_writer = writer(fail_handle, fields=out_fields)
 
-    if min_seq == 0:
-        min_seq = 0
-    else:
-        min_seq = int(min_seq[0])
-
     cloneseqs = {}
     clones = {}
     logs = OrderedDict()
-    fails = {"rec_count":0,"seq_fail":0,"nf_fail":0,"del_fail":0,"in_fail":0,"minseq_fail":0,\
-    "other_fail":0,"region_fail":0,"germlineptc":0,"fdcount":0,"totalreads":0,"passreads":0,"failreads":0,}   
-    imgt_warn = None
+    fails = {"rec_count":0, "seq_fail":0, "nf_fail":0, "del_fail":0, "in_fail":0, "minseq_fail":0,
+             "other_fail":0, "region_fail":0, "germlineptc":0, "fdcount":0, "totalreads":0,
+             "passreads":0, "failreads":0}
 
     # Mask codons split by indels
     start_time = time()
     printMessage("Correcting frames and indels of sequences", start_time=start_time, width=50)
     for r in records:
-        maskCodonsLoop(r,clones,cloneseqs,logs,fails,out_args,fail_writer)
+        maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer)
 
     # Start processing clones
     clonesizes = {}
-    pass_count, nclones = 0,0
+    pass_count, nclones = 0, 0
     printMessage("Processing clones", start_time=start_time, width=50)
     for k in clones.keys():
         if len(clones[str(k)]) < min_seq:
@@ -875,7 +884,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
             clonesizes[str(k)] = -len(cloneseqs[str(k)])
         else:
             clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
-                                           logs=logs,fail_writer=fail_writer,out_dir=clone_dir,min_seq=min_seq)
+                                           logs=logs, fail_writer=fail_writer, out_dir=clone_dir, min_seq=min_seq)
         #If clone is too small, size is returned as a negative
         if clonesizes[str(k)] > 0:
             nclones += 1
@@ -898,8 +907,8 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     print(nclones, file=pass_handle)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
-        outfile = clone_dir + "/" + key + ".fa"
-        partfile = clone_dir + "/" + key + ".part.txt"
+        outfile = os.path.join(clone_dir, "%s.fasta" % key)
+        partfile = os.path.join(clone_dir, "%s.part.txt" % key)
         if clonesizes[key] > 0:
             pass_handle.write("%s\t%s\t%s\t%s\n" % (outfile, "N", key+"_GERM", partfile))
 
@@ -928,13 +937,12 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=None, format=def
     log["GERMLINE_PTC"] = fails["germlineptc"]
     log["OTHER_FAIL"] = fails["other_fail"]
 
-    if imgt_warn is not None:
-        print(imgt_warn)
-
     if collapse:
         log["DUPLICATE"] = fail_count - fails["seq_fail"]
     log["END"] = "BuildTrees"
     printLog(log)
+
+    return output
 
 def getArgParser():
     """
@@ -947,6 +955,8 @@ def getArgParser():
     fields = dedent(
              """
              output files:
+                 <folder>
+                   folder containing fasta and partition files for each clone.
                  lineages
                     successfully processed records.
                  lineages-fail
@@ -967,12 +977,13 @@ def getArgParser():
 
     group = parser.add_argument_group("tree building arguments")
     group.add_argument("--collapse", action="store_true", dest="collapse",
-                        help="""Collapse identical sequences.""")
-    group.add_argument("--md", nargs="+", action="store", dest="meta_data",default=None,
-                       help="""Include metadata in sequence ID.""")
-
-    group.add_argument("--minseq", nargs="+", action="store", dest="min_seq", default=0,
-                       help="""Minimum number of data sequences.""")
+                        help="""If specified, collapse identical sequences before exporting to fasta.""")
+    group.add_argument("--md", nargs="+", action="store", dest="meta_data",
+                       help="""List of fields to containing metadata to include in output fasta file 
+                            sequence headers.""")
+    group.add_argument("--minseq", action="store", dest="min_seq", type=int, default=1,
+                       help="""Minimum number of data sequences. Any clones with fewer than the specified
+                            number of sequences will be excluded.""")
 
     return parser
 

@@ -511,7 +511,7 @@ def defineClones(db_file, seq_field=default_junction_field, v_field=default_v_fi
                    if None defaults to 2*nproc.
     
     Returns:
-      list : successful output file names
+      dict: dictionary of output pass and fail files.
     """
     # Print parameter info
     log = OrderedDict()
