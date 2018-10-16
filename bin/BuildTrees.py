@@ -271,7 +271,6 @@ def maskSplitCodons(receptor, recursive=False, mask=True):
     s_end += 1
     qpos = 0
 
-    # TODO: for loop with zip()
     if mask:
         findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recursive)
 
@@ -903,8 +902,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
 
-    # TODO: changeo console log
-    print(nclones, file=pass_handle)
+    pass_handle.write(nclones)
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
         outfile = os.path.join(clone_dir, "%s.fasta" % key)
