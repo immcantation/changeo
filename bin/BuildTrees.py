@@ -135,8 +135,6 @@ def findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recur
       log (dict): log of information for each sequence
       debug (bool): print debugging statements?
 
-    Returns:
-      void
     """
     frameshifts = 0
     while spos < s_end and qpos < len(qcodons):
@@ -213,6 +211,7 @@ def maskSplitCodons(receptor, recursive=False, mask=True):
 
     Returns:
       str: modified IMGT gapped sequence.
+      log: dict of sequence information
     """
     debug = False
     qi = receptor.sequence_input
@@ -482,23 +481,18 @@ def characterizePartitionErrors(sequences, clones, meta_data):
                 st = c.getField(meta_data[0])+":"+c.getField(meta_data_ar[m])
                 c.setField(meta_data[0],st)
 
-        # TODO: restructure into printError
         if len(c.getField("imgtpartlabels")) != len(imgtar):
-            print("IMGT ASSIGNMENTS ARE NOT THE SAME LENGTH WITHIN A CLONE! ",c.clone)
-            print(c.getField("imgtpartlabels"))
-            print(imgtar)
-            print(str(j))
+            printError("IMGT assignments are not the same within clone %d!\n" % c.clone,False)
+            printError(c.getField("imgtpartlabels"),False)
+            printError("%s\n%d\n" % (imgtar,j),False)
             for j in range(0, len(sequences)):
-                print(sequences[j])
-                print(clones[j].getField("imgtpartlabels"))
-            exit(1)
+                printError("%s\n%s\n" % (sequences[j],clones[j].getField("imgtpartlabels")),False)
+            printError("ChangeO file needs to be corrected")
         for j in range(0,len(imgtar)):
             if c.getField("imgtpartlabels")[j] != imgtar[j]:
-                print("IMGT ASSIGNMENTS ARE NOT THE SAME WITHIN A CLONE! ",c.clone)
-                print(c.getField("imgtpartlabels"))
-                print(imgtar)
-                print(str(j))
-                exit(1)
+                printError("IMGT assignments are not the same within clone %d!\n" % c.clone, False)
+                printError(c.getField("imgtpartlabels"), False)
+                printError("%s\n%d\n" % (imgtar, j))
 
     #Resolve germline if there are differences, e.g. if reconstruction was done before clonal clustering
     resolveglines = False
@@ -515,7 +509,8 @@ def characterizePartitionErrors(sequences, clones, meta_data):
         germline = germline + "N" * (seqdiff)
 
     if sites % 3 != 0:
-        printError("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),clones[0].clone,sequences[0]))
+        printError("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),\
+        clones[0].clone,sequences[0]))
 
     return imgtar, germline, sites, nseqs
 
@@ -549,13 +544,13 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
                     cid = delim + str(clones[num].getField(meta_data[0]))
                 sid = clones[num].sequence_id.translate(transtable) + cid
-                clonef.write(">%s\n%s" % (sid, seq.replace(".", "-")))
+                clonef.write(">%s\n%s\n" % (sid, seq.replace(".", "-")))
                 if len(useqs_f) == 1 and duplicate:
                     if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
-                    clonef.write(">%s\n%s" % (sid, seq.replace(".", "-")))
+                    clonef.write(">%s\n%s\n" % (sid, seq.replace(".", "-")))
         else:
             for j in range(0, nseqs):
                 cid = ""
@@ -563,15 +558,15 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
                     cid = delim+str(clones[j].getField(meta_data[0]))
                 sid = clones[j].sequence_id.translate(transtable) + cid
-                clonef.write(">%s\n%s" % (sid, conseqs[j].replace(".", "-")))
+                clonef.write(">%s\n%s\n" % (sid, conseqs[j].replace(".", "-")))
                 if nseqs == 1 and duplicate:
                     if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
-                    clonef.write(">%s\n%s" % (sid, conseqs[j].replace(".", "-")))
+                    clonef.write(">%s\n%s\n" % (sid, conseqs[j].replace(".", "-")))
 
-        clonef.write(">%s_GERM" % clones[0].clone)
+        clonef.write(">%s_GERM\n" % clones[0].clone)
         for i in range(0, len(newgerm)):
             clonef.write("%s" % newgerm[i].replace(".","-"))
         clonef.write("\n")
@@ -579,12 +574,13 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
     #output partition file
     partfile = os.path.join(out_dir, "%s.part.txt" % clones[0].clone)
     with open(partfile, "w") as partf:
-        partf.write("%d %d" % (2, len(newgerm)))
-        partf.write("FWR:IMGT")
-        partf.write("CDR:IMGT")
-        partf.write("%s" % (clones[0].v_call.split("*")[0]))
-        partf.write("%s" % (clones[0].j_call.split("*")[0]))
+        partf.write("%d %d\n" % (2, len(newgerm)))
+        partf.write("FWR:IMGT\n")
+        partf.write("CDR:IMGT\n")
+        partf.write("%s\n" % (clones[0].v_call.split("*")[0]))
+        partf.write("%s\n" % (clones[0].j_call.split("*")[0]))
         partf.write(",".join(map(str, imgt)))
+        partf.write("\n")
 
 
 def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
@@ -723,7 +719,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
     if r.functional and ptcs < 0:
         #If IMGT regions are provided, record their positions
         regions = getRegions(r.sequence_imgt, r.junction_length)
-        #print(regions["cdr3_imgt"])
+        #print(regions["cdr1_imgt"]+regions["fwr4_imgt"])
         if regions["cdr3_imgt"] is not "":
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
@@ -757,10 +753,10 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
         mout = maskSplitCodons(r)
         mask_seq = mout[0]
         ptcs = hasPTC(mask_seq)
-        # TODO: Be gone! write to log, printWarning or printError
         if ptcs >= 0:
-            print(r.sequence_id)
-            print("Masked sequence suddenly has a PTC..")
+            printWarning("Masked sequence suddenly has a PTC.. %s\n" % r.sequence_id)
+            mout[1]["PASS"] = False
+            mout[1]["FAIL"] = "PTC_ADDED_FROM_MASKING"
         logs[mout[1]["ID"]] = mout[1]
         if mout[1]["PASS"]:
             #passreads += r.dupcount
@@ -902,7 +898,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
 
-    pass_handle.write(nclones)
+    pass_handle.write(str(nclones))
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
         outfile = os.path.join(clone_dir, "%s.fasta" % key)
