@@ -16,18 +16,19 @@ pip3 command.
 Requirements
 --------------------------------------------------------------------------------
 
-+  `Python 3.4.0 <http://python.org>`__
-+  `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
-+  `NumPy 1.8 <http://numpy.org>`__
-+  `SciPy 0.14 <http://scipy.org>`__
-+  `pandas 0.15 <http://pandas.pydata.org>`__
-+  `Biopython 1.65 <http://biopython.org>`__
-+  `presto 0.5 <http://presto.readthedocs.io>`__
-+  `airr 1.2 <https://docs.airr-community.org>`__.
-+  AlignRecords requires `MUSCLE v3.8 <http://www.drive5.com/muscle>`__
-+  ConvertDb-genbank requires `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__
-+  AssignGenes requires `IgBLAST 1.6 <https://ncbi.github.io/igblast>`__, but
-   version 1.10 or higher is recommended.
++ `Python 3.4.0 <http://python.org>`__
++ `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
++ `NumPy 1.8 <http://numpy.org>`__
++ `SciPy 0.14 <http://scipy.org>`__
++ `pandas 0.15 <http://pandas.pydata.org>`__
++ `Biopython 1.65 <http://biopython.org>`__
++ `presto 0.5.10 <http://presto.readthedocs.io>`__
++ `airr 1.2.1 <https://docs.airr-community.org>`__.
++ AlignRecords requires `MUSCLE 3.8 <http://www.drive5.com/muscle>`__
++ ConvertDb-genbank requires `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__
++ AssignGenes requires `IgBLAST 1.6 <https://ncbi.github.io/igblast>`__, but
+  version 1.11 or higher is recommended.
++ BuildTrees requires `IgPhyML 1.0.5 <https://bitbucket.org/kbhoehn/igphyml>`_
 
 Linux
 --------------------------------------------------------------------------------

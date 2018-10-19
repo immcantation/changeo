@@ -1,16 +1,18 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.2.999:  October 5, 2018
+Version 0.4.3:  October 19, 2018
 -------------------------------------------------------------------------------
 
 + Updated airr library requirement to v1.2.1 to fix empty V(D)J start
   coordinate values when specifying ``--format airr`` to tools.
++ Changed pRESTO dependency to v0.5.10.
 
 BuildTrees:
 
 + New tool.
-+ Converts tab-delimited database files into IgPhyML inputs.
++ Converts tab-delimited database files into input for
+  `IgPhyML <https://bitbucket.org/kbhoehn/igphyml>`_
 
 CreateGermlines:
 

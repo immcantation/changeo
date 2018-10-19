@@ -18,23 +18,12 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.Defaults import default_out_args
-from presto.IO import  printLog, printMessage, printWarning, printError
+from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
 from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle
 from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
-
-def printDebug(message, debug=True):
-    """
-    Prints a debug message to standard error
-
-    Arguments:
-      message (str): message.
-      debug (bool): if True print the message.
-    """
-    if debug:
-        sys.stderr.write('DEBUG> %s\n' % message)
 
 def correctMidCodonStart(scodons, qi, debug):
     """

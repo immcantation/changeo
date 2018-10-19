@@ -851,9 +851,6 @@ def getArgParser():
                  JUNCTION, SEQUENCE_IMGT, SEQUENCE_VDJ, GERMLINE_IMGT, GERMLINE_VDJ,
                  GERMLINE_IMGT_D_MASK, GERMLINE_VDJ_D_MASK,
                  GERMLINE_IMGT_V_REGION, GERMLINE_VDJ_V_REGION
-                
-             output fields:
-                 None
              ''')
     
     # Define ArgumentParser
@@ -879,9 +876,9 @@ def getArgParser():
                                        description='Adds field and value pairs.')
     group_add = parser_add.add_argument_group('parsing arguments')
     group_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='The name of the fields to add.')
+                           help='The name of the fields to add.')
     group_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
-                               help='The value to assign to all rows for each field.')
+                           help='The value to assign to all rows for each field.')
     parser_add.set_defaults(func=addDbFile)
 
     # Subparser to delete records

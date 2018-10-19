@@ -1,32 +1,31 @@
 IgPhyML lineage tree analysis
 ===============================
 
-Preface
------------
-
 This is the instruction guide for using the new, repertoire-wide
-version of IgPhyML, which has been integrated into the new version of
-Change-O. It’s not officially released yet, so please let us know if
-you’re planning to publish anything using it. A lot of the features are
-still in active development, so feedback, especially with input/output
-format and problems encountered, would be greatly appreciated.
- 
-Also, if you’re analysing single lineages, all of the old features
-still work, so check out the old manual (docs/IgPhyML\_Manual.pdf) for
-that.
- 
-A description of HLP17, the model underlying IgPhyML, can be found
+version of `IgPhyML <https://bitbucket.org/kbhoehn/igphyml>`_. A
+description of HLP17, the model underlying IgPhyML, can be found
 here:
 
     Hoehn, K. B., Lunter, G., & Pybus, O. G. (2017). A phylogenetic codon
     substitution model for antibody lineages. Genetics, 206(1), 417-427.
     doi:http://dx.doi.org/10.1534/genetics.116.196303
 
+.. warning::
+
+    The new repertoire-wide version of IgPhyML isn't officially released yet,
+    so please let us know if you’re planning to publish anything using it.
+    A lot of the features are still in active development, so feedback,
+    especially with input/output format and problems encountered, would be
+    greatly appreciated.
+ 
+    Also, if you’re analysing single lineages, all of the old features
+    still work, so check out the old manual for that
+    (see ``docs/IgPhyML_Manual.pdf`` in the IgPhyML source bundle).
 
 Installation
 -----------------
  
-Download and install the new IgPhyML::
+Download and install the new `IgPhyML <https://bitbucket.org/kbhoehn/igphyml>`_::
 
     git clone https://bitbucket.org/kbhoehn/igphyml
     cd igphyml
@@ -60,8 +59,8 @@ Installation on Mac OS X is trickier, but possible. The primary issue
 is gaining OpenMP support, and installing some GNU command line tools.
 The best way is to just install the latest version of ``llvm``
 available through ``homebrew``, as well as ``autoconf`` and
-``automake``. To do these you’ll need to install ``homebrew``
-(http://brew.sh/index.html). If it’s already installed be
+``automake``. To do these you’ll need to install
+`homebrew <http://brew.sh/index.html>`_. If it’s already installed be
 sure it’s at the latest version (``brew update``). You may need to install
 Xcode as well. Next, install ``autoconf``, ``automake``, and ``llvm``::
 
@@ -124,34 +123,22 @@ Both of these can be parallelized by adding
 tree viewers (I recommend
 `FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__). Parameter
 estimates are in ``ex_lineages.tsv_igphyml_stats.txt``.
- 
-**Infer intermediate sequences**::
- 
-    igphyml --repfile ex_lineages.tsv -m HLP17 --ASR
- 
-Tree files are now in ``ex/<clone id>.fa_igphyml_figtree.txt`` and
-must be viewed with
-`FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__. Internal
-node labels on the tree correspond to FASTA sequence IDs in
-``ex_lineages.tsv_igphyml_stats.txt``.
+
 
 Processing Change-O data sets
 -------------------------------------------------------------------------------
 
-The process begins with a Change-O formatted data file, in which each
-sequence has been
-`clustered <http://changeo.readthedocs.io/en/version-0.3.12---makedb-fix/examples/cloning.html>`__
-into a clonal group, which has subsequently had its unmutated V and J
-sequence
-`predicted <http://changeo.readthedocs.io/en/version-0.3.12---makedb-fix/examples/germlines.html>`__.
-This process and more is detailed in https://changeo.readthedocs.io.
+The process begins with a Change-O formatted :ref:`data file <Standard>`, in
+which each sequence has been :ref:`clustered <Cloning>` into a clonal group,
+which has subsequently had its unmutated V and J sequence :ref:`predicted <Germlines>`.
  
-Use ``BuildTrees.py`` to break this file into separate sequence
-alignment files that can be used with IgPhyML. This program will i)
-filter out nonfunctional sequences, ii) mask codons split by
-insertions, iii) separate clonal groups into separate alignment files
-(aligned by IMGT site) and information files, and iv) create the
-repertoire files for this dataset.
+Use :ref:`BuildTrees` to break this file into separate sequence
+alignment files that can be used with IgPhyML. This program will:
+
+1. Filter out nonfunctional sequences.
+2. Mask codons split by insertions.
+3. Separate clonal groups into separate alignment files (aligned by IMGT site) and information files
+4. Create the repertoire files for this dataset.
  
 Create IgPhyML input files from ``examples/example.tab``::
  
@@ -182,9 +169,9 @@ likelihood values in IgPhyML.
     sequence is duplicated. This will not affect the likelihood
     caluclation because these seqeunces will have a branch length of zero,
     but it will affect metrics that take sequence frequency into account.
-    You can find further explanation of the different options here,
-    including controlling output directories and file names, at this
-    `link. <http://immcantation.readthedocs.io/projects/changeo/en/latest/tools/BuildTrees.html>`__
+    You can find further explanation of the different options in the
+    :ref:`commandline help <BuildTrees>`,
+    including controlling output directories and file names.
 
 IgPhyML Analysis
 -------------------------------------------------------------------------------

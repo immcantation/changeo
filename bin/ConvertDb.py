@@ -951,9 +951,6 @@ def getArgParser():
                  
              optional fields:
                  GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, C_CALL
-                
-             output fields:
-                 None
              ''')
     
     # Define ArgumentParser
@@ -987,23 +984,23 @@ def getArgParser():
     parser_changeo.set_defaults(func=convertToChangeo)
 
     # Subparser to insert IMGT-gaps
-    desc_gap = dedent('''
-                      Inserts IMGT numbering spacers into the observed sequence 
-                      (SEQUENCE_IMGT, sequence_alignment) and rebuilds the germline sequence 
-                      (GERMLINE_IMGT, germline_alignment) if present. Also adjusts the values 
-                      in the V germline coordinate fields (V_GERM_START_IMGT, V_GERM_LENGTH_IMGT; 
-                      v_germline_end, v_germline_start), which are required.
-                      ''')
-    parser_gap = subparsers.add_parser('gap', parents=[format_parent],
-                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                        help='Inserts IMGT numbering spacers into the V region.',
-                                        description=desc_gap)
-    group_gap = parser_gap.add_argument_group('conversion arguments')
-    group_gap.add_argument('-r', nargs='+', action='store', dest='references', required=False,
-                            help='''List of folders and/or fasta files containing
-                                    IMGT-gapped germline sequences corresponding to the
-                                    set of germlines used for the alignment.''')
-    parser_gap.set_defaults(func=insertGaps)
+    # desc_gap = dedent('''
+    #                   Inserts IMGT numbering spacers into the observed sequence
+    #                   (SEQUENCE_IMGT, sequence_alignment) and rebuilds the germline sequence
+    #                   (GERMLINE_IMGT, germline_alignment) if present. Also adjusts the values
+    #                   in the V germline coordinate fields (V_GERM_START_IMGT, V_GERM_LENGTH_IMGT;
+    #                   v_germline_end, v_germline_start), which are required.
+    #                   ''')
+    # parser_gap = subparsers.add_parser('gap', parents=[format_parent],
+    #                                     formatter_class=CommonHelpFormatter, add_help=False,
+    #                                     help='Inserts IMGT numbering spacers into the V region.',
+    #                                     description=desc_gap)
+    # group_gap = parser_gap.add_argument_group('conversion arguments')
+    # group_gap.add_argument('-r', nargs='+', action='store', dest='references', required=False,
+    #                         help='''List of folders and/or fasta files containing
+    #                                 IMGT-gapped germline sequences corresponding to the
+    #                                 set of germlines used for the alignment.''')
+    # parser_gap.set_defaults(func=insertGaps)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],
