@@ -264,7 +264,7 @@ class AIRRReader(TSVReader):
         # Define reader
         try:
             import airr
-            self.reader = airr.io.RearrangementReader(self.handle, debug=False)
+            self.reader = airr.io.RearrangementReader(self.handle, base=0, debug=False)
         except ImportError as e:
             printError('AIRR library cannot be imported: %s.' % e)
 
@@ -322,7 +322,8 @@ class AIRRWriter(TSVWriter):
         # Define writer
         try:
             import airr
-            self.writer = airr.io.RearrangementWriter(self.handle, fields=self.fields, debug=False)
+            self.writer = airr.io.RearrangementWriter(self.handle, fields=self.fields,
+                                                      base=0, debug=False)
         except ImportError as e:
             printError('AIRR library cannot be imported: %s.' % e)
 

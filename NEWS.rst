@@ -1,6 +1,13 @@
 Release Notes
 ===============================================================================
 
+Version 0.4.3.999:  October 24, 2018
+-------------------------------------------------------------------------------
+
++ Fixed a bug causing the values of ``_start`` fields to be off-by-one from
+  the v1.2 AIRR Schema requirement when specifying ``--format airr``
+
+
 Version 0.4.3:  October 19, 2018
 -------------------------------------------------------------------------------
 
