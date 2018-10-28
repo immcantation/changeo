@@ -294,21 +294,21 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
     vgene, germ_vseq = getVGermline(receptor, references, v_field=v_field)
     log['V_CALL'] = vgene
     if germ_vseq is None:
-        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        log['ERROR'] = 'Allele %s is not in the provided germline database.' % vgene
         return log, None, None
 
     # Build D segment germline sequence
     dgene, germ_dseq = getDGermline(receptor, references, d_field=d_field)
     log['D_CALL'] = dgene
     if germ_dseq is None:
-        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        log['ERROR'] = 'Allele %s is not in the provided germline database.' % dgene
         return log, None, None
 
     # Build J segment germline sequence
     jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field)
     log['J_CALL'] = jgene
     if germ_jseq is None:
-        log['ERROR'] = 'Allele %s in not in the provided germline database.' % vgene
+        log['ERROR'] = 'Allele %s is not in the provided germline database.' % jgene
         return log, None, None
 
     # Stitch complete germlines
