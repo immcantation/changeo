@@ -300,32 +300,6 @@ the FWRs (‘Omega 0’) and CDRs (‘Omega 1’) of each lineage. This is the d
 if partition files are specified. If partition files are specified and you only
 want a single :math:`\omega` use ``--omegaOpt e``.
 
-Intermediate sequence reconstruction
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To find the maxmimum likelihood reconstructions for intermediate
-sequences at each internal node, simply add the ``--ASR`` flag. For
-each codon site at each internal node, IgPhyML will caluclate the
-maximum likelihood codon, and set of codons within 1.96 log-likelihood
-units of the ML codon. These codons will be collpased uses `ambiguous
-nucleotides <https://www.bioinformatics.org/sms/iupac.html>`__::
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -o lr --ASR --run_id HLP
- 
-When the ``--ASR`` flag is used, the tree topologies will be exported
-in the files ``ex/<clone id>.fa_igphyml_figtree_HLP.txt``. These must
-be opened using
-`FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__. When opened,
-the internal nodes of these trees will be labelled with ID numbers
-which correspond to FASTA-formatted sequences at the end of
-``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. IgPhyML provides
-marginal reconstructions for all internal nodes and the germline
-sequence (if the junction sequence is left ambiguous). The marginal
-reconstruction is the most likely codon sequence for each internal
-node individually, rather than the most likely sequence of codon
-changes across the tree (joint reconstruction), so be careful when
-interpretting results between nodes. Joint reconstruction within
-IgPhyML is on its way, but not done yet.
 
 Optimizing performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
