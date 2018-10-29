@@ -52,6 +52,13 @@ considerably)::
  
     ./make_phyml
 
+Once everything is compiled, just add the igphyml/src directory to your
+``PATH`` variable, and IgPhyML should work. Importantly, some directory
+files are hardcoded in at compilation, so re-compile IgPhyML if you move
+the installation directory. Alternatively, you can set the IGPHYML_PATH
+environment variable to the location of the igphyml/src/motifs folder for
+the same effect.
+
 Mac OS X
 ~~~~~~~~~~
 
@@ -88,10 +95,13 @@ of these files and folders by looking around in
 similar. Run ``./make_blas_phyml_omp``, or other versions, as desired, and add
 the ``src`` folder to your ``PATH`` variable.
 
-Once everything is compiled, just add the igphyml/src directory to your
-``PATH`` variable, and IgPhyML should work. Importantly, some directory
-files are hardcoded in at compilation, so re-compile IgPhyML if you move
-the installation directory.
+On some versions of OS X it may be necessary to install XCode command
+line tools using::
+
+    xcode-select --install
+    cd /Library/Developer/CommandLineTools/Packages/
+    open macOS_SDK_headers_for_macOS_<OS X version>.pkg
+
 
 Quick start
 -------------------------------------------------------------------------------
