@@ -229,7 +229,7 @@ def getArgParser():
                             parents=[parser_parent], 
                             formatter_class=CommonHelpFormatter)
     parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                        version='%(prog)s:' + ' %s %s' %(__version__, __date__))
     parser.add_argument('--sf', action='store', dest='seq_field',
                         default=default_junction_field,
                         help='The name of the field to be analyzed')

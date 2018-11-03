@@ -1,8 +1,12 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.4.999:  October 27, 2018
+Version 0.4.4.999:  November 3, 2018
 -------------------------------------------------------------------------------
+
++ Slightly changed version number display in commandline help.
+
+CreateGermlines:
 
 + Fixed a bug in the CreateGermlines log output causing incorrect missing
   D gene or J gene error messages.

@@ -858,7 +858,7 @@ def getArgParser():
                             formatter_class=CommonHelpFormatter, add_help=False)
     group_help = parser.add_argument_group('help')
     group_help.add_argument('--version', action='version',
-                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            version='%(prog)s:' + ' %s %s' %(__version__, __date__))
     group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Database operation')
