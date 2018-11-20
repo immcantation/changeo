@@ -887,7 +887,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
 
-    pass_handle.write(str(nclones))
+    pass_handle.write(str(nclones)+"\n")
     for key in sorted(clonesizes, key=clonesizes.get, reverse=True):
         #print(key + "\t" + str(clonesizes[key]))
         outfile = os.path.join(clone_dir, "%s.fasta" % key)
