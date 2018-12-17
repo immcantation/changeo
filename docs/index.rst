@@ -27,6 +27,7 @@
     :caption: Methods
 
     methods/clustering
+    methods/germlines    
 
 .. toctree::
     :maxdepth: 2
