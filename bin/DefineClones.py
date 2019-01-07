@@ -26,7 +26,7 @@ from changeo.Defaults import default_format, default_v_field, default_j_field, d
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter
+                       AIRRWriter, ChangeoWriter, checkFields
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue
 
 # Defaults
@@ -570,6 +570,13 @@ def defineClones(db_file, seq_field=default_junction_field, v_field=default_v_fi
                     'writer': writer,
                     'out_file': out_file,
                     'out_args': out_args}
+
+    # Check for required columns
+    try:
+        required = ['junction']
+        checkFields(required, out_fields, schema=schema)
+    except LookupError as e:
+        printError(e)
 
     # Call process manager
     result = manageProcesses(feed_func=feedDbQueue, work_func=processDbQueue, collect_func=collectQueue,
