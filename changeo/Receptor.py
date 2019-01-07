@@ -596,7 +596,7 @@ class ReceptorData:
             except:
                 return ''
         else:
-            return '' if v in ('NA', 'None') else str(v)
+            return '' if v in ('NA', 'None', None) else str(v)
 
     # Sequence type conversion
     @staticmethod
@@ -608,7 +608,7 @@ class ReceptorData:
             except:
                 return ''
         else:
-            return '' if v in ('NA', 'None') else str(v)
+            return '' if v in ('NA', 'None', None) else str(v)
 
 
 class Receptor:
