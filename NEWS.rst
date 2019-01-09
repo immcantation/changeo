@@ -6,22 +6,24 @@ Version 0.4.5:  January 9, 2019
 
 + Slightly changed version number display in commandline help.
 
+BuildTrees:
+
++ Fixed a bug that caused malformed lineages.tsv output file.
+
 CreateGermlines:
 
 + Fixed a bug in the CreateGermlines log output causing incorrect missing
   D gene or J gene error messages.
 
-BuildTrees:
-
-+ Fixed a bug in BuildTrees that caused malformed lineages.tsv output file.
-
 DefineClones:
 
-+ Fixed a bug that caused a missing junction column to cluster sequences together
++ Fixed a bug that caused a missing junction column to cluster sequences 
+  together.
 
 MakeDb:
 
-+ Modified Receptor.py to assign failed germline reconstructions to empty string
++ Fixed a bug that caused failed germline reconstructions to be recorded as 
+  ``None``, rather than an empty string, in the ``GERMLINE_IMGT`` column.
 
 
 Version 0.4.4:  October 27, 2018
