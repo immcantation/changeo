@@ -533,13 +533,13 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     clones[num].setField(meta_data[0], clones[num].getField(meta_data[0]).replace(":", "_"))
                     cid = delim + str(clones[num].getField(meta_data[0]))
                 sid = clones[num].sequence_id.translate(transtable) + cid
-                clonef.write(">%s\n%s\n" % (sid, seq.replace(".", "-")))
+                clonef.write(">%s\n%s\n" % (sid.replace(":","-"), seq.replace(".", "-")))
                 if len(useqs_f) == 1 and duplicate:
                     if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
-                    clonef.write(">%s\n%s\n" % (sid, seq.replace(".", "-")))
+                    clonef.write(">%s\n%s\n" % (sid.replace(":","-"), seq.replace(".", "-")))
         else:
             for j in range(0, nseqs):
                 cid = ""
@@ -547,13 +547,13 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     clones[j].setField(meta_data[0], clones[j].getField(meta_data[0]).replace(":", "_"))
                     cid = delim+str(clones[j].getField(meta_data[0]))
                 sid = clones[j].sequence_id.translate(transtable) + cid
-                clonef.write(">%s\n%s\n" % (sid, conseqs[j].replace(".", "-")))
+                clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
                 if nseqs == 1 and duplicate:
                     if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
-                    clonef.write(">%s\n%s\n" % (sid, conseqs[j].replace(".", "-")))
+                    clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
 
         clonef.write(">%s_GERM\n" % clones[0].clone)
         for i in range(0, len(newgerm)):
@@ -853,7 +853,15 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
     # Mask codons split by indels
     start_time = time()
     printMessage("Correcting frames and indels of sequences", start_time=start_time, width=50)
+
+
+    found_no_funct = False
     for r in records:
+        if r.functional is None:
+            r.functional = True
+            if found_no_funct is False:
+                printWarning("FUNCTIONAL column not found.")
+                found_no_funct = True
         maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer)
 
     # Start processing clones
