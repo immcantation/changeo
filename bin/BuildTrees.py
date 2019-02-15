@@ -9,6 +9,7 @@ from changeo import __version__, __date__
 
 # Imports
 import os
+import random
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -333,6 +334,7 @@ def deduplicate(useqs, receptors, log=None, meta_data=None, delim=":"):
       receptors (dict): receptors within a clone (index is value in useqs dict).
       log (collections.OrderedDict): log of sequence errors.
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
+      meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
       delim (str): delimited to use when appending meta_data.
 
     Returns:
@@ -417,6 +419,44 @@ def hasPTC(sequence):
     return -1
 
 
+
+def rmCDR3(sequences,clones):
+    """
+    Remove CDR3 from all sequences and germline of a clone
+
+     Arguments:
+       sequences (list): list of sequences in clones.
+       clones (list): list of Receptor objects.
+    """
+
+    for i in range(0,len(sequences)):
+        imgtar = clones[i].getField("imgtpartlabels")
+        germline = clones[i].getField("germline_imgt_d_mask")
+        nseq = []
+        nimgtar = []
+        ngermline = []
+        ncdr3 = 0
+        #print("imgtarlen: " + str(len(imgtar)))
+        #print("seqlen: " + str(len(sequences[i])))
+        #print("germline: " + str(len(germline)))
+        #if len(germline) < len(sequences[i]):
+        #    print("\n" + str(clones[i].sequence_id))
+        #    print("\n " + str((sequences[i])) )
+        #    print("\n" + str((germline)))
+        for j in range(0,len(imgtar)):
+            if imgtar[j] != 108:
+                nseq.append(sequences[i][j])
+                if j < len(germline):
+                    ngermline.append(germline[j])
+                nimgtar.append(imgtar[j])
+            else:
+                ncdr3 += 1
+        clones[i].setField("imgtpartlabels",nimgtar)
+        clones[i].setField("germline_imgt_d_mask", "".join(ngermline))
+        sequences[i] = "".join(nseq)
+        #print("Length: " + str(ncdr3))
+
+
 def characterizePartitionErrors(sequences, clones, meta_data):
     """
     Characterize potential mismatches between IMGT labels within a clone
@@ -435,8 +475,8 @@ def characterizePartitionErrors(sequences, clones, meta_data):
     nseqs = len(sequences)
     imgtar = clones[0].getField("imgtpartlabels")
     germline = clones[0].getField("germline_imgt_d_mask")
-
     correctseqs = False
+
     for seqi in range(0, len(sequences)):
         i = sequences[seqi]
         if len(i) != sites or len(clones[seqi].getField("imgtpartlabels")) != len(imgtar):
@@ -498,9 +538,8 @@ def characterizePartitionErrors(sequences, clones, meta_data):
         germline = germline + "N" * (seqdiff)
 
     if sites % 3 != 0:
-        printError("number of sites must be divisible by 3! len: %d, clone: %s , seq: %s" %(len(sequences[0]),\
-        clones[0].clone,sequences[0]))
-
+        printError("number of sites must be divisible by 3! len: %d, clone: %s , id: %s, seq: %s" %(len(sequences[0]),\
+        clones[0].clone,clones[0].sequence_id,sequences[0]))
     return imgtar, germline, sites, nseqs
 
 
@@ -572,7 +611,7 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         partf.write("\n")
 
 
-def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
+def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False, sample_depth=-1,logs=None,
                   fail_writer=None, out_dir=None, min_seq=1):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
@@ -582,6 +621,8 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
       sequences (list): sequences within the same clone (share indexes with clones parameter).
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
       collapse (bool): if True collapse identical sequences.
+      ncdr3 (bool): if True remove CDR3
+      sample_depth (int): depth of subsampling. If specified, don't remove clones that are too small
       logs (dict): contains log information for each sequence
       out_dir (str): directory for output files.
       fail_writer (changeo.IO.TSVWriter): failed sequences writer object.
@@ -624,6 +665,23 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
     elif len(lcodon) == 1:
         newgerm[-1] = newgerm[-1] + "NN"
 
+    if ncdr3:
+        ngerm = []
+        for i in range(0, len(newseqs)):
+            nseq = []
+            ncdr3 = 0
+            for j in range(0, len(imgt)):
+                if imgt[j] != 108:
+                    nseq.append(newseqs[i][j])
+                    if i == 0:
+                        ngerm.append(newgerm[j])
+                else:
+                    ncdr3 += 1
+            newseqs[i] = nseq
+        newgerm = ngerm
+            #print("Length: " + str(ncdr3))
+
+
     useqs_f = OrderedDict()
     conseqs = []
     for j in range(0, nseqs):
@@ -648,12 +706,12 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
     if collapse:
         useqs_f = deduplicate(useqs_f, clones, logs, meta_data, delim)
 
-    if collapse and len(useqs_f) < min_seq:
+    if collapse and len(useqs_f) < min_seq and sample_depth < 0:
         for seq_f, num in useqs_f.items():
             logs[clones[num].sequence_id]["FAIL"] = "Clone too small: " + str(len(useqs_f))
             logs[clones[num].sequence_id]["PASS"] = False
         return -len(useqs_f)
-    elif not collapse and len(conseqs) < min_seq:
+    elif not collapse and len(conseqs) < min_seq and sample_depth < 0:
         for j in range(0, nseqs):
             logs[clones[j].sequence_id]["FAIL"] = "Clone too small: " + str(len(conseqs))
             logs[clones[j].sequence_id]["PASS"] = False
@@ -669,7 +727,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, logs=None,
         return nseqs
 
 
-def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
+def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer):
     """
     Masks codons split by alignment to IMGT reference
 
@@ -677,11 +735,13 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
       r (changeo.Receptor.Receptor): receptor object for a particular sequence.
       clones (list): list of receptors.
       cloneseqs (list): list of masked clone sequences.
+      ncdr3 (bool): if true, remove all CDR3 sequences.
       logs (dict): contains log information for each sequence.
       fails (dict): counts of various sequence processing failures.
 
     Returns:
-      None: returns None if an error occurs.
+      0: returns 0 if an error occurs or masking fails.
+      1: returns 1 masking succeeds
     """
     if r.clone is None:
         printError("Cannot export datasets until sequences are clustered into clones.")
@@ -703,7 +763,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
         logs[r.sequence_id]["FAIL"] = "Germline PTC"
         fails["seq_fail"] += 1
         fails["germlineptc"] += 1
-        return None
+        return 0
 
     if r.functional and ptcs < 0:
         #If IMGT regions are provided, record their positions
@@ -733,12 +793,11 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
                 logs[r.sequence_id]["FWRCDRSEQ"] = simgt
                 fails["seq_fail"] += 1
                 fails["region_fail"] += 1
-                return None
+                return 0
         else:
             #imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data.\n"
             imgtpartlabels = [0] * len(r.sequence_imgt)
             r.setField("imgtpartlabels", imgtpartlabels)
-        #print(r.sequence_imgt)
         mout = maskSplitCodons(r)
         mask_seq = mout[0]
         ptcs = hasPTC(mask_seq)
@@ -755,6 +814,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
             else:
                 clones[r.clone] = [r]
                 cloneseqs[r.clone] = [mask_seq]
+            return 1
         else:
             if out_args["failed"]:
                 fail_writer.writeReceptor(r)
@@ -779,9 +839,12 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
         fails["seq_fail"] += 1
         fails["nf_fail"] += 1
 
+    return 0
+
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_depth=-1,
+               min_seq=1, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -789,6 +852,8 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
       db_file (str): input tab-delimited database file.
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
       collapse (bool): if True collapse identical sequences.
+      ncdr3 (bool): if True remove all CDR3s.
+      sample_depth (int): depth of subsampling before deduplication
       format (str): input and output format.
       out_args (dict): arguments for output preferences.
 
@@ -854,7 +919,10 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
     start_time = time()
     printMessage("Correcting frames and indels of sequences", start_time=start_time, width=50)
 
-
+    #subsampling loop
+    init_clone_sizes = {}
+    big_enough = []
+    all_records = []
     found_no_funct = False
     for r in records:
         if r.functional is None:
@@ -862,21 +930,55 @@ def buildTrees(db_file, meta_data=None, collapse=False, min_seq=1, format=defaul
             if found_no_funct is False:
                 printWarning("FUNCTIONAL column not found.")
                 found_no_funct = True
-        maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer)
+        all_records.append(r)
+        if r.clone in init_clone_sizes:
+            init_clone_sizes[r.clone] += 1
+        else:
+            init_clone_sizes[r.clone] = 1
 
+    for r in all_records:
+        if init_clone_sizes[r.clone] >= min_seq:
+            big_enough.append(r)
+
+    if sample_depth > 0:
+        random.shuffle(big_enough)
+
+    total = 0
+    for r in big_enough:
+        if r.functional is None:
+            r.functional = True
+            if found_no_funct is False:
+                printWarning("FUNCTIONAL column not found.")
+                found_no_funct = True
+        total += maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
+        if total == sample_depth:
+            break
+
+    """              
+    found_no_funct = False
+    for r in records:
+        if r.functional is None:
+            r.functional = True
+            if found_no_funct is False:
+                printWarning("FUNCTIONAL column not found.")
+                found_no_funct = True
+        maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
+    """
     # Start processing clones
     clonesizes = {}
     pass_count, nclones = 0, 0
     printMessage("Processing clones", start_time=start_time, width=50)
     for k in clones.keys():
-        if len(clones[str(k)]) < min_seq:
+        if len(clones[str(k)]) < min_seq and sample_depth < 0:
             for j in range(0, len(clones[str(k)])):
                 logs[clones[str(k)][j].sequence_id]["FAIL"] = "Clone too small: " + str(len(cloneseqs[str(k)]))
                 logs[clones[str(k)][j].sequence_id]["PASS"] = False
             clonesizes[str(k)] = -len(cloneseqs[str(k)])
         else:
             clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
-                                           logs=logs, fail_writer=fail_writer, out_dir=clone_dir, min_seq=min_seq)
+                                           ncdr3=ncdr3, sample_depth=sample_depth, logs=logs, fail_writer=fail_writer,
+                                               out_dir=clone_dir, min_seq=min_seq)
+
         #If clone is too small, size is returned as a negative
         if clonesizes[str(k)] > 0:
             nclones += 1
@@ -969,12 +1071,16 @@ def getArgParser():
     group = parser.add_argument_group("tree building arguments")
     group.add_argument("--collapse", action="store_true", dest="collapse",
                         help="""If specified, collapse identical sequences before exporting to fasta.""")
+    group.add_argument("--ncdr3", action="store_true", dest="ncdr3",
+                        help="""If specified, remove CDR3 from all sequences.""")
     group.add_argument("--md", nargs="+", action="store", dest="meta_data",
                        help="""List of fields to containing metadata to include in output fasta file 
                             sequence headers.""")
     group.add_argument("--minseq", action="store", dest="min_seq", type=int, default=1,
                        help="""Minimum number of data sequences. Any clones with fewer than the specified
                             number of sequences will be excluded.""")
+    group.add_argument("--sample", action="store", dest="sample_depth", type=int, default=-1,
+                       help="""Depth of reads to be subsampled (before deduplication).""")
 
     return parser
 
