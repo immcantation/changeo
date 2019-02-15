@@ -667,6 +667,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
 
     if ncdr3:
         ngerm = []
+        nimgt = []
         for i in range(0, len(newseqs)):
             nseq = []
             ncdr3 = 0
@@ -675,10 +676,12 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
                     nseq.append(newseqs[i][j])
                     if i == 0:
                         ngerm.append(newgerm[j])
+                        nimgt.append(imgt[j])
                 else:
                     ncdr3 += 1
             newseqs[i] = nseq
         newgerm = ngerm
+        imgt = nimgt
             #print("Length: " + str(ncdr3))
 
 
