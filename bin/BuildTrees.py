@@ -709,12 +709,12 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
     if collapse:
         useqs_f = deduplicate(useqs_f, clones, logs, meta_data, delim)
 
-    if collapse and len(useqs_f) < min_seq and sample_depth < 0:
+    if collapse and len(useqs_f) < min_seq:
         for seq_f, num in useqs_f.items():
             logs[clones[num].sequence_id]["FAIL"] = "Clone too small: " + str(len(useqs_f))
             logs[clones[num].sequence_id]["PASS"] = False
         return -len(useqs_f)
-    elif not collapse and len(conseqs) < min_seq and sample_depth < 0:
+    elif not collapse and len(conseqs) < min_seq:
         for j in range(0, nseqs):
             logs[clones[j].sequence_id]["FAIL"] = "Clone too small: " + str(len(conseqs))
             logs[clones[j].sequence_id]["PASS"] = False
@@ -972,7 +972,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_dept
     pass_count, nclones = 0, 0
     printMessage("Processing clones", start_time=start_time, width=50)
     for k in clones.keys():
-        if len(clones[str(k)]) < min_seq and sample_depth < 0:
+        if len(clones[str(k)]) < min_seq:
             for j in range(0, len(clones[str(k)])):
                 logs[clones[str(k)][j].sequence_id]["FAIL"] = "Clone too small: " + str(len(cloneseqs[str(k)]))
                 logs[clones[str(k)][j].sequence_id]["PASS"] = False
