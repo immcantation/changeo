@@ -122,10 +122,10 @@ for hotspots)::
  
     igphyml --repfile ex_lineages.tsv -m GY
  
-**Build lineage trees using the HLP17 model** (slower, corrects for
+**Build lineage trees using the HLP19 model** (slower, corrects for
 WRC/GYW hotspots)::
  
-    igphyml --repfile ex_lineages.tsv -m HLP17
+    igphyml --repfile ex_lineages.tsv -m HLP
  
 Both of these can be parallelized by adding
 ``--threads <thread count>`` option. Trees files are listed as
@@ -172,6 +172,13 @@ collapse identical sequences. This is highly recommended because
 identical sequences slow down calculations without actually affecting
 likelihood values in IgPhyML.
  
+IgPhyML runs slowly with more than a few thousand sequences. You can
+subsample your dataset using the ``--sample`` and --misneq options,
+which will subsample your dataset to the specified depth and then remove
+all clones below the specified size cutoff::
+ 
+    BuildTrees.py -d example.tab --outname ex --log ex.log --collapse --sample 5 --minseq 2
+
 .. note::
 
     IgPhyML requires at least three sequences in a lineage, so in
@@ -183,55 +190,13 @@ likelihood values in IgPhyML.
     :ref:`commandline help <BuildTrees>`,
     including controlling output directories and file names.
 
-IgPhyML Analysis
--------------------------------------------------------------------------------
-
-IgPhyML analysis consists of estimating maximum likelihood (ML) tree
-topologies and substitution model parameters for a set of clonal
-sequence alignments.
-
-The HLP17 model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The HLP17 model is the heart of IgPhyML and adjusts for features of
-affinity maturation that violate the assumptions of most other
-phylogenetic models. It uses four sets of parameters to characterize
-the types of mutations the occurred over a lineage’s development, and
-to help build the tree.
- 
-:math:`\omega`: Also called dN/dS, or the ratio of nonsynonymous
-(amino acid replacement) and synonymous (silent) mutation rates. This
-parameter generally relates to clonal selection, with totally neutral
-amino acid evolution having an :math:`\omega \approx 1`, negative
-selection indicated by :math:`\omega < 1` and diversifying selection
-indicated by :math:`\omega > 1`. Generally, when using a partitioned
-model (see "Partition models"), we find a lower :math:`\omega` for FWRs than
-CDRs, presumably because FWRs are more structurally constrained.
- 
-:math:`\kappa`: Ratio of transitions (within purines/pyrimidines) to
-transversions (between purines/pyrimidines). For normal somatic
-hypermutation this ratio is usually :math:`\approx 2`.
- 
-Motif mutability (e.g. :math:`h^{WRC}`): Mutability parameters for
-specified hot- and coldspot motifs. These estimates are equivalent to
-the fold-change in mutability for that motif compared to regular
-motifs, minus one. So, :math:`h^{WRC} > 0` indicates at hotspot,
-:math:`h^{WRC} < 0` indicates a coldspot, and :math:`h^{WRC} = 2`
-indicates a 3x increase in *WRC* substitution rate.
- 
-Codon frequencies (:math:`\pi`): These are calculated using separate
-estimates for each nucleotide at each of the three codon positions,
-and so are estimated using twelve nucleotide frequency parameters.
-These don’t have an immediate interpretation, but are estimated for
-each dataset by ML unless fixed to empirical estimates using
-``-f empirical``.
 
 Building B cell lineage trees
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before doing any further analysis, I strongly recommend estimating
 intitial tree topologies using the GY94 model. This can improve
-runtime for HLP17 analysis::
+runtime for later analysis::
  
     igphyml --repfile ex_lineages.tsv -m GY --outrep ex_lineages.GY.tsv --run_id GY
  
@@ -247,10 +212,10 @@ each clone individual lineage in
 `FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__ to visualize
 topologies.
  
-To estimate ML tree topologies using the HLP17 model wth a GY94
+To estimate ML tree topologies using the HLP19 model wth a GY94
 starting topology, use::
  
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 --run_id HLP --threads 2
+    igphyml --repfile ex_lineages.GY.tsv -m HLP --run_id HLP --threads 2
  
 This will estimate a single :math:`\omega`, :math:`\kappa`, set of
 codon frequencies (:math:`\pi`), and WRC/GYW mutability across the
@@ -261,45 +226,98 @@ see parameter estimates in
 parallelize the calculation across 2 threads using the ``--threads``
 flag.
 
-Heirarchical substitution models
+
+Phylogenetic model parameter analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The HLP19 model is the heart of IgPhyML and adjusts for features of
+affinity maturation that violate the assumptions of most other
+phylogenetic models. It uses four sets of parameters to characterize
+the types of mutations the occurred over a lineage’s development, and
+to help build the tree.
+ 
+:math:`\omega`: Also called dN/dS, or the ratio of nonsynonymous
+(amino acid replacement) and synonymous (silent) mutation rates. This
+parameter generally relates to clonal selection, with totally neutral
+amino acid evolution having an :math:`\omega \approx 1`, negative
+selection indicated by :math:`\omega < 1` and diversifying selection
+indicated by :math:`\omega > 1`. Generally, we find a lower :math:`\omega`
+for FWRs than CDRs, presumably because FWRs are more structurally
+constrained.
+ 
+:math:`\kappa`: Ratio of transitions (within purines/pyrimidines) to
+transversions (between purines/pyrimidines). For normal somatic
+hypermutation this ratio is usually :math:`\approx 2`.
+ 
+Motif mutability (e.g. :math:`h^{WRC}`): Mutability parameters for
+specified hot- and coldspot motifs. These estimates are equivalent to
+the fold-change in mutability for that motif compared to regular
+motifs, minus one. So, :math:`h^{WRC} > 0` indicates at hotspot,
+:math:`h^{WRC} < 0` indicates a coldspot, and :math:`h^{WRC} = 2`
+indicates a 3x increase in *WRC* substitution rate. The HLP19 model
+by default estimates six motif mutability parameters: four hotspots
+(WRC, GYW, WA, and TW) and two coldspots (SYC and GRS).
+
 Substitution models are specified using the ``-t`` for :math:`\kappa`
-(transition/transverion rate), ``--omegaOpt`` for :math:`\omega`
+(transition/transverion rate), ``--omega`` for :math:`\omega`
 (nonsynonymous/synonymous mutation rate), and ``--motifs`` and
 ``--hotness`` for specifying the motif mutability models. The default
 for all of these is to estimate shared parameter values across all
-lineages, which is also specified by ``e``. The default motif model is
-symmetric WRC/GYW. So, the following two commands are equivalent::
+lineages, which is also specified by ``e``. The following two commands
+are equivalent::
  
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -o lr --run_id HLP
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr
  
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 -t e --omegaOpt e,e --motifs WRC_2:0,GYW_0:1 \
-        --hotness e,e -o lr --run_id HLP
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -t e --omega e,e \
+        --motifs WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5 \
+        --hotness e,e,e,e,e,e -o lr
  
 In both cases parameter estimates are recorded in
 ``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. Note that here we use
 ``-o lr``, which will only optimize branch lengths and substitution
 parameters. This will keep topologies the same as the GY94, but will
-estimate substitution parameters much more quickly. To estimate
-mutabilities of all six canonical hotspot motifs, use ``--motifs FCH``,
-for ‘Free coldspots and hotspots’, though this will result in extreme
-parameter values if there is insufficient information in the
-repertoire file.
+estimate substitution parameters much more quickly.
 
-Partition models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Confidence interval estimation**
 
-To estimate separate values of :math:`\omega` for CDR/FWR partitions,
-specify more than one value in the ``--omegaOpt`` option. For instance::
- 
-    igphyml --repfile ex_lineages.GY.tsv -m HLP17 --omegaOpt e,e -o lr --run_id HLP
- 
-Will estimate a separate :math:`\omega` at the repertoire level for
-the FWRs (‘Omega 0’) and CDRs (‘Omega 1’) of each lineage. This is the default behavior
-if partition files are specified. If partition files are specified and you only
-want a single :math:`\omega` use ``--omegaOpt e``.
+It is possible to estimate 95% confidence intervals for any of these
+parameters by adding a 'c' to the parameter specification. For example,
+to estimate a 95% confidence interval for :math:`\omega` in the CDRs
+but not the FWRs, use::
 
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr --omega e,ce
+
+To estimate a 95% confidence interval for :math:`\omega` in the FWRs
+but not the CDRs, use::
+
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr --omega ce,e
+
+Any combination of confidence interval specifications can be used
+for the above parameter options. For motif mutability, each value
+in the ``--hotness`` option corresponds to the index specified in
+the ``--motifs`` option. To estimate confidence intervals for GYW
+mutability, use::
+
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr \
+        --hotness e,ce,e,e,e,e
+
+which is equivalent to::
+
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr \
+        --motifs WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5 \
+        --hotness e,ce,e,e,e,e
+
+You can also alter constrain motif to have the same mutabilities
+by altering the indexes after the ':' in the ``--motifs`` option.
+For example, to estimate 95% confidence intervals on a model in
+which WRC/GYW, WA/TW, and SYC/GRS motifs are respectively constrained
+to have the same mutabilities, use::
+
+    igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr \
+        --motifs WRC_2:0,GYW_0:0,WA_1:1,TW_0:1,SYC_2:2,GRS_0:2 \
+        --hotness ce,ce,ce
+
+These can also be combined with ``--omega`` and ``-t`` options.
 
 Optimizing performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -308,27 +326,24 @@ IgPhyML is a computationally intensive program. There are some ways to
 make calculations more practical, however:
  
 GY94 starting topologies: Calculations are much faster under the GY94
-model (see [top]), so it is usually better to do an initial topolgoy
+model (see [top]), so it is usually better to do an initial topology
 searching under the GY94 model, and then using those trees as starting
-topologies for HLP17 . You can also fix these topologies during HLP17
+topologies for HLP19 . You can also fix these topologies during HLP19
 parameter estimation (``-o lr``) for an even greater speedup, though,
 obviously, this will not result in a change in topology from GY94.
  
 Enforcing minimum lineage size: Many repertoires often contain huge
 numbers of small lineages that can make computations impractical. To
 limit the size of lineages being analyzed, specify a cutoff with
-``--minSeq``, and note that 1) the germline sequence is added to
+``--minseq``, and note that 1) the germline sequence is added to
 sequence files, and 2) single sequence lineages are duplicated (see
-"Processing Change-O data sets") and thus have three sequences total. So, to limit analyses to
-lineages with at least three observed sequences, use ``--minSeq 4``.
-``--minSeq 3`` and ``--minSeq 2`` are identical because single lineages
-have duplicated sequences, and ``--minSeq 1`` is useless.
+"Processing Change-O data sets") and thus have three sequences total.
+So, to limit analyses to lineages with at least three observed
+sequences, use ``--minseq 4``. ``--minseq 3`` and ``--minseq 2`` are
+identical because single lineages have duplicated sequences, and
+``--minseq 1`` is useless.
  
 Parallelizing computations: It is possible to parallelize likelihood
-calulcations using the ``--threads`` option. By default, calculations
+calulcations using the ``--threads`` option. Currently, calculations
 are parallelized by tree, so there is no point in using more threads
-than you have lineages in your repertoire file. If you are analyzing a
-single large lineage, or a repertoire dominated by one lineage and a
-couple of much smaller lineages, it may be more efficient to instead
-parallelize by site. To do this, add ``--splitByTree 0`` to parallelize
-calculations within each tree, and analyze the trees sequentially.
+than you have lineages in your repertoire file.

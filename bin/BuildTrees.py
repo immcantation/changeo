@@ -957,16 +957,6 @@ def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_dept
         if total == sample_depth:
             break
 
-    """              
-    found_no_funct = False
-    for r in records:
-        if r.functional is None:
-            r.functional = True
-            if found_no_funct is False:
-                printWarning("FUNCTIONAL column not found.")
-                found_no_funct = True
-        maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
-    """
     # Start processing clones
     clonesizes = {}
     pass_count, nclones = 0, 0
