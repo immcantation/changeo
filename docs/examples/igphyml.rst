@@ -173,7 +173,7 @@ identical sequences slow down calculations without actually affecting
 likelihood values in IgPhyML.
  
 IgPhyML runs slowly with more than a few thousand sequences. You can
-subsample your dataset using the ``--sample`` and --misneq options,
+subsample your dataset using the ``--sample`` and ``--minseq`` options,
 which will subsample your dataset to the specified depth and then remove
 all clones below the specified size cutoff::
  
@@ -273,7 +273,7 @@ are equivalent::
         --hotness e,e,e,e,e,e -o lr
  
 In both cases parameter estimates are recorded in
-``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``. Note that here we use
+``ex_lineages.GY.tsv_igphyml_stats.txt``. Note that here we use
 ``-o lr``, which will only optimize branch lengths and substitution
 parameters. This will keep topologies the same as the GY94, but will
 estimate substitution parameters much more quickly.
@@ -324,7 +324,13 @@ Optimizing performance
 
 IgPhyML is a computationally intensive program. There are some ways to
 make calculations more practical, however:
- 
+
+IgPhyML runs slowly with more than a few thousand sequences. You can
+subsample your dataset using the ``--sample`` and ``--minseq`` options,
+which will subsample your dataset to the specified depth and then remove
+all clones below the specified size cutoff (see "Processing Change-O data
+sets" above).
+
 GY94 starting topologies: Calculations are much faster under the GY94
 model (see [top]), so it is usually better to do an initial topology
 searching under the GY94 model, and then using those trees as starting
