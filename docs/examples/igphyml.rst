@@ -115,7 +115,8 @@ manual.
  
 Move to the ``examples`` subfolder and run::
 
-    BuildTrees.py -d example.tab --outname ex --log ex.log --collapse
+    BuildTrees.py -d example.tab --outname ex --log ex.log --collapse \
+        --sample 3000 --minseq 2
  
 **Build lineage trees using the GY94 model** (fast, doesn’t correct
 for hotspots)::
@@ -129,11 +130,14 @@ WRC/GYW hotspots)::
  
 Both of these can be parallelized by adding
 ``--threads <thread count>`` option. Trees files are listed as
-``ex/<clone id>.fa_igphyml_tree.txt``, and can be viewed with most
+``ex/<clone id>.fasta_igphyml_tree.txt``, and can be viewed with most
 tree viewers (I recommend
 `FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__). Parameter
-estimates are in ``ex_lineages.tsv_igphyml_stats.txt``.
+estimates are in ``ex_lineages.tsv_igphyml_stats.txt``. Subsampling using
+the ``--sample`` option in BuildTrees.py isn't strictly necessary, but
+IgPhyML will run slowly when applied to large datasets.
 
+.. _BuildTrees-processing:
 
 Processing Change-O data sets
 -------------------------------------------------------------------------------
@@ -149,6 +153,11 @@ alignment files that can be used with IgPhyML. This program will:
 2. Mask codons split by insertions.
 3. Separate clonal groups into separate alignment files (aligned by IMGT site) and information files
 4. Create the repertoire files for this dataset.
+
+The following column names are required in the input file:
+fields: ``SEQUENCE_ID``, ``SEQUENCE_INPUT``, ``SEQUENCE_IMGT``,
+``GERMLINE_IMGT_D_MASK``,``V_CALL``, ``J_CALL``, and ``CLONE``.
+``FUNCTIONAL`` is recommended.
  
 Create IgPhyML input files from ``examples/example.tab``::
  
@@ -156,7 +165,7 @@ Create IgPhyML input files from ``examples/example.tab``::
     BuildTrees.py -d example.tab --outname ex --log ex.log --collapse
  
 This will create the directory ``ex`` and the file
-``ex_lineages.tsv``. Each ``ex/<clone ID>.fa`` contains the IMGT
+``ex_lineages.tsv``. Each ``ex/<clone ID>.fasta`` contains the IMGT
 mutliple sequence alignemt for a particular clone, and each
 ``ex/<clone ID>.part.txt`` file contains information about V and J
 germline assignments, as well as IMGT unique numbering for each site.
@@ -171,7 +180,7 @@ least number of sequences. Here, the ``--collapse`` flag is used to
 collapse identical sequences. This is highly recommended because
 identical sequences slow down calculations without actually affecting
 likelihood values in IgPhyML.
- 
+
 IgPhyML runs slowly with more than a few thousand sequences. You can
 subsample your dataset using the ``--sample`` and ``--minseq`` options,
 which will subsample your dataset to the specified depth and then remove
@@ -184,12 +193,11 @@ all clones below the specified size cutoff::
     IgPhyML requires at least three sequences in a lineage, so in
     the case that there is only one observed sequence within a clone, that
     sequence is duplicated. This will not affect the likelihood
-    caluclation because these seqeunces will have a branch length of zero,
+    calculation because these sequences will have a branch length of zero,
     but it will affect metrics that take sequence frequency into account.
-    You can find further explanation of the different options in the
-    :ref:`commandline help <BuildTrees>`,
-    including controlling output directories and file names.
 
+
+.. _building-lineage-trees:
 
 Building B cell lineage trees
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,7 +216,7 @@ GY94 topologies specified for each lineage. We can view the ML
 parameter estimates for the GY94 fit in
 ``ex_lineages.tsv_igphyml_stats_GY.txt``, and the tree topologies for
 each clone individual lineage in
-``ex/<clone id>.fa_igphyml_tree_GY.txt``. I recommend using
+``ex/<clone id>.fasta_igphyml_tree_GY.txt``. I recommend using
 `FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__ to visualize
 topologies.
  
@@ -222,7 +230,7 @@ codon frequencies (:math:`\pi`), and WRC/GYW mutability across the
 entire repertoire, and search for topologies using NNI moves. You can
 see parameter estimates in
 ``ex_lineages.GY.tsv_igphyml_stats_HLP.txt``, and trees in
-``ex/<clone id>.fa_igphyml_tree_HLP.txt``. This command will also
+``ex/<clone id>.fasta_igphyml_tree_HLP.txt``. This command will also
 parallelize the calculation across 2 threads using the ``--threads``
 flag.
 
@@ -263,8 +271,9 @@ Substitution models are specified using the ``-t`` for :math:`\kappa`
 (nonsynonymous/synonymous mutation rate), and ``--motifs`` and
 ``--hotness`` for specifying the motif mutability models. The default
 for all of these is to estimate shared parameter values across all
-lineages, which is also specified by ``e``. The following two commands
-are equivalent::
+lineages, which is also specified by ``e``.
+
+Due to default parameter settings, the following two commands are equivalent::
  
     igphyml --repfile ex_lineages.GY.tsv -m HLP -o lr
  
@@ -274,9 +283,10 @@ are equivalent::
  
 In both cases parameter estimates are recorded in
 ``ex_lineages.GY.tsv_igphyml_stats.txt``. Note that here we use
-``-o lr``, which will only optimize branch lengths and substitution
-parameters. This will keep topologies the same as the GY94, but will
-estimate substitution parameters much more quickly.
+``-o lr``, which will keep tree topologies the same and only estimate
+branch lengths and substitution parameters. This will keep topologies
+the same as the GY94, but will estimate substitution parameters much
+more quickly.
 
 **Confidence interval estimation**
 
@@ -317,7 +327,9 @@ to have the same mutabilities, use::
         --motifs WRC_2:0,GYW_0:0,WA_1:1,TW_0:1,SYC_2:2,GRS_0:2 \
         --hotness ce,ce,ce
 
-These can also be combined with ``--omega`` and ``-t`` options.
+You can find further explanation of the different options in the
+:ref:`commandline help <BuildTrees>`, including controlling output
+directories and file names.
 
 Optimizing performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -328,28 +340,27 @@ make calculations more practical, however:
 IgPhyML runs slowly with more than a few thousand sequences. You can
 subsample your dataset using the ``--sample`` and ``--minseq`` options in
 BuildTrees.py, which will subsample your dataset to the specified depth and
-then remove all clones below the specified size cutoff (see "Processing
-Change-O data sets" above).
+then remove all clones below the specified size cutoff (see :ref:`Processing
+Change-O data sets <BuildTrees-processing>`).
+
+Parallelizing computations: It is possible to parallelize likelihood
+calculations using the ``--threads`` option. Currently, calculations
+are parallelized by tree, so there is no point in using more threads
+than you have lineages in your repertoire file.
 
 GY94 starting topologies: Calculations are much faster under the GY94
-model (see [top]), so it is usually better to do an initial topology
-searching under the GY94 model, and then using those trees as starting
-topologies for HLP19 . You can also fix these topologies during HLP19
-parameter estimation (``-o lr``) for an even greater speedup, though,
-obviously, this will not result in a change in topology from GY94.
+model, so it is usually better to :ref:`do initial topology
+searching under the GY94 model <building-lineage-trees>`,
+and then use those trees as starting topologies for HLP19. You can also
+keep these topologies the same during HLP19 parameter estimation (``-o lr``)
+for an even greater speedup, though, obviously, this will not result in a
+change in topology from GY94.
  
 Enforcing minimum lineage size: Many repertoires often contain huge
 numbers of small lineages that can make computations impractical. To
 limit the size of lineages being analyzed, specify a cutoff with
-``--minseq``, and note that 1) the germline sequence is added to
-sequence files, and 2) single sequence lineages are duplicated (see
-"Processing Change-O data sets") and thus have three sequences total.
-So, to limit analyses to lineages with at least three observed
-sequences, use ``--minseq 4``. ``--minseq 3`` and ``--minseq 2`` are
-identical because single lineages have duplicated sequences, and
-``--minseq 1`` is useless.
+``--minseq`` when running BuildTrees.py. IgPhyML has a ``--minseq`` option
+with the same functionality, but this option includes the predicted germline
+sequence and duplicated sequences in singleton clones. Because of this,
+it is recommended to do ``--minseq`` filtering at the BuildTrees.py step.
  
-Parallelizing computations: It is possible to parallelize likelihood
-calulcations using the ``--threads`` option. Currently, calculations
-are parallelized by tree, so there is no point in using more threads
-than you have lineages in your repertoire file.
