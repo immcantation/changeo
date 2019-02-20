@@ -134,7 +134,7 @@ Both of these can be parallelized by adding
 tree viewers (I recommend
 `FigTree <http://tree.bio.ed.ac.uk/software/figtree/>`__). Parameter
 estimates are in ``ex_lineages.tsv_igphyml_stats.txt``. Subsampling using
-the ``--sample`` option in BuildTrees.py isn't strictly necessary, but
+the ``--sample`` option in :ref:`BuildTrees` isn't strictly necessary, but
 IgPhyML will run slowly when applied to large datasets.
 
 .. _BuildTrees-processing:
@@ -145,6 +145,9 @@ Processing Change-O data sets
 The process begins with a Change-O formatted :ref:`data file <Standard>`, in
 which each sequence has been :ref:`clustered <Cloning>` into a clonal group,
 which has subsequently had its unmutated V and J sequence :ref:`predicted <Germlines>`.
+The following column names are required in the input file: fields: ``SEQUENCE_ID``,
+``SEQUENCE_INPUT``, ``SEQUENCE_IMGT``, ``GERMLINE_IMGT_D_MASK``,
+``V_CALL``, ``J_CALL``, and ``CLONE``. ``FUNCTIONAL`` is recommended.
  
 Use :ref:`BuildTrees` to break this file into separate sequence
 alignment files that can be used with IgPhyML. This program will:
@@ -154,11 +157,6 @@ alignment files that can be used with IgPhyML. This program will:
 3. Separate clonal groups into separate alignment files (aligned by IMGT site) and information files
 4. Create the repertoire files for this dataset.
 
-The following column names are required in the input file:
-fields: ``SEQUENCE_ID``, ``SEQUENCE_INPUT``, ``SEQUENCE_IMGT``,
-``GERMLINE_IMGT_D_MASK``,``V_CALL``, ``J_CALL``, and ``CLONE``.
-``FUNCTIONAL`` is recommended.
- 
 Create IgPhyML input files from ``examples/example.tab``::
  
     cd examples
@@ -181,12 +179,24 @@ collapse identical sequences. This is highly recommended because
 identical sequences slow down calculations without actually affecting
 likelihood values in IgPhyML.
 
+.. _BuildTrees-subsampling:
+**Subsampling Change-O datasets**
+
 IgPhyML runs slowly with more than a few thousand sequences. You can
 subsample your dataset using the ``--sample`` and ``--minseq`` options,
 which will subsample your dataset to the specified depth and then remove
 all clones below the specified size cutoff::
  
     BuildTrees.py -d example.tab --outname ex --log ex.log --collapse --sample 5 --minseq 2
+
+**Removing CDR3 region**
+
+If you plan to analyze model parameters to study things such as SHM and
+selection (see :ref: `below <igphyml-parameters>`), it's important to remove
+the CDR3 region to avoid known model biases in estimating :math:`\omega`. To
+do this, use ``--ncdr3``::
+ 
+    BuildTrees.py -d example.tab --outname ex --log ex.log --collapse --ncdr3
 
 .. note::
 
@@ -234,6 +244,7 @@ see parameter estimates in
 parallelize the calculation across 2 threads using the ``--threads``
 flag.
 
+.. _igphyml-parameters:
 
 Phylogenetic model parameter analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -337,11 +348,11 @@ Optimizing performance
 IgPhyML is a computationally intensive program. There are some ways to
 make calculations more practical, however:
 
-IgPhyML runs slowly with more than a few thousand sequences. You can
+Data subsampling: IgPhyML runs slowly with more than a few thousand sequences. You can
 subsample your dataset using the ``--sample`` and ``--minseq`` options in
-BuildTrees.py, which will subsample your dataset to the specified depth and
-then remove all clones below the specified size cutoff (see :ref:`Processing
-Change-O data sets <BuildTrees-processing>`).
+:ref:`BuildTrees`, which will subsample your dataset to the specified depth and
+then remove all clones below the specified size cutoff (see :ref:`Subsampling
+Change-O datasets <BuildTrees-subsampling>`).
 
 Parallelizing computations: It is possible to parallelize likelihood
 calculations using the ``--threads`` option. Currently, calculations
@@ -359,8 +370,8 @@ change in topology from GY94.
 Enforcing minimum lineage size: Many repertoires often contain huge
 numbers of small lineages that can make computations impractical. To
 limit the size of lineages being analyzed, specify a cutoff with
-``--minseq`` when running BuildTrees.py. IgPhyML has a ``--minseq`` option
+``--minseq`` when running :ref:`BuildTrees`. IgPhyML has a ``--minseq`` option
 with the same functionality, but this option includes the predicted germline
 sequence and duplicated sequences in singleton clones. Because of this,
-it is recommended to do ``--minseq`` filtering at the BuildTrees.py step.
+it is recommended to do ``--minseq`` filtering at the :ref:`BuildTrees` step.
  
