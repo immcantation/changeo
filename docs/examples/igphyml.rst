@@ -326,10 +326,10 @@ IgPhyML is a computationally intensive program. There are some ways to
 make calculations more practical, however:
 
 IgPhyML runs slowly with more than a few thousand sequences. You can
-subsample your dataset using the ``--sample`` and ``--minseq`` options,
-which will subsample your dataset to the specified depth and then remove
-all clones below the specified size cutoff (see "Processing Change-O data
-sets" above).
+subsample your dataset using the ``--sample`` and ``--minseq`` options in
+BuildTrees.py, which will subsample your dataset to the specified depth and
+then remove all clones below the specified size cutoff (see "Processing
+Change-O data sets" above).
 
 GY94 starting topologies: Calculations are much faster under the GY94
 model (see [top]), so it is usually better to do an initial topology
