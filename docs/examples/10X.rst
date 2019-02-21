@@ -16,7 +16,7 @@ Merging with 10X annotations
 
 Changeo-O does not currently support a formal :ref:`MakeDb` option for 10X VDJ data.  
 
-.. seealso::
+.. note::
 
     To generate, formatted data from 10X VDJ FASTA files, please see the 
     `Using IgBLAST documentation <https://changeo.readthedocs.io/en/version-0.4.5/examples/igblast.html>`__ 
