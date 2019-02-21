@@ -24,22 +24,18 @@ Changeo-O does not currently support a formal :ref:`MakeDb` option for 10X VDJ d
     to perform these steps. You must have all associated commands in your ``PATH`` and the appropriate 
     directories created::
 
-	AssignGenes.py igblast -s TEST.fasta -b ~/share/igblast \
+	AssignGenes.py igblast -s 10x.fasta -b ~/share/igblast \
 	   --organism human --loci ig --format blast
-	MakeDb.py igblast -i TEST.fmt7 -s TEST.fasta \
+	MakeDb.py igblast -i 10x.fmt7 -s 10x.fasta \
 	   -r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta \
 	   --regions --scores
 
     Once databases are built, they can then be merged with 10X VDJ CSV annotations. 
 
 
-An in-line python command can be used as a temporary workaround for merging 10X annotations with the output 
-of :ref:`MakeDb`::
+An in-line python command can be used as a temporary workaround for merging 10X annotations with the output of :ref:`MakeDb`. See ` merge10x.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__ for example use ::
 
-	python3 -c "import pandas as pd; \
-	pd.read_csv("TEST_db-pass.tab", dtype = 'object', sep = '\t').set_index('SEQUENCE_ID')\
-	.join(pd.read_csv("TEST_annotations.csv").set_index('contig_id'), lsuffix='', rsuffix='_10X')\
-	.to_csv("TEST_igblast_annotate_db-pass.tab", sep = '\t')"
+	merge10x.py 10x_db-pass.tab 10x_annotations.csv 10x_annotated_db-pass.tab
 
 .. warning::
 
