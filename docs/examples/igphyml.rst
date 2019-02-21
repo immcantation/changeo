@@ -180,6 +180,7 @@ identical sequences slow down calculations without actually affecting
 likelihood values in IgPhyML.
 
 .. _BuildTrees-subsampling:
+
 **Subsampling Change-O datasets**
 
 IgPhyML runs slowly with more than a few thousand sequences. You can
