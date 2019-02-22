@@ -22,7 +22,7 @@ formatted data.  For complete details of the required and optional elements of t
 see the `AIRR Standards <http://docs.airr-community.org/en/latest/miairr/miairr_ncbi_overview.html>`__
 documentation site.
 
-Example Data
+Example data
 --------------------------------------------------------------------------------
 We have hosted a small example data set resulting from the
 `Roche 454 example workflow <http://presto.readthedocs.io/en/latest/workflows/Jiang2013_Workflow.html>`__
@@ -49,7 +49,7 @@ Requirements
     + A GenBank submission template file (``.sbt``), generating using the
       `NCBI Template Generator <https://submit.ncbi.nlm.nih.gov/genbank/template/submission>`__.
 
-Cleaning up C region annotations
+Cleaning up C-region annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, we need to rename the C primer annotations to valid constant region gene names so they are

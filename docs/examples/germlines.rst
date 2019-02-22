@@ -3,7 +3,7 @@
 Reconstructing germline sequences
 ================================================================================
 
-Example Data
+Example data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
