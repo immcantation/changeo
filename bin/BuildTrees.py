@@ -846,7 +846,7 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
 
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_depth=-1,
+def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1,
                min_seq=1, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
@@ -854,6 +854,7 @@ def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_dept
     Arguments:
       db_file (str): input tab-delimited database file.
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
+      target_clones (str): List of clone IDs to analyze.
       collapse (bool): if True collapse identical sequences.
       ncdr3 (bool): if True remove all CDR3s.
       sample_depth (int): depth of subsampling before deduplication
@@ -940,8 +941,12 @@ def buildTrees(db_file, meta_data=None, collapse=False, ncdr3=False, sample_dept
             init_clone_sizes[r.clone] = 1
 
     for r in all_records:
-        if init_clone_sizes[r.clone] >= min_seq:
-            big_enough.append(r)
+        if target_clones is None or r.clone in target_clones:
+            if init_clone_sizes[r.clone] >= min_seq:
+               big_enough.append(r)
+
+    if len(big_enough) == 0:
+        printError("\n\nNo sequences found that match specified criteria.",1)
 
     if sample_depth > 0:
         random.shuffle(big_enough)
@@ -1069,6 +1074,8 @@ def getArgParser():
     group.add_argument("--md", nargs="+", action="store", dest="meta_data",
                        help="""List of fields to containing metadata to include in output fasta file 
                             sequence headers.""")
+    group.add_argument("--clones", nargs="+", action="store", dest="target_clones",
+                       help="""List of clone IDs to output, if specified.""")
     group.add_argument("--minseq", action="store", dest="min_seq", type=int, default=1,
                        help="""Minimum number of data sequences. Any clones with fewer than the specified
                             number of sequences will be excluded.""")

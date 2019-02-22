@@ -190,7 +190,7 @@ all clones below the specified size cutoff::
  
     BuildTrees.py -d example.tab --outname ex --log ex.log --collapse --sample 5 --minseq 2
 
-**Removing CDR3 region**
+**Removing the CDR3 region**
 
 If you plan to analyze model parameters to study things such as SHM and
 selection (see :ref: `below <igphyml-parameters>`), it's important to remove
