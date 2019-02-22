@@ -34,7 +34,7 @@ steps below::
 
 After the Change-O file has been built, it can then be merged with the 10X annotation
 file. A simple script,
-`merge10.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__,
+`merge10x.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__,
 to perform the merge is provided on the
 `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory. The following example shows how to merge the
