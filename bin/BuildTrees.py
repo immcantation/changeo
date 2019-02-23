@@ -10,7 +10,7 @@ from changeo import __version__, __date__
 # Imports
 import os
 import random
-import sys
+import subprocess
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -844,10 +844,48 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
 
     return 0
 
+# Run IgPhyML on outputed data
+def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e"):
+    """
+    Run IgPhyML on outputted data
+
+    Arguments:
+      outfile (str): Output file name.
+      threads (int): Number of threads to parallelize IgPhyML across
+      optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.
+      omega (str): Omega parameters to estimate.
+      kappa (str): Kappa parameters to estimate.
+      motifs (str): Which motifs to use for mutability estimation.
+      hotness (str): Mutability parameters to estimate.
+
+    """
+    osplit = outfile.split(".")
+    outrep = "".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
+    gy_args = ["igphyml", "--repfile", outfile, "-m", "GY", "--run_id", "gy", "--outrep", outrep, "--threads",
+               str(threads)]
+    hlp_args = ["igphyml", "--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
+                optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness]
+
+    try: #check for igphyml executable
+        subprocess.check_output(["igphyml"])
+    except:
+        printError("igphyml not found :-/")
+    try: #get GY94 starting topologies
+        subprocess.check_call(gy_args)
+    except:
+        printError("GY94 tree building in IgPhyML failed")
+    try: #estimate HLP parameters/trees
+        subprocess.check_call(hlp_args)
+    except:
+        printError("HLP tree building failed")
+
+    print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.txt\n")
+
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1,
-               min_seq=1, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
+               igphyml=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e",
+               format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -879,6 +917,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
                                   out_type="tsv")
 
     dir_name, __ = os.path.split(pass_handle.name)
+
+    print("OUTFILE "+ pass_handle.name)
 
     if out_args["out_name"] is None:
         __, clone_name, __ = splitName(db_file)
@@ -1033,6 +1073,11 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     log["END"] = "BuildTrees"
     printLog(log)
 
+    #Run IgPhyML on outputted data?
+    if igphyml:
+        runIgPhyML(pass_handle.name, threads=threads, optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
+                   hotness=hotness)
+
     return output
 
 def getArgParser():
@@ -1081,6 +1126,23 @@ def getArgParser():
                             number of sequences will be excluded.""")
     group.add_argument("--sample", action="store", dest="sample_depth", type=int, default=-1,
                        help="""Depth of reads to be subsampled (before deduplication).""")
+
+    igphyml_group = parser.add_argument_group("IgPhyML arguments (see igphyml -h for details)")
+    igphyml_group.add_argument("--igphyml", action="store_true", dest="igphyml",
+                       help="""Run IgPhyML on output?""")
+    igphyml_group.add_argument("--threads", action="store", dest="threads", type=int, default=1,
+                       help="""Number of threads to parallelize IgPhyML across""")
+    igphyml_group.add_argument("-o", action="store", dest="optimization", type=str, default="lr",
+                               help="""HLP: Optimize combination of parameters (r) branch lengths (l) and/or topology (t)""")
+    igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
+                               help="""Omega parameters to estimate.""")
+    igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
+                               help="""Kappa parameters to estimate.""")
+    igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
+                               default="WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5",
+                               help="""Which motifs to estimate mutability.""")
+    igphyml_group.add_argument("--hotness", action="store", dest="hotness", type=str, default="e,e,e,e,e,e",
+                               help="""Mutability parameters to estimate.""")
 
     return parser
 
