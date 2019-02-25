@@ -83,7 +83,7 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=False, asis_id=True,
+def writeDb(records, fields, aligner_file, total_count, anntab_file = None, anntab_id = None, id_dict=None, partial=False, asis_id=True,
             writer=ChangeoWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
@@ -92,6 +92,8 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
       records : a iterator of Receptor objects containing alignment data.
       fields : a list of ordered field names to write.
       aligner_file : input file name.
+      anntab_file : additional annotation csv/tsv file name.
+      anntab_id : additional annotation csv/tsv file name id column.
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
       partial : if True put incomplete alignments in the pass file.
@@ -157,6 +159,21 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     else:
         printError('Invalid output writer.')
 
+    # additional annotation (e.g. 10X cell calls)
+    if anntab_file is not None:
+        if anntab_id is not None:
+            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+        else:
+            raise("Please provide column name of annotation file containing sequence ids.")
+    else :
+        _additional_annotation = (lambda sequence_id: None)
+
     # Set pass criteria
     _pass = _gentle if partial else _strict
 
@@ -175,6 +192,9 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time=start_time)
     for i, record in enumerate(records, start=1):
+        # Code for adding additional annotation fields from csv/tsv file
+        record.annotations = _additional_annotation(record.sequence_id)
+
         # Replace sequence description with full string, if required
         if id_dict is not None and record.sequence_id in id_dict:
             record.sequence_id = id_dict[record.sequence_id]
@@ -190,10 +210,40 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                 for k, v in ann_raw.items():
                     ann_parsed[ChangeoSchema.toReceptor(k)] = v
 
-                # If first record, use parsed description to define extra columns
-                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
-
-                # Update Receptor record
+                # If first record, use parsed description to define extra column            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])s
+                if i == 1:  fields = _annotate(fields, ann_parsed.keys())            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+                # Update Receptor record            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
                 record.setDict(ann_parsed, parse=True)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
@@ -211,9 +261,27 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
                 pass_handle, pass_writer = _open('pass', fields)
                 pass_writer.writeReceptor(record)
         else:
-            fail_count += 1
-            # Write row to fail file if specified
-            if out_args['failed']:
+            fail_count += 1            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+            # Write row to             with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
+            if out_args['fa            with open(anntab_args['anntab_file']) as csv_file:
+                dialect = csv.Sniffer().sniff(csv_file.readline())
+                csv_file.seek(0) 
+                csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
+                
+            _additional_annotation = (lambda sequence_id: anntab_dict[sequence_id])
                 try:
                     fail_writer.writeReceptor(record)
                 except AttributeError:
@@ -254,7 +322,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, partial=Fa
     return output
 
 
-def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=True,
+def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=anntab_file, anntab_id=anntab_id, partial=False, asis_id=True,
               parse_scores=False, parse_regions=False, parse_junction=False,
               format=default_format, out_file=None, out_args=default_out_args):
     """
@@ -309,13 +377,49 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
     fields = list(schema.standard_fields)
     custom = IMGTReader.customFields(scores=parse_scores, regions=parse_regions,
                                      junction=parse_junction, schema=schema)
-    fields.extend(custom)
+    fields.extend(custom)            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record)
 
-    # Parse IMGT output and write db
-    with open(imgt_files['summary'], 'r') as summary_handle, \
-            open(imgt_files['gapped'], 'r') as gapped_handle, \
-            open(imgt_files['ntseq'], 'r') as ntseq_handle, \
-            open(imgt_files['junction'], 'r') as junction_handle:
+    # Parse IMGT output a            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record)
+    with open(imgt_files[            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record)s summary_handle, \
+            open(imgt_fil            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record) as gapped_handle, \
+            open(imgt_fil            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record)as ntseq_handle, \
+            open(imgt_fil            # Write row to pass file
+            try:
+                pass_writer.writeReceptor(record)
+            except AttributeError:
+                # Open pass file and writer
+                pass_handle, pass_writer = _open('pass', fields)
+                pass_writer.writeReceptor(record)') as junction_handle:
 
         # Open parser
         parse_iter = IMGTReader(summary_handle, gapped_handle, ntseq_handle, junction_handle)
@@ -331,7 +435,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
             germ_iter = (addGermline(x, references) for x in parse_iter)
 
         # Write db
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, anntab_file=anntab_file, anntab_id=anntab_id, 
                          id_dict=id_dict, asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -341,7 +445,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, partial=False, asis_id=Tru
     return output
 
 
-def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis_calls=False,
+def parseIgBLAST(aligner_file, seq_file, repo, anntab_file=anntab_file, anntab_id=anntab_id, partial=False, asis_id=True, asis_calls=False,
                  parse_regions=False, parse_scores=False, parse_igblast_cdr3=False,
                  format='changeo', out_file=None, out_args=default_out_args):
     """
@@ -387,9 +491,36 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     references = readGermlines(repo, asis=asis_calls)
     printMessage('Done', start_time=start_time, end=True, width=20)
 
-    # Check for IMGT-gaps in germlines
-    if all('...' not in x for x in references.values()):
-        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+    # Check for IMGT-gaps in germlines    
+    args_dict['anntab_args'] = {
+            'anntab_file': ,
+            'anntab_id':
+    }
+    if 'anntab_file' in args_dict: 
+        
+        del args_dict['anntab_file']
+    if 'anntab_id' in args_dict: del args_dict['out_files']
+
+    if all('...' not in x for x in references.values()):    
+    args_dict['anntab_args'] = {
+            'anntab_file': ,
+            'anntab_id':
+    }
+    if 'anntab_file' in args_dict: 
+        
+        del args_dict['anntab_file']
+    if 'anntab_id' in args_dict: del args_dict['out_files']
+
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacer    
+    args_dict['anntab_args'] = {
+            'anntab_file': ,
+            'anntab_id':
+    }
+    if 'anntab_file' in args_dict: 
+        
+        del args_dict['anntab_file']
+    if 'anntab_id' in args_dict: del args_dict['out_files']
+s. Results may be incorrect.')
 
     # Define format operators
     try:
@@ -408,14 +539,14 @@ def parseIgBLAST(aligner_file, seq_file, repo, partial=False, asis_id=True, asis
     with open(aligner_file, 'r') as f:
         parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
         germ_iter = (addGermline(x, references) for x in parse_iter)
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, anntab_file=anntab_file, anntab_id=anntab_id,
                          partial=partial, asis_id=asis_id,
                          writer=writer, out_file=out_file, out_args=out_args)
 
     return output
 
 
-def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
+def parseIHMM(aligner_file, seq_file, repo, anntab_file=anntab_file, anntab_id=anntab_id, partial=False, asis_id=True,
               parse_scores=False, parse_regions=False,
               format=default_format, out_file=None, out_args=default_out_args):
     """
@@ -479,7 +610,7 @@ def parseIHMM(aligner_file, seq_file, repo, partial=False, asis_id=True,
     with open(aligner_file, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, references)
         germ_iter = (addGermline(x, references) for x in parse_iter)
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, anntab_file=anntab_file, anntab_id=anntab_id, 
                          asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -565,6 +696,11 @@ def getArgParser():
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
+    group_igblast.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+                                help='''Table file containing additional annotations (with .csv or .tsv
+                                     extension).''')
+    group_igblast.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file. An incomplete alignment
@@ -623,6 +759,11 @@ def getArgParser():
                                  These reference sequences must contain IMGT-numbering spacers (gaps)
                                  in the V segment. If unspecified, the germline sequence reconstruction 
                                  will not be included in the output.''')
+    group_imgt.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+                                help='''Table file containing additional annotations (with .csv or .tsv
+                                     extension).''')
+    group_imgt.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -668,6 +809,11 @@ def getArgParser():
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
+    group_ihmm.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+                                help='''Table file containing additional annotations (with .csv or .tsv
+                                     extension).''')
+    group_ihmm.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_ihmm.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -713,7 +859,7 @@ if __name__ == "__main__":
     if 'out_files' in args_dict: del args_dict['out_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']           
-    
+
     # Call main
     for i, f in enumerate(args.__dict__['aligner_files']):
         args_dict['aligner_file'] = f
