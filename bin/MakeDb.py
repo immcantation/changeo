@@ -10,6 +10,7 @@ from changeo import __version__, __date__
 # Imports
 import os
 import re
+import csv
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -706,12 +707,12 @@ def getArgParser():
                                      the pass file instead of the fail file. An incomplete alignment
                                      is defined as a record for which a valid IMGT-gapped sequence 
                                      cannot be built or that is missing a V gene assignment, 
-                                     J gene assignment, junction region, or productivity call.''')
+                                     J gene assignment, junction region, or productivihttps://stackoverflow.com/questions/15093952/how-to-use-csv-sniffer-for-2-different-csv-types
     group_igblast.add_argument('--scores', action='store_true', dest='parse_scores',
                                 help='''Specify if alignment score metrics should be
-                                     included in the output. Adds the <VDJ>_SCORE, <VDJ>_IDENTITY,
+                                     included in the output. Adds the <VDJ>_SCORE, <VDhttps://stackoverflow.com/questions/15093952/how-to-use-csv-sniffer-for-2-different-csv-types
                                      <VDJ>_EVALUE, <VDJ>_CIGAR columns.''')
-    group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
+    group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',https://stackoverflow.com/questions/15093952/how-to-use-csv-sniffer-for-2-different-csv-types
                                 help='''Specify if IMGT FWR and CDRs should be
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                      FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
