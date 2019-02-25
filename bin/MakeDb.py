@@ -160,13 +160,21 @@ def writeDb(records, fields, aligner_file, total_count, anntab_file = None, annt
     else:
         printError('Invalid output writer.')
 
-    # additional annotation (e.g. 10X cell calls)
+    # Additional annotation (e.g. 10X cell calls)
     if anntab_file is not None:
         if anntab_id is not None:
             with open(anntab_file) as csv_file:
+
+                # Read in annotation file (use Sniffer to discover file delimiters)
                 dialect = csv.Sniffer().sniff(csv_file.readline())
                 csv_file.seek(0) 
                 csv_reader = csv.DictReader(csv_file, dialect = dialect)
+                
+                # Extend fields to include annotation fields
+                ann_fields = [field.upper() for field in csv_reader.fieldnames]
+                fields.extend(ann_fields)
+                
+                # Generate annotation dictionary
                 anntab_dict = {entry[anntab_id]:entry for entry in csv_reader}
                 
             _additional_annotation = lambda sequence_id: anntab_dict[sequence_id]
@@ -583,10 +591,10 @@ def getArgParser():
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
-    group_igblast.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+    group_igblast.add_argument('--af', action='store', nargs='+', dest='anntab_file',
                                 help='''Table file containing additional annotations (with .csv or .tsv
                                      extension).''')
-    group_igblast.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+    group_igblast.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
                                 help='''Column id to match sequence id from table file of additional annotations.''')
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
@@ -646,10 +654,10 @@ def getArgParser():
                                  These reference sequences must contain IMGT-numbering spacers (gaps)
                                  in the V segment. If unspecified, the germline sequence reconstruction 
                                  will not be included in the output.''')
-    group_imgt.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+    group_imgt.add_argument('--af', action='store', nargs='+', dest='anntab_file',
                                 help='''Table file containing additional annotations (with .csv or .tsv
                                      extension).''')
-    group_imgt.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+    group_imgt.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
                                 help='''Column id to match sequence id from table file of additional annotations.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
@@ -696,10 +704,10 @@ def getArgParser():
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
-    group_ihmm.add_argument('-af', action='store', nargs='+', dest='anntab_file',
+    group_ihmm.add_argument('--af', action='store', nargs='+', dest='anntab_file',
                                 help='''Table file containing additional annotations (with .csv or .tsv
                                      extension).''')
-    group_ihmm.add_argument('-ai', action='store', nargs='+', dest='anntab_id',
+    group_ihmm.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
                                 help='''Column id to match sequence id from table file of additional annotations.''')
     group_ihmm.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
@@ -754,4 +762,8 @@ if __name__ == "__main__":
                                 if args.__dict__['seq_files'] else None
         args_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
+        args_dict['anntab_file'] = args.__dict__['anntab_file'][i] \
+                                if args.__dict__['anntab_file'] else None
+        args_dict['anntab_id'] = args.__dict__['anntab_id'][i] \
+                                if args.__dict__['anntab_id'] else None
         args.func(**args_dict)
