@@ -20,7 +20,7 @@ a germline specific to the sequence.
 When the (:option:`--cloned <CreateGermlines --cloned>`) flag is specified, the 
 process is the same except it is clone specific and results in the 
 creation of one germline per clone. :ref:`CreateGermlines` selects first a 
-single V, D, and J allele to use as the germline from all the assigned 
+single V and J allele to use as the germline from all the assigned 
 annotations in each clone. The selection is made by simple majority rule of all 
 the allele calls in the clone. After the germline reconstruction process, all 
 sequences belonging to the same clone have been assigned the same germline.
