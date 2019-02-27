@@ -27,6 +27,12 @@ from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperato
                        AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
+# Converts 10X fields to Receptor field names
+cell_dict = {
+    'barcode': 'cell',
+    'c_gene': 'c_call',
+    'chain': 'locus'
+}
 
 def addGermline(receptor, references):
     """
@@ -84,7 +90,7 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(records, fields, aligner_file, total_count, anntab_file = None, anntab_id = None, cell=False, 
+def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
             id_dict=None, partial=False, asis_id=True, writer=ChangeoWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
@@ -93,9 +99,7 @@ def writeDb(records, fields, aligner_file, total_count, anntab_file = None, annt
       records : a iterator of Receptor objects containing alignment data.
       fields : a list of ordered field names to write.
       aligner_file : input file name.
-      anntab_file : additional annotation csv/tsv file name.
-      anntab_id : additional annotation csv/tsv file name id column.
-      cell : if True, will assume additional annotation csv/tsv file provided is of 10X type and correct accordingly.
+      ann10X_file : additional annotation csv/tsv file name.
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
       partial : if True put incomplete alignments in the pass file.
@@ -162,31 +166,20 @@ def writeDb(records, fields, aligner_file, total_count, anntab_file = None, annt
         printError('Invalid output writer.')
 
     # Additional annotation (e.g. 10X cell calls)
-    if anntab_file is not None:
-        if anntab_id is not None:
-            with open(anntab_file) as csv_file:
+    if ann10X_file is not None:
+        with open(ann10X_file) as csv_file:
 
-                # Read in annotation file (use Sniffer to discover file delimiters)
-                dialect = csv.Sniffer().sniff(csv_file.readline())
-                csv_file.seek(0) 
-                csv_reader = csv.DictReader(csv_file, dialect = dialect)
-                
-                # Generate annotation dictionary
-                if cell:
-                    cell_dict = {
-                        'barcode': 'cell',
-                        'c_gene': 'c_call',
-                        'chain': 'locus'
-                    }
-                    anntab_dict = {entry[anntab_id]: {cell_dict[field]: entry[field] \
-                        for field in cell_dict.keys()} for entry in csv_reader}
-                else:
-                    anntab_dict = {entry[anntab_id]: entry for entry in csv_reader}
-                    fields.extend([field.upper() for field in csv_reader.fieldnames])
-                
-            _additional_annotation = lambda sequence_id: anntab_dict[sequence_id]
-        else:
-            raise("Please provide column name of annotation file containing sequence ids.")
+            # Read in annotation file (use Sniffer to discover file delimiters)
+            dialect = csv.Sniffer().sniff(csv_file.readline())
+            csv_file.seek(0) 
+            csv_reader = csv.DictReader(csv_file, dialect = dialect)
+            
+            # Generate annotation dictionary
+            anntab_dict = {entry['contig_id']: {cell_dict[field]: entry[field] \
+                for field in cell_dict.keys()} for entry in csv_reader}
+
+        fields.extend([field for field in cell_dict.values()])
+        _additional_annotation = lambda sequence_id: anntab_dict[sequence_id]
     else :
         _additional_annotation = lambda sequence_id: None
 
@@ -236,7 +229,9 @@ def writeDb(records, fields, aligner_file, total_count, anntab_file = None, annt
         # Count pass or fail and write to appropriate file
         if _pass(record):
             pass_count += 1
-            # Write row to pass file
+
+            # Write row to 
+
             try:
                 pass_writer.writeReceptor(record)
             except AttributeError:
@@ -287,8 +282,8 @@ def writeDb(records, fields, aligner_file, total_count, anntab_file = None, annt
     return output
 
 
-def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=None, anntab_id=None, partial=False, asis_id=True,
-              parse_scores=False, parse_regions=False, parse_junction=False, parse_cell=False,
+def parseIMGT(aligner_file, seq_file=None, repo=None, ann10X_file=None, partial=False, asis_id=True,
+              parse_scores=False, parse_regions=False, parse_junction=False, 
               format=default_format, out_file=None, out_args=default_out_args):
     """
     Main for IMGT aligned sample sequences.
@@ -302,7 +297,6 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=None, anntab_i
       parse_scores : if True add alignment score fields to output file.
       parse_regions : if True add FWR and CDR region fields to output file.
       parse_junction : if True add junction region fields to output file.
-      parse_cell : if True add single cell fields to output file. 
       format : output format. one of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -343,7 +337,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=None, anntab_i
     # Define output fields
     fields = list(schema.standard_fields)
     custom = IMGTReader.customFields(scores=parse_scores, regions=parse_regions,
-                                     junction=parse_junction, cell=parse_cell, schema=schema)
+                                     junction=parse_junction, schema=schema)
     fields.extend(custom)            
 
     # Parse IMGT output and write db
@@ -367,7 +361,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=None, anntab_i
 
         # Write db
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        anntab_file=anntab_file, anntab_id=anntab_id, cell=parse_cell,
+                        ann10X_file=ann10X_file, 
                          id_dict=id_dict, asis_id=asis_id, partial=partial, 
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -377,8 +371,8 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, anntab_file=None, anntab_i
     return output
 
 
-def parseIgBLAST(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None, partial=False, asis_id=True, asis_calls=False,
-                 parse_regions=False, parse_scores=False, parse_igblast_cdr3=False, parse_cell=False,
+def parseIgBLAST(aligner_file, seq_file, repo, ann10X_file=None, partial=False, asis_id=True, asis_calls=False,
+                 parse_regions=False, parse_scores=False, parse_igblast_cdr3=False,
                  format='changeo', out_file=None, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
@@ -393,7 +387,6 @@ def parseIgBLAST(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None,
       parse_regions : if True add FWR and CDR fields to output file.
       parse_scores : if True add alignment score fields to output file.
       parse_igblast_cdr3 : if True parse CDR3 sequences generated by IgBLAST.
-      parse_cell : if True add single cell fields to output file. 
       format : output format. one of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -438,7 +431,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None,
     # Define output fields
     fields = list(schema.standard_fields)
     custom = IgBLASTReader.customFields(scores=parse_scores, regions=parse_regions,
-                                        cdr3=parse_igblast_cdr3, cell=parse_cell, schema=schema)
+                                        cdr3=parse_igblast_cdr3, schema=schema)
     fields.extend(custom)
 
     # Parse and write output
@@ -446,15 +439,15 @@ def parseIgBLAST(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None,
         parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        anntab_file=anntab_file, anntab_id=anntab_id, cell=parse_cell,
+                        ann10X_file=ann10X_file, 
                         partial=partial, asis_id=asis_id,
                         writer=writer, out_file=out_file, out_args=out_args)
 
     return output
 
 
-def parseIHMM(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None, partial=False, asis_id=True,
-              parse_scores=False, parse_regions=False, parse_cell=False,
+def parseIHMM(aligner_file, seq_file, repo, ann10X_file=None, partial=False, asis_id=True,
+              parse_scores=False, parse_regions=False, 
               format=default_format, out_file=None, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
@@ -466,7 +459,6 @@ def parseIHMM(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None, pa
       partial : If True put incomplete alignments in the pass file.
       parse_scores : if True parse alignment scores.
       parse_regions : if True add FWR and CDR region fields.
-      parse_cell : if True add single cell fields to output file. 
       asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       format : output format. One of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
@@ -510,7 +502,7 @@ def parseIHMM(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None, pa
 
     # Define output fields
     fields = list(schema.standard_fields)
-    custom = IHMMuneReader.customFields(scores=parse_scores, regions=parse_regions, cell=parse_cell,
+    custom = IHMMuneReader.customFields(scores=parse_scores, regions=parse_regions,
                                         schema=schema)
     fields.extend(custom)
 
@@ -519,7 +511,7 @@ def parseIHMM(aligner_file, seq_file, repo, anntab_file=None, anntab_id=None, pa
         parse_iter = IHMMuneReader(f, seq_dict, references)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        anntab_file=anntab_file, anntab_id=anntab_id, cell=parse_cell,
+                        ann10X_file=ann10X_file, 
                         asis_id=asis_id, partial=partial,
                         writer=writer, out_file=out_file, out_args=out_args)
 
@@ -580,7 +572,7 @@ def getArgParser():
     group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command',
                                        help='Aligner used', metavar='')
-    # TODO:  This is a temporary fix for Python issue 9253
+    # TODO:  This is a temporary fix for Python issue 9253this
     subparsers.required = True
 
     # Parent parser
@@ -605,11 +597,9 @@ def getArgParser():
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
-    group_igblast.add_argument('--af', action='store', nargs='+', dest='anntab_file',
-                                help='''Table file containing additional annotations (with .csv or .tsv
+    group_igblast.add_argument('--10x', action='store', nargs='+', dest='ann10X_file',
+                                help='''Table file containing 10X annotations (with .csv or .tsv
                                      extension).''')
-    group_igblast.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
-                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file. An incomplete alignment
@@ -621,9 +611,9 @@ def getArgParser():
                                      included in the output. Adds the <VDJ>_SCORE, <VDJ>_IDENTITY,
                                      <VDJ>_EVALUE, <VDJ>_CIGAR columns.''')
     group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
-                                help='''Specify if IMGT FWR and CDRs should be
-                                     included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
-                                     FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
+                                help='''Specify if IMGT FWR and CDRsthis should be
+                                     included in the output. Adds ththise FWR1_IMGT, FWR2_IMGT,
+                                     FWR3_IMGT, FWR4_IMGT, CDR1_IMGTthis, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
     group_igblast.add_argument('--cdr3', action='store_true',
                                 dest='parse_igblast_cdr3', 
@@ -642,8 +632,6 @@ def getArgParser():
                                      in both the IgBLAST output and reference database. Note, this requires
                                      the sequence identifiers in the reference sequence set and the IgBLAST
                                      database to be exact string matches.''')
-    group_igblast.add_argument('--10X', action='store_true', dest='parse_cell',
-                            help='''Specify to convert 10X VDJ headers to Change-o headers that are AIRR compliant.''')
     parser_igblast.set_defaults(func=parseIgBLAST)
 
     # IMGT aligner
@@ -670,11 +658,9 @@ def getArgParser():
                                  These reference sequences must contain IMGT-numbering spacers (gaps)
                                  in the V segment. If unspecified, the germline sequence reconstruction 
                                  will not be included in the output.''')
-    group_imgt.add_argument('--af', action='store', nargs='+', dest='anntab_file',
-                                help='''Table file containing additional annotations (with .csv or .tsv
+    group_imgt.add_argument('--10x', action='store', nargs='+', dest='ann10X_file',
+                                help='''Table file containing 10X annotations (with .csv or .tsv
                                      extension).''')
-    group_imgt.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
-                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -700,8 +686,6 @@ def getArgParser():
                                   included in the output. Adds the columns 
                                   N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH,
                                   P5J_LENGTH, D_FRAME.''')
-    group_imgt.add_argument('--10X', action='store_true', dest='parse_cell',
-                            help='''Specify to convert 10X VDJ headers to Change-o headers that are AIRR compliant.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
@@ -722,11 +706,9 @@ def getArgParser():
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
-    group_ihmm.add_argument('--af', action='store', nargs='+', dest='anntab_file',
-                                help='''Table file containing additional annotations (with .csv or .tsv
+    group_ihmm.add_argument('--10x', action='store', nargs='+', dest='ann10X_file',
+                                help='''Table file containing 10X annotations (with .csv or .tsv
                                      extension).''')
-    group_ihmm.add_argument('--ai', action='store', nargs='+', dest='anntab_id',
-                                help='''Column id to match sequence id from table file of additional annotations.''')
     group_ihmm.add_argument('--asis-id', action='store_true', dest='asis_id',
                              help='''Specify to prevent input sequence headers from being parsed
                                   to add new columns to database. Parsing of sequence headers requires
@@ -748,8 +730,6 @@ def getArgParser():
                                   included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                   FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                   CDR3_IMGT columns.''')
-    group_ihmm.add_argument('--10X', action='store_true', dest='parse_cell',
-                            help='''Specify to convert 10X VDJ headers to Change-o headers that are AIRR compliant.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser
@@ -782,8 +762,6 @@ if __name__ == "__main__":
                                 if args.__dict__['seq_files'] else None
         args_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
-        args_dict['anntab_file'] = args.__dict__['anntab_file'][i] \
-                                if args.__dict__['anntab_file'] else None
-        args_dict['anntab_id'] = args.__dict__['anntab_id'][i] \
-                                if args.__dict__['anntab_id'] else None
+        args_dict['ann10X_file'] = args.__dict__['ann10X_file'][i] \
+                                if args.__dict__['ann10X_file'] else None
         args.func(**args_dict)

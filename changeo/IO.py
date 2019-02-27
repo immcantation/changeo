@@ -372,7 +372,7 @@ class IMGTReader:
     An iterator to read and parse IMGT output files.
     """
     @staticmethod
-    def customFields(scores=False, regions=False, junction=False, cell=False, schema=None):
+    def customFields(scores=False, regions=False, junction=False, schema=None):
         """
         Returns non-standard fields defined by the parser
 
@@ -410,15 +410,11 @@ class IMGTReader:
                            'p5j_length',
                            'd_frame']
 
-        cell_fields = ['cell',
-                        'c_call',
-                        'locus']
 
         fields = []
         if scores:  fields.extend(score_fields)
         if regions:  fields.extend(region_fields)
         if junction:  fields.extend(junction_fields)
-        if cell: fields.extend(cell_fields)
 
         # Convert field names if schema provided
         if schema is not None:
@@ -838,7 +834,7 @@ class IgBLASTReader:
     """
     # Ordered list of known fields
     @staticmethod
-    def customFields(scores=False, regions=False, cdr3=False, cell=False, schema=None):
+    def customFields(scores=False, regions=False, cdr3=False, schema=None):
         """
         Returns non-standard fields defined by the parser
 
@@ -879,16 +875,10 @@ class IgBLASTReader:
         cdr3_fields = ['cdr3_igblast',
                        'cdr3_igblast_aa']
         
-        # Cell fields
-        cell_fields = ['cell',
-                        'c_call',
-                        'locus']
-
         fields = []
         if scores:  fields.extend(score_fields)
         if regions:  fields.extend(region_fields)
         if cdr3:  fields.extend(cdr3_fields)
-        if cell:  fields.extend(cell_fields)    
 
         # Convert field names if schema provided
         if schema is not None:
@@ -1660,15 +1650,9 @@ class IHMMuneReader:
                          'cdr2_imgt',
                          'cdr3_imgt']
 
-        # Cell fields
-        cell_fields = ['cell',
-                        'c_call',
-                        'locus']
-
         fields = []
         if scores:  fields.extend(score_fields)
         if regions:  fields.extend(region_fields)
-        if cell: fields.extend(cell_fields)
 
         # Convert field names if schema provided
         if schema is not None:
