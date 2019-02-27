@@ -845,7 +845,8 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
     return 0
 
 # Run IgPhyML on outputed data
-def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e"):
+def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e",
+               oformat="txt"):
     """
     Run IgPhyML on outputted data
 
@@ -864,7 +865,8 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     gy_args = ["igphyml", "--repfile", outfile, "-m", "GY", "--run_id", "gy", "--outrep", outrep, "--threads",
                str(threads)]
     hlp_args = ["igphyml", "--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
-                optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness]
+                optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness, "--oformat",
+                oformat]
 
     try: #check for igphyml executable
         subprocess.check_output(["igphyml"])
@@ -879,13 +881,16 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     except:
         printError("HLP tree building failed")
 
-    print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.txt\n")
+    if oformat == "tab":
+        print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.tab\n")
+    else:
+        print("\n. Parameter estimates are in", outrep + "_igphyml_stats_hlp.txt\n")
 
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
 def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
                igphyml=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e",
-               format=default_format, out_args=default_out_args):
+               oformat="txt",format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1076,7 +1081,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     #Run IgPhyML on outputted data?
     if igphyml:
         runIgPhyML(pass_handle.name, threads=threads, optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
-                   hotness=hotness)
+                   hotness=hotness, oformat=oformat)
 
     return output
 
@@ -1133,7 +1138,7 @@ def getArgParser():
     igphyml_group.add_argument("--threads", action="store", dest="threads", type=int, default=1,
                        help="""Number of threads to parallelize IgPhyML across""")
     igphyml_group.add_argument("-o", action="store", dest="optimization", type=str, default="lr",
-                               help="""HLP: Optimize combination of parameters (r) branch lengths (l) and/or topology (t)""")
+                help="""Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
                                help="""Omega parameters to estimate.""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
@@ -1143,7 +1148,8 @@ def getArgParser():
                                help="""Which motifs to estimate mutability.""")
     igphyml_group.add_argument("--hotness", action="store", dest="hotness", type=str, default="e,e,e,e,e,e",
                                help="""Mutability parameters to estimate.""")
-
+    igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="txt",
+                               help="""IgPhyML output format.""")
     return parser
 
 
