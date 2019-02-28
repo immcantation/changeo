@@ -83,8 +83,7 @@ The heavy chain file must then be clonally clustered.
 	for futher details on clustering the heavy chain output. 
 
 :ref:`DefineClones` currently does not support light chain cloning. However cloning can be performed
-using `light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__ 
-or `light_majority.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_majority.py>`__ 
+using `light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__  
 provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory::
 
