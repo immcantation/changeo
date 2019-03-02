@@ -1003,6 +1003,9 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
             if found_no_funct is False:
                 printWarning("FUNCTIONAL column not found.")
                 found_no_funct = True
+
+        r.sequence_id = r.sequence_id.replace(",","-") #remove commas from sequence ID
+        r.sequence_id = r.sequence_id.replace(":","-") #remove colons from sequence ID
         total += maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
         if total == sample_depth:
             break
