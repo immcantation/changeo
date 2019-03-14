@@ -16,7 +16,7 @@
 
     examples/igblast
     examples/imgt
-    examples/10X
+    examples/10x
     examples/filtering
     examples/cloning
     examples/germlines
