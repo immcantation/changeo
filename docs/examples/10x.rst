@@ -40,9 +40,9 @@ steps below::
 
 .. seealso::
     To process mouse data and/or TCR data alter the :option:`--organism <MakeDb>` and
-    :option:`--loci <MakeDb>` accordingly (e.g., :option:`--organism mouse <MakeDb>`,
-    :option:`--loci tcr <MakeDb>`, etc) and use the appropriate V, D and J IMGT reference
-    databases (e.g., ``IMGT_Mouse_TR*.fasta``)
+    :option:`--loci <MakeDb>` arguments to :ref:`MakeDb` accordingly
+    (e.g., :option:`--organism mouse <MakeDb>`, :option:`--loci tcr <MakeDb>`) and
+    use the appropriate V, D and J IMGT reference databases (e.g., ``IMGT_Mouse_TR*.fasta``)
 
     See the :ref:`IgBLAST usage guide <IgBLAST>` for further details regarding
     the setup and use of IgBLAST with Change-O.
@@ -51,9 +51,9 @@ Combining existing Change-O data with 10X V(D)J annotations
 --------------------------------------------------------------------------------
 
 :ref:`Change-O <Standard>` compliant TSV files can also be merged without the use of :ref:`MakeDb`.
+A simple script to perform the merge,
 `merge10x.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__,
-which can be used to perform the merge, is provided on the
-`Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
+is provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory. The following example shows how to merge the
 Change-O file (``10x_igblast_db-pass.tab``) with a 10X annotation file
 (``filtered_contig_annotations.csv``) and save it as ``10x_annotated_db-pass.tab``::
@@ -68,7 +68,7 @@ Cloning Change-O format 10X V(D)J data
 --------------------------------------------------------------------------------
 
 To clone Change-O format data, the output from :ref:`MakeDb` must be parsed into a light chain
-:ref:`Change-O <Standard>` file and a heavy chain  :ref:`Change-O <Standard>` file::
+:ref:`Change-O <Standard>` file and a heavy chain :ref:`Change-O <Standard>` file::
 
 	ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IGH" \
 	    --logic all --regex --outname heavy
@@ -90,9 +90,9 @@ in the ``scripts`` directory::
 	light_cluster.py heavy_select-pass_clone-pass.tab light_select-pass.tab \
 	    CELL CLONE 10X_clone-pass.tab
 
-Here, ```heavy_select-pass_clone-pass.tab``` refers to the cloned heavy chain Change-O format file. 
-```light_select-pass.tab``` refers to the light chain Change-O format file. ```CELL``` and ```CLONE``` are Change-O
-standard fields. ```10X_clone-pass.tab``` is the resulting output file. 
+Here, ``heavy_select-pass_clone-pass.tab`` refers to the cloned heavy chain Change-O format file.
+``light_select-pass.tab`` refers to the light chain Change-O format file. ``CELL`` and ``CLONE``
+are Change-O standard fields. ``10X_clone-pass.tab`` is the resulting output file.
 
 The algorithm will correct heavy chain clone definitions based on an analysis of the light chain partners associated
 with the heavy chain clone. 
