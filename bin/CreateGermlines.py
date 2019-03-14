@@ -26,7 +26,7 @@ from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHa
                        checkFields
 
 # Defaults
-default_germ_types = 'dmask'
+default_germ_types = ['dmask']
 
 
 def createGermlines(db_file, references, seq_field=default_seq_field, v_field=default_v_field,
