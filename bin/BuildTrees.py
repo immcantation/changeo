@@ -931,14 +931,15 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
         printError("igphyml not found :-/")
     try: #get GY94 starting topologies
         p = subprocess.check_output(gy_args)
-    except:
+    except subprocess.CalledProcessError as e:
+        print('error>', e.output, '<')
         printError("GY94 tree building in IgPhyML failed")
 
     if not nohlp:
         try: #estimate HLP parameters/trees
             p = subprocess.check_output(hlp_args)
-        except:
-            print(p)
+        except subprocess.CalledProcessError as e:
+            print('error>', e.output, '<')
             printError("HLP tree building failed")
         #if oformat == "tab":
         #    print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.tab\n")
