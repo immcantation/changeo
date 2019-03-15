@@ -169,8 +169,8 @@ def getArgParser():
                                     Specifying "airr" will output the AIRR TSV format provided by
                                     the IgBLAST argument "-outfmt 19".''')
     group_igblast.add_argument('--exec', action='store', dest='igblast_exec',
-                              default=default_igblast_exec,
-                              help='Path to the igblastn executable.')
+                               default=default_igblast_exec,
+                               help='Path to the igblastn executable.')
     parser_igblast.set_defaults(func=assignIgBLAST)
 
     return parser
