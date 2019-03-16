@@ -27,12 +27,11 @@ from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperato
                        AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
-# Converts 10X fields to Receptor field names
-cell_dict = {
-    'barcode': 'cell',
-    'c_gene': 'c_call',
-    'chain': 'locus'
-}
+# Mapping of 10X annotations to Receptor attributes
+cell_dict = {'barcode': 'cell',
+             'c_gene': 'c_call',
+             'chain': 'locus',
+             'umis': 'conscount'}
 
 def addGermline(receptor, references):
     """
