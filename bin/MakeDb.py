@@ -165,6 +165,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
         printError('Invalid output writer.')
 
     # Additional annotation (e.g. 10X cell calls)
+    _table_annotate = None
     if ann10X_file is not None:
         with open(ann10X_file) as csv_file:
             # Read in annotation file (use Sniffer to discover file delimiters)
@@ -177,9 +178,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
                            for field in cell_dict.keys()} for entry in csv_reader}
 
         fields.extend([field for field in cell_dict.values()])
-        _additional_annotation = lambda sequence_id: anntab_dict[sequence_id]
-    else :
-        _additional_annotation = lambda sequence_id: None
+        _table_annotate = lambda sequence_id: anntab_dict[sequence_id]
 
     # Set pass criteria
     _pass = _gentle if partial else _strict
@@ -222,12 +221,12 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
                 printWarning('Sequence annotation format not recognized. Sequence headers will not be parsed.')
 
         # Code for adding additional annotation fields from csv/tsv file
-        record.annotations = _additional_annotation(record.sequence_id)
+        if _table_annotate is not None:
+            record.setDict(_table_annotate(record.sequence_id), parse=True)
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
             pass_count += 1
-
             # Write row to pass file
             try:
                 pass_writer.writeReceptor(record)
