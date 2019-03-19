@@ -20,7 +20,8 @@ from presto.Defaults import default_out_args
 from presto.IO import printLog, printMessage, printProgress, printError, printWarning
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_clone_field, \
                              default_seq_field, default_format
-from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
+                                setDefaultFields
 from changeo.Gene import buildGermline, buildClonalGermline
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines, \
                        checkFields
@@ -276,7 +277,7 @@ def getArgParser():
               ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(format=False)],
+                            parents=[getCommonArgParser(format=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Germlines arguments
@@ -298,14 +299,18 @@ def getArgParser():
                              calls are ambiguous within a clonal group, this will place the germline call 
                              used for the entire clone within the
                              GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
-    group.add_argument('--sf', action='store', dest='seq_field', default=default_seq_field,
-                        help='Field containing the aligned sequence.')
-    group.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
-                        help='Field containing the germline V segment call.')
-    group.add_argument('--df', action='store', dest='d_field', default=default_d_field,
-                        help='Field containing the germline D segment call.')
-    group.add_argument('--jf', action='store', dest='j_field', default=default_j_field,
-                        help='Field containing the germline J segment call.')
+    group.add_argument('--sf', action='store', dest='seq_field', default=None,
+                        help='''Field containing the aligned sequence.
+                             Defaults to SEQUENCE_IMGT (changeo) or sequence_alignment (airr).''')
+    group.add_argument('--vf', action='store', dest='v_field', default=None,
+                        help='''Field containing the germline V segment call.
+                             Defaults to V_CALL (changeo) or v_call (airr).''')
+    group.add_argument('--df', action='store', dest='d_field', default=None,
+                        help='''Field containing the germline D segment call.
+                             Defaults to D_CALL (changeo) or d_call (airr).''')
+    group.add_argument('--jf', action='store', dest='j_field', default=None,
+                        help='''Field containing the germline J segment call.
+                             Defaults to J_CALL (changeo) or j_call (airr).''')
 
     return parser
 
@@ -321,23 +326,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
-    # # Set default fields if not specified.
-    # default_fields = {'seq_field': default_seq_field,
-    #                   'v_field': default_v_field,
-    #                   'd_field': default_d_field,
-    #                   'j_field': default_j_field}
-    #
-    # # Default Change-O fields
-    # if args_dict['format'] == 'changeo':
-    #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = default_fields[f]
-    #         else: args_dict[f] = args_dict[f].upper()
-    #
-    # # Default AIRR fields
-    # if args_dict['format'] == 'airr':
-    #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.fromReceptor(default_fields[f])
-    #         else: args_dict[f] = args_dict[f].lower()
+    # Set default fields
+    default_fields = {'seq_field': default_seq_field,
+                      'v_field': default_v_field,
+                      'd_field': default_d_field,
+                      'j_field': default_j_field}
+    args_dict = setDefaultFields(args_dict, default_fields, format=args_dict['format'])
 
     # Check that reference files exist
     for f in args_dict['references']:

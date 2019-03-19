@@ -320,7 +320,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(format=False, multiproc=True)
+    parser_parent = getCommonArgParser(format=True, multiproc=True)
 
     # Argument parser for column-wise alignment across records
     parser_across = subparsers.add_parser('across', parents=[parser_parent],
@@ -399,12 +399,6 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-
-    # Convert case of fields
-    # if 'seq_fields' in args_dict:
-    #     args_dict['seq_fields'] = [f.upper() for f in args_dict['seq_fields']]
-    # if 'group_fields' in args_dict and args_dict['group_fields'] is not None:
-    #     args_dict['group_fields'] = [f.upper() for f in args_dict['group_fields']]
 
     # Check if a valid MUSCLE executable was specified for muscle mode
     if not shutil.which(args.muscle_exec):

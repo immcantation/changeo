@@ -23,7 +23,8 @@ from presto.Defaults import default_out_args
 from presto.IO import printLog, printProgress, printCount, printWarning, printError
 from presto.Multiprocessing import manageProcesses
 from changeo.Defaults import default_format, default_v_field, default_j_field, default_junction_field
-from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
+from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
+                                setDefaultFields
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
                        AIRRWriter, ChangeoWriter, checkFields
@@ -618,17 +619,20 @@ def getArgParser():
               ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(format=False, multiproc=True)],
+                            parents=[getCommonArgParser(format=True, multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Distance cloning method
     group = parser.add_argument_group('cloning arguments')
-    group.add_argument('--sf', action='store', dest='seq_field', default=default_junction_field,
-                        help='Field to be used to calculate distance between records.')
-    group.add_argument('--vf', action='store', dest='v_field', default=default_v_field,
-                        help='Field containing the germline V segment call.')
-    group.add_argument('--jf', action='store', dest='j_field', default=default_j_field,
-                        help='Field containing the germline J segment call.')
+    group.add_argument('--sf', action='store', dest='seq_field', default=None,
+                        help='''Field to be used to calculate distance between records.
+                              Defaults to JUNCTION (changeo) or junction (airr).''')
+    group.add_argument('--vf', action='store', dest='v_field', default=None,
+                        help='''Field containing the germline V segment call.
+                             Defaults to V_CALL (changeo) or v_call (airr).''')
+    group.add_argument('--jf', action='store', dest='j_field', default=None,
+                        help='''Field containing the germline J segment call.
+                             Defaults to J_CALL (changeo) or j_call (airr).''')
     group.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                         help='Additional fields to use for grouping clones aside from V, J and junction length.')
     group.add_argument('--mode', action='store', dest='mode',
@@ -693,22 +697,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
-    # # Set default fields if not specified.
-    # default_fields = {'seq_field': default_junction_field,
-    #                   'v_field': default_v_field,
-    #                   'j_field': default_j_field}
-    #
-    # # Default Change-O fields
-    # if args_dict['format'] == 'changeo':
-    #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = default_fields[f]
-    #         else: args_dict[f] = args_dict[f].upper()
-    #
-    # # Default AIRR fields
-    # if args_dict['format'] == 'airr':
-    #     for f in default_fields:
-    #         if args_dict[f] is None:  args_dict[f] = ChangeoSchema.toAIRR(default_fields[f])
-    #         else: args_dict[f] = args_dict[f].lower()
+    # Set default fields
+    default_fields = {'seq_field': default_junction_field,
+                      'v_field': default_v_field,
+                      'j_field': default_j_field}
+    args_dict = setDefaultFields(args_dict, default_fields, format=args_dict['format'])
 
     # Define grouping and cloning function arguments
     args_dict['group_args'] = {'action': args_dict['action'],
