@@ -259,7 +259,8 @@ def setDefaultFields(args, defaults, format='changeo'):
       dict: modified input args.
     """
     if format == 'airr':
-        defaults = {k: AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(v)) for k, v in defaults}
+        defaults = {k: AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(v)) \
+                    for k, v in defaults.items()}
     for f in defaults:
         if args[f] is None:  args[f] = defaults[f]
 
