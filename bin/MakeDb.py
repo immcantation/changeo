@@ -166,7 +166,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
         printError('Invalid output writer.')
 
     # Additional annotation (e.g. 10X cell calls)
-    _table_annotate = None
+    _append_table = None
     if ann10X_file is not None:
         with open(ann10X_file) as csv_file:
             # Read in annotation file (use Sniffer to discover file delimiters)
@@ -178,8 +178,8 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
             anntab_dict = {entry['contig_id']: {cell_dict[field]: entry[field] \
                            for field in cell_dict.keys()} for entry in csv_reader}
 
-        fields.extend([field for field in cell_dict.values()])
-        _table_annotate = lambda sequence_id: anntab_dict[sequence_id]
+         fields = _annotate(fields, cell_dict.values())
+        _append_table = lambda sequence_id: anntab_dict[sequence_id]
 
     # Set pass criteria
     _pass = _gentle if partial else _strict
@@ -214,18 +214,17 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
                 for k, v in ann_raw.items():
                     ann_parsed[ChangeoSchema.toReceptor(k)] = v
 
-                # If first record, use parsed description to define extra column
-                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
-
+                # Sdd annotations to Receptor and update field list
                 record.setDict(ann_parsed, parse=True)
+                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
                 asis_id = True
                 printWarning('Sequence annotation format not recognized. Sequence headers will not be parsed.')
 
         # Code for adding additional annotation fields from csv/tsv file
-        if _table_annotate is not None:
-            record.setDict(_table_annotate(record.sequence_id), parse=True)
+        if _append_table is not None:
+            record.setDict(_append_table(record.sequence_id), parse=True)
 
         # Count pass or fail and write to appropriate file
         if _pass(record):
@@ -360,7 +359,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, ann10X_file=None, partial=
 
         # Write db
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        ann10X_file=ann10X_file, 
+                         ann10X_file=ann10X_file,
                          id_dict=id_dict, asis_id=asis_id, partial=partial, 
                          writer=writer, out_file=out_file, out_args=out_args)
 

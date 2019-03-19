@@ -115,8 +115,8 @@ class AIRRSchema:
     standard_fields = list(_standard_map.keys())
 
     # Custom fields
-    _custom_map = OrderedDict([('c_call', 'c_call'),
-                               ('locus', 'locus'),
+    _custom_map = OrderedDict([('locus', 'locus'),
+                               ('c_call', 'c_call'),
                                ('germline_alignment_d_mask', 'germline_imgt_d_mask'),
                                ('v_score', 'v_score'),
                                ('v_identity', 'v_identity'),
@@ -276,6 +276,8 @@ class ChangeoSchema:
                                ('P3D_LENGTH', 'p3d_length'),
                                ('P5J_LENGTH', 'p5j_length'),
                                ('D_FRAME', 'd_frame'),
+                               ('LOCUS', 'locus'),
+                               ('C_CALL', 'c_call'),
                                ('CDR3_IGBLAST', 'cdr3_igblast'),
                                ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
                                ('CONSCOUNT', 'conscount'),
