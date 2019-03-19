@@ -178,7 +178,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
             anntab_dict = {entry['contig_id']: {cell_dict[field]: entry[field] \
                            for field in cell_dict.keys()} for entry in csv_reader}
 
-         fields = _annotate(fields, cell_dict.values())
+        fields = _annotate(fields, cell_dict.values())
         _append_table = lambda sequence_id: anntab_dict[sequence_id]
 
     # Set pass criteria
