@@ -167,7 +167,6 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
     # Additional annotation (e.g. 10X cell calls)
     if ann10X_file is not None:
         with open(ann10X_file) as csv_file:
-
             # Read in annotation file (use Sniffer to discover file delimiters)
             dialect = csv.Sniffer().sniff(csv_file.readline())
             csv_file.seek(0) 
@@ -175,7 +174,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
             
             # Generate annotation dictionary
             anntab_dict = {entry['contig_id']: {cell_dict[field]: entry[field] \
-                for field in cell_dict.keys()} for entry in csv_reader}
+                           for field in cell_dict.keys()} for entry in csv_reader}
 
         fields.extend([field for field in cell_dict.values()])
         _additional_annotation = lambda sequence_id: anntab_dict[sequence_id]
@@ -200,9 +199,6 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
     # Validate and write output
     printProgress(0, total_count, 0.05, start_time=start_time)
     for i, record in enumerate(records, start=1):
-        # Code for adding additional annotation fields from csv/tsv file
-        record.annotations = _additional_annotation(record.sequence_id)
-
         # Replace sequence description with full string, if required
         if id_dict is not None and record.sequence_id in id_dict:
             record.sequence_id = id_dict[record.sequence_id]
@@ -225,12 +221,14 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
                 asis_id = True
                 printWarning('Sequence annotation format not recognized. Sequence headers will not be parsed.')
 
+        # Code for adding additional annotation fields from csv/tsv file
+        record.annotations = _additional_annotation(record.sequence_id)
+
         # Count pass or fail and write to appropriate file
         if _pass(record):
             pass_count += 1
 
-            # Write row to 
-
+            # Write row to pass file
             try:
                 pass_writer.writeReceptor(record)
             except AttributeError:
