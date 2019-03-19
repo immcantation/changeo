@@ -89,8 +89,9 @@ def getSeqDict(seq_file):
     return seq_dict
 
 
-def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
-            id_dict=None, partial=False, asis_id=True, writer=ChangeoWriter, out_file=None, out_args=default_out_args):
+def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
+            id_dict=None, partial=False, asis_id=True, writer=ChangeoWriter,
+            out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
     
@@ -213,7 +214,9 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
                 for k, v in ann_raw.items():
                     ann_parsed[ChangeoSchema.toReceptor(k)] = v
 
-                # If first record, use parsed description to define extra column            
+                # If first record, use parsed description to define extra column
+                if i == 1:  fields = _annotate(fields, ann_parsed.keys())
+
                 record.setDict(ann_parsed, parse=True)
             except IndexError:
                 # Could not parse pRESTO-style annotations so fall back to no parse
@@ -237,7 +240,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file = None,
         else:
             fail_count += 1
             # Write row to fail file if specified
-            if out_args['failed']:         
+            if out_args['failed']:
                 try:
                     fail_writer.writeReceptor(record)
                 except AttributeError:
