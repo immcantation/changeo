@@ -634,7 +634,11 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
                     clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
 
-        clonef.write(">%s_GERM\n" % clones[0].clone)
+        germ_id = []
+        if meta_data is not None:
+            for i in range(0,len(meta_data)):
+                germ_id.append("GERM")
+        clonef.write(">%s_%s\n" % (clones[0].clone,"_".join(germ_id)))
         for i in range(0, len(newgerm)):
             clonef.write("%s" % newgerm[i].replace(".","-"))
         clonef.write("\n")
@@ -891,7 +895,7 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
 
 # Run IgPhyML on outputed data
 def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e",
-               oformat="txt", nohlp=False, parstop=False, recon=None):
+               oformat="txt", nohlp=False, parstop=False, recon=None,mdpos=0):
     """
     Run IgPhyML on outputted data
 
@@ -923,7 +927,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     else:
         hlp_args = ["igphymlp","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
                     "n", "--omega", omega, "-t", kappa, "--motifs", "WRC_2:0", "--hotness", str(0), "--oformat",
-                    oformat,"--recon",recon]
+                    oformat,"--recon",recon,"--mdpos",str(mdpos)]
 
     try: #check for igphyml executable
         subprocess.check_output(["igphyml"])
@@ -932,6 +936,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     try: #get GY94 starting topologies
         p = subprocess.check_output(gy_args)
     except subprocess.CalledProcessError as e:
+        print(" ".join(gy_args))
         print('error>', e.output, '<')
         printError("GY94 tree building in IgPhyML failed")
 
@@ -939,6 +944,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
         try: #estimate HLP parameters/trees
             p = subprocess.check_output(hlp_args)
         except subprocess.CalledProcessError as e:
+            print(" ".join(hlp_args))
             print('error>', e.output, '<')
             printError("HLP tree building failed")
         #if oformat == "tab":
@@ -950,7 +956,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
 def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
                igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",recon=None,
-               hotness="e,e,e,e,e,e", oformat="txt", parstop=False,  bootstrap=False, nproc=1, cleanboot=False,
+               hotness="e,e,e,e,e,e", oformat="txt", mdpos=0, parstop=False, bootstrap=False, nproc=1, cleanboot=False,
                   format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
@@ -1112,7 +1118,11 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
         outfile = os.path.join(clone_dir, "%s.fasta" % key)
         partfile = os.path.join(clone_dir, "%s.part.txt" % key)
         if clonesizes[key] > 0:
-            pass_handle.write("%s\t%s\t%s\t%s\n" % (outfile, "N", key+"_GERM", partfile))
+            germ_id = []
+            if meta_data is not None:
+                for i in range(0, len(meta_data)):
+                    germ_id.append("GERM")
+            pass_handle.write("%s\t%s\t%s_%s\t%s\n" % (outfile, "N", key,"_".join(germ_id), partfile))
 
     handle.close()
     output = {"pass": None, "fail": None}
@@ -1147,7 +1157,7 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
     #Run IgPhyML on outputted data?
     if igphyml:
         runIgPhyML(pass_handle.name, threads=threads, optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
-                   hotness=hotness, oformat=oformat,nohlp=nohlp,recon=recon,parstop=parstop)
+                   hotness=hotness, oformat=oformat,nohlp=nohlp,recon=recon,parstop=parstop,mdpos=mdpos)
 
     if bootstrap and cleanboot:
         subprocess.check_call(["rm","-R",clone_dir])
@@ -1259,6 +1269,8 @@ def getArgParser():
     igphyml_group.add_argument("--recon", action="store", dest="recon", type=str, default=None,
                                help="""Experimental""")
     igphyml_group.add_argument("--parstop", action="store_true", dest="parstop",
+                               help="""Experimental""")
+    igphyml_group.add_argument("--mdpos", action="store", dest="mdpos",type=int,
                                help="""Experimental""")
     return parser
 
