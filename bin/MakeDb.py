@@ -28,7 +28,7 @@ from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperato
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # Mapping of 10X annotations to Receptor attributes
-cell_dict = {'barcode': 'cell',
+cell_dict = {'barcode': 'cell_id',
              'c_gene': 'c_call',
              'chain': 'locus',
              'umis': 'conscount'}
