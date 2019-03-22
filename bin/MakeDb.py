@@ -27,7 +27,7 @@ from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperato
                        AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
-# Mapping of 10X annotations to AIRR attributes
+# Mapping of 10X annotations to Receptor attributes
 cell_dict = {'barcode': 'cell',
              'c_gene': 'c_call',
              'chain': 'locus',
@@ -214,7 +214,7 @@ def writeDb(records, fields, aligner_file, total_count, ann10X_file=None,
                 for k, v in ann_raw.items():
                     ann_parsed[ChangeoSchema.toReceptor(k)] = v
 
-                # Sdd annotations to Receptor and update field list
+                # Add annotations to Receptor and update field list
                 record.setDict(ann_parsed, parse=True)
                 if i == 1:  fields = _annotate(fields, ann_parsed.keys())
             except IndexError:
