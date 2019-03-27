@@ -941,12 +941,12 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
         printError("GY94 tree building in IgPhyML failed")
 
     if not nohlp:
-        """try: #estimate HLP parameters/trees
+        try: #estimate HLP parameters/trees
             p = subprocess.check_output(hlp_args)
         except subprocess.CalledProcessError as e:
             print(" ".join(hlp_args))
             print('error>', e.output, '<')
-            printError("HLP tree building failed")"""
+            printError("HLP tree building failed")
         if recon is not None:
             try:  # estimate HLP parameters/trees
                 hlp_args.append("--run_id")
