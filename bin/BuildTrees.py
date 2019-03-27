@@ -949,7 +949,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
             printError("HLP tree building failed")"""
         if recon is not None:
             try:  # estimate HLP parameters/trees
-                hlp_args.append("--runid")
+                hlp_args.append("--run_id")
                 hlp_args.append("permute")
                 hlp_args.append("--permute")
                 p = subprocess.check_output(hlp_args)
