@@ -947,6 +947,16 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
             print(" ".join(hlp_args))
             print('error>', e.output, '<')
             printError("HLP tree building failed")
+        if recon is not None:
+            try:  # estimate HLP parameters/trees
+                hlp_args.append("--run_id")
+                hlp_args.append("permute")
+                hlp_args.append("--permute")
+                p = subprocess.check_output(hlp_args)
+            except subprocess.CalledProcessError as e:
+                print(" ".join(hlp_args))
+                print('error>', e.output, '<')
+                printError("HLP tree building failed")
         #if oformat == "tab":
         #    print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.tab\n")
         #else:
@@ -957,7 +967,7 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
 def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
                igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",recon=None,
                hotness="e,e,e,e,e,e", oformat="txt", mdpos=0, parstop=False, bootstrap=False, nproc=1, cleanboot=False,
-                  format=default_format, out_args=default_out_args):
+            append=None, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1075,6 +1085,10 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
 
         r.sequence_id = r.sequence_id.replace(",","-") #remove commas from sequence ID
         r.sequence_id = r.sequence_id.replace(":","-") #remove colons from sequence ID
+        if append is not None:
+            if append is not None:
+                for m in append:
+                    r.sequence_id = r.sequence_id + "_" + r.getField(m)
         total += maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
         if total == sample_depth:
             break
@@ -1245,6 +1259,8 @@ def getArgParser():
                        help="""Number of threads for parallelizing bootstrap replicates""")
     group.add_argument("--cleanboot", action="store_true", dest="cleanboot",
                        help="""If specified, remove bootstrapped intermediate files""")
+    group.add_argument("--append", nargs="+", action="store", dest="append",
+                       help="""List of columns to append to sequence ID to ensure uniqueness.""")
 
     igphyml_group = parser.add_argument_group("IgPhyML arguments (see igphyml -h for details)")
     igphyml_group.add_argument("--igphyml", action="store_true", dest="igphyml",
