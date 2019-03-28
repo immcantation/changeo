@@ -99,7 +99,7 @@ V segment call, J segment call, and junction sequence as a single comma delimite
 	light_cluster.py heavy_select-pass_clone-pass.tab light_select-pass.tab \
 	    10X_clone-pass.tab CELL,CLONE,V_CALL,J_CALL,JUNCTION
 
-The algorithm will correct heavy chain clone definitions based on an analysis of the light chain partners associated
+The algorithm will (1) remove cells associated with more than one heavy chain and (2) correct heavy chain clone definitions based on an analysis of the light chain partners associated
 with the heavy chain clone. 
 
 
