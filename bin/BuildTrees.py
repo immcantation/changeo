@@ -821,7 +821,7 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
         #If IMGT regions are provided, record their positions
         regions = getRegions(r.sequence_imgt, r.junction_length)
         #print(regions["cdr1_imgt"]+regions["fwr4_imgt"])
-        if regions["cdr3_imgt"] is not "":
+        if regions["cdr3_imgt"] is not "" and regions["cdr3_imgt"] is not None:
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
             if len(simgt) < len(r.sequence_imgt):
@@ -901,7 +901,8 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
 
     Arguments:
       outfile (str): Output file name.
-      threads (int): Number of threads to parallelize IgPhyML across
+      threads (int): Number of threads to parallelize IgPhyML across	writeChangeoDb(data,file="sim.tab")
+
       optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.
       omega (str): Omega parameters to estimate.
       kappa (str): Kappa parameters to estimate.
@@ -1227,7 +1228,7 @@ def getArgParser():
 
              required fields:
                  SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_IMGT,
-                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL
+                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL, CLONE
               """)
 
     # Parent parser
