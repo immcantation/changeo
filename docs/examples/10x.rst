@@ -52,7 +52,8 @@ Joining Change-O data with 10X V(D)J annotations
 
 :ref:`Change-O <Standard>` compliant TSV files can also be merged without the use of :ref:`MakeDb`. 
 This approach involves a simple join operation such that columns specific to 10X are appended with ``_10X``. 
-For instance, Cell Ranger V, D and J segment assignments are retained using this approach (as ``V_GENE_10X``,``D_GENE_10X``, ``J_GENE_10X``). 
+For instance, Cell Ranger V, D and J segment assignments are retained using this approach (as ``V_GENE_10X``,
+``D_GENE_10X``, ``J_GENE_10X``).
 
 A simple script to perform the merge,
 `merge10x.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__,
@@ -61,7 +62,7 @@ in the ``scripts`` directory. The following example shows how to merge the
 Change-O file (``10x_igblast_db-pass.tab``) with a 10X annotation file
 (``filtered_contig_annotations.csv``) and save it as ``10x_annotated_db-pass.tab``::
 
-	merge10x.py 10x_igblast_db-pass.tab filtered_contig_annotations.csv 10x_annotated_db-pass.tab
+    merge10x.py 10x_igblast_db-pass.tab filtered_contig_annotations.csv 10x_annotated_db-pass.tab
 
 Identifying clones from B cells in Change-O format 10X V(D)J data
 --------------------------------------------------------------------------------
@@ -69,37 +70,36 @@ Identifying clones from B cells in Change-O format 10X V(D)J data
 To group B cells into clones from Change-O format data, the output from :ref:`MakeDb` must be parsed into a light chain
 :ref:`Change-O <Standard>` file and a heavy chain :ref:`Change-O <Standard>` file::
 
-	ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IGH" \
+    ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IGH" \
 	    --logic all --regex --outname heavy
-	ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IG[LK]" \
+    ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IG[LK]" \
 	    --logic all --regex --outname light
 
 The heavy chain file must then be clonally clustered separately. See below for further details.
 
 .. seealso::
 
-	See `Assigning clones <http://shazam.readthedocs.io/en/latest/examples/cloning.html>`__
-	for futher details on clustering the heavy chain output. 
+    See `Assigning clones <http://shazam.readthedocs.io/en/latest/examples/cloning.html>`__
+    for futher details on clustering the heavy chain output.
 
-:ref:`DefineClones` currently does not support light chain cloning. However cloning can be performed after heavy chain cloning
-using `light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__  
+:ref:`DefineClones` currently does not support light chain cloning. However cloning can be performed after
+heavy chain cloning using `light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__
 provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory::
 
-	light_cluster.py heavy_select-pass_clone-pass.tab light_select-pass.tab \
-	    10X_clone-pass.tab
+    light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
+	    -o 10X_clone-pass.tab
 
 Here, ``heavy_select-pass_clone-pass.tab`` refers to the cloned heavy chain Change-O format file.
 ``light_select-pass.tab`` refers to the light chain Change-O format file, and
 ``10X_clone-pass.tab`` is the resulting output file.
 
-Optionally, a fourth argument may be provided that defines the column names for cell id, clone id,
-V segment call, J segment call, and junction sequence as a single comma delimited string::
+By default, ``light_chain.py` expects the Change-O columns ``V_CALL, ``J_CALL``, ``LOCUS``, ``CELL`` and ``CLONE``.
+To process `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_
+(`v_call`, `j_call`, `locus`, `cell_id` and `clone_id`), add the ``--format airr`` argument::
 
-	light_cluster.py heavy_select-pass_clone-pass.tab light_select-pass.tab \
-	    10X_clone-pass.tab CELL,CLONE,V_CALL,J_CALL,JUNCTION
+    light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
+	    -o 10X_clone-pass.tab --format airr
 
-The algorithm will (1) remove cells associated with more than one heavy chain and (2) correct heavy chain clone definitions based on an analysis of the light chain partners associated
-with the heavy chain clone. 
-
-
+The algorithm will (1) remove cells associated with more than one heavy chain and (2) correct heavy chain
+clone definitions based on an analysis of the light chain partners associated with the heavy chain clone.
