@@ -573,7 +573,7 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         useqs_f (dict): unique sequences mapped to ids.
         meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
         clones (list) : list of receptor objects.
-        collpase (bool) : deduplicate sequences.
+        collapse (bool) : deduplicate sequences.
         nseqs (int): number of sequences.
         delim (str) : delimiter for extracting metadata from ID.
         newgerm (str) : modified germline of clonal lineage.
@@ -634,9 +634,9 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
                     clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
 
-        germ_id = []
+        germ_id = ["GERM"]
         if meta_data is not None:
-            for i in range(0,len(meta_data)):
+            for i in range(1,len(meta_data)):
                 germ_id.append("GERM")
         clonef.write(">%s_%s\n" % (clones[0].clone,"_".join(germ_id)))
         for i in range(0, len(newgerm)):
@@ -913,12 +913,12 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     osplit = outfile.split(".")
     outrep = "".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
     if parstop:
-        outrep = "".join(osplit[0:(len(osplit) - 1)]) + "_pars.tsv"
+        outrep = "".join(osplit[0:(len(osplit) - 1)]) + "_raxml.tsv"
 
     gy_args = ["igphyml", "--repfile", outfile, "-m", "GY", "--run_id", "gy", "--outrep", outrep, "--threads",
                str(threads)]
     if parstop:
-        gy_args = ["makeParsTrees.R",  outfile]
+        gy_args = ["makeParsTrees.R",  outfile,"raxml"]
 
     hlp_args = ["igphyml","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
                 optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness, "--oformat",
@@ -1133,9 +1133,9 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
         outfile = os.path.join(clone_dir, "%s.fasta" % key)
         partfile = os.path.join(clone_dir, "%s.part.txt" % key)
         if clonesizes[key] > 0:
-            germ_id = []
+            germ_id = ["GERM"]
             if meta_data is not None:
-                for i in range(0, len(meta_data)):
+                for i in range(1, len(meta_data)):
                     germ_id.append("GERM")
             pass_handle.write("%s\t%s\t%s_%s\t%s\n" % (outfile, "N", key,"_".join(germ_id), partfile))
 
