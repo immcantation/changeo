@@ -911,7 +911,8 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
 
     """
     osplit = outfile.split(".")
-    outrep = "".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
+    outrep = ".".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
+    print(outrep)
     if parstop:
         outrep = "".join(osplit[0:(len(osplit) - 1)]) + "_raxml.tsv"
 
