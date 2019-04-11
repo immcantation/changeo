@@ -70,6 +70,7 @@ ASN submission files are generated using the :program:`genbank` subcommand of
 
     ConvertDb.py genbank -d S43_update.tab \
         --product "immunoglobulin heavy chain" \
+        --db "IMGT/GENE-DB" \
         --inf "IgBLAST:1.7.0" \
         --organism "Homo sapiens" \
         --tissue "Peripheral blood" \

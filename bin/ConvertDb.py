@@ -534,7 +534,7 @@ def convertToFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
 
 
 def makeGenbankFeatures(record, start=None, end=None, product=default_product,
-                        inference=None, db_xref=default_db_xref,
+                        inference=None, db_xref=None,
                         c_field=None, allow_stop=False, asis_calls=False,
                         allele_delim=default_allele_delim):
     """
@@ -616,8 +616,9 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     c_region_length = len(record.sequence_input[(c_region_start + start_trim - 1):]) - end_trim
     if c_region_length > 0:
         if c_gene is not None:
-            c_region = [('gene', c_gene),
-                        ('db_xref', '%s:%s' % (db_xref, c_gene))]
+            c_region = [('gene', c_gene)]
+            if db_xref is not None:
+                c_region.append(('db_xref', '%s:%s' % (db_xref, c_gene)))
         else:
             c_region = []
 
@@ -1049,77 +1050,78 @@ def getArgParser():
                                        description='Creates files for GenBank/TLS submissions.')
     # Genbank source information arguments
     group_gb_src = parser_gb.add_argument_group('source information arguments')
-    group_gb_src.add_argument('--product', action='store', dest='product', default=default_product,
-                          help='''The product name, such as "immunoglobulin heavy chain".''')
-    group_gb_src.add_argument('--inf', action='store', dest='inference', default=None,
-                          help='''Name and version of the inference tool used for reference alignment in the 
-                               form tool:version.''')
-    group_gb_src.add_argument('--db', action='store', dest='db_xref', default=default_db_xref,
-                          help='Name of the reference database used for alignment.')
     group_gb_src.add_argument('--mol', action='store', dest='molecule', default=default_molecule,
-                          help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+                              help='''The source molecule type. Usually one of "mRNA" or "genomic DNA".''')
+    group_gb_src.add_argument('--product', action='store', dest='product', default=default_product,
+                              help='''The product name, such as "immunoglobulin heavy chain".''')
+    group_gb_src.add_argument('--db', action='store', dest='db_xref', default=None,
+                              help='''Name of the reference database used for alignment. 
+                                   Usually "IMGT/GENE-DB".''')
+    group_gb_src.add_argument('--inf', action='store', dest='inference', default=None,
+                              help='''Name and version of the inference tool used for reference alignment in the 
+                                   form tool:version.''')
     # Genbank sample information arguments
     group_gb_sam = parser_gb.add_argument_group('sample information arguments')
     group_gb_sam.add_argument('--organism', action='store', dest='organism', default=None,
-                          help='The scientific name of the organism.')
+                              help='The scientific name of the organism.')
     group_gb_sam.add_argument('--sex', action='store', dest='sex', default=None,
-                          help='''If specified, adds the given sex annotation 
-                               to the fasta headers.''')
+                              help='''If specified, adds the given sex annotation 
+                                   to the fasta headers.''')
     group_gb_sam.add_argument('--isolate', action='store', dest='isolate', default=None,
-                          help='''If specified, adds the given isolate annotation 
-                               (sample label) to the fasta headers.''')
+                              help='''If specified, adds the given isolate annotation 
+                                   (sample label) to the fasta headers.''')
     group_gb_sam.add_argument('--tissue', action='store', dest='tissue', default=None,
-                          help='''If specified, adds the given tissue-type annotation 
-                               to the fasta headers.''')
+                              help='''If specified, adds the given tissue-type annotation 
+                                   to the fasta headers.''')
     group_gb_sam.add_argument('--cell-type', action='store', dest='cell_type', default=None,
-                          help='''If specified, adds the given cell-type annotation 
-                               to the fasta headers.''')
+                              help='''If specified, adds the given cell-type annotation 
+                                   to the fasta headers.''')
     group_gb_sam.add_argument('-y', action='store', dest='yaml_config', default=None,
-                          help='''A yaml file specifying sample features (BioSample attributes) 
-                               in the form \'variable: value\'. If specified, any features provided in the 
-                               yaml file will override those provided at the commandline. Note,
-                               this config file applies to sample features only and
-                               cannot be used for required source features such as 
-                               the --product or --mol argument.''')
+                              help='''A yaml file specifying sample features (BioSample attributes) 
+                                   in the form \'variable: value\'. If specified, any features provided in the 
+                                   yaml file will override those provided at the commandline. Note,
+                                   this config file applies to sample features only and
+                                   cannot be used for required source features such as 
+                                   the --product or --mol argument.''')
     # General genbank conversion arguments
     group_gb_cvt = parser_gb.add_argument_group('conversion arguments')
     group_gb_cvt.add_argument('--label', action='store', dest='label', default=None,
                               help='''If specified, add a field name to the sequence identifier. 
-                                Sequence identifiers will be output in the form <label>=<id>.''')
+                                   Sequence identifiers will be output in the form <label>=<id>.''')
     group_gb_cvt.add_argument('--cf', action='store', dest='c_field', default=None,
                               help='''Field containing the C region call. If unspecified, the C region gene 
-                                call will be excluded from the feature table.''')
+                                   call will be excluded from the feature table.''')
     group_gb_cvt.add_argument('--nf', action='store', dest='count_field', default=None,
                               help='''If specified, use the provided column to add the AIRR_READ_COUNT 
-                                note to the feature table.''')
+                                   note to the feature table.''')
     group_gb_cvt.add_argument('--if', action='store', dest='index_field', default=None,
                               help='''If specified, use the provided column to add the AIRR_CELL_INDEX 
-                                note to the feature table.''')
+                                   note to the feature table.''')
     group_gb_cvt.add_argument('--allow-stop', action='store_true', dest='allow_stop',
                               help='''If specified, retain records in the output with stop codons in the junction region.
-                                In such records the CDS will be removed and replaced with a similar misc_feature in 
-                                the feature table.''')
+                                   In such records the CDS will be removed and replaced with a similar misc_feature in 
+                                   the feature table.''')
     group_gb_cvt.add_argument('--asis-id', action='store_true', dest='asis_id',
                               help='''If specified, use the existing sequence identifier for the output identifier. 
-                                By default, only the row number will be used as the identifier to avoid
-                                the 50 character limit.''')
+                                   By default, only the row number will be used as the identifier to avoid
+                                   the 50 character limit.''')
     group_gb_cvt.add_argument('--asis-calls', action='store_true', dest='asis_calls',
                               help='''Specify to prevent alleles from being parsed using the IMGT nomenclature.
-                                Note, this requires the gene assignments to be exact matches to valid 
-                                records in the references database specified by the --db argument.''')
+                                   Note, this requires the gene assignments to be exact matches to valid 
+                                   records in the references database specified by the --db argument.''')
     group_gb_cvt.add_argument('--allele-delim', action='store', dest='allele_delim', default=default_allele_delim,
                               help='''The delimiter to use for splitting the gene name from the allele number.
-                                Note, this only applies when specifying --asis-calls. By default,
-                                this argument will be ignored and allele numbers extracted under the
-                                expectation of IMGT nomenclature consistency.''')
+                                   Note, this only applies when specifying --asis-calls. By default,
+                                   this argument will be ignored and allele numbers extracted under the
+                                   expectation of IMGT nomenclature consistency.''')
     group_gb_cvt.add_argument('--asn', action='store_true', dest='build_asn',
-                          help='''If specified, run tbl2asn to generate the .sqn submission file after making 
-                               the .fsa and .tbl files.''')
+                              help='''If specified, run tbl2asn to generate the .sqn submission file after making 
+                                   the .fsa and .tbl files.''')
     group_gb_cvt.add_argument('--sbt', action='store', dest='asn_template', default=None,
-                          help='''If provided along with --asn, use the specified file for the template file
-                               argument to tbl2asn.''')
+                              help='''If provided along with --asn, use the specified file for the template file
+                                   argument to tbl2asn.''')
     group_gb_cvt.add_argument('--exec', action='store', dest='tbl2asn_exec', default=default_tbl2asn_exec,
-                          help='The name or location of the tbl2asn executable.')
+                              help='The name or location of the tbl2asn executable.')
     parser_gb.set_defaults(func=convertToGenbank)
 
     return parser
