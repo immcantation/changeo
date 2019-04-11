@@ -838,8 +838,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, molecule=default_mol
     try:
         required = ['sequence_input',
                     'v_call', 'd_call', 'j_call',
-                    'v_seq_start', 'd_seq_start', 'j_seq_start',
-                    'np1_length', 'np2_length']
+                    'v_seq_start', 'd_seq_start', 'j_seq_start']
         checkFields(required, db_iter.fields, schema=schema)
     except LookupError as e:
         printError(e)

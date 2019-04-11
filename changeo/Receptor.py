@@ -138,6 +138,8 @@ class AIRRSchema:
                                ('fwr2', 'fwr2_imgt'),
                                ('fwr3', 'fwr3_imgt'),
                                ('fwr4', 'fwr4_imgt'),
+                               ('junction_start', 'junction_start'),
+                               ('junction_end', 'junction_end'),
                                ('cdr1_start', 'cdr1_start'),
                                ('cdr1_end', 'cdr1_end'),
                                ('cdr2_start', 'cdr2_start'),
@@ -246,7 +248,8 @@ class ChangeoSchema:
     standard_fields = list(_standard_map.keys())
 
     # Custom fields
-    _custom_map = OrderedDict([('V_SCORE', 'v_score'),
+    _custom_map = OrderedDict([('JUNCTION_START', 'junction_start'),
+                               ('V_SCORE', 'v_score'),
                                ('V_IDENTITY', 'v_identity'),
                                ('V_EVALUE', 'v_evalue'),
                                ('V_BTOP', 'v_btop'),
@@ -342,6 +345,7 @@ class ReceptorData:
 
       junction (Bio.Seq.Seq): ungapped junction region nucletide sequence.
       junction_aa (Bio.Seq.Seq): ungapped junction region amino acid sequence.
+      junction_start (int): start positions of the junction in the input nucleotide sequence.
       junction_length (int): length of the junction in nucleotides.
 
       germline_vdj (Bio.Seq.Seq): full ungapped germline V(D)J nucleotide sequence.
@@ -460,6 +464,7 @@ class ReceptorData:
                'sequence_vdj': 'nucleotide',
                'junction': 'nucleotide',
                'junction_aa': 'aminoacid',
+               'junction_start': 'integer',
                'junction_length': 'integer',
                'germline_imgt': 'nucleotide',
                'germline_imgt_d_mask': 'nucleotide',
@@ -535,6 +540,7 @@ class ReceptorData:
                        ('d_germ_start', 'd_germ_length', 'd_germ_end'),
                        ('j_seq_start', 'j_seq_length', 'j_seq_end'),
                        ('j_germ_start', 'j_germ_length', 'j_germ_end'),
+                       ('junction_start', 'junction_length', 'junction_end')
                        ('fwr1_start', 'fwr1_length', 'fwr1_end'),
                        ('fwr2_start', 'fwr2_length', 'fwr2_end'),
                        ('fwr3_start', 'fwr3_length', 'fwr3_end'),
@@ -621,10 +627,21 @@ class Receptor:
     _derived = {'v_seq_end': 'integer',
                 'v_germ_end_vdj': 'integer',
                 'v_germ_end_imgt': 'integer',
+                'd_seq_end': 'integer',
+                'd_germ_end': 'integer',
                 'j_seq_end': 'integer',
                 'j_germ_end': 'integer',
-                'd_seq_end': 'integer',
-                'd_germ_end': 'integer'}
+                'junction_end': 'integer'}
+
+    def _junction_start(self):
+        """
+        Determine the position of the first junction nucleotide in the input sequence
+        """
+        try:
+            x = self.v_germ_end_imgt - 310
+            return self.v_seq_end - x if x >= 0 else None
+        except TypeError:
+            return None
 
     def __init__(self, data):
         """
@@ -655,6 +672,10 @@ class Receptor:
         for k in optional_keys:
             f = getattr(ReceptorData, ReceptorData.parsers[k])
             setattr(self, k, f(data.pop(k, None)))
+
+        # Derive junction_start if not provided
+        if not hasattr(self, 'junction_start'):
+            setattr(self, 'junction_start', self._junction_start(self))
 
         # Add remaining elements as annotations dictionary
         self.annotations = data
@@ -1057,7 +1078,7 @@ class Receptor:
     @property
     def v_seq_end(self):
         """
-        position of the last V nucleotide in the input sequence.
+        Position of the last V nucleotide in the input sequence
         """
         try:  return self.v_seq_start + self.v_seq_length - 1
         except TypeError:  return None
@@ -1065,7 +1086,7 @@ class Receptor:
     @property
     def v_germ_end_imgt(self):
         """
-        position of the last nucleotide in the IMGT-gapped V germline sequence alignment.
+        Position of the last nucleotide in the IMGT-gapped V germline sequence alignment
         """
         try:  return self.v_germ_start_imgt + self.v_germ_length_imgt - 1
         except TypeError:  return None
@@ -1073,7 +1094,7 @@ class Receptor:
     @property
     def v_germ_end_vdj(self):
         """
-        position of the last nucleotide in the ungapped V germline sequence alignment.
+        Position of the last nucleotide in the ungapped V germline sequence alignment
         """
         try:  return self.v_germ_start_vdj + self.v_germ_length_vdj - 1
         except TypeError:  return None
@@ -1081,7 +1102,7 @@ class Receptor:
     @property
     def d_seq_end(self):
         """
-        position of the last D nucleotide in the input sequence.
+        Position of the last D nucleotide in the input sequence
         """
         try:  return self.d_seq_start + self.d_seq_length - 1
         except TypeError:  return None
@@ -1089,7 +1110,7 @@ class Receptor:
     @property
     def d_germ_end(self):
         """
-        position of the last nucleotide in the D germline sequence alignment.
+        Position of the last nucleotide in the D germline sequence alignment
         """
         try:  return self.d_germ_start + self.d_germ_length - 1
         except TypeError:  return None
@@ -1097,7 +1118,7 @@ class Receptor:
     @property
     def j_seq_end(self):
         """
-        position of the last J nucleotide in the input sequence.
+        Position of the last J nucleotide in the input sequence
         """
         try:  return self.j_seq_start + self.j_seq_length - 1
         except TypeError:  return None
@@ -1105,26 +1126,15 @@ class Receptor:
     @property
     def j_germ_end(self):
         """
-        position of the last nucleotide in the J germline sequence alignment.
+        Position of the last nucleotide in the J germline sequence alignment
         """
         try:  return self.j_germ_start + self.j_germ_length - 1
         except TypeError:  return None
 
     @property
-    def junction_start(self):
-        """
-        position of the first junction nucleotide in the input sequence.
-        """
-        try:
-            x = self.v_germ_end_imgt - 310
-            return self.v_seq_end - x if x >= 0 else None
-        except TypeError:
-            return None
-
-    @property
     def junction_end(self):
         """
-        position of the last junction nucleotide in the input sequence.
+        Position of the last junction nucleotide in the input sequence
         """
         try:
             gaps = self.junction.count('.')
