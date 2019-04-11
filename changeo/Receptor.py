@@ -540,7 +540,7 @@ class ReceptorData:
                        ('d_germ_start', 'd_germ_length', 'd_germ_end'),
                        ('j_seq_start', 'j_seq_length', 'j_seq_end'),
                        ('j_germ_start', 'j_germ_length', 'j_germ_end'),
-                       ('junction_start', 'junction_length', 'junction_end')
+                       ('junction_start', 'junction_length', 'junction_end'),
                        ('fwr1_start', 'fwr1_length', 'fwr1_end'),
                        ('fwr2_start', 'fwr2_length', 'fwr2_end'),
                        ('fwr3_start', 'fwr3_length', 'fwr3_end'),
