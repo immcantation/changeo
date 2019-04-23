@@ -1,6 +1,17 @@
 Release Notes
 ===============================================================================
 
+Version 0.4.5.999:  April 23, 2019
+-------------------------------------------------------------------------------
+
+DefineClones:
+
++ Fixed a biopython warning arising when applying `--model aa` to junction
+  sequences that are not a multiple of three. The junction will now be
+  padded with an appropriate number of Ns (usually resulting in a translation
+  to X).
+
+
 Version 0.4.5:  January 9, 2019
 -------------------------------------------------------------------------------
 
