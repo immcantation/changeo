@@ -297,7 +297,11 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
     for rec in result.data_pass:
         seq = rec.getField(seq_field)
         seq = re.sub('[\.-]', 'N', seq)
-        if model == 'aa':  seq = translate(seq)
+        # Translate sequence for amino acid model
+        if model == 'aa':
+            # Check for valid translation
+            if len(seq) % 3 > 0:  seq = seq + 'N' * (3 - len(seq) % 3)
+            seq = translate(seq)
         seq_map.setdefault(seq, []).append(rec)
 
     # Define sequences
