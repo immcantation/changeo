@@ -23,7 +23,7 @@ from functools import partial
 from presto.Defaults import default_out_args
 from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
-from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle
+from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName
 from changeo.Alignment import getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
@@ -894,13 +894,14 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
     return 0
 
 # Run IgPhyML on outputed data
-def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", hotness="e,e,e,e,e,e",
-               oformat="txt", nohlp=False, parstop=False, recon=None,mdpos=0):
+def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
+               hotness="e,e,e,e,e,e",oformat="tab", nohlp=False, parstop=False, recon=None, mdpos=0, clean="none"):
     """
     Run IgPhyML on outputted data
 
     Arguments:
       outfile (str): Output file name.
+      igphymlout (str): igphyml output file
       threads (int): Number of threads to parallelize IgPhyML across	writeChangeoDb(data,file="sim.tab")
 
       optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.
@@ -912,24 +913,27 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
     """
     osplit = outfile.split(".")
     outrep = ".".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
-    print(outrep)
+    gyout = outfile + "_igphyml_stats_gy.txt"
+
     if parstop:
         outrep = "".join(osplit[0:(len(osplit) - 1)]) + "_raxml.tsv"
 
     gy_args = ["igphyml", "--repfile", outfile, "-m", "GY", "--run_id", "gy", "--outrep", outrep, "--threads",
-               str(threads)]
+               str(threads),"--outname",gyout]
     if parstop:
         gy_args = ["makeParsTrees.R",  outfile,"raxml"]
 
     hlp_args = ["igphyml","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
                 optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness, "--oformat",
-                oformat]
-    if recon is None:
-        hlp_args.insert(0,"igphyml")
-    else:
+                oformat, "--outname", igphyml_out]
+    if recon is not None:
         hlp_args = ["igphymlp","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
                     "n", "--omega", omega, "-t", kappa, "--motifs", "WRC_2:0", "--hotness", str(0), "--oformat",
                     oformat,"--recon",recon,"--mdpos",str(mdpos)]
+
+    log = OrderedDict()
+    log["START"] = "IgPhyML GY94 tree estimation"
+    printLog(log)
 
     try: #check for igphyml executable
         subprocess.check_output(["igphyml"])
@@ -942,6 +946,15 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
         print('error>', e.output, '<')
         printError("GY94 tree building in IgPhyML failed")
 
+    log = OrderedDict()
+    log["START"] = "IgPhyML HLP analysis"
+    log["OPTIMIZE"] = optimization
+    log["TS/TV"] = kappa
+    log["wFWR,wCDR"] = omega
+    log["MOTIFS"] = motifs
+    log["HOTNESS"] = hotness
+    log["NPROC"] = threads
+    printLog(log)
     if not nohlp:
         try: #estimate HLP parameters/trees
             p = subprocess.check_output(hlp_args)
@@ -959,17 +972,53 @@ def runIgPhyML(outfile, threads=1, optimization="lr", omega="e,e", kappa="e", mo
                 print(" ".join(hlp_args))
                 print('error>', e.output, '<')
                 printError("HLP tree building failed")
-        #if oformat == "tab":
-        #    print("\n. Parameter estimates are in",outrep+"_igphyml_stats_hlp.tab\n")
-        #else:
-        #    print("\n. Parameter estimates are in", outrep + "_igphyml_stats_hlp.txt\n")
+
+    log = OrderedDict()
+    log["OUTPUT"] = igphyml_out
+    if oformat == "tab":
+        igf = open(igphyml_out)
+        names = igf.readline().split("\t")
+        vals = igf.readline().split("\t")
+        for i in range(3,len(names)-1):
+            log[names[i]] = round(float(vals[i]),2)
+    printLog(log)
+
+    if clean != "none":
+        log = OrderedDict()
+        log["START"] = "CLEANING"
+        log["SCOPE"] = clean
+        printLog(log)
+        todelete = open(outrep)
+        for line in todelete:
+            line = line.rstrip("\n")
+            line = line.rstrip("\r")
+            lsplit = line.split("\t")
+            if len(lsplit) == 4:
+                os.remove(lsplit[0])
+                os.remove(lsplit[1])
+                os.remove(lsplit[3])
+        todelete.close()
+        os.remove(outrep)
+        os.remove(outfile)
+        os.remove(gyout)
+        cilog = outrep + "_igphyml_CIlog.txt_hlp"
+        if os.path.isfile(cilog):
+            os.remove(cilog)
+        if oformat == "tab":
+            os.rmdir(clone_dir)
+        else:
+            printWarning("Using --clean all with --oformat txt will delete all tree file results.\n"
+                         "You'll have to do that yourself.")
+        log = OrderedDict()
+        log["END"] = "IgPhyML analysis"
+        printLog(log)
 
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
 def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
                igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",recon=None,
-               hotness="e,e,e,e,e,e", oformat="txt", mdpos=0, parstop=False, bootstrap=False, nproc=1, cleanboot=False,
-            append=None, format=default_format, out_args=default_out_args):
+               hotness="e,e,e,e,e,e", oformat="tab", mdpos=0, parstop=False, bootstrap=False, nproc=1, clean="none",
+                cleanboot=False,append=None, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1002,6 +1051,13 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
                                   out_dir=out_args["out_dir"],
                                   out_name= out_args["out_name"],
                                   out_type="tsv")
+
+    igphyml_out = None
+    if igphyml:
+        igphyml_out = getOutputName(db_file, out_label="igphyml-pass",
+                                    out_dir=out_args["out_dir"],
+                                    out_name=out_args["out_name"],
+                                    out_type=oformat)
 
     dir_name, __ = os.path.split(pass_handle.name)
 
@@ -1172,8 +1228,10 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
 
     #Run IgPhyML on outputted data?
     if igphyml:
-        runIgPhyML(pass_handle.name, threads=threads, optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
-                   hotness=hotness, oformat=oformat,nohlp=nohlp,recon=recon,parstop=parstop,mdpos=mdpos)
+        runIgPhyML(pass_handle.name, igphyml_out=igphyml_out, clone_dir=clone_dir, threads=threads,
+                   optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
+                   hotness=hotness, oformat=oformat, nohlp=nohlp, recon=recon, parstop=parstop,
+                   mdpos=mdpos, clean=clean)
 
     if bootstrap and cleanboot:
         subprocess.check_call(["rm","-R",clone_dir])
@@ -1226,10 +1284,13 @@ def getArgParser():
                     successfully processed records.
                  lineages-fail
                     database records failed processing.
+                 igphyml-pass
+                    parameter estimates and lineage trees from running IgPhyML, if specified
 
              required fields:
                  SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_IMGT,
-                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL, CLONE
+                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL, CLONE,
+                 V_SEQ_START
               """)
 
     # Parent parser
@@ -1240,7 +1301,7 @@ def getArgParser():
                             parents=[parser_parent],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
-    group = parser.add_argument_group("tree building arguments")
+    group = parser.add_argument_group("sequence processing arguments")
     group.add_argument("--collapse", action="store_true", dest="collapse",
                         help="""If specified, collapse identical sequences before exporting to fasta.""")
     group.add_argument("--ncdr3", action="store_true", dest="ncdr3",
@@ -1255,35 +1316,41 @@ def getArgParser():
                             number of sequences will be excluded.""")
     group.add_argument("--sample", action="store", dest="sample_depth", type=int, default=-1,
                        help="""Depth of reads to be subsampled (before deduplication).""")
-    group.add_argument("--bootstrap", action="store", dest="bootstrap", type=int, default=0,
-                       help="""Number of bootstrap replicates to perform""")
-    group.add_argument("--nproc", action="store", dest="nproc", type=int, default=1,
-                       help="""Number of threads for parallelizing bootstrap replicates""")
-    group.add_argument("--cleanboot", action="store_true", dest="cleanboot",
-                       help="""If specified, remove bootstrapped intermediate files""")
     group.add_argument("--append", nargs="+", action="store", dest="append",
                        help="""List of columns to append to sequence ID to ensure uniqueness.""")
+    group.add_argument("--bootstrap", action="store", dest="bootstrap", type=int, default=0,
+                       help="""Experimental""")
+    group.add_argument("--cleanboot", action="store_true", dest="cleanboot",
+                       help="""Experimental""")
+    group.add_argument("--nproc", action="store", dest="nproc", type=int, default=1,
+                       help="""Experimental""")
 
     igphyml_group = parser.add_argument_group("IgPhyML arguments (see igphyml -h for details)")
     igphyml_group.add_argument("--igphyml", action="store_true", dest="igphyml",
                        help="""Run IgPhyML on output?""")
-    igphyml_group.add_argument("--nohlp", action="store_true", dest="nohlp",
-                               help="""Don't run HLP model?""")
     igphyml_group.add_argument("--threads", action="store", dest="threads", type=int, default=1,
                        help="""Number of threads to parallelize IgPhyML across""")
+    igphyml_group.add_argument("--clean", action="store", dest="clean", type=str, default="none",
+                               help="""Delete intermediate files? 
+                               none: leave all intermediate files; all: delete all intermediate files""")
     igphyml_group.add_argument("-o", action="store", dest="optimization", type=str, default="lr",
                 help="""Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
-                               help="""Omega parameters to estimate.""")
+                               help="""Omega parameters to estimate for FWR,CDR respectively: 
+                               e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
-                               help="""Kappa parameters to estimate.""")
+                               help="""Kappa parameters to estimate: 
+                               e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
                                default="WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5",
                                help="""Which motifs to estimate mutability.""")
     igphyml_group.add_argument("--hotness", action="store", dest="hotness", type=str, default="e,e,e,e,e,e",
-                               help="""Mutability parameters to estimate.""")
-    igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="txt",
+                               help="""Mutability parameters to estimate: 
+                               e = estimate, ce = estimate + confidence interval""")
+    igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="tab",
                                help="""IgPhyML output format.""")
+    igphyml_group.add_argument("--nohlp", action="store_true", dest="nohlp",
+                               help="""Don't run HLP model?""")
     igphyml_group.add_argument("--recon", action="store", dest="recon", type=str, default=None,
                                help="""Experimental""")
     igphyml_group.add_argument("--parstop", action="store_true", dest="parstop",
