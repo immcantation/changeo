@@ -16,6 +16,7 @@ from changeo.Defaults import default_v_field, default_d_field, default_j_field, 
 allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
 gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*))')
 family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+))')
+locus_regex = re.compile(r'(IG[HLK]|TR[ABGD])')
 
 v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
@@ -23,7 +24,6 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 
 allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
-
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()
 def parseAllele(alleles, regex, action='first'):

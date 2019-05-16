@@ -20,7 +20,7 @@ from Bio.Seq import Seq
 # Presto and changeo imports
 from presto.IO import getFileType, printError, printWarning
 from changeo.Defaults import default_csv_size
-from changeo.Gene import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, \
+from changeo.Gene import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, locus_regex, \
                          parseAllele
 from changeo.Receptor import AIRRSchema, ChangeoSchema, Receptor, ReceptorData
 from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, inferJunction, getRegions
@@ -530,13 +530,23 @@ class IMGTReader:
         delim_regex = re.compile('\sor\s')
 
         # Gene calls
-        result = {}
-        v_call = summary['V-GENE and allele']
-        d_call = summary['D-GENE and allele']
-        j_call = summary['J-GENE and allele']
-        result['v_call'] = delim_regex.sub(',', clean_regex.sub('', v_call)) if v_call else None
-        result['d_call'] = delim_regex.sub(',', clean_regex.sub('', d_call)) if d_call else None
-        result['j_call'] = delim_regex.sub(',', clean_regex.sub('', j_call)) if j_call else None
+        v_str = summary['V-GENE and allele']
+        d_str = summary['D-GENE and allele']
+        j_str = summary['J-GENE and allele']
+        v_call = delim_regex.sub(',', clean_regex.sub('', v_str)) if v_str else None
+        d_call = delim_regex.sub(',', clean_regex.sub('', d_str)) if d_str else None
+        j_call = delim_regex.sub(',', clean_regex.sub('', j_str)) if j_str else None
+
+        # Locus
+        locus_list = [parseAllele(v_call, locus_regex, action='first'),
+                      parseAllele(j_call, locus_regex, action='first')]
+        locus = set(filter(None, locus_list))
+
+        # Result
+        result = {'v_call': v_call,
+                  'd_call': d_call,
+                  'j_call': j_call,
+                  'locus': locus.pop() if len(locus) == 1 else None}
 
         return result
 
@@ -1753,10 +1763,16 @@ class IHMMuneReader:
         d_call = parseAllele(record['D_CALL'], d_allele_regex, action='list')
         j_call = parseAllele(record['J_CALL'], j_allele_regex, action='list')
 
+        # Locus
+        locus_list = [parseAllele(record['V_CALL'], locus_regex, action='first'),
+                      parseAllele(record['J_CALL'], locus_regex, action='first')]
+        locus = set(filter(None, locus_list))
+
         # Build return object
         result = {'v_call': ','.join(v_call) if v_call else None,
                   'd_call': ','.join(d_call) if d_call else None,
-                  'j_call': ','.join(j_call) if j_call else None}
+                  'j_call': ','.join(j_call) if j_call else None,
+                  'locus': locus.pop() if len(locus) == 1 else None}
 
         return result
 
