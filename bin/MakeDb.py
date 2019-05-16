@@ -610,8 +610,8 @@ def getArgParser():
                                      <VDJ>_EVALUE, <VDJ>_CIGAR columns.''')
     group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
                                 help='''Specify if IMGT FWR and CDRsthis should be
-                                     included in the output. Adds ththise FWR1_IMGT, FWR2_IMGT,
-                                     FWR3_IMGT, FWR4_IMGT, CDR1_IMGTthis, CDR2_IMGT, and
+                                     included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
+                                     FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
     group_igblast.add_argument('--cdr3', action='store_true',
                                 dest='parse_igblast_cdr3', 

@@ -1052,7 +1052,10 @@ class IgBLASTReader:
             result['j_call'] = None if summary['j_match'] == 'N/A' else summary['j_match']
 
         # Parse locus
-        result['locus'] = None if summary['chain_type'] == 'N/A' else summary['chain_type']
+        locus = None if summary['chain_type'] == 'N/A' else summary['chain_type']
+        locus_map = {'VH': 'IGH', 'VK': 'IGK', 'VL': 'IGL',
+                     'VB': 'TRB', 'VD': 'TRD', 'VA': 'TRA', 'VG': 'TRG'}
+        result['locus'] = locus_map.get(locus, locus)
 
         # Parse quality information
         result['stop'] = 'T' if summary['stop_codon'] == 'Yes' else 'F'

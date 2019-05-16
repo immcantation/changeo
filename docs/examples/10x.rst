@@ -94,9 +94,17 @@ Here, ``heavy_select-pass_clone-pass.tab`` refers to the cloned heavy chain Chan
 ``light_select-pass.tab`` refers to the light chain Change-O format file, and
 ``10X_clone-pass.tab`` is the resulting output file.
 
-By default, ``light_chain.py` expects the Change-O columns ``V_CALL, ``J_CALL``, ``LOCUS``, ``CELL`` and ``CLONE``.
-To process `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_
-(`v_call`, `j_call`, `locus`, `cell_id` and `clone_id`), add the ``--format airr`` argument::
+        cell_id = 'CELL'
+        clone_id = 'CLONE'
+        v_call = 'V_CALL'
+        j_call = 'J_CALL'
+        junction_length = 'JUNCTION_LENGTH'
+        umi_count = 'CONSCOUNT'
+
+By default, ``light_chain.py`` expects the Change-O columns ``V_CALL, ``J_CALL``, ``JUNCTION_LENGTH``, ``CONSCOUNT``,
+``CELL``, and ``CLONE``. To process `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_
+(``v_call``, ``j_call``, ``junction_length``, ``consensus_count``, ``cell_id`` and ``clone_id``), add the
+``--format airr`` argument::
 
     light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
 	    -o 10X_clone-pass.tab --format airr
