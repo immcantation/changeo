@@ -570,7 +570,7 @@ def getArgParser():
     group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command',
                                        help='Aligner used', metavar='')
-    # TODO:  This is a temporary fix for Python issue 9253this
+    # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
     # Parent parser
@@ -609,7 +609,7 @@ def getArgParser():
                                      included in the output. Adds the <VDJ>_SCORE, <VDJ>_IDENTITY,
                                      <VDJ>_EVALUE, <VDJ>_CIGAR columns.''')
     group_igblast.add_argument('--regions', action='store_true', dest='parse_regions',
-                                help='''Specify if IMGT FWR and CDRsthis should be
+                                help='''Specify if IMGT FWR and CDRs should be
                                      included in the output. Adds the FWR1_IMGT, FWR2_IMGT,
                                      FWR3_IMGT, FWR4_IMGT, CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT columns.''')
