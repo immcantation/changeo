@@ -486,7 +486,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, cellranger_file=None, partial=Fal
     # Define output fields
     fields = list(schema.standard_fields)
     if extended:
-        custom = IgBLASTReader.customFields(scores=True, regions=True, cdr3=True, schema=schema)
+        custom = IgBLASTReader.customFields(scores=True, regions=True, cdr3=False, schema=schema)
         fields.extend(custom)
 
     # Parse and write output
