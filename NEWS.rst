@@ -16,6 +16,8 @@ MakeDb:
 + Combined the extended field arguments of all subcommands (``--scores``,
   ``--regions``, ``--cdr3``, and ``--junction``) into a single ``--extended``
   argument.
++ Removed parsing of old IgBLAST v1.5 CDR3 fields
+  (``CDR3_IGBLAST``, ``CDR3_IGBLAST_AA``).
 
 
 Version 0.4.5:  January 9, 2019
