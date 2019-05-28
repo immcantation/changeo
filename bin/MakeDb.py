@@ -108,10 +108,11 @@ def getIDforIMGT(seq_file):
     # Create a sequence ID translation using IDs truncate up to space or 50 chars
     ids = {}
     for rec in readSeqFile(seq_file):
+        print(rec.description, len(rec.description))
         if len(rec.description) <= 50: 
             id_key = rec.description
         else:
-            id_key = re.sub('\||\s|!|& _', rec.description[:50])
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:50])
         ids.update({id_key: rec.description})
 
     return ids
