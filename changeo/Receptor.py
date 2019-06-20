@@ -32,7 +32,7 @@ from changeo.Gene import allele_number_regex, allele_regex, gene_regex, family_r
 #           changeo.Receptor.Schema
 #         """
 #         with resource_stream(__name__, 'data/receptor.yaml') as f:
-#             data = yaml.load(f)
+#             data = yaml.load(f, Loader=yaml.FullLoader)
 #             receptor = {v[schema]: k for k, v in data['receptor'].items()}
 #             definition = data[schema]
 #
@@ -428,7 +428,7 @@ class ReceptorData:
       annotations (dict): dictionary containing all unknown fields.
     """
     #with resource_stream(__name__, 'data/receptor.yaml') as f:
-    #    data = yaml.load(f)
+    #    data = yaml.load(f, Loader=yaml.FullLoader)
     #
     # # Define type parsers
     # parsers = {k: v['type'] for k, v in data['receptor'].items()}

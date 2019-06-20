@@ -11,7 +11,7 @@ import yamlordereddictloader
 
 # Convert ab1 file
 with open('receptor.yaml', 'r') as f:
-    records = yaml.load(f)
+    records = yaml.load(f, Loader=yaml.FullLoader)
 
 with open('receptor.tsv', 'w') as f:
     writer = csv.writer(f, dialect='excel-tab')

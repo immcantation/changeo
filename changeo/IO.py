@@ -2332,7 +2332,7 @@ def yamlDict(file):
       dict: dictionary of key:value pairs in the file.
     """
     try:
-        yaml_dict = dict(yaml.load(open(file, 'r')))
+        yaml_dict = dict(yaml.load(open(file, 'r'), Loader=yaml.FullLoader))
     except:
         printError('YAML file is invalid.')
 
