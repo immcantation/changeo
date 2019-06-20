@@ -165,6 +165,7 @@ class AIRRSchema:
                                ('cdr3_igblast_aa', 'cdr3_igblast_aa'),
                                ('duplicate_count', 'dupcount'),
                                ('consensus_count', 'conscount'),
+                               ('umi_count', 'umicount'),
                                ('clone_id', 'clone'),
                                ('cell_id', 'cell')])
     custom_fields = list(_custom_map.keys())
@@ -285,6 +286,7 @@ class ChangeoSchema:
                                ('CDR3_IGBLAST_AA', 'cdr3_igblast_aa'),
                                ('CONSCOUNT', 'conscount'),
                                ('DUPCOUNT', 'dupcount'),
+                               ('UMICOUNT', 'umicount'),
                                ('CLONE', 'clone'),
                                ('CELL', 'cell')])
     custom_fields = list(_custom_map.keys())
@@ -421,6 +423,7 @@ class ReceptorData:
 
       conscount (int): number of reads contributing to the UMI consensus sequence.
       dupcount (int): copy number of the sequence.
+      umicount (int): number of UMIs representing the sequence.
 
       clone (str): clonal cluster identifier.
       cell (str): origin cell identifier.
@@ -526,6 +529,7 @@ class ReceptorData:
                'cdr3_igblast_aa': 'aminoacid',
                'conscount': 'integer',
                'dupcount': 'integer',
+               'umicount': 'integer',
                'clone': 'identity',
                'cell': 'identity'}
 

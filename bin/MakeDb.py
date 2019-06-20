@@ -28,8 +28,8 @@ from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperato
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # 10X Receptor attributes
-cellranger_base = ['cell', 'c_call', 'conscount']
-cellranger_extended = ['cell', 'c_call', 'conscount',
+cellranger_base = ['cell', 'c_call', 'conscount', 'umicount']
+cellranger_extended = ['cell', 'c_call', 'conscount', 'umicount',
                        'v_call_10x', 'd_call_10x', 'j_call_10x',
                        'junction_10x', 'junction_10x_aa']
 
@@ -49,7 +49,8 @@ def readCellRanger(cellranger_file, fields=cellranger_base):
     cellranger_map = {'cell':  'barcode',
                       'c_call': 'c_gene',
                       'locus': 'chain',
-                      'conscount': 'umis',
+                      'conscount': 'reads',
+                      'umicount': 'umis',
                       'v_call_10x': 'v_gene',
                       'd_call_10x': 'd_gene',
                       'j_call_10x': 'j_gene',
