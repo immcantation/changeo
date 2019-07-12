@@ -902,14 +902,12 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
     Arguments:
       outfile (str): Output file name.
       igphymlout (str): igphyml output file
-      threads (int): Number of threads to parallelize IgPhyML across	writeChangeoDb(data,file="sim.tab")
-
+      threads (int): Number of threads to parallelize IgPhyML across writeChangeoDb(data, file="sim.tab")
       optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.
       omega (str): Omega parameters to estimate.
       kappa (str): Kappa parameters to estimate.
       motifs (str): Which motifs to use for mutability estimation.
       hotness (str): Mutability parameters to estimate.
-
     """
     osplit = outfile.split(".")
     outrep = ".".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
@@ -955,6 +953,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
     log["HOTNESS"] = hotness
     log["NPROC"] = threads
     printLog(log)
+
     if not nohlp:
         try: #estimate HLP parameters/trees
             p = subprocess.check_output(hlp_args)
@@ -988,6 +987,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
         log["START"] = "CLEANING"
         log["SCOPE"] = clean
         printLog(log)
+
         todelete = open(outrep)
         for line in todelete:
             line = line.rstrip("\n")
@@ -1002,6 +1002,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
         os.remove(outfile)
         os.remove(gyout)
         cilog = outrep + "_igphyml_CIlog.txt_hlp"
+
         if os.path.isfile(cilog):
             os.remove(cilog)
         if oformat == "tab":
@@ -1016,9 +1017,9 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
 def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
-               igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",recon=None,
-               hotness="e,e,e,e,e,e", oformat="tab", mdpos=0, parstop=False, bootstrap=False, nproc=1, clean="none",
-                cleanboot=False,append=None, format=default_format, out_args=default_out_args):
+                  igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", recon=None,
+                  hotness="e,e,e,e,e,e", oformat="tab", mdpos=0, parstop=False, bootstrap=False, nproc=1, clean="none",
+                  cleanboot=False, append=None, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1235,14 +1236,16 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
 
     if bootstrap and cleanboot:
         subprocess.check_call(["rm","-R",clone_dir])
+
     return output
 
 
 def unpackArgs(args_dict):
     """
     Embarassing function to unpack BuildTrees arguments
-    Args:
-        args_dict: dictionary of arguments for runBuildTrees
+
+    Arguments:
+      args_dict: dictionary of arguments for runBuildTrees
     """
     runBuildTrees(**args_dict)
 
@@ -1250,8 +1253,9 @@ def unpackArgs(args_dict):
 def buildTrees(args_dict):
     """
     Runs buildTrees functions, possibly in parallel for bootstrapping
-    Args:
-        args_dict: dictionary of arguments for runBuildTrees
+
+    Arguments:
+      args_dict: dictionary of arguments for runBuildTrees
     """
     if not args_dict["bootstrap"]:
         runBuildTrees(**args_dict)
@@ -1294,7 +1298,7 @@ def getArgParser():
               """)
 
     # Parent parser
-    parser_parent = getCommonArgParser(out_file=False, log=True, format=False)
+    parser_parent = getCommonArgParser(out_file=False, log=True, format=True)
 
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -1327,14 +1331,14 @@ def getArgParser():
 
     igphyml_group = parser.add_argument_group("IgPhyML arguments (see igphyml -h for details)")
     igphyml_group.add_argument("--igphyml", action="store_true", dest="igphyml",
-                       help="""Run IgPhyML on output?""")
+                               help="""Run IgPhyML on output?""")
     igphyml_group.add_argument("--threads", action="store", dest="threads", type=int, default=1,
-                       help="""Number of threads to parallelize IgPhyML across""")
+                               help="""Number of threads to parallelize IgPhyML across.""")
     igphyml_group.add_argument("--clean", action="store", dest="clean", type=str, default="none",
                                help="""Delete intermediate files? 
-                               none: leave all intermediate files; all: delete all intermediate files""")
+                               none: leave all intermediate files; all: delete all intermediate files.""")
     igphyml_group.add_argument("-o", action="store", dest="optimization", type=str, default="lr",
-                help="""Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.""")
+                               help="""Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
                                help="""Omega parameters to estimate for FWR,CDR respectively: 
                                e = estimate, ce = estimate + confidence interval""")
