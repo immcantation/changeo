@@ -19,6 +19,11 @@ MakeDb:
 + Removed parsing of old IgBLAST v1.5 CDR3 fields
   (``CDR3_IGBLAST``, ``CDR3_IGBLAST_AA``).
 
+BuildTrees:
+
++ Added capability of running IgPhyML on outputted data (``--igphyml``) and
+  support for passing IgPhyML arguments through BuildTrees.
++ Added function to delete all intermediate files after IgPhyML run (``--clean``).
 
 Version 0.4.5:  January 9, 2019
 -------------------------------------------------------------------------------

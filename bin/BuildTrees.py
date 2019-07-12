@@ -113,7 +113,7 @@ def checkFrameShifts(receptor, oqpos, ospos, log, debug):
     return frameshifts
 
 
-def findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recursive):
+def findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recursive=False):
     """
     Find and mask split codons
 
@@ -126,7 +126,7 @@ def findAndMask(receptor, scodons, qcodons, spos, s_end, qpos, log, debug, recur
       qpos (int): starting position of input sequence in IMGT sequence
       log (dict): log of information for each sequence
       debug (bool): print debugging statements?
-
+      recursive (bool): was this function called recursively?
     """
     frameshifts = 0
     while spos < s_end and qpos < len(qcodons):
@@ -426,7 +426,7 @@ def hasPTC(sequence):
 
 
 
-def rmCDR3(sequences,clones):
+def rmCDR3(sequences, clones):
     """
     Remove CDR3 from all sequences and germline of a clone
 
@@ -548,23 +548,7 @@ def characterizePartitionErrors(sequences, clones, meta_data):
         clones[0].clone,clones[0].sequence_id,sequences[0]))
     return imgtar, germline, sites, nseqs
 
-
-def bootstrapSeq(sequence, sites):
-    """
-        Create intermediate sequence alignment and partition files for IgPhyML output
-
-        Arguments:
-            sequence (str): string of ATCGs
-            sites (list): list of codon sites to use
-        Returns:
-            str : bootstrapped string
-    """
-    ns = "".join([sequence[(x * 3):(x * 3 + 3)] for x in sites])
-    return ns
-
-
-def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, delim, newgerm, conseqs, duplicate, imgt,
-                       bootstrap=False):
+def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, delim, newgerm, conseqs, duplicate, imgt):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -580,20 +564,11 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         conseqs (list) : consensus sequences.
         duplicate (bool) : duplicate sequence if only one in a clone.
         imgt (list) : IMGT numbering of clonal positions .
-        bootstrap (bool) : Bootstrap sequence columns?
     """
 
     # bootstrap these data if desired
     lg = len(newgerm)
     sites = range(0, lg)
-    #print(sites)
-    if bootstrap:
-        sites = []
-        possible = range(0, lg)
-        for i in range(0, lg):
-            sites.append(random.sample(possible, 1)[0])
-        ng = [newgerm[x] for x in sites]
-        newgerm = ng
 
     transtable = clones[0].sequence_id.maketrans(" ", "_")
     outfile = os.path.join(out_dir, "%s.fasta" % clones[0].clone)
@@ -606,8 +581,6 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                     seq, cid = seq_f.split(delim)
                     cid = delim + cid.replace(":", "_")
                 sid = clones[num].sequence_id.translate(transtable) + cid
-                if bootstrap:
-                    seq = bootstrapSeq(seq,sites)
                 clonef.write(">%s\n%s\n" % (sid.replace(":","-"), seq.replace(".", "-")))
                 if len(useqs_f) == 1 and duplicate:
                     if meta_data is not None:
@@ -618,8 +591,6 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         else:
             for j in range(0, nseqs):
                 cid = ""
-                if bootstrap:
-                    conseqs[j] = bootstrapSeq(conseqs[j],sites)
                 if meta_data is not None:
                     meta_data_list = []
                     for m in meta_data:
@@ -645,9 +616,6 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
 
     #output partition file
     partfile = os.path.join(out_dir, "%s.part.txt" % clones[0].clone)
-    if bootstrap:
-        nimgt = [imgt[x] for x in sites]
-        imgt = nimgt
     with open(partfile, "w") as partf:
         partf.write("%d %d\n" % (2, len(newgerm)))
         partf.write("FWR:IMGT\n")
@@ -658,8 +626,8 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         partf.write("\n")
 
 
-def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False, sample_depth=-1,logs=None,
-                  fail_writer=None, out_dir=None, min_seq=1, bootstrap=False):
+def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False, logs=None,
+                  fail_writer=None, out_dir=None, min_seq=1):
     """
     Create intermediate sequence alignment and partition files for IgPhyML output
 
@@ -669,7 +637,6 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data
       collapse (bool): if True collapse identical sequences.
       ncdr3 (bool): if True remove CDR3
-      sample_depth (int): depth of subsampling. If specified, don't remove clones that are too small
       logs (dict): contains log information for each sequence
       out_dir (str): directory for output files.
       fail_writer (changeo.IO.TSVWriter): failed sequences writer object.
@@ -771,7 +738,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
 
     # Output fasta file of masked, concatenated sequences
     outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs,
-                       delim, newgerm, conseqs, duplicate, imgt, bootstrap=bootstrap)
+                       delim, newgerm, conseqs, duplicate, imgt)
 
     if collapse:
         return len(useqs_f)
@@ -779,7 +746,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
         return nseqs
 
 
-def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer):
+def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
     """
     Masks codons split by alignment to IMGT reference
 
@@ -787,9 +754,10 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
       r (changeo.Receptor.Receptor): receptor object for a particular sequence.
       clones (list): list of receptors.
       cloneseqs (list): list of masked clone sequences.
-      ncdr3 (bool): if true, remove all CDR3 sequences.
       logs (dict): contains log information for each sequence.
       fails (dict): counts of various sequence processing failures.
+      out_args (dict): arguments for output preferences.
+      fail_writer (changeo.IO.TSVWriter): failed sequences writer object.
 
     Returns:
       0: returns 0 if an error occurs or masking fails.
@@ -894,40 +862,35 @@ def maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writ
     return 0
 
 # Run IgPhyML on outputed data
-def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
-               hotness="e,e,e,e,e,e",oformat="tab", nohlp=False, parstop=False, recon=None, mdpos=0, clean="none"):
+def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
+               hotness="e,e,e,e,e,e",oformat="tab", nohlp=False, clean="none"):
     """
     Run IgPhyML on outputted data
 
     Arguments:
       outfile (str): Output file name.
       igphymlout (str): igphyml output file
-      threads (int): Number of threads to parallelize IgPhyML across writeChangeoDb(data, file="sim.tab")
-      optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.
-      omega (str): Omega parameters to estimate.
-      kappa (str): Kappa parameters to estimate.
-      motifs (str): Which motifs to use for mutability estimation.
-      hotness (str): Mutability parameters to estimate.
+      nproc (int): Number of threads to parallelize IgPhyML across
+      optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) in IgPhyML.
+      omega (str): omega optimization in IgPhyML (--omega)
+      kappa (str): kappa optimization in IgPhyML (-t)
+      motifs (str): motifs to use in IgPhyML (--motifs)
+      hotness (str): motif in IgPhyML (--hotness)
+      oformat (str): output format for IgPhyML (tab or txt)
+      nohlp (bool): If True, only estimate GY94 trees and parameters
+      clean (str): delete intermediate files? (none, all)
     """
     osplit = outfile.split(".")
     outrep = ".".join(osplit[0:(len(osplit)-1)]) + "_gy.tsv"
     gyout = outfile + "_igphyml_stats_gy.txt"
 
-    if parstop:
-        outrep = "".join(osplit[0:(len(osplit) - 1)]) + "_raxml.tsv"
-
     gy_args = ["igphyml", "--repfile", outfile, "-m", "GY", "--run_id", "gy", "--outrep", outrep, "--threads",
-               str(threads),"--outname",gyout]
-    if parstop:
-        gy_args = ["makeParsTrees.R",  outfile,"raxml"]
+               str(nproc),"--outname",gyout]
 
-    hlp_args = ["igphyml","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
+
+    hlp_args = ["igphyml","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(nproc), "-o",
                 optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness, "--oformat",
                 oformat, "--outname", igphyml_out]
-    if recon is not None:
-        hlp_args = ["igphymlp","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(threads), "-o",
-                    "n", "--omega", omega, "-t", kappa, "--motifs", "WRC_2:0", "--hotness", str(0), "--oformat",
-                    oformat,"--recon",recon,"--mdpos",str(mdpos)]
 
     log = OrderedDict()
     log["START"] = "IgPhyML GY94 tree estimation"
@@ -951,7 +914,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
     log["wFWR,wCDR"] = omega
     log["MOTIFS"] = motifs
     log["HOTNESS"] = hotness
-    log["NPROC"] = threads
+    log["NPROC"] = nproc
     printLog(log)
 
     if not nohlp:
@@ -961,16 +924,6 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
             print(" ".join(hlp_args))
             print('error>', e.output, '<')
             printError("HLP tree building failed")
-        if recon is not None:
-            try:  # estimate HLP parameters/trees
-                hlp_args.append("--run_id")
-                hlp_args.append("permute")
-                hlp_args.append("--permute")
-                p = subprocess.check_output(hlp_args)
-            except subprocess.CalledProcessError as e:
-                print(" ".join(hlp_args))
-                print('error>', e.output, '<')
-                printError("HLP tree building failed")
 
     log = OrderedDict()
     log["OUTPUT"] = igphyml_out
@@ -987,7 +940,6 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
         log["START"] = "CLEANING"
         log["SCOPE"] = clean
         printLog(log)
-
         todelete = open(outrep)
         for line in todelete:
             line = line.rstrip("\n")
@@ -1002,7 +954,6 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
         os.remove(outfile)
         os.remove(gyout)
         cilog = outrep + "_igphyml_CIlog.txt_hlp"
-
         if os.path.isfile(cilog):
             os.remove(cilog)
         if oformat == "tab":
@@ -1016,10 +967,10 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, threads=1, optimization="lr", om
 
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,
-                  igphyml=False, nohlp=False, threads=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH", recon=None,
-                  hotness="e,e,e,e,e,e", oformat="tab", mdpos=0, parstop=False, bootstrap=False, nproc=1, clean="none",
-                  cleanboot=False, append=None, format=default_format, out_args=default_out_args):
+def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,append=None,
+               igphyml=False, nproc=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
+               hotness="e,e,e,e,e,e", oformat="tab", clean="none", nohlp=False,
+               format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1030,6 +981,18 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
       collapse (bool): if True collapse identical sequences.
       ncdr3 (bool): if True remove all CDR3s.
       sample_depth (int): depth of subsampling before deduplication
+      min_seq (int): minimum number of sequences per clone
+      append (str): column name to append to sequence_id
+      igphyml (bool): If True, run IgPhyML on outputted data
+      nproc (int) : Number of threads to parallelize IgPhyML across
+      optimization (str): Optimize combination of topology (t) branch lengths (l) and parameters (r) in IgPhyML.
+      omega (str): omega optimization in IgPhyML (--omega)
+      kappa (str): kappa optimization in IgPhyML (-t)
+      motifs (str): motifs to use in IgPhyML (--motifs)
+      hotness (str): motif in IgPhyML (--hotness)
+      oformat (str): output format for IgPhyML (tab or txt)
+      clean (str): delete intermediate files? (none, all)
+      nohlp (bool): If True, only estimate GY94 trees and parameters
       format (str): input and output format.
       out_args (dict): arguments for output preferences.
 
@@ -1045,8 +1008,7 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
 
     # Open output files
     out_label = "lineages"
-    if bootstrap:
-        out_label += "_" + str(bootstrap)
+
     pass_handle = getOutputHandle(db_file,
                                   out_label=out_label,
                                   out_dir=out_args["out_dir"],
@@ -1066,8 +1028,6 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
         __, clone_name, __ = splitName(db_file)
     else:
         clone_name = out_args["out_name"]
-    if bootstrap:
-        clone_name += "_" + str(bootstrap)
     if dir_name is None:
         clone_dir = clone_name
     else:
@@ -1148,7 +1108,7 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
             if append is not None:
                 for m in append:
                     r.sequence_id = r.sequence_id + "_" + r.getField(m)
-        total += maskCodonsLoop(r, clones, cloneseqs, ncdr3, logs, fails, out_args, fail_writer)
+        total += maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer)
         if total == sample_depth:
             break
 
@@ -1164,8 +1124,8 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
             clonesizes[str(k)] = -len(cloneseqs[str(k)])
         else:
             clonesizes[str(k)] = outputIgPhyML(clones[str(k)], cloneseqs[str(k)], meta_data=meta_data, collapse=collapse,
-                                           ncdr3=ncdr3, sample_depth=sample_depth, logs=logs, fail_writer=fail_writer,
-                                               out_dir=clone_dir, min_seq=min_seq,bootstrap=bootstrap)
+                                           ncdr3=ncdr3, logs=logs, fail_writer=fail_writer,
+                                           out_dir=clone_dir, min_seq=min_seq)
 
         #If clone is too small, size is returned as a negative
         if clonesizes[str(k)] > 0:
@@ -1229,46 +1189,11 @@ def runBuildTrees(db_file, meta_data=None, target_clones=None, collapse=False, n
 
     #Run IgPhyML on outputted data?
     if igphyml:
-        runIgPhyML(pass_handle.name, igphyml_out=igphyml_out, clone_dir=clone_dir, threads=threads,
+        runIgPhyML(pass_handle.name, igphyml_out=igphyml_out, clone_dir=clone_dir, nproc=nproc,
                    optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
-                   hotness=hotness, oformat=oformat, nohlp=nohlp, recon=recon, parstop=parstop,
-                   mdpos=mdpos, clean=clean)
-
-    if bootstrap and cleanboot:
-        subprocess.check_call(["rm","-R",clone_dir])
+                   hotness=hotness, oformat=oformat, nohlp=nohlp,clean=clean)
 
     return output
-
-
-def unpackArgs(args_dict):
-    """
-    Embarassing function to unpack BuildTrees arguments
-
-    Arguments:
-      args_dict: dictionary of arguments for runBuildTrees
-    """
-    runBuildTrees(**args_dict)
-
-
-def buildTrees(args_dict):
-    """
-    Runs buildTrees functions, possibly in parallel for bootstrapping
-
-    Arguments:
-      args_dict: dictionary of arguments for runBuildTrees
-    """
-    if not args_dict["bootstrap"]:
-        runBuildTrees(**args_dict)
-    else: #do bootstrap replicates in parallel?
-        bootstraps = args_dict["bootstrap"]
-        bs = range(0,bootstraps+1)
-        pool = mp.Pool(processes=args_dict["nproc"])
-        args = []
-        for b in bs:
-            cp = args_dict.copy()
-            cp["bootstrap"] = b
-            args.append(cp)
-        pool.map(unpackArgs,args)
 
 
 def getArgParser():
@@ -1322,27 +1247,26 @@ def getArgParser():
                        help="""Depth of reads to be subsampled (before deduplication).""")
     group.add_argument("--append", nargs="+", action="store", dest="append",
                        help="""List of columns to append to sequence ID to ensure uniqueness.""")
-    group.add_argument("--bootstrap", action="store", dest="bootstrap", type=int, default=0,
-                       help="""Experimental""")
-    group.add_argument("--cleanboot", action="store_true", dest="cleanboot",
-                       help="""Experimental""")
-    group.add_argument("--nproc", action="store", dest="nproc", type=int, default=1,
-                       help="""Experimental""")
 
     igphyml_group = parser.add_argument_group("IgPhyML arguments (see igphyml -h for details)")
     igphyml_group.add_argument("--igphyml", action="store_true", dest="igphyml",
                                help="""Run IgPhyML on output?""")
-    igphyml_group.add_argument("--threads", action="store", dest="threads", type=int, default=1,
+    igphyml_group.add_argument("--nproc", action="store", dest="nproc", type=int, default=1,
                                help="""Number of threads to parallelize IgPhyML across.""")
-    igphyml_group.add_argument("--clean", action="store", dest="clean", type=str, default="none",
+    igphyml_group.add_argument("--clean", action="store", choices=("none", "all"),
+                               dest="clean", type=str, default="none",
                                help="""Delete intermediate files? 
                                none: leave all intermediate files; all: delete all intermediate files.""")
-    igphyml_group.add_argument("-o", action="store", dest="optimization", type=str, default="lr",
-                               help="""Optimize combination of topology (t) branch lengths (l) and parameters (r) for HLP model.""")
+    igphyml_group.add_argument("--optimize", action="store", dest="optimization", type=str, default="lr",
+                               choices=("n","r","l","lr","tl","tlr"),
+                               help="""Optimize combination of topology (t) branch lengths (l) and parameters (r), or 
+                               nothing (n), for IgPhyML.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
+                               choices = ("e", "ce", "e,e", "ce,e", "e,ce", "ce,ce"),
                                help="""Omega parameters to estimate for FWR,CDR respectively: 
                                e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
+                               choices=("e", "ce"),
                                help="""Kappa parameters to estimate: 
                                e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
@@ -1352,15 +1276,11 @@ def getArgParser():
                                help="""Mutability parameters to estimate: 
                                e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="tab",
+                               choices=("tab", "txt"),
                                help="""IgPhyML output format.""")
     igphyml_group.add_argument("--nohlp", action="store_true", dest="nohlp",
                                help="""Don't run HLP model?""")
-    igphyml_group.add_argument("--recon", action="store", dest="recon", type=str, default=None,
-                               help="""Experimental""")
-    igphyml_group.add_argument("--parstop", action="store_true", dest="parstop",
-                               help="""Experimental""")
-    igphyml_group.add_argument("--mdpos", action="store", dest="mdpos",type=int,
-                               help="""Experimental""")
+
     return parser
 
 
@@ -1378,4 +1298,4 @@ if __name__ == "__main__":
     # Call main for each input file
     for f in args.__dict__["db_files"]:
         args_dict["db_file"] = f
-        buildTrees(args_dict)
+        buildTrees(**args_dict)
