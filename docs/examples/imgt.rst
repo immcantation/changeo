@@ -7,7 +7,7 @@ Example data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/latest/workflows/Jiang2013_Workflow.html>`__
+`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. In addition to the
 example FASTA files, we have included the `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__
 results. The files can be downloded from here:
@@ -20,7 +20,7 @@ Reducing file size for submission to IMGT/HighV-QUEST
 `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ currently limits the size of
 uploaded files to 500,000 sequences. To accomodate this limit, you can use
 the :program:`count` subcommand of the `pRESTO <http://presto.readthedocs.io>`__
-tool `SplitSeq <http://presto.readthedocs.io/en/latest/tools/SplitSeq.html#splitseq>`__
+tool `SplitSeq <http://presto.readthedocs.io/en/stable/tools/SplitSeq.html#splitseq>`__
 to divide your files into small pieces::
 
     SplitSeq.py count -s file.fastq -n 500000 --fasta
@@ -32,7 +32,7 @@ suitable for upload to `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__.
 .. seealso::
 
     For additional details see the corresponding example in the
-    `pRESTO documentation <http://presto.readthedocs.io/en/latest/examples/tasks.html#reducing-file-size-for-submission-to-imgt-highv-quest>`__
+    `pRESTO documentation <http://presto.readthedocs.io/en/stable/examples/tasks.html#reducing-file-size-for-submission-to-imgt-highv-quest>`__
 
 Processing the output of IMGT/HighV-QUEST
 --------------------------------------------------------------------------------

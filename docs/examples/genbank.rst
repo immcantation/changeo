@@ -25,7 +25,7 @@ documentation site.
 Example data
 --------------------------------------------------------------------------------
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/latest/workflows/Jiang2013_Workflow.html>`__
+`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. The files can be
 downloded from here:
 

@@ -71,7 +71,7 @@ Standard FASTA
 
 The :program:`fasta`
 subcommand allows you to export sequences and annotations to FASTA formatted files in the
-`pRESTO annototation scheme <http://presto.readthedocs.io/en/latest/overview.html#annotation-scheme>`__::
+`pRESTO annototation scheme <http://presto.readthedocs.io/en/stable/overview.html#annotation-scheme>`__::
 
     ConvertDb.py fasta -d S43_atleast-2_db-pass.tab --if SEQUENCE_ID --sf SEQUENCE_IMGT --mf V_CALL DUPCOUNT
 

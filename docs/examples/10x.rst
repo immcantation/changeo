@@ -79,7 +79,7 @@ The heavy chain file must then be clonally clustered separately. See below for f
 
 .. seealso::
 
-    See `Assigning clones <http://shazam.readthedocs.io/en/latest/examples/cloning.html>`__
+    See `Assigning clones <http://shazam.readthedocs.io/en/stable/examples/cloning.html>`__
     for futher details on clustering the heavy chain output.
 
 :ref:`DefineClones` currently does not support light chain cloning. However cloning can be performed after

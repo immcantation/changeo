@@ -7,7 +7,7 @@ Example data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/latest/workflows/Jiang2013_Workflow.html>`__
+`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. In addition to the
 example FASTA files, we have included the standalone `IgBLAST <https://ncbi.github.io/igblast>`__
 results. The files can be downloded from here:
