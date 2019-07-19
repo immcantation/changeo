@@ -1,8 +1,28 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.5.999:  July 12, 2019
+Version 0.4.6:  July 19, 2019
 -------------------------------------------------------------------------------
+
+BuildTrees:
+
++ Added capability of running IgPhyML on outputted data (``--igphyml``) and
+  support for passing IgPhyML arguments through BuildTrees.
++ Added the ``--clean`` argument to force deletion of all intermediate files
+  after IgPhyML execution.
++ Added the ``--format`` argument to allow specification input and output of
+  either the Change-O standard (``changeo``) or AIRR Rearrangement standard
+  (``airr``).
+
+CreateGermlines:
+
++ Fixed a bug causing incorrect reporting of the germline format in the
+  console log.
+
+ConvertDb:
+
++ Removed requirement for the ``NP1_LENGTH`` and ``NP2_LENGTH`` fields from
+  the genbank subcommand.
 
 DefineClones:
 
@@ -13,17 +33,17 @@ DefineClones:
 
 MakeDb:
 
++ Added the ``--10x`` argument to all subcommands to support merging of
+  Cell Ranger annotation data, such as UMI count and C-region assignment,
+  with the output of the supported alignment tools.
++ Added inference of the receptor locus from the alignment data to all
+  subcommands, which is output in the ``LOCUS`` field.
 + Combined the extended field arguments of all subcommands (``--scores``,
   ``--regions``, ``--cdr3``, and ``--junction``) into a single ``--extended``
   argument.
 + Removed parsing of old IgBLAST v1.5 CDR3 fields
   (``CDR3_IGBLAST``, ``CDR3_IGBLAST_AA``).
 
-BuildTrees:
-
-+ Added capability of running IgPhyML on outputted data (``--igphyml``) and
-  support for passing IgPhyML arguments through BuildTrees.
-+ Added function to delete all intermediate files after IgPhyML run (``--clean``).
 
 Version 0.4.5:  January 9, 2019
 -------------------------------------------------------------------------------
