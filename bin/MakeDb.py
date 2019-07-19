@@ -623,6 +623,11 @@ def getArgParser():
 
               ihmm specific output fields:
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ, VDJ_SCORE
+                  
+              10X specific output fields:
+                  CELL, C_CALL, CONSCOUNT, UMICOUNT, 
+                  V_CALL_10X, D_CALL_10X, J_CALL_10X,
+                  JUNCTION_10X, JUNCTION_10X_AA
               ''')
                 
     # Define ArgumentParser

@@ -99,11 +99,12 @@ Here, ``heavy_select-pass_clone-pass.tab`` refers to the cloned heavy chain Chan
         v_call = 'V_CALL'
         j_call = 'J_CALL'
         junction_length = 'JUNCTION_LENGTH'
-        umi_count = 'CONSCOUNT'
+        read_count = 'CONSCOUNT'
+        umi_count = 'UMICOUNT'
 
-By default, ``light_chain.py`` expects the Change-O columns ``V_CALL, ``J_CALL``, ``JUNCTION_LENGTH``, ``CONSCOUNT``,
+By default, ``light_chain.py`` expects the Change-O columns ``V_CALL``, ``J_CALL``, ``JUNCTION_LENGTH``, ``UMICOUNT``,
 ``CELL``, and ``CLONE``. To process `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_
-(``v_call``, ``j_call``, ``junction_length``, ``consensus_count``, ``cell_id`` and ``clone_id``), add the
+(``v_call``, ``j_call``, ``junction_length``, ``umi_count``, ``cell_id`` and ``clone_id``), add the
 ``--format airr`` argument::
 
     light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
