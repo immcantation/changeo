@@ -312,7 +312,8 @@ def getArgParser():
                         help='''Field containing the germline J segment call.
                              Defaults to J_CALL (changeo) or j_call (airr).''')
     group.add_argument('--cf', action='store', dest='clone_field', default=None,
-                        help='''Field containing clone identifiers.
+                        help='''Field containing clone identifiers. 
+                             Ignored if --cloned is not also specified.
                              Defaults to CLONE (changeo) or clone_id (airr).''')
 
     return parser
