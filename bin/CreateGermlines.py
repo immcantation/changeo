@@ -311,6 +311,9 @@ def getArgParser():
     group.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='''Field containing the germline J segment call.
                              Defaults to J_CALL (changeo) or j_call (airr).''')
+    group.add_argument('--cf', action='store', dest='clone_field', default=None,
+                        help='''Field containing clone identifiers.
+                             Defaults to CLONE (changeo) or clone_id (airr).''')
 
     return parser
 
@@ -330,7 +333,8 @@ if __name__ == '__main__':
     default_fields = {'seq_field': default_seq_field,
                       'v_field': default_v_field,
                       'd_field': default_d_field,
-                      'j_field': default_j_field}
+                      'j_field': default_j_field,
+                      'clone_field': default_clone_field}
     args_dict = setDefaultFields(args_dict, default_fields, format=args_dict['format'])
 
     # Check that reference files exist
