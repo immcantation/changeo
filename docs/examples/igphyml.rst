@@ -30,7 +30,7 @@ Quick start
 Once installed, IgPhyML can be run through 
 :ref:`BuildTrees <BuildTrees>`
 by specifying the ``--igphyml`` option. IgPhyML is easiest to run through the 
-`Immcantation Docker image <https://igphyml.readthedocs.io/en/latest/install.html>`__. 
+`Immcantation Docker image <https://igphyml.readthedocs.io/en/stable/install.html>`__.
 If this is not possible, these instructions require Change-O 0.4.6 or higher, Alakazam 0.3.0 or higher,
 and IgPhyML to be installed, with the executable in your ``PATH`` variable. 
 
