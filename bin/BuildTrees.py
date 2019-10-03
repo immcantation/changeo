@@ -219,17 +219,21 @@ def maskSplitCodons(receptor, recursive=False, mask=True):
 
     #tally where --- gaps are in IMGT sequence and remove them for now
     gaps = []
+    ndotgaps = []
     nsi = ""
     for i in range(0,len(si)):
         if si[i] == "-":
             gaps.append(1)
+            ndotgaps.append(1)
         else:
             gaps.append(0)
             nsi = nsi + si[i]
+            if si[i] != ".":
+                ndotgaps.append(0)
 
     #find any gaps not divisible by three
     curgap = 0
-    for i in gaps:
+    for i in ndotgaps:
         if i == 1:
             curgap += 1
         elif i == 0 and curgap != 0:
@@ -746,7 +750,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
         return nseqs
 
 
-def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
+def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mask=True):
     """
     Masks codons split by alignment to IMGT reference
 
@@ -818,7 +822,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer):
             #imgt_warn = "\n! IMGT FWR/CDR sequence columns not detected.\n! Cannot run CDR/FWR partitioned model on this data.\n"
             imgtpartlabels = [0] * len(r.sequence_imgt)
             r.setField("imgtpartlabels", imgtpartlabels)
-        mout = maskSplitCodons(r)
+        mout = maskSplitCodons(r, mask=mask)
         mask_seq = mout[0]
         ptcs = hasPTC(mask_seq)
         if ptcs >= 0:
@@ -967,9 +971,9 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omeg
 
 
 # Note: Collapse can give misleading dupcount information if some sequences have ambiguous characters at polymorphic sites
-def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, sample_depth=-1, min_seq=1,append=None,
-               igphyml=False, nproc=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
-               hotness="e,e,e,e,e,e", oformat="tab", clean="none", nohlp=False,
+def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, nmask=False,
+               sample_depth=-1, min_seq=1,append=None, igphyml=False, nproc=1, optimization="lr", omega="e,e",
+               kappa="e", motifs="FCH", hotness="e,e,e,e,e,e", oformat="tab", clean="none", nohlp=False,
                format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
@@ -980,6 +984,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
       target_clones (str): List of clone IDs to analyze.
       collapse (bool): if True collapse identical sequences.
       ncdr3 (bool): if True remove all CDR3s.
+      nmask (bool): if False, do not attempt to mask split codons
       sample_depth (int): depth of subsampling before deduplication
       min_seq (int): minimum number of sequences per clone
       append (str): column name to append to sequence_id
@@ -1108,7 +1113,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
             if append is not None:
                 for m in append:
                     r.sequence_id = r.sequence_id + "_" + r.getField(m)
-        total += maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer)
+        total += maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer,
+                                mask = not nmask)
         if total == sample_depth:
             break
 
@@ -1235,6 +1241,8 @@ def getArgParser():
                         help="""If specified, collapse identical sequences before exporting to fasta.""")
     group.add_argument("--ncdr3", action="store_true", dest="ncdr3",
                         help="""If specified, remove CDR3 from all sequences.""")
+    group.add_argument("--nmask", action="store_true", dest="nmask",
+                       help="""If specified, do not attempt to mask split codons.""")
     group.add_argument("--md", nargs="+", action="store", dest="meta_data",
                        help="""List of fields to containing metadata to include in output fasta file 
                             sequence headers.""")

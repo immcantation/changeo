@@ -119,7 +119,7 @@ again open an ``R`` session in the ``examples`` directory::
  #plot largest lineage tree
  plot(ladderize(db$trees[[1]]),cex=0.7,no.margin=TRUE)
 
-
+   
 .. figure:: figures/tree4.png
    :scale: 30 %
    :align: center
