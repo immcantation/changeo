@@ -24,4 +24,4 @@ the reader and writer classes.
    :file: tables/column_descriptions.tsv
    :delim: tab
    :header-rows: 1
-   :widths: 15, 10, 75
+   :widths: 15, 15, 10, 75

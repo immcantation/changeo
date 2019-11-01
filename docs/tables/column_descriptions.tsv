@@ -1,98 +1,98 @@
-Column Name	Type	Description
-**MakeDb - Standard Annotations**		
-SEQUENCE_ID	string	Unique sequence identifier
-SEQUENCE_INPUT	string	Input nucleotide sequence
-SEQUENCE_VDJ	string	V(D)J nucleotide sequence
-SEQUENCE_IMGT	string	IMGT-numbered V(D)J nucleotide sequence
-FUNCTIONAL	logical	T: V(D)J sequence is predicted to be productive
-IN_FRAME	logical	T: junction region nucleotide sequence is in-frame
-STOP	logical	T: stop codon is present in V(D)J nucleotide sequence
-MUTATED_INVARIANT	logical	T: invariant amino acids properly encoded by V(D)J sequence
-INDELS	logical	T: V(D)J nucleotide sequence contains insertions and/or deletions
-LOCUS	string	Locus of the receptor
-V_CALL	string	V allele assignment(s)
-D_CALL	string	D allele assignment(s)
-J_CALL	string	J allele assignment(s)
-V_SEQ_START	integer	Position of first V nucleotide in SEQUENCE_INPUT
-V_SEQ_LENGTH	integer	Number of V nucleotides in SEQUENCE_INPUT
-V_GERM_START_IMGT	integer	Position of V_SEQ_START in IMGT-numbered germline V(D)J sequence
-V_GERM_LENGTH_IMGT	integer	Length of the IMGT numbered germline V alignment
-NP1_LENGTH	integer	Number of nucleotides between V and D segments
-D_SEQ_START	integer	Position of first D nucleotide in SEQUENCE_INPUT
-D_SEQ_LENGTH	integer	Number of D nucleotides in SEQUENCE_INPUT
-D_GERM_START	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
-D_GERM_LENGTH	integer	Length of the germline D alignment
-NP2_LENGTH	integer	Number of nucleotides between D and J segments
-J_SEQ_START	integer	Position of first J nucleotide in SEQUENCE_INPUT
-J_SEQ_LENGTH	integer	Number of J nucleotides in SEQUENCE_INPUT
-J_GERM_START	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequence
-J_GERM_LENGTH	integer	Length of the germline J alignment
-JUNCTION_LENGTH	integer	Number of junction nucleotides in SEQUENCE_VDJ
-JUNCTION	string	Junction region nucletide sequence
-**MakeDb - Optional Region Annotations**		
-FWR1_IMGT	string	IMGT-numbered FWR1 nucleotide sequence
-FWR2_IMGT	string	IMGT-numbered FWR2 nucleotide sequence
-FWR3_IMGT	string	IMGT-numbered FWR3 nucleotide sequence
-FWR4_IMGT	string	IMGT-numbered FWR4 nucleotide sequence
-CDR1_IMGT	string	IMGT-numbered CDR1 nucleotide sequence
-CDR2_IMGT	string	IMGT-numbered CDR2 nucleotide sequence
-CDR3_IMGT	string	IMGT-numbered CDR3 nucleotide sequence
-**MakeDb - IMGT Optional Annotations**		
-N1_LENGTH	integer	Untemplated nucleotides 5' of the D segment
-N2_LENGTH	integer	Untemplated Nucleotides 3' of the D segment
-P3V_LENGTH	integer	Palindromic nucleotides 3' of the V segment
-P5D_LENGTH	integer	Palindromic nucleotides 5' of the D segment
-P3D_LENGTH	integer	Palindromic nucleotides 3' of the D segment
-P5J_LENGTH	integer	Palindromic nucleotides 5' of the J segment
-D_FRAME	integer	D segment reading frame
-V_SCORE	float	Alignment score for the V
-V_IDENTITY	float	Alignment identity for the V
-D_SCORE	float	Alignment score for the D
-D_IDENTITY	float	Alignment identity for the D
-J_SCORE	float	Alignment score for the J
-J_IDENTITY	float	Alignment identity for the J
-**MakeDb - IgBLAST Optional Annotations**		
-V_SCORE	float	Alignment score for the V
-V_IDENTITY	float	Alignment identity for the V
-V_EVALUE	float	E-value for the alignment of the V
-V_CIGAR	string	CIGAR string for the alignment of the V
-D_SCORE	float	Alignment score for the D
-D_IDENTITY	float	Alignment identity for the D
-D_EVALUE	float	E-value for the alignment of the D
-D_CIGAR	string	CIGAR string for the alignment of the D
-J_SCORE	float	Alignment score for the J
-J_IDENTITY	float	Alignment identity for the J
-J_EVALUE	float	E-value for the alignment of the J
-J_CIGAR	string	CIGAR string for the alignment of the J
-**MakeDb - iHHMune-Align Optional Annotations**		
-VDJ_SCORE	float	Alignment score for the V(D)J
-**MakeDb - 10X Annotations**		
-CELL	string	Cell barcode
-C_CALL	string	Cell Ranger C-region assignment
-CONSCOUNT	integer	Read count of contig
-UMICOUNT	integer	UMI count for the sequence
-V_CALL_10X	string	Cell Ranger V assignment
-D_CALL_10X	string	Cell Ranger D assignment
-J_CALL_10X	string	Cell Ranger J assignment
-JUNCTION_10X	string	Cell Ranger junction nucleotide sequence
-JUNCTION_10X_AA	string	Cell Ranger junction amino acid sequence
-**CreateGermlines Annotations**		
-GERMLINE_VDJ	string	Full unaligned germline V(D)J nucleotide sequence
-GERMLINE_VDJ_V_REGION	string	Unaligned germline V segment nucleotide sequence
-GERMLINE_VDJ_D_MASK	string	Unaligned germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions
-GERMLINE_IMGT	string	Full IMGT-numbered germline V(D)J nucleotide sequence
-GERMLINE_IMGT_V_REGION	string	IMGT-numbered germline V segment nucleotide sequence
-GERMLINE_IMGT_D_MASK	string	IMGT-numbered germline V(D)J nucleotide sequence with Ns masking the NP1-D-NP2 regions
-GERMLINE_V_CALL	string	Clonal consensus germline V assignment 
-GERMLINE_D_CALL	string	Clonal consensus germline D assignment
-GERMLINE_J_CALL	string	Clonal consensus germline J assignment
-GERMLINE_REGIONS	string	"String showing germline segments positions encoded as V, D, J, N, and P characters"
-**DefineClones Annotations**		
-CLONE	integer	Clonal grouping identifier
-**TIgGER Annotations**		
-V_CALL_GENOTYPED	string	Adjusted V allele assignment(s) following TIgGER genotype inference
-**pRESTO Annotations**		
-PRCONS	string	UMI consensus primer
-PRIMER	string	list of primers
-CONSCOUNT	integer	number of reads contributing to the UMI consensus sequence
-DUPCOUNT	integer	copy number of the sequence
+Change-O Column Name	AIRR Column name	Type	Description
+**MakeDb - Standard Annotations**			
+SEQUENCE_ID	sequence_id	string	Unique sequence identifier
+SEQUENCE_INPUT	sequence	string	Input nucleotide sequence
+SEQUENCE_VDJ		string	V(D)J nucleotide sequence
+SEQUENCE_IMGT	sequence_alignment	string	IMGT-numbered V(D)J nucleotide sequence
+FUNCTIONAL	productive	logical	T: V(D)J sequence is predicted to be productive
+IN_FRAME	vj_in_frame	logical	T: junction region nucleotide sequence is in-frame
+STOP	stop_codon	logical	T: stop codon is present in V(D)J nucleotide sequence
+MUTATED_INVARIANT		logical	T: invariant amino acids properly encoded by V(D)J sequence
+INDELS		logical	T: V(D)J nucleotide sequence contains insertions and/or deletions
+LOCUS		string	Locus of the receptor
+V_CALL	v_call	string	V allele assignment(s)
+D_CALL	d_call	string	D allele assignment(s)
+J_CALL	j_call	string	J allele assignment(s)
+V_SEQ_START	v_sequence_start	integer	Position of first V nucleotide in SEQUENCE_INPUT
+V_SEQ_LENGTH		integer	Number of V nucleotides in SEQUENCE_INPUT
+V_GERM_START_IMGT	v_germline_start	integer	Position of V_SEQ_START in IMGT-numbered germline V(D)J sequence
+V_GERM_LENGTH_IMGT		integer	Length of the IMGT numbered germline V alignment
+NP1_LENGTH	np1_length	integer	Number of nucleotides between V and D segments
+D_SEQ_START	d_sequence_start	integer	Position of first D nucleotide in SEQUENCE_INPUT
+D_SEQ_LENGTH		integer	Number of D nucleotides in SEQUENCE_INPUT
+D_GERM_START	d_germline_start	integer	Position of D_SEQ_START in germline V(D)J nucleotide sequence
+D_GERM_LENGTH		integer	Length of the germline D alignment
+NP2_LENGTH	np2_length	integer	Number of nucleotides between D and J segments
+J_SEQ_START	j_sequence_start	integer	Position of first J nucleotide in SEQUENCE_INPUT
+J_SEQ_LENGTH	j_sequence_end	integer	Number of J nucleotides in SEQUENCE_INPUT
+J_GERM_START	j_germline_start	integer	Position of J_SEQ_START in germline V(D)J nucleotide sequence
+J_GERM_LENGTH		integer	Length of the germline J alignment
+JUNCTION_LENGTH	junction_length	integer	Number of junction nucleotides in SEQUENCE_VDJ
+JUNCTION	junction	string	Junction region nucletide sequence
+**MakeDb - Optional Region Annotations**			
+FWR1_IMGT	fwr1	string	IMGT-numbered FWR1 nucleotide sequence
+FWR2_IMGT	fwr2	string	IMGT-numbered FWR2 nucleotide sequence
+FWR3_IMGT	fwr3	string	IMGT-numbered FWR3 nucleotide sequence
+FWR4_IMGT	fwr4	string	IMGT-numbered FWR4 nucleotide sequence
+CDR1_IMGT	cdr1	string	IMGT-numbered CDR1 nucleotide sequence
+CDR2_IMGT	cdr2	string	IMGT-numbered CDR2 nucleotide sequence
+CDR3_IMGT	cdr3	string	IMGT-numbered CDR3 nucleotide sequence
+**MakeDb - IMGT Optional Annotations**			
+N1_LENGTH		integer	Untemplated nucleotides 5' of the D segment
+N2_LENGTH		integer	Untemplated Nucleotides 3' of the D segment
+P3V_LENGTH		integer	Palindromic nucleotides 3' of the V segment
+P5D_LENGTH		integer	Palindromic nucleotides 5' of the D segment
+P3D_LENGTH		integer	Palindromic nucleotides 3' of the D segment
+P5J_LENGTH		integer	Palindromic nucleotides 5' of the J segment
+D_FRAME		integer	D segment reading frame
+V_SCORE	v_score	float	Alignment score for the V
+V_IDENTITY	v_identity	float	Alignment identity for the V
+D_SCORE	d_score	float	Alignment score for the D
+D_IDENTITY	d_identity	float	Alignment identity for the D
+J_SCORE	j_score	float	Alignment score for the J
+J_IDENTITY	j_identity	float	Alignment identity for the J
+**MakeDb - IgBLAST Optional Annotations**			
+V_SCORE	v_score	float	Alignment score for the V
+V_IDENTITY	v_identity	float	Alignment identity for the V
+V_EVALUE	v_support	float	E-value for the alignment of the V
+V_CIGAR	v_cigar	string	CIGAR string for the alignment of the V
+D_SCORE	d_score	float	Alignment score for the D
+D_IDENTITY	d_identity	float	Alignment identity for the D
+D_EVALUE	d_support	float	E-value for the alignment of the D
+D_CIGAR	d_cigar	string	CIGAR string for the alignment of the D
+J_SCORE	j_score	float	Alignment score for the J
+J_IDENTITY	j_identity	float	Alignment identity for the J
+J_EVALUE	j_support	float	E-value for the alignment of the J
+J_CIGAR	j_cigar	string	CIGAR string for the alignment of the J
+**MakeDb - iHHMune-Align Optional Annotations**			
+VDJ_SCORE		float	Alignment score for the V(D)J
+**MakeDb - 10X Annotations**			
+CELL		string	Cell barcode
+C_CALL		string	Cell Ranger C-region assignment
+CONSCOUNT		integer	Read count of contig
+UMICOUNT		integer	UMI count for the sequence
+V_CALL_10X		string	Cell Ranger V assignment
+D_CALL_10X		string	Cell Ranger D assignment
+J_CALL_10X		string	Cell Ranger J assignment
+JUNCTION_10X		string	Cell Ranger junction nucleotide sequence
+JUNCTION_10X_AA		string	Cell Ranger junction amino acid sequence
+**CreateGermlines Annotations**			
+GERMLINE_VDJ		string	Full unaligned germline V(D)J nucleotide sequence
+GERMLINE_VDJ_V_REGION		string	Unaligned germline V segment nucleotide sequence
+GERMLINE_VDJ_D_MASK		string	Unaligned germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions
+GERMLINE_IMGT	germline_alignment	string	Full IMGT-numbered germline V(D)J nucleotide sequence
+GERMLINE_IMGT_V_REGION		string	IMGT-numbered germline V segment nucleotide sequence
+GERMLINE_IMGT_D_MASK		string	IMGT-numbered germline V(D)J nucleotide sequence with Ns masking the NP1-D-NP2 regions
+GERMLINE_V_CALL		string	Clonal consensus germline V assignment 
+GERMLINE_D_CALL		string	Clonal consensus germline D assignment
+GERMLINE_J_CALL		string	Clonal consensus germline J assignment
+GERMLINE_REGIONS		string	String showing germline segments positions encoded as V, D, J, N, and P characters
+**DefineClones Annotations**			
+CLONE	clone_id	integer	Clonal grouping identifier
+**TIgGER Annotations**			
+V_CALL_GENOTYPED		string	Adjusted V allele assignment(s) following TIgGER genotype inference
+**pRESTO Annotations**			
+PRCONS		string	UMI consensus primer
+PRIMER		string	list of primers
+CONSCOUNT	consensus_count	integer	number of reads contributing to the UMI consensus sequence
+DUPCOUNT	duplicate_count	integer	copy number of the sequence
