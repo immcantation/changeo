@@ -1,5 +1,12 @@
 .. changeo documentation master file
 
+.. warning::
+
+    As of v1.0.0 the default file format will be the
+    `Adaptive Immune Receptor Repertoire (AIRR) Community Rearrangement standard <http://docs.airr-community.org>`__.
+    The classical Change-O format will still be supported through the ``--format changeo``
+    argument. See the :ref:`Release Notes <News>` for more details.
+
 .. include:: ../README.rst
 
 .. toctree::

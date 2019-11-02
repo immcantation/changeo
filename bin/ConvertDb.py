@@ -542,8 +542,8 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
 
     Arguments:
       record : Receptor record.
-      start : start position of the modified seqeuence in the input sequence. Used for feature position offsets.
-      end : end position of the modified seqeuence in the input sequence. Used for feature position offsets.
+      start : start position of the modified sequence in the input sequence. Used for feature position offsets.
+      end : end position of the modified sequence in the input sequence. Used for feature position offsets.
       product : Product (protein) name.
       inference : Reference alignment tool.
       db_xref : Reference database name.
@@ -695,6 +695,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #   codon_start (must indicate codon offset)
     #   function = JUNCTION
     #   inference
+    # print(record.junction_start, record.junction_end, record.junction_length)
     if record.junction_start is not None and record.junction_end is not None:
         # Define junction boundaries
         junction_start = record.junction_start - start_trim

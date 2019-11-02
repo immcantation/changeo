@@ -120,11 +120,11 @@ must be provided to :ref:`MakeDb`::
 
     MakeDb.py igblast -i S43_atleast-2.fmt7 -s S43_atleast-2.fasta \
         -r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta \
-        --regions --scores
+        --extended
 
-The optional :option:`--regions <MakeDb igblast --regions>` and
-:option:`--scores <MakeDb igblast --scores>` arguments add extra columns to the output
-database containing IMGT-gapped CDR/FWR regions and alignment metrics, respectively.
+The optional :option:`--extended <MakeDb igblast --extended>` argument adds extra
+columns to the output database containing IMGT-gapped CDR/FWR regions and
+alignment metrics.
 
 .. warning::
 
