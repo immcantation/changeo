@@ -24,8 +24,8 @@ default_tbl2asn_exec = 'tbl2asn'
 default_igphyml_exec = 'igphyml'
 
 # Commandline arguments
-choices_format = ('changeo', 'airr')
-default_format = 'changeo'
+choices_format = ('airr', 'changeo')
+default_format = 'airr'
 default_out_args = {'log_file': None,
                     'out_dir': None,
                     'out_name': None,
