@@ -47,23 +47,6 @@ steps below::
     See the :ref:`IgBLAST usage guide <IgBLAST>` for further details regarding
     the setup and use of IgBLAST with Change-O.
 
-Joining Change-O data with 10X V(D)J annotations
---------------------------------------------------------------------------------
-
-:ref:`Change-O <Standard>` compliant TSV files can also be merged without the use of :ref:`MakeDb`. 
-This approach involves a simple join operation such that columns specific to 10X are appended with ``_10X``. 
-For instance, Cell Ranger V, D and J segment assignments are retained using this approach (as ``V_GENE_10X``,
-``D_GENE_10X``, ``J_GENE_10X``).
-
-A simple script to perform the merge,
-`merge10x.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/merge10x.py>`__,
-is provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
-in the ``scripts`` directory. The following example shows how to merge the
-Change-O file (``10x_igblast_db-pass.tab``) with a 10X annotation file
-(``filtered_contig_annotations.csv``) and save it as ``10x_annotated_db-pass.tab``::
-
-    merge10x.py 10x_igblast_db-pass.tab filtered_contig_annotations.csv 10x_annotated_db-pass.tab
-
 Identifying clones from B cells in Change-O format 10X V(D)J data
 --------------------------------------------------------------------------------
 
