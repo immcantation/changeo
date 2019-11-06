@@ -50,6 +50,9 @@ steps below::
 Identifying clones from B cells in Change-O format 10X V(D)J data
 --------------------------------------------------------------------------------
 
+Splitting into separate light and heavy chain files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 To group B cells into clones from Change-O format data, the output from :ref:`MakeDb`
 must be parsed into a light chain :ref:`Change-O <Standard>` file and a heavy chain
 :ref:`Change-O <Standard>` file::
@@ -59,11 +62,18 @@ must be parsed into a light chain :ref:`Change-O <Standard>` file and a heavy ch
     ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IG[LK]" \
 	    --logic all --regex --outname light
 
+Assign clonal groups to the heavy chain data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 The heavy chain file must then be clonally clustered separately. See :ref:`Cloning` for
 how to use :ref:`DefineClones` to assign clonal cluster annotations to the IGH file.
 
-:ref:`DefineClones` currently does not support light chain cloning. However cloning can be performed after
-heavy chain cloning using `light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__
+Correct clonal groups based on light chain data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`DefineClones` currently does not support light chain cloning. However,
+cloning can be performed after heavy chain cloning using
+`light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__
 provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory::
 
