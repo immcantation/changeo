@@ -485,6 +485,9 @@ def characterizePartitionErrors(sequences, clones, meta_data):
     nseqs = len(sequences)
     imgtar = clones[0].getField("imgtpartlabels")
     germline = clones[0].getField("germline_imgt_d_mask")
+    if germline is "":
+        germline = clones[0].getField("germline_imgt")
+
     correctseqs = False
 
     for seqi in range(0, len(sequences)):
@@ -536,7 +539,10 @@ def characterizePartitionErrors(sequences, clones, meta_data):
     #Resolve germline if there are differences, e.g. if reconstruction was done before clonal clustering
     resolveglines = False
     for c in clones:
-        if c.getField("germline_imgt_d_mask") != germline:
+        ngermline = c.getField("germline_imgt_d_mask")
+        if ngermline is "":
+            ngermline = c.getField("germline_imgt")
+        if ngermline != germline:
             resolveglines = True
 
     if resolveglines:
@@ -805,6 +811,33 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
                              [120] * len(regions["fwr4_imgt"])
             r.setField("imgtpartlabels", imgtpartlabels)
 
+            if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
+                log = OrderedDict()
+                log["ID"] = r.sequence_id
+                log["CLONE"] = r.clone
+                log["SEQ_IN"] = r.sequence_input
+                log["SEQ_IMGT"] = r.sequence_imgt
+                logs[r.sequence_id] = log
+                logs[r.sequence_id]["PASS"] = False
+                logs[r.sequence_id]["FAIL"] = "FWR/CDR error"
+                logs[r.sequence_id]["FWRCDRSEQ"] = simgt
+                fails["seq_fail"] += 1
+                fails["region_fail"] += 1
+                return 0
+
+        elif regions["fwr3_imgt"] is not "" and regions["fwr3_imgt"] is not None:
+            simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
+                    regions["fwr3_imgt"]
+            nseq = r.sequence_imgt[len(simgt):len(r.sequence_imgt)]
+
+            if len(simgt) < len(r.sequence_imgt):
+                simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + \
+                        regions["cdr2_imgt"] + regions["fwr3_imgt"] + nseq
+            imgtpartlabels = [13] * len(regions["fwr1_imgt"]) + [30] * len(regions["cdr1_imgt"]) + [45] * len(
+                regions["fwr2_imgt"]) + \
+                             [60] * len(regions["cdr2_imgt"]) + [80] * len(regions["fwr3_imgt"]) + \
+                             [108] * int(len(nseq))
+            r.setField("imgtpartlabels", imgtpartlabels)
             if len(r.getField("imgtpartlabels")) != len(r.sequence_imgt) or simgt != r.sequence_imgt:
                 log = OrderedDict()
                 log["ID"] = r.sequence_id
