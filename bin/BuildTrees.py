@@ -1142,6 +1142,19 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
 
         r.sequence_id = r.sequence_id.replace(",","-") #remove commas from sequence ID
         r.sequence_id = r.sequence_id.replace(":","-") #remove colons from sequence ID
+        r.sequence_id = r.sequence_id.replace(",","-") #remove commas from sequence ID
+        r.sequence_id = r.sequence_id.replace(")","-") #remove parenthesis from sequence ID
+        r.sequence_id = r.sequence_id.replace("(","-") #remove parenthesis from sequence ID
+        if(meta_data is not None):
+            for m in range(0,len(meta_data)):
+                md = r.getField(meta_data[m])
+                md = md.replace(",","-") #remove commas from metadata
+                md = md.replace(":","-") #remove colons from metadata
+                md = md.replace(",","-") #remove commas from metadata
+                md = md.replace(")","-") #remove parenthesis from metadata
+                md = md.replace("(","-") #remove parenthesis from metadata
+                r.setField(meta_data[m],md)
+
         if append is not None:
             if append is not None:
                 for m in append:
