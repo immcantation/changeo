@@ -4,7 +4,7 @@ Data Standard
 ================================================================================
 
 All Change-O tools supports both the classical Change-O standard and the new
-`Adaptive Immune Receptor Repertoire (AIRR) <http://docs.airr-community.org/en/latest/formats/overview.html>`__
+`Adaptive Immune Receptor Repertoire (AIRR) <https://docs.airr-community.org/en/latest/index.html>`__
 standard.
 
 The Change-O standard is a tab-delimited file format (``.tab``) with a set of predefine
