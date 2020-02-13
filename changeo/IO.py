@@ -919,7 +919,7 @@ class IgBLASTReader:
         self.receptor = receptor
 
         # Define parsing blocks
-        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLASTN', x))
+        self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLAST', x))
 
     @staticmethod
     def _parseQueryChunk(chunk):
@@ -1547,6 +1547,189 @@ class IgBLASTReader:
             return Receptor(db)
         else:
             return db
+
+
+class IgBLASTAAReader(IgBLASTReader):
+    """
+    An iterator to read and parse IgBLAST amino acid alignment output files
+    """
+    @staticmethod
+    def customFields(scores=False, regions=False, cdr3=False, schema=None):
+        """
+        Returns non-standard fields defined by the parser
+
+        Arguments:
+          scores : if True include alignment scoring fields.
+          regions : if True include IMGT-gapped CDR and FWR region fields.
+          cdr3 : if True include IgBLAST CDR3 assignment fields.
+          schema : schema class to pass field through for conversion.
+                   If None, return changeo.Receptor.Receptor attribute names.
+
+        Returns:
+          list : list of field names.
+        """
+        # IgBLAST scoring fields
+        score_fields = ['v_score',
+                        'v_identity',
+                        'v_evalue',
+                        'v_cigar',
+                        'd_score',
+                        'd_identity',
+                        'd_evalue',
+                        'd_cigar',
+                        'j_score',
+                        'j_identity',
+                        'j_evalue',
+                        'j_cigar']
+
+        # FWR amd CDR fields
+        region_fields = ['fwr1_imgt',
+                         'fwr2_imgt',
+                         'fwr3_imgt',
+                         'fwr4_imgt',
+                         'cdr1_imgt',
+                         'cdr2_imgt',
+                         'cdr3_imgt']
+
+        # IgBLAST CDR3 fields
+        cdr3_fields = ['cdr3_igblast',
+                       'cdr3_igblast_aa']
+
+        fields = []
+        if scores:  fields.extend(score_fields)
+        if regions:  fields.extend(region_fields)
+        if cdr3:  fields.extend(cdr3_fields)
+
+        # Convert field names if schema provided
+        if schema is not None:
+            fields = [schema.fromReceptor(f) for f in fields]
+
+        return fields
+
+    @staticmethod
+    def _parseVHitPos(v_hit):
+        """
+        Parse V alignment positions
+
+        Arguments:
+          v_hit :  V alignment row from the hit table
+
+        Returns:
+          dict: db of D starts and lengths
+        """
+        result = {}
+        # Germline positions
+        result['v_germ_start_vdj'] = int(v_hit['s. start'])
+        result['v_germ_length_vdj'] = int(v_hit['s. end']) - result['v_germ_start_vdj'] + 1
+        # Query sequence positions
+        result['v_seq_start'] = int(v_hit['q. start'])
+        result['v_seq_length'] = int(v_hit['q. end']) - result['v_seq_start'] + 1
+        result['indels'] = 'F' if int(v_hit['gap opens']) == 0 else 'T'
+
+        return result
+
+    @staticmethod
+    def _parseVHits(hits, db):
+        """
+        Parse V hit sub-table
+
+        Arguments:
+          hits :  hit table as a list of dictionaries.
+          db : database dictionary containing summary results.
+
+        Returns:
+          dict : db of results.
+        """
+        result = {}
+        seq_vdj = db['sequence_vdj']
+        seq_trim = db['sequence_trim']
+        v_hit = next(x for x in hits if x['segment'] == 'V')
+
+        # Alignment positions
+        result.update(IgBLASTReader._parseVHitPos(v_hit))
+        # Update VDJ sequence with and without removing insertions
+        result['sequence_vdj'] = IgBLASTReader._appendSeq(seq_vdj, v_hit, 0, trim=False)
+        result['sequence_trim'] = IgBLASTReader._appendSeq(seq_trim, v_hit, 0, trim=True)
+
+        return result
+
+    def parseSections(self, sections):
+        """
+        Parses an IgBLAST sections into a db dictionary
+
+        Arguments:
+            sections : dictionary of parsed sections from parseBlock.
+
+        Returns:
+          dict : db entries.
+        """
+        # Initialize dictionary with input sequence and id
+        db = {}
+        if 'query' in sections:
+            query = sections['query']
+            db['sequence_id'] = query
+            db['sequence_input'] = str(self.sequences[query].seq)
+
+        # Parse summary section
+        if 'summary' in sections:
+            db.update(self._parseSummarySection(sections['summary'], db, asis_calls=self.asis_calls))
+
+        # Parse hit table
+        if 'hits' in sections:
+            db['sequence_vdj'] = ''
+            db['sequence_trim'] = ''
+            if db['v_call']:
+                db.update(self._parseVHits(sections['hits'], db))
+                db.update(self._parseHitScores(sections['hits'], 'v'))
+            if db['d_call']:
+                db.update(self._parseDHits(sections['hits'], db))
+                db.update(self._parseHitScores(sections['hits'], 'd'))
+            if db['j_call']:
+                db.update(self._parseJHits(sections['hits'], db))
+                db.update(self._parseHitScores(sections['hits'], 'j'))
+
+        # Create IMGT-gapped sequence
+        if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
+            try:
+                imgt_dict = gapV(db['sequence_trim'],
+                                 v_germ_start=db['v_germ_start_vdj'],
+                                 v_germ_length=db['v_germ_length_vdj'],
+                                 v_call=db['v_call'],
+                                 references=self.references,
+                                 asis_calls=self.asis_calls)
+            except KeyError as e:
+                imgt_dict = {'sequence_imgt': None,
+                             'v_germ_start_imgt': None,
+                             'v_germ_length_imgt': None}
+                printWarning(e)
+            db.update(imgt_dict)
+            del db['sequence_trim']
+
+        # Add junction
+        if 'subregion' in sections and 'cdr3_igblast_start' in sections['subregion']:
+            junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
+            db.update(junc_dict)
+        elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+            junc_dict = inferJunction(db['sequence_imgt'],
+                                      j_germ_start=db['j_germ_start'],
+                                      j_germ_length=db['j_germ_length'],
+                                      j_call=db['j_call'],
+                                      references=self.references,
+                                      asis_calls=self.asis_calls)
+            db.update(junc_dict)
+
+        # Add IgBLAST CDR3 sequences
+        if 'subregion' in sections:
+            # Sequences already parsed into dict by parseBlock
+            db.update(sections['subregion'])
+        else:
+            # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
+            db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
+
+        # Add FWR and CDR regions
+        db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
+
+        return db
 
 
 class IHMMuneReader:
