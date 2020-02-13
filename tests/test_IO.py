@@ -14,7 +14,7 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from changeo.IO import getDbFields, extractIMGT, readGermlines, ChangeoReader, \
-                       IgBLASTReader, IHMMuneReader, IMGTReader
+                       IgBLASTReader, IgBLASTAAReader, IHMMuneReader, IMGTReader
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -30,17 +30,20 @@ class Test_MakeDb(unittest.TestCase):
         print('-> %s()' % self._testMethodName)
 
         # Germline files
-        self.ig_repo_dir = '/usr/local/share/germlines/imgt/human/vdj'
+        self.repo_ig = '/usr/local/share/germlines/imgt/human/vdj'
+        self.repo_ig_aa = '/Users/vandej27/local/share/germlines/human/vdj_aa'
         # Read files
-        self.ig_read_file = os.path.join(data_path, 'reads_ig.fasta')
+        self.reads_ig = os.path.join(data_path, 'reads_ig.fasta')
+        self.reads_ig_aa = os.path.join(data_path, 'reads_ig_aa.fasta')
         # IMGT output
-        self.ig_imgt_file = os.path.join(data_path, 'imgt_ig.txz')
+        self.imgt_ig = os.path.join(data_path, 'imgt_ig.txz')
         # IgBLAST output
-        self.ig_igblast_file = os.path.join(data_path, 'igblast1.7_ig.fmt7')
+        self.igblast_ig = os.path.join(data_path, 'igblast1.7_ig.fmt7')
+        self.igblast_ig_aa = os.path.join(data_path, 'igblast1.14_ig_aa.fmt7')
         # iHMMune-Align output
-        self.ig_ihmmune_file = os.path.join(data_path, 'ihmmune_ig.csv')
+        self.ihmmune_ig = os.path.join(data_path, 'ihmmune_ig.csv')
         # Change-O files
-        self.ig_db_file = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
+        self.db_ig = os.path.join(data_path, 'imgt_ig_db-pass.tsv')
 
         self.start = time.time()
 
@@ -51,19 +54,19 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> ChangeoReader() skipped\n")
     def test_getDbFields(self):
         # Get fields
-        x = getDbFields(self.ig_db_file)
+        x = getDbFields(self.db_ig)
         print(x)
 
         # Add fields
-        x = getDbFields(self.ig_db_file, add=['A', 'B', 'C'])
+        x = getDbFields(self.db_ig, add=['A', 'B', 'C'])
         print(x)
 
         # Exclude fields
-        x = getDbFields(self.ig_db_file, exclude=['V_SCORE', 'V_IDENTITY', 'J_SCORE', 'J_IDENTITY'])
+        x = getDbFields(self.db_ig, exclude=['V_SCORE', 'V_IDENTITY', 'J_SCORE', 'J_IDENTITY'])
         print(x)
 
         # Add and exclude fields
-        x = getDbFields(self.ig_db_file, add=['A', 'B', 'C'],
+        x = getDbFields(self.db_ig, add=['A', 'B', 'C'],
                         exclude=['V_SCORE', 'V_IDENTITY', 'J_SCORE', 'J_IDENTITY'])
         print(x)
 
@@ -72,7 +75,7 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> ChangeoReader() skipped\n")
     def test_ChangeoReader(self):
         # Parse
-        with open(self.ig_db_file, 'r') as f:
+        with open(self.db_ig, 'r') as f:
             result = ChangeoReader(f)
             for x in result: print(x.toDict())
 
@@ -81,7 +84,7 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> IMGTReader() skipped\n")
     def test_IMGTReader(self):
         # Extract IMGT files
-        temp_dir, files = extractIMGT(self.ig_imgt_file)
+        temp_dir, files = extractIMGT(self.imgt_ig)
 
         # Parse
         with open(files['summary'], 'r') as summary, \
@@ -99,12 +102,25 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> IgBLASTReader() skipped\n")
     def test_IgBLASTReader(self):
         # Load germlines and sequences
-        seq_dict = MakeDb.getSeqDict(self.ig_read_file)
-        repo_dict = readGermlines([self.ig_repo_dir])
+        seq_dict = MakeDb.getSeqDict(self.reads_ig_aa)
+        repo_dict = readGermlines([self.repo_ig])
 
         # Parse
-        with open(self.ig_igblast_file, 'r') as f:
+        with open(self.igblast_ig, 'r') as f:
             result = IgBLASTReader(f, seq_dict, repo_dict, receptor=False)
+            for x in result: print(x)
+
+        self.fail('TODO')
+
+    # @unittest.skip("-> IgBLASTReader() skipped\n")
+    def test_IgBLASTAAReader(self):
+        # Load germlines and sequences
+        seq_dict = MakeDb.getSeqDict(self.reads_ig_aa)
+        repo_dict = readGermlines([self.repo_ig_aa])
+
+        # Parse
+        with open(self.igblast_ig_aa, 'r') as f:
+            result = IgBLASTAAReader(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
         self.fail('TODO')
@@ -112,11 +128,11 @@ class Test_MakeDb(unittest.TestCase):
     @unittest.skip("-> IHMMReader() skipped\n")
     def test_IHMMReader(self):
         # Load germlines and sequences
-        seq_dict = MakeDb.getSeqDict(self.ig_read_file)
-        repo_dict = readGermlines([self.ig_repo_dir])
+        seq_dict = MakeDb.getSeqDict(self.reads_ig)
+        repo_dict = readGermlines([self.repo_ig])
 
         # Parse
-        with open(self.ig_ihmmune_file, 'r') as f:
+        with open(self.ihmmune_ig, 'r') as f:
             result = IHMMuneReader(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
