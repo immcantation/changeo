@@ -348,7 +348,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MakeDb'
-    log['ALIGNER'] = 'IMGT'
+    log['COMMAND'] = 'imgt'
     log['ALIGNER_FILE'] = aligner_file
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ASIS_ID'] = asis_id
@@ -445,7 +445,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MakeDB'
-    log['ALIGNER'] = 'IgBLAST'
+    log['COMMAND'] = 'igblast-aa' if amino_acid else 'igblast'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ASIS_ID'] = asis_id
@@ -528,7 +528,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MakeDB'
-    log['ALIGNER'] = 'iHMMune-Align'
+    log['COMMAND'] = 'ihmm'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ASIS_ID'] = asis_id
