@@ -112,7 +112,7 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
-    # @unittest.skip("-> IgBLASTReader() skipped\n")
+    @unittest.skip("-> IgBLASTAAReader() skipped\n")
     def test_IgBLASTAAReader(self):
         # Load germlines and sequences
         seq_dict = MakeDb.getSeqDict(self.reads_ig_aa)
