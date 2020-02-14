@@ -31,7 +31,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Germline files
         self.repo_ig = '/usr/local/share/germlines/imgt/human/vdj'
-        self.repo_ig_aa = '/Users/vandej27/local/share/germlines/human/vdj_aa'
+        self.repo_ig_aa = '/usr/local/share/germlines/imgt/human/vdj_aa'
         # Read files
         self.reads_ig = os.path.join(data_path, 'reads_ig.fasta')
         self.reads_ig_aa = os.path.join(data_path, 'reads_ig_aa.fasta')
