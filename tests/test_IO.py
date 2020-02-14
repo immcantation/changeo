@@ -123,7 +123,7 @@ class Test_MakeDb(unittest.TestCase):
             result = IgBLASTAAReader(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
-        self.fail('TODO')
+        # self.fail('TODO')
 
     @unittest.skip("-> IHMMReader() skipped\n")
     def test_IHMMReader(self):

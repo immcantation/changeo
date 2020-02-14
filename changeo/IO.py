@@ -1663,9 +1663,8 @@ class IgBLASTAAReader(IgBLASTReader):
             db['v_call'] = ''
             db['sequence_vdj'] = ''
             db['sequence_trim'] = ''
-            if db['v_call']:
-                db.update(self._parseVHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'v'))
+            db.update(self._parseVHits(sections['hits'], db))
+            db.update(self._parseHitScores(sections['hits'], 'v'))
 
         # Create IMGT-gapped sequence
         if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
