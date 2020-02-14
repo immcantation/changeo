@@ -1572,15 +1572,7 @@ class IgBLASTAAReader(IgBLASTReader):
         score_fields = ['v_score',
                         'v_identity',
                         'v_evalue',
-                        'v_cigar',
-                        'd_score',
-                        'd_identity',
-                        'd_evalue',
-                        'd_cigar',
-                        'j_score',
-                        'j_identity',
-                        'j_evalue',
-                        'j_cigar']
+                        'v_cigar']
 
         # FWR amd CDR fields
         region_fields = ['fwr1_imgt',
@@ -1591,14 +1583,9 @@ class IgBLASTAAReader(IgBLASTReader):
                          'cdr2_imgt',
                          'cdr3_imgt']
 
-        # IgBLAST CDR3 fields
-        cdr3_fields = ['cdr3_igblast',
-                       'cdr3_igblast_aa']
-
         fields = []
         if scores:  fields.extend(score_fields)
         if regions:  fields.extend(region_fields)
-        if cdr3:  fields.extend(cdr3_fields)
 
         # Convert field names if schema provided
         if schema is not None:
@@ -1647,7 +1634,8 @@ class IgBLASTAAReader(IgBLASTReader):
 
         # Alignment positions
         result.update(IgBLASTReader._parseVHitPos(v_hit))
-        # Update VDJ sequence with and without removing insertions
+        # Assign V gene and update VDJ sequence with and without removing insertions
+        result['v_call'] = v_hit['subject id']
         result['sequence_vdj'] = IgBLASTReader._appendSeq(seq_vdj, v_hit, 0, trim=False)
         result['sequence_trim'] = IgBLASTReader._appendSeq(seq_trim, v_hit, 0, trim=True)
 
@@ -1670,23 +1658,14 @@ class IgBLASTAAReader(IgBLASTReader):
             db['sequence_id'] = query
             db['sequence_input'] = str(self.sequences[query].seq)
 
-        # Parse summary section
-        if 'summary' in sections:
-            db.update(self._parseSummarySection(sections['summary'], db, asis_calls=self.asis_calls))
-
         # Parse hit table
         if 'hits' in sections:
+            db['v_call'] = ''
             db['sequence_vdj'] = ''
             db['sequence_trim'] = ''
             if db['v_call']:
                 db.update(self._parseVHits(sections['hits'], db))
                 db.update(self._parseHitScores(sections['hits'], 'v'))
-            if db['d_call']:
-                db.update(self._parseDHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'd'))
-            if db['j_call']:
-                db.update(self._parseJHits(sections['hits'], db))
-                db.update(self._parseHitScores(sections['hits'], 'j'))
 
         # Create IMGT-gapped sequence
         if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
@@ -1704,27 +1683,6 @@ class IgBLASTAAReader(IgBLASTReader):
                 printWarning(e)
             db.update(imgt_dict)
             del db['sequence_trim']
-
-        # Add junction
-        if 'subregion' in sections and 'cdr3_igblast_start' in sections['subregion']:
-            junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
-            db.update(junc_dict)
-        elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
-            junc_dict = inferJunction(db['sequence_imgt'],
-                                      j_germ_start=db['j_germ_start'],
-                                      j_germ_length=db['j_germ_length'],
-                                      j_call=db['j_call'],
-                                      references=self.references,
-                                      asis_calls=self.asis_calls)
-            db.update(junc_dict)
-
-        # Add IgBLAST CDR3 sequences
-        if 'subregion' in sections:
-            # Sequences already parsed into dict by parseBlock
-            db.update(sections['subregion'])
-        else:
-            # Section does not exist (ie, older version of IgBLAST or CDR3 not found)
-            db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
 
         # Add FWR and CDR regions
         db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
