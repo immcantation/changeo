@@ -13,6 +13,97 @@ from Bio.Seq import Seq
 from presto.IO import printError, printWarning
 from changeo.Gene import parseAllele, v_allele_regex, j_allele_regex
 
+class RegionDefinition:
+    """
+    FWR and CDR region boundary definitions
+    """
+    def __init__(self, junction_length, cdr3_start=104, aa=False):
+        """
+        Initializer
+
+        Arguments:
+          junction_length : length of the junction region
+          cdr3 : start position of the CDR3 region in amino acid space
+          aa : if True define boundaries in amico acid space, otherwise use nucleotide positions
+
+        Returns:
+          changeo.Alignment.RegionDefinition
+        """
+        self.junction_length = junction_length
+        self.aa = aa
+        if (aa):
+            fwr4_start = max(cdr3_start, cdr3_start - 2 + junction_length) \
+                    if junction_length is not None else None
+            self.positions = {'fwr1': [0, 26],
+                              'cdr1': [26, 38],
+                              'fwr2': [38, 55],
+                              'cdr2': [55, 65],
+                              'fwr3': [65, cdr3_start],
+                              'cdr3': [cdr3_start, fwr4_start],
+                              'fwr4': [fwr4_start, None]}
+        else:
+            cdr3_start = cdr3_start * 3
+            fwr4_start = max(cdr3_start, cdr3_start - 6 + junction_length) \
+                if junction_length is not None else None
+            self.positions = {'fwr1': [0, 78],
+                              'cdr1': [78, 114],
+                              'fwr2': [114, 165],
+                              'cdr2': [165, 195],
+                              'fwr3': [195, cdr3_start],
+                              'cdr3': [cdr3_start, fwr4_start],
+                              'fwr4': [fwr4_start, None]}
+
+    def getRegions(self, seq):
+        """
+        Return IMGT defined FWR and CDR regions
+
+        Arguments:
+          seq : IMGT-gapped sequence.
+
+        Returns:
+          dict : dictionary of FWR and CDR sequences.
+        """
+        regions = {'fwr1_imgt': None,
+                   'fwr2_imgt': None,
+                   'fwr3_imgt': None,
+                   'fwr4_imgt': None,
+                   'cdr1_imgt': None,
+                   'cdr2_imgt': None,
+                   'cdr3_imgt': None}
+        try:
+            seq_len = len(seq)
+            regions['fwr1_imgt'] = seq[self.positions['fwr1'][0]:min(self.positions['fwr1'][1], seq_len)]
+        except (KeyError, IndexError, TypeError):
+            return regions
+
+        try:
+            regions['cdr1_imgt'] = seq[self.positions['cdr1'][0]:min(self.positions['cdr1'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['fwr2_imgt'] = seq[self.positions['fwr2'][0]:min(self.positions['fwr2'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['cdr2_imgt'] = seq[self.positions['cdr2'][0]:min(self.positions['cdr2'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['fwr3_imgt'] = seq[self.positions['fwr3'][0]:min(self.positions['fwr3'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['cdr3_imgt'] = seq[self.positions['cdr3'][0]:min(self.positions['cdr3'][1], seq_len)]
+            regions['fwr4_imgt'] = seq[self.positions['fwr4'][0]:]
+        except (KeyError, IndexError, TypeError):
+            return regions
+
+        return regions
+
 
 def decodeBTOP(btop):
     """

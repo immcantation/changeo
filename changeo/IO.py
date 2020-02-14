@@ -23,7 +23,8 @@ from changeo.Defaults import default_csv_size
 from changeo.Gene import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, locus_regex, \
                          parseAllele
 from changeo.Receptor import AIRRSchema, ChangeoSchema, Receptor, ReceptorData
-from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, inferJunction, getRegions
+from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, inferJunction, \
+                              RegionDefinition, getRegions
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -1684,7 +1685,8 @@ class IgBLASTAAReader(IgBLASTReader):
             del db['sequence_trim']
 
         # Add FWR and CDR regions
-        db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
+        rd = RegionDefinition(junction_length=db.get('junction_length', None), aa=True)
+        db.update(rd.getRegions(db.get('sequence_imgt', None)))
 
         return db
 

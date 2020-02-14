@@ -12,7 +12,8 @@ from subprocess import check_output, STDOUT, CalledProcessError
 
 # Presto and changeo imports
 from presto.IO import printError, printWarning
-from changeo.Defaults import default_igblast_exec, default_tbl2asn_exec, default_igphyml_exec
+from changeo.Defaults import default_igblastn_exec, default_igblastp_exec, default_tbl2asn_exec, \
+                             default_igphyml_exec
 
 # Defaults
 default_igblast_output = 'legacy'
@@ -93,10 +94,10 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
     return None
 
 
-def runIgBLAST(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, jdb=None, output=None,
-               format=default_igblast_output, threads=1, exec=default_igblast_exec):
+def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, jdb=None, output=None,
+                format=default_igblast_output, threads=1, exec=default_igblastn_exec):
     """
-    Runs IgBLAST on a sequence file
+    Runs igblastn on a sequence file
 
     Arguments:
       fasta (str): fasta file containing sequences.
@@ -189,7 +190,63 @@ def runIgBLAST(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, j
     return stdout_str
 
 
-def getIgBLASTVersion(exec=default_igblast_exec):
+def runIgBLASTP(fasta, igdata, loci='ig', organism='human', vdb=None, output=None,
+                threads=1, exec=default_igblastp_exec):
+    """
+    Runs igblastp on a sequence file
+
+    Arguments:
+      fasta (str): fasta file containing sequences.
+      igdata (str): path to the IgBLAST database directory (IGDATA environment).
+      loci (str): receptor type; one of 'ig' or 'tr'.
+      organism (str): species name.
+      vdb (str): name of a custom V reference in the database folder to use.
+      output (str): output file name. If None, automatically generate from the fasta file name.
+      threads (int): number of threads for igblastp.
+      exec (str): the name or path to the igblastp executable.
+
+    Returns:
+      str: IgBLAST console output.
+
+    """
+    # IGBLAST_CMD="igblastp \
+    #     -germline_db_V ${IGBLAST_DB}/imgt_aa_${SPECIES}_${RECEPTOR}_v \
+    #     -ig_seqtype ${SEQTYPE} -organism ${SPECIES} \
+    #     -domain_system imgt -outfmt '7 std qseq sseq btop'"
+
+    try:
+        seqtype = {'ig': 'Ig', 'tr': 'TCR'}[loci]
+    except KeyError:
+        printError('Invalid receptor type %s.' % loci)
+
+    # Set V database
+    if vdb is not None:  v_germ = os.path.join(igdata, 'database', vdb)
+    else:  v_germ = os.path.join(igdata, 'database', 'imgt_aa_%s_%s_v' % (organism, loci))
+
+    # Define IgBLAST command
+    cmd = [exec,
+           '-query', os.path.abspath(fasta),
+           '-out', os.path.abspath(output),
+           '-num_threads', str(threads),
+           '-ig_seqtype', seqtype,
+           '-organism', organism,
+           '-germline_db_V', str(v_germ),
+           '-outfmt', '7 std qseq sseq btop',
+           '-domain_system', 'imgt']
+
+    # Execute IgBLAST
+    env = os.environ.copy()
+    env['IGDATA'] = igdata
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False, env=env,
+                                  universal_newlines=True)
+    except CalledProcessError as e:
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
+
+    return stdout_str
+
+
+def getIgBLASTVersion(exec=default_igblastn_exec):
     """
     Gets the version of the IgBLAST executable
 

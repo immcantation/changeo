@@ -24,7 +24,7 @@ from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import buildGermline
 from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter, IgBLASTReader, IMGTReader, IHMMuneReader
+                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTAAReader, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # 10X Receptor attributes
@@ -420,8 +420,9 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     return output
 
 
-def parseIgBLAST(aligner_file, seq_file, repo, cellranger_file=None, partial=False, asis_id=True, asis_calls=False,
-                 extended=False, format='changeo', out_file=None, out_args=default_out_args):
+def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, partial=False,
+                 asis_id=True, asis_calls=False, extended=False,
+                 format='changeo', out_file=None, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
 
@@ -433,6 +434,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, cellranger_file=None, partial=Fal
       asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       asis_calls : if True do not parse gene calls for allele names.
       extended : if True add alignment scores, FWR, IMGT CDR, and IgBLAST CDR3 to the output.
+      amino_acid : if True then the IgBLAST output files are results from igblastp. igblastn is assumed if False.
       format : output format. one of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -492,7 +494,10 @@ def parseIgBLAST(aligner_file, seq_file, repo, cellranger_file=None, partial=Fal
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
+        if not amino_acid:
+            parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
+        else:
+            parse_iter = IgBLASTAAReader(f, seq_dict, references, asis_calls=asis_calls)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
                         annotations=annotations, partial=partial, asis_id=asis_id,
@@ -645,16 +650,16 @@ def getArgParser():
     # Parent parser
     parser_parent = getCommonArgParser(db_in=False)
 
-    # IgBlast Aligner
+    # igblastn output parser
     parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter, add_help=False,
-                                           help='Process IgBLAST output.',
-                                           description='Process IgBLAST output.')
+                                           help='Process igblastn output.',
+                                           description='Process igblastn output.')
     group_igblast = parser_igblast.add_argument_group('aligner parsing arguments')
     group_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
                                 required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
-                                     (IgBLAST argument \'-outfmt "7 std qseq sseq btop"\').''')
+                                     (igblastn argument \'-outfmt "7 std qseq sseq btop"\').''')
     group_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
                                 help='''List of folders and/or fasta files containing
                                      the same germline set used in the IgBLAST alignment. These
@@ -690,7 +695,44 @@ def getArgParser():
                                      FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, and FWR4_IMGT; CDR1_IMGT, CDR2_IMGT, and
                                      CDR3_IMGT; CDR3_IGBLAST_NT and CDR3_IGBLAST_AA (requires IgBLAST
                                      version 1.5 or greater).''')
-    parser_igblast.set_defaults(func=parseIgBLAST)
+    parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
+
+    # igblastp output parser
+    parser_igblast_aa = subparsers.add_parser('igblast-aa', parents=[parser_parent],
+                                           formatter_class=CommonHelpFormatter, add_help=False,
+                                           help='Process igblastp output.',
+                                           description='Process igblastp output.')
+    group_igblast_aa = parser_igblast_aa.add_argument_group('aligner parsing arguments')
+    group_igblast_aa.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+                                  required=True,
+                                  help='''IgBLAST output files in format 7 with query sequence
+                                       (igblastp argument \'-outfmt "7 std qseq sseq btop"\').''')
+    group_igblast_aa.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
+                                  help='''List of folders and/or fasta files containing
+                                       the same germline set used in the IgBLAST alignment. These
+                                       reference sequences must contain IMGT-numbering spacers (gaps)
+                                       in the V segment.''')
+    group_igblast_aa.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
+                                  help='''List of input FASTA files (with .fasta, .fna or .fa
+                                       extension), containing sequences.''')
+    group_igblast_aa.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
+                                  help='''Table file containing 10X annotations (with .csv or .tsv extension).''')
+    group_igblast_aa.add_argument('--asis-id', action='store_true', dest='asis_id',
+                                  help='''Specify to prevent input sequence headers from being parsed
+                                       to add new columns to database. Parsing of sequence headers requires
+                                       headers to be in the pRESTO annotation format, so this should be specified
+                                       when sequence headers are incompatible with the pRESTO annotation scheme.
+                                       Note, unrecognized header formats will default to this behavior.''')
+    group_igblast_aa.add_argument('--asis-calls', action='store_true', dest='asis_calls',
+                                  help='''Specify to prevent gene calls from being parsed into standard allele names
+                                       in both the IgBLAST output and reference database. Note, this requires
+                                       the sequence identifiers in the reference sequence set and the IgBLAST
+                                       database to be exact string matches.''')
+    group_igblast_aa.add_argument('--extended', action='store_true', dest='extended',
+                                  help='''Specify to include additional aligner specific fields in the output. 
+                                       Adds V_SCORE, V_IDENTITY, V_EVALUE, and V_CIGAR;
+                                       FWR1_IMGT, FWR2_IMGT, FWR3_IMGT; CDR1_IMGT, CDR2_IMGT.''')
+    parser_igblast_aa.set_defaults(func=parseIgBLAST, partial=True, amino_acid=True)
 
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],
