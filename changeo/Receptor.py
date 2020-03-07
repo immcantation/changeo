@@ -41,7 +41,7 @@ from changeo.Gene import allele_number_regex, allele_regex, gene_regex, family_r
 #
 #         # Field sets
 #         self.fields = list(receptor.keys())
-#         self.standard_fields = definition['standard']
+#         self.required = definition['standard']
 #         self.custom_fields = definition['custom']
 #
 #         # Mapping of schema column names to Receptor attributes
@@ -84,39 +84,74 @@ class AIRRSchema:
     out_type = 'tsv'
 
     # Core fields
-    _standard_map = OrderedDict([('sequence_id', 'sequence_id'),
-                                 ('sequence', 'sequence_input'),
-                                 ('sequence_alignment', 'sequence_imgt'),
-                                 ('germline_alignment', 'germline_imgt'),
-                                 ('rev_comp', 'rev_comp'),
-                                 ('productive', 'functional'),
-                                 ('stop_codon', 'stop'),
-                                 ('vj_in_frame', 'in_frame'),
-                                 ('locus', 'locus'),
-                                 ('v_call', 'v_call'),
-                                 ('d_call', 'd_call'),
-                                 ('j_call', 'j_call'),
-                                 ('junction', 'junction'),
-                                 ('junction_length', 'junction_length'),
-                                 ('junction_aa', 'junction_aa'),
-                                 ('np1_length', 'np1_length'),
-                                 ('np2_length', 'np2_length'),
-                                 ('v_sequence_start', 'v_seq_start'),
-                                 ('v_sequence_end', 'v_seq_end'),
-                                 ('v_germline_start', 'v_germ_start_imgt'),
-                                 ('v_germline_end', 'v_germ_end_imgt'),
-                                 ('d_sequence_start', 'd_seq_start'),
-                                 ('d_sequence_end', 'd_seq_end'),
-                                 ('d_germline_start', 'd_germ_start'),
-                                 ('d_germline_end', 'd_germ_end'),
-                                 ('j_sequence_start', 'j_seq_start'),
-                                 ('j_sequence_end', 'j_seq_end'),
-                                 ('j_germline_start', 'j_germ_start'),
-                                 ('j_germline_end', 'j_germ_end')])
-    standard_fields = list(_standard_map.keys())
+    required = ['sequence_id',
+                'sequence',
+                'sequence_alignment',
+                'germline_alignment',
+                'rev_comp',
+                'productive',
+                'stop_codon',
+                'vj_in_frame',
+                'locus',
+                'v_call',
+                'd_call',
+                'j_call',
+                'junction',
+                'junction_length',
+                'junction_aa',
+                'np1_length',
+                'np2_length',
+                'v_sequence_start',
+                'v_sequence_end',
+                'v_germline_start',
+                'v_germline_end',
+                'd_sequence_start',
+                'd_sequence_end',
+                'd_germline_start',
+                'd_germline_end',
+                'j_sequence_start',
+                'j_sequence_end',
+                'j_germline_start'
+                'j_germline_end']
 
-    # Custom fields
-    _custom_map = OrderedDict([('c_call', 'c_call'),
+    # Mapping of AIRR column names to Receptor attributes
+    _schema_map = OrderedDict([('sequence_id', 'sequence_id'),
+                               ('sequence', 'sequence_input'),
+                               ('sequence_alignment', 'sequence_imgt'),
+                               ('germline_alignment', 'germline_imgt'),
+                               ('sequence_aa', 'sequence_aa_input'),
+                               ('sequence_aa_alignment', 'sequence_aa_imgt'),
+                               ('germline_aa_alignment', 'germline_aa_imgt'),
+                               ('rev_comp', 'rev_comp'),
+                               ('productive', 'functional'),
+                               ('stop_codon', 'stop'),
+                               ('vj_in_frame', 'in_frame'),
+                               ('locus', 'locus'),
+                               ('v_call', 'v_call'),
+                               ('d_call', 'd_call'),
+                               ('j_call', 'j_call'),
+                               ('junction', 'junction'),
+                               ('junction_length', 'junction_length'),
+                               ('junction_aa', 'junction_aa'),
+                               ('np1_length', 'np1_length'),
+                               ('np2_length', 'np2_length'),
+                               ('v_sequence_start', 'v_seq_start'),
+                               ('v_sequence_end', 'v_seq_end'),
+                               ('v_germline_start', 'v_germ_start_imgt'),
+                               ('v_germline_end', 'v_germ_end_imgt'),
+                               ('v_sequence_aa_start', 'v_seq_aa_start'),
+                               ('v_sequence_aa_end', 'v_seq_aa_end'),
+                               ('v_germline_aa_start', 'v_germ_aa_start_imgt'),
+                               ('v_germline_aa_end', 'v_germ_aa_end_imgt'),
+                               ('d_sequence_start', 'd_seq_start'),
+                               ('d_sequence_end', 'd_seq_end'),
+                               ('d_germline_start', 'd_germ_start'),
+                               ('d_germline_end', 'd_germ_end'),
+                               ('j_sequence_start', 'j_seq_start'),
+                               ('j_sequence_end', 'j_seq_end'),
+                               ('j_germline_start', 'j_germ_start'),
+                               ('j_germline_end', 'j_germ_end'),
+                               ('c_call', 'c_call'),
                                ('germline_alignment_d_mask', 'germline_imgt_d_mask'),
                                ('v_score', 'v_score'),
                                ('v_identity', 'v_identity'),
@@ -138,6 +173,13 @@ class AIRRSchema:
                                ('fwr2', 'fwr2_imgt'),
                                ('fwr3', 'fwr3_imgt'),
                                ('fwr4', 'fwr4_imgt'),
+                               ('cdr1_aa', 'cdr1_aa_imgt'),
+                               ('cdr2_aa', 'cdr2_aa_imgt'),
+                               ('cdr3_aa', 'cdr3_aa_imgt'),
+                               ('fwr1_aa', 'fwr1_aa_imgt'),
+                               ('fwr2_aa', 'fwr2_aa_imgt'),
+                               ('fwr3_aa', 'fwr3_aa_imgt'),
+                               ('fwr4_aa', 'fwr4_aa_imgt'),
                                ('junction_start', 'junction_start'),
                                ('junction_end', 'junction_end'),
                                ('cdr1_start', 'cdr1_start'),
@@ -168,10 +210,6 @@ class AIRRSchema:
                                ('umi_count', 'umicount'),
                                ('clone_id', 'clone'),
                                ('cell_id', 'cell')])
-    custom_fields = list(_custom_map.keys())
-
-    # Mapping of AIRR column names to Receptor attributes
-    _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
 
     # Mapping of Receptor attributes to AIRR column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
@@ -207,6 +245,34 @@ class AIRRSchema:
         return AIRRSchema._receptor_map.get(field, field)
 
 
+class AIRRSchemaAA(AIRRSchema):
+    """
+    AIRR format to Receptor amino acid mappings
+    """
+    # Core fields
+    required = ['sequence_id',
+                'sequence',
+                'sequence_alignment',
+                'germline_alignment',
+                'sequence_aa',
+                'sequence_aa_alignment',
+                'germline_aa_alignment',
+                'rev_comp',
+                'productive',
+                'stop_codon',
+                'locus',
+                'v_call',
+                'd_call',
+                'j_call',
+                'junction',
+                'junction_length',
+                'junction_aa',
+                'v_sequence_aa_start',
+                'v_sequence_aa_end',
+                'v_germline_aa_start',
+                'v_germline_aa_end']
+
+
 class ChangeoSchema:
     """
     Change-O to Receptor mappings
@@ -215,42 +281,83 @@ class ChangeoSchema:
     out_type = 'tab'
 
     # Standard fields
-    _standard_map = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
-                                 ('SEQUENCE_INPUT', 'sequence_input'),
-                                 ('FUNCTIONAL', 'functional'),
-                                 ('IN_FRAME', 'in_frame'),
-                                 ('STOP', 'stop'),
-                                 ('MUTATED_INVARIANT', 'mutated_invariant'),
-                                 ('INDELS', 'indels'),
-                                 ('LOCUS', 'locus'),
-                                 ('V_CALL', 'v_call'),
-                                 ('D_CALL', 'd_call'),
-                                 ('J_CALL', 'j_call'),
-                                 ('SEQUENCE_VDJ', 'sequence_vdj'),
-                                 ('SEQUENCE_IMGT', 'sequence_imgt'),
-                                 ('V_SEQ_START', 'v_seq_start'),
-                                 ('V_SEQ_LENGTH', 'v_seq_length'),
-                                 ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
-                                 ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
-                                 ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
-                                 ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
-                                 ('NP1_LENGTH', 'np1_length'),
-                                 ('D_SEQ_START', 'd_seq_start'),
-                                 ('D_SEQ_LENGTH', 'd_seq_length'),
-                                 ('D_GERM_START', 'd_germ_start'),
-                                 ('D_GERM_LENGTH', 'd_germ_length'),
-                                 ('NP2_LENGTH', 'np2_length'),
-                                 ('J_SEQ_START', 'j_seq_start'),
-                                 ('J_SEQ_LENGTH', 'j_seq_length'),
-                                 ('J_GERM_START', 'j_germ_start'),
-                                 ('J_GERM_LENGTH', 'j_germ_length'),
-                                 ('JUNCTION', 'junction'),
-                                 ('JUNCTION_LENGTH', 'junction_length'),
-                                 ('GERMLINE_IMGT', 'germline_imgt')])
-    standard_fields = list(_standard_map.keys())
+    required = ['SEQUENCE_ID',
+                'SEQUENCE_INPUT',
+                'FUNCTIONAL',
+                'IN_FRAME',
+                'STOP',
+                'MUTATED_INVARIANT',
+                'INDELS',
+                'LOCUS',
+                'V_CALL',
+                'D_CALL',
+                'J_CALL',
+                'SEQUENCE_VDJ',
+                'SEQUENCE_IMGT',
+                'V_SEQ_START',
+                'V_SEQ_LENGTH',
+                'V_GERM_START_VDJ',
+                'V_GERM_LENGTH_VDJ',
+                'V_GERM_START_IMGT',
+                'V_GERM_LENGTH_IMGT',
+                'NP1_LENGTH',
+                'D_SEQ_START',
+                'D_SEQ_LENGTH',
+                'D_GERM_START',
+                'D_GERM_LENGTH',
+                'NP2_LENGTH',
+                'J_SEQ_START',
+                'J_SEQ_LENGTH',
+                'J_GERM_START',
+                'J_GERM_LENGTH',
+                'JUNCTION',
+                'JUNCTION_LENGTH',
+                'GERMLINE_IMGT']
 
-    # Custom fields
-    _custom_map = OrderedDict([('JUNCTION_START', 'junction_start'),
+    # Mapping of Change-O column names to Receptor attributes
+    _schema_map = OrderedDict([('SEQUENCE_ID', 'sequence_id'),
+                               ('SEQUENCE_INPUT', 'sequence_input'),
+                               ('SEQUENCE_AA_INPUT', 'sequence_aa_input'),
+                               ('FUNCTIONAL', 'functional'),
+                               ('IN_FRAME', 'in_frame'),
+                               ('STOP', 'stop'),
+                               ('MUTATED_INVARIANT', 'mutated_invariant'),
+                               ('INDELS', 'indels'),
+                               ('LOCUS', 'locus'),
+                               ('V_CALL', 'v_call'),
+                               ('D_CALL', 'd_call'),
+                               ('J_CALL', 'j_call'),
+                               ('SEQUENCE_VDJ', 'sequence_vdj'),
+                               ('SEQUENCE_IMGT', 'sequence_imgt'),
+                               ('SEQUENCE_AA_VDJ', 'sequence_aa_vdj'),
+                               ('SEQUENCE_AA_IMGT', 'sequence_aa_imgt'),
+                               ('V_SEQ_START', 'v_seq_start'),
+                               ('V_SEQ_LENGTH', 'v_seq_length'),
+                               ('V_GERM_START_VDJ', 'v_germ_start_vdj'),
+                               ('V_GERM_LENGTH_VDJ', 'v_germ_length_vdj'),
+                               ('V_GERM_START_IMGT', 'v_germ_start_imgt'),
+                               ('V_GERM_LENGTH_IMGT', 'v_germ_length_imgt'),
+                               ('V_SEQ_AA_START', 'v_seq_aa_start'),
+                               ('V_SEQ_AA_LENGTH', 'v_seq_aa_length'),
+                               ('V_GERM_AA_START_VDJ', 'v_germ_aa_start_vdj'),
+                               ('V_GERM_AA_LENGTH_VDJ', 'v_germ_aa_length_vdj'),
+                               ('V_GERM_AA_START_IMGT', 'v_germ_aa_start_imgt'),
+                               ('V_GERM_AA_LENGTH_IMGT', 'v_germ_aa_length_imgt'),
+                               ('NP1_LENGTH', 'np1_length'),
+                               ('D_SEQ_START', 'd_seq_start'),
+                               ('D_SEQ_LENGTH', 'd_seq_length'),
+                               ('D_GERM_START', 'd_germ_start'),
+                               ('D_GERM_LENGTH', 'd_germ_length'),
+                               ('NP2_LENGTH', 'np2_length'),
+                               ('J_SEQ_START', 'j_seq_start'),
+                               ('J_SEQ_LENGTH', 'j_seq_length'),
+                               ('J_GERM_START', 'j_germ_start'),
+                               ('J_GERM_LENGTH', 'j_germ_length'),
+                               ('JUNCTION', 'junction'),
+                               ('JUNCTION_LENGTH', 'junction_length'),
+                               ('GERMLINE_IMGT', 'germline_imgt'),
+                               ('GERMLINE_AA_IMGT', 'germline_aa_imgt'),
+                               ('JUNCTION_START', 'junction_start'),
                                ('V_SCORE', 'v_score'),
                                ('V_IDENTITY', 'v_identity'),
                                ('V_EVALUE', 'v_evalue'),
@@ -274,6 +381,13 @@ class ChangeoSchema:
                                ('CDR1_IMGT', 'cdr1_imgt'),
                                ('CDR2_IMGT', 'cdr2_imgt'),
                                ('CDR3_IMGT', 'cdr3_imgt'),
+                               ('FWR1_AA_IMGT', 'fwr1_aa_imgt'),
+                               ('FWR2_AA_IMGT', 'fwr2_aa_imgt'),
+                               ('FWR3_AA_IMGT', 'fwr3_aa_imgt'),
+                               ('FWR4_AA_IMGT', 'fwr4_aa_imgt'),
+                               ('CDR1_AA_IMGT', 'cdr1_aa_imgt'),
+                               ('CDR2_AA_IMGT', 'cdr2_aa_imgt'),
+                               ('CDR3_AA_IMGT', 'cdr3_aa_imgt'),
                                ('N1_LENGTH', 'n1_length'),
                                ('N2_LENGTH', 'n2_length'),
                                ('P3V_LENGTH', 'p3v_length'),
@@ -289,10 +403,6 @@ class ChangeoSchema:
                                ('UMICOUNT', 'umicount'),
                                ('CLONE', 'clone'),
                                ('CELL', 'cell')])
-    custom_fields = list(_custom_map.keys())
-
-    # Mapping of Change-O column names to Receptor attributes
-    _schema_map = OrderedDict(chain(_standard_map.items(), _custom_map.items()))
 
     # Mapping of Receptor attributes to Change-O column names
     _receptor_map = {v: k for k, v in _schema_map.items()}
@@ -327,6 +437,28 @@ class ChangeoSchema:
         return ChangeoSchema._receptor_map.get(field, field.upper())
 
 
+class ChangeoSchemaAA(ChangeoSchema):
+    """
+    Change-O to Receptor amino acid mappings
+    """
+    # Standard fields
+    required = ['SEQUENCE_ID',
+                'SEQUENCE_AA_INPUT',
+                'STOP',
+                'INDELS',
+                'LOCUS',
+                'V_CALL',
+                'SEQUENCE_AA_VDJ',
+                'SEQUENCE_AA_IMGT',
+                'V_SEQ_AA_START',
+                'V_SEQ_AA_LENGTH',
+                'V_GERM_AA_START_VDJ',
+                'V_GERM_AA_LENGTH_VDJ',
+                'V_GERM_AA_START_IMGT',
+                'V_GERM_AA_LENGTH_IMGT',
+                'GERMLINE_AA_IMGT']
+
+
 class ReceptorData:
     """
     A class containing type conversion methods for Receptor data attributes
@@ -345,6 +477,10 @@ class ReceptorData:
       sequence_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
       sequence_imgt (Bio.Seq.Seq): IMGT-gapped V(D)J nucleotide sequence.
 
+      sequence_aa_input (Bio.Seq.Seq): input amino acid sequence.
+      sequence_aa_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
+      sequence_aa_imgt (Bio.Seq.Seq): IMGT-gapped V(D)J amino sequence.
+
       junction (Bio.Seq.Seq): ungapped junction region nucletide sequence.
       junction_aa (Bio.Seq.Seq): ungapped junction region amino acid sequence.
       junction_start (int): start positions of the junction in the input nucleotide sequence.
@@ -354,6 +490,9 @@ class ReceptorData:
       germline_vdj_d_mask (Bio.Seq.Seq): ungapped germline V(D)J nucleotides sequence with Ns masking the NP1-D-NP2 regions.
       germline_imgt (Bio.Seq.Seq): full IMGT-gapped germline V(D)J nucleotide sequence.
       germline_imgt_d_mask (Bio.Seq.Seq): IMGT-gapped germline V(D)J nucleotide sequence with ns masking the NP1-D-NP2 regions.
+
+      germline_aa_vdj (Bio.Seq.Seq): full ungapped germline V(D)J amino acid sequence.
+      germline_aa_imgt (Bio.Seq.Seq): full IMGT-gapped germline V(D)J amino acid sequence.
 
       v_call (str): V allele assignment(s).
       d_call (str): D allele assignment(s).
@@ -366,6 +505,13 @@ class ReceptorData:
       v_germ_length_imgt (int): length of the IMGT numbered germline V alignment.
       v_germ_start_vdj (int): position of the first nucleotide in ungapped V germline sequence alignment (1-based).
       v_germ_length_vdj (int): length of the ungapped germline V alignment.
+
+      v_seq_aa_start (int): position of the first V amino acid in the amino acid input sequence (1-based).
+      v_seq_aa_length (int): number of V amino acid in the amino acid input sequence.
+      v_germ_aa_start_imgt (int): position of the first V amino acid in IMGT-gapped V germline amino acid alignment (1-based).
+      v_germ_aa_length_imgt (int): length of the IMGT numbered germline V amino acid alignment.
+      v_germ_aa_start_vdj (int): position of the first amino acid in ungapped V germline amino acid alignment (1-based).
+      v_germ_aa_length_vdj (int): length of the ungapped germline V amino acid alignment.
 
       np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence (1-based).
       np1_length (int): number of untemplated nucleotides between the V and D segments.
@@ -411,6 +557,14 @@ class ReceptorData:
       cdr2_imgt (Bio.Seq.Seq): IMGT-gapped CDR2 nucleotide sequence.
       cdr3_imgt (Bio.Seq.Seq): IMGT-gapped CDR3 nucleotide sequence.
       cdr3_igblast (Bio.Seq.Seq): CDR3 nucleotide sequence assigned by IgBLAST.
+
+      fwr1_aa_imgt (Bio.Seq.Seq): IMGT-gapped FWR1 amino acid sequence.
+      fwr2_aa_imgt (Bio.Seq.Seq): IMGT-gapped FWR2 amino acid sequence.
+      fwr3_aa_imgt (Bio.Seq.Seq): IMGT-gapped FWR3 amino acid sequence.
+      fwr4_aa_imgt (Bio.Seq.Seq): IMGT-gapped FWR4 amino acid sequence.
+      cdr1_aa_imgt (Bio.Seq.Seq): IMGT-gapped CDR1 amino acid sequence.
+      cdr2_aa_imgt (Bio.Seq.Seq): IMGT-gapped CDR2 amino acid sequence.
+      cdr3_aa_imgt (Bio.Seq.Seq): IMGT-gapped CDR3 amino acid sequence.
       cdr3_igblast_aa (Bio.Seq.Seq): CDR3 amino acid sequence assigned by IgBLAST.
 
       n1_length (int): M nucleotides 5' of the D segment.
@@ -465,6 +619,9 @@ class ReceptorData:
                'sequence_input': 'nucleotide',
                'sequence_imgt': 'nucleotide',
                'sequence_vdj': 'nucleotide',
+               'sequence_aa_input': 'aminoacid',
+               'sequence_aa_imgt': 'aminoacid',
+               'sequence_aa_vdj': 'aminoacid',
                'junction': 'nucleotide',
                'junction_aa': 'aminoacid',
                'junction_start': 'integer',
@@ -473,6 +630,8 @@ class ReceptorData:
                'germline_imgt_d_mask': 'nucleotide',
                'germline_vdj': 'nucleotide',
                'germline_vdj_d_mask': 'nucleotide',
+               'germline_aa_imgt': 'aminoacid',
+               'germline_aa_vdj': 'aminoacid',
                'v_call': 'identity',
                'd_call': 'identity',
                'j_call': 'identity',
@@ -483,6 +642,12 @@ class ReceptorData:
                'v_germ_length_imgt': 'integer',
                'v_germ_start_vdj': 'integer',
                'v_germ_length_vdj': 'integer',
+               'v_seq_aa_start': 'integer',
+               'v_seq_aa_length': 'integer',
+               'v_germ_aa_start_imgt': 'integer',
+               'v_germ_aa_length_imgt': 'integer',
+               'v_germ_aa_start_vdj': 'integer',
+               'v_germ_aa_length_vdj': 'integer',
                'np1_start': 'integer',
                'np1_length': 'integer',
                'd_seq_start': 'integer',
@@ -518,6 +683,13 @@ class ReceptorData:
                'cdr1_imgt': 'nucleotide',
                'cdr2_imgt': 'nucleotide',
                'cdr3_imgt': 'nucleotide',
+               'fwr1_aa_imgt': 'aminoacid',
+               'fwr2_aa_imgt': 'aminoacid',
+               'fwr3_aa_imgt': 'aminoacid',
+               'fwr4_aa_imgt': 'aminoacid',
+               'cdr1_aa_imgt': 'aminoacid',
+               'cdr2_aa_imgt': 'aminoacid',
+               'cdr3_aa_imgt': 'aminoacid',
                'n1_length': 'integer',
                'n2_length': 'integer',
                'p3v_length': 'integer',
@@ -538,8 +710,10 @@ class ReceptorData:
                        ('v_germ_start_imgt', 'v_germ_length_imgt', 'v_germ_end_imgt'),
                        ('v_germ_start_vdj', 'v_germ_length_vdj', 'v_germ_end_vdj'),
                        ('v_alignment_start', 'v_alignment_length', 'v_alignment_end'),
-                       ('d_alignment_start', 'd_alignment_length', 'd_alignment_end'),
-                       ('j_alignment_start', 'j_alignment_length', 'j_alignment_end'),
+                       ('v_seq_aa_start', 'v_seq_aa_length', 'v_seq_aa_end'),
+                       ('v_germ_aa_start_imgt', 'v_germ_aa_length_imgt', 'v_germ_aa_end_imgt'),
+                       ('v_germ_aa_start_vdj', 'v_germ_aa_length_vdj', 'v_germ_aa_end_vdj'),
+                       ('v_alignment_aa_start', 'v_alignment_aa_length', 'v_alignment_aa_end'),
                        ('d_seq_start', 'd_seq_length', 'd_seq_end'),
                        ('d_germ_start', 'd_germ_length', 'd_germ_end'),
                        ('j_seq_start', 'j_seq_length', 'j_seq_end'),
@@ -631,6 +805,9 @@ class Receptor:
     _derived = {'v_seq_end': 'integer',
                 'v_germ_end_vdj': 'integer',
                 'v_germ_end_imgt': 'integer',
+                'v_seq_aa_end': 'integer',
+                'v_germ_aa_end_vdj': 'integer',
+                'v_germ_aa_end_imgt': 'integer',
                 'd_seq_end': 'integer',
                 'd_germ_end': 'integer',
                 'j_seq_end': 'integer',
@@ -1101,6 +1278,30 @@ class Receptor:
         Position of the last nucleotide in the ungapped V germline sequence alignment
         """
         try:  return self.v_germ_start_vdj + self.v_germ_length_vdj - 1
+        except TypeError:  return None
+
+    @property
+    def v_seq_aa_end(self):
+        """
+        Position of the last V nucleotide in the input sequence
+        """
+        try:  return self.v_seq_aa_start + self.v_seq_aa_length - 1
+        except TypeError:  return None
+
+    @property
+    def v_germ_aa_end_imgt(self):
+        """
+        Position of the last nucleotide in the IMGT-gapped V germline sequence alignment
+        """
+        try:  return self.v_germ_aa_start_imgt + self.v_germ_aa_length_imgt - 1
+        except TypeError:  return None
+
+    @property
+    def v_germ_aa_end_vdj(self):
+        """
+        Position of the last nucleotide in the ungapped V germline sequence alignment
+        """
+        try:  return self.v_germ_aa_start_vdj + self.v_germ_aa_length_vdj - 1
         except TypeError:  return None
 
     @property

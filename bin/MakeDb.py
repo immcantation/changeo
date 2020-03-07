@@ -24,7 +24,7 @@ from changeo.Defaults import default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import buildGermline
 from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTAAReader, IMGTReader, IHMMuneReader
+                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTReaderAA, IMGTReader, IHMMuneReader
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # 10X Receptor attributes
@@ -385,7 +385,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = list(schema.standard_fields)
+    fields = list(schema.required)
     if extended:
         custom = IMGTReader.customFields(scores=True, regions=True, junction=True, schema=schema)
         fields.extend(custom)
@@ -454,6 +454,14 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['EXTENDED'] = extended
     printLog(log)
 
+    # Set amino acid conditions
+    if amino_acid:
+        format = '%s-aa' % format
+        parser = IgBLASTReaderAA
+    else:
+        parser = IgBLASTReader
+
+    # Start
     start_time = time()
     printMessage('Loading files', start_time=start_time, width=20)
 
@@ -487,17 +495,14 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = list(schema.standard_fields)
+    fields = list(schema.required)
     if extended:
-        custom = IgBLASTReader.customFields(scores=True, regions=True, cdr3=False, schema=schema)
+        custom = parser.customFields(scores=True, regions=True, cdr3=False, schema=schema)
         fields.extend(custom)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        if not amino_acid:
-            parse_iter = IgBLASTReader(f, seq_dict, references, asis_calls=asis_calls)
-        else:
-            parse_iter = IgBLASTAAReader(f, seq_dict, references, asis_calls=asis_calls)
+        parse_iter = parser(f, seq_dict, references, asis_calls=asis_calls)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
                         annotations=annotations, partial=partial, asis_id=asis_id,
@@ -569,7 +574,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
     out_args['out_type'] = schema.out_type
 
     # Define output fields
-    fields = list(schema.standard_fields)
+    fields = list(schema.required)
     if extended:
         custom = IHMMuneReader.customFields(scores=True, regions=True, schema=schema)
         fields.extend(custom)

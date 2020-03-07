@@ -14,7 +14,7 @@ from Bio import SeqIO
 
 # Presto and changeo imports
 from changeo.IO import getDbFields, extractIMGT, readGermlines, ChangeoReader, \
-                       IgBLASTReader, IgBLASTAAReader, IHMMuneReader, IMGTReader
+                       IgBLASTReader, IgBLASTReaderAA, IHMMuneReader, IMGTReader
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -120,7 +120,7 @@ class Test_MakeDb(unittest.TestCase):
 
         # Parse
         with open(self.igblast_ig_aa, 'r') as f:
-            result = IgBLASTAAReader(f, seq_dict, repo_dict, receptor=False)
+            result = IgBLASTReaderAA(f, seq_dict, repo_dict, receptor=False)
             for x in result: print(x)
 
         # self.fail('TODO')
