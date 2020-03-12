@@ -1,6 +1,25 @@
 Release Notes
 ===============================================================================
 
+Version 0.4.6.999:  March 12, 2020
+-------------------------------------------------------------------------------
+
+Thre default output in all tools is now the AIRR rearrangement standard
+(``--format airr``). Support for the legacy Change-O data standard is still
+provided through the ``--format changeo`` argument to the tools.
+
+AssignGenes:
+
++ Added the ``igblast-aa`` subcommand to run igblastp on amino acid input.
+
+MakeDb:
+
++ Added the ``igblast-aa`` subcommand to parse the output of igblastp.
++ Changed the log entry ``FUNCTIONAL`` to ``PRODUCTIVE`` and removed the
+  ``IMGT_PASS`` log entry in favor of an informative ``ERROR`` entry
+  when sequences fail the junction region validation.
+
+
 Version 0.4.6:  July 19, 2019
 -------------------------------------------------------------------------------
 

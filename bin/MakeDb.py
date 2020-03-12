@@ -77,20 +77,27 @@ def readCellRanger(cellranger_file, fields=cellranger_base):
     return ann_dict
 
 
-def addGermline(receptor, references):
+def addGermline(receptor, references, amino_acid=False):
     """
     Add full length germline to Receptor object
 
     Arguments:
       receptor (changeo.Receptor.Receptor): Receptor object to modify.
       references (dict): dictionary of IMGT-gapped references sequences.
+      amino_acid (bool): if True build amino acid germline, otherwise build nucleotide germline
 
     Returns:
-      changeo.Receptor.Receptor: modified Receptor with the germline_imgt attribute added.
+      changeo.Receptor.Receptor: modified Receptor with the germline sequence added.
     """
-    __, germlines, __ = buildGermline(receptor, references)
-    germline_seq = None if germlines is None else germlines['full']
-    receptor.setField('germline_imgt', germline_seq)
+    if amino_acid:
+        __, germlines, __ = buildGermline(receptor, references, seq_field='sequence_aa_imgt',
+                                          amino_acid=True)
+        germline_seq = None if germlines is None else germlines['full']
+        receptor.setField('germline_aa_imgt', germline_seq)
+    else:
+        __, germlines, __ = buildGermline(receptor, references, amino_acid=False)
+        germline_seq = None if germlines is None else germlines['full']
+        receptor.setField('germline_imgt', germline_seq)
 
     return receptor
 
@@ -134,7 +141,8 @@ def getSeqDict(seq_file):
 
 
 def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotations=None,
-            partial=False, asis_id=True, writer=ChangeoWriter, out_file=None, out_args=default_out_args):
+            amino_acid=False, partial=False, asis_id=True, writer=ChangeoWriter,
+            out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
     
@@ -145,6 +153,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
       total_count : number of records (for progress bar).
       id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
       annotations : additional annotation dictionary.
+      amino_acid : if True do verification on amino acid fields.
       partial : if True put incomplete alignments in the pass file.
       asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       writer : writer class.
@@ -179,18 +188,31 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
     # Function to verify IMGT-gapped sequence and junction concur
     def _imgt_check(rec):
-        try:  check = (rec.junction == rec.sequence_imgt[309:(309 + rec.junction_length)])
-        except TypeError:  check = False
+        try:
+            if amino_acid:
+                check = (rec.junction_aa == rec.sequence_aa_imgt[103:(103 + rec.junction_aa_length)])
+            else:
+                check = (rec.junction == rec.sequence_imgt[309:(309 + rec.junction_length)])
+        except (TypeError, AttributeError):
+            check = False
         return check
 
     # Function to check for valid records strictly
     def _strict(rec):
-        valid = [rec.v_call and rec.v_call != 'None',
-                 rec.j_call and rec.j_call != 'None',
-                 rec.functional is not None,
-                 rec.sequence_imgt,
-                 rec.junction,
-                 _imgt_check(rec)]
+        if amino_acid:
+            valid = [rec.v_call and rec.v_call != 'None',
+                     rec.j_call and rec.j_call != 'None',
+                     rec.functional is not None,
+                     rec.sequence_aa_imgt,
+                     rec.junction_aa,
+                     _imgt_check(rec)]
+        else:
+            valid = [rec.v_call and rec.v_call != 'None',
+                     rec.j_call and rec.j_call != 'None',
+                     rec.functional is not None,
+                     rec.sequence_imgt,
+                     rec.junction,
+                     _imgt_check(rec)]
         return all(valid)
 
     # Function to check for valid records loosely
@@ -299,8 +321,9 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
                                ('V_CALL', record.v_call),
                                ('D_CALL', record.d_call),
                                ('J_CALL', record.j_call),
-                               ('FUNCTIONAL', record.functional),
-                               ('IMGT_PASS', _imgt_check(record))])
+                               ('PRODUCTIVE', record.functional)])
+            if not _imgt_check(record) and not amino_acid:
+                log['ERROR'] = 'Junction does not match the sequence starting at position 310 in the IMGT numbered V(D)J sequence.'
             printLog(log, log_handle)
 
         # Print progress
@@ -503,9 +526,9 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     # Parse and write output
     with open(aligner_file, 'r') as f:
         parse_iter = parser(f, seq_dict, references, asis_calls=asis_calls)
-        germ_iter = (addGermline(x, references) for x in parse_iter)
+        germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        annotations=annotations, partial=partial, asis_id=asis_id,
+                        annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
                         writer=writer, out_file=out_file, out_args=out_args)
 
     return output

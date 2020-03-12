@@ -135,6 +135,8 @@ class AIRRSchema:
                                ('junction_aa', 'junction_aa'),
                                ('np1_length', 'np1_length'),
                                ('np2_length', 'np2_length'),
+                               ('np1_aa_length', 'np1_aa_length'),
+                               ('np2_aa_length', 'np2_aa_length'),
                                ('v_sequence_start', 'v_seq_start'),
                                ('v_sequence_end', 'v_seq_end'),
                                ('v_germline_start', 'v_germ_start_imgt'),
@@ -147,10 +149,18 @@ class AIRRSchema:
                                ('d_sequence_end', 'd_seq_end'),
                                ('d_germline_start', 'd_germ_start'),
                                ('d_germline_end', 'd_germ_end'),
+                               ('d_sequence_aa_start', 'd_seq_aa_start'),
+                               ('d_sequence_aa_end', 'd_seq_aa_end'),
+                               ('d_germline_aa_start', 'd_germ_aa_start'),
+                               ('d_germline_aa_end', 'd_germ_aa_end'),
                                ('j_sequence_start', 'j_seq_start'),
                                ('j_sequence_end', 'j_seq_end'),
                                ('j_germline_start', 'j_germ_start'),
                                ('j_germline_end', 'j_germ_end'),
+                               ('j_sequence_aa_start', 'j_seq_aa_start'),
+                               ('j_sequence_aa_end', 'j_seq_aa_end'),
+                               ('j_germline_aa_start', 'j_germ_aa_start'),
+                               ('j_germline_aa_end', 'j_germ_aa_end'),
                                ('c_call', 'c_call'),
                                ('germline_alignment_d_mask', 'germline_imgt_d_mask'),
                                ('v_score', 'v_score'),
@@ -344,15 +354,25 @@ class ChangeoSchema:
                                ('V_GERM_AA_START_IMGT', 'v_germ_aa_start_imgt'),
                                ('V_GERM_AA_LENGTH_IMGT', 'v_germ_aa_length_imgt'),
                                ('NP1_LENGTH', 'np1_length'),
+                               ('NP1_AA_LENGTH', 'np1_aa_length'),
                                ('D_SEQ_START', 'd_seq_start'),
                                ('D_SEQ_LENGTH', 'd_seq_length'),
                                ('D_GERM_START', 'd_germ_start'),
                                ('D_GERM_LENGTH', 'd_germ_length'),
+                               ('D_SEQ_AA_START', 'd_seq_aa_start'),
+                               ('D_SEQ_AA_LENGTH', 'd_seq_aa_length'),
+                               ('D_GERM_AA_START', 'd_germ_aa_start'),
+                               ('D_GERM_AA_LENGTH', 'd_germ_aa_length'),
                                ('NP2_LENGTH', 'np2_length'),
+                               ('NP2_AA_LENGTH', 'np2_aa_length'),
                                ('J_SEQ_START', 'j_seq_start'),
                                ('J_SEQ_LENGTH', 'j_seq_length'),
                                ('J_GERM_START', 'j_germ_start'),
                                ('J_GERM_LENGTH', 'j_germ_length'),
+                               ('J_SEQ_AA_START', 'j_seq_aa_start'),
+                               ('J_SEQ_AA_LENGTH', 'j_seq_aa_length'),
+                               ('J_GERM_AA_START', 'j_germ_aa_start'),
+                               ('J_GERM_AA_LENGTH', 'j_germ_aa_length'),
                                ('JUNCTION', 'junction'),
                                ('JUNCTION_LENGTH', 'junction_length'),
                                ('GERMLINE_IMGT', 'germline_imgt'),
@@ -516,18 +536,34 @@ class ReceptorData:
       np1_start (int): position of the first untemplated nucleotide between the V and D segments in the input sequence (1-based).
       np1_length (int): number of untemplated nucleotides between the V and D segments.
 
+      np1_aa_start (int): position of the first untemplated amino acid between the V and D segments in the input amino acid sequence (1-based).
+      np1_aa_length (int): number of untemplated amino acids between the V and D segments.
+
       d_seq_start (int): position of the first D nucleotide in the input sequence (1-based).
       d_seq_length (int): number of D nucleotides in the input sequence.
       d_germ_start (int): position of the first nucleotide in D germline sequence alignment (1-based).
       d_germ_length (int): length of the germline D alignment.
 
+      d_seq_aa_start (int): position of the first D amino acid in the input amino acidsequence (1-based).
+      d_seq_aa_length (int): number of D amino acids in the input amino acid sequence.
+      d_germ_aa_start (int): position of the first amino acid in D germline amino acid alignment (1-based).
+      d_germ_aa_length (int): length of the germline D amino acid alignment.
+
       np2_start (int): position of the first untemplated nucleotide between the D and J segments in the input sequence (1-based).
       np2_length (int): number of untemplated nucleotides between the D and J segments.
+
+      np2_aa_start (int): position of the first untemplated amino acid between the D and J segments in the input amino acid sequence (1-based).
+      np2_aa_length (int): number of untemplated amino acid between the D and J segments.
 
       j_seq_start (int): position of the first J nucleotide in the input sequence (1-based).
       j_seq_length (int): number of J nucleotides in the input sequence.
       j_germ_start (int): position of the first nucleotide in J germline sequence alignment (1-based).
       j_germ_length (int): length of the germline J alignment.
+
+      j_seq_aa_start (int): position of the first J amino acid in the input amino acidsequence (1-based).
+      j_seq_aa_length (int): number of J amino acid in the input amino acidsequence.
+      j_germ_aa_start (int): position of the first amino acid in J germline amino acid alignment (1-based).
+      j_germ_aa_length (int): length of the germline J amino acid alignment.
 
       v_score (float): alignment score for the V.
       v_identity (float): alignment identity for the V.
@@ -650,16 +686,28 @@ class ReceptorData:
                'v_germ_aa_length_vdj': 'integer',
                'np1_start': 'integer',
                'np1_length': 'integer',
+               'np1_aa_start': 'integer',
+               'np1_aa_length': 'integer',
                'd_seq_start': 'integer',
                'd_seq_length': 'integer',
                'd_germ_start': 'integer',
                'd_germ_length': 'integer',
+               'd_seq_aa_start': 'integer',
+               'd_seq_aa_length': 'integer',
+               'd_germ_aa_start': 'integer',
+               'd_germ_aa_length': 'integer',
                'np2_start': 'integer',
                'np2_length': 'integer',
+               'np2_aa_start': 'integer',
+               'np2_aa_length': 'integer',
                'j_seq_start': 'integer',
                'j_seq_length': 'integer',
                'j_germ_start': 'integer',
                'j_germ_length': 'integer',
+               'j_seq_aa_start': 'integer',
+               'j_seq_aa_length': 'integer',
+               'j_germ_aa_start': 'integer',
+               'j_germ_aa_length': 'integer',
                'v_score': 'double',
                'v_identity': 'double',
                'v_evalue': 'double',
@@ -716,8 +764,12 @@ class ReceptorData:
                        ('v_alignment_aa_start', 'v_alignment_aa_length', 'v_alignment_aa_end'),
                        ('d_seq_start', 'd_seq_length', 'd_seq_end'),
                        ('d_germ_start', 'd_germ_length', 'd_germ_end'),
+                       ('d_seq_aa_start', 'd_seq_aa_length', 'd_seq_aa_end'),
+                       ('d_germ_aa_start', 'd_germ_aa_length', 'd_germ_aa_end'),
                        ('j_seq_start', 'j_seq_length', 'j_seq_end'),
                        ('j_germ_start', 'j_germ_length', 'j_germ_end'),
+                       ('j_seq_aa_start', 'j_seq_aa_length', 'j_seq_aa_end'),
+                       ('j_germ_aa_start', 'j_germ_aa_length', 'j_germ_aa_end'),
                        ('junction_start', 'junction_length', 'junction_end'),
                        ('fwr1_start', 'fwr1_length', 'fwr1_end'),
                        ('fwr2_start', 'fwr2_length', 'fwr2_end'),
@@ -810,8 +862,12 @@ class Receptor:
                 'v_germ_aa_end_imgt': 'integer',
                 'd_seq_end': 'integer',
                 'd_germ_end': 'integer',
+                'd_seq_aa_end': 'integer',
+                'd_germ_aa_end': 'integer',
                 'j_seq_end': 'integer',
                 'j_germ_end': 'integer',
+                'j_seq_aa_end': 'integer',
+                'j_germ_aa_end': 'integer',
                 'junction_end': 'integer'}
 
     def _junction_start(self):
@@ -1321,6 +1377,22 @@ class Receptor:
         except TypeError:  return None
 
     @property
+    def d_seq_aa_end(self):
+        """
+        Position of the last D amino acid in the input amino acid sequence
+        """
+        try:  return self.d_seq_aa_start + self.d_seq_aa_length - 1
+        except TypeError:  return None
+
+    @property
+    def d_germ_aa_end(self):
+        """
+        Position of the last amino acid in the D germline amino acid alignment
+        """
+        try:  return self.d_germ_aa_start + self.d_germ_aa_length - 1
+        except TypeError:  return None
+
+    @property
     def j_seq_end(self):
         """
         Position of the last J nucleotide in the input sequence
@@ -1334,6 +1406,22 @@ class Receptor:
         Position of the last nucleotide in the J germline sequence alignment
         """
         try:  return self.j_germ_start + self.j_germ_length - 1
+        except TypeError:  return None
+
+    @property
+    def j_seq_aa_end(self):
+        """
+        Position of the last J amino acid in the input amino sequence
+        """
+        try:  return self.j_seq_aa_start + self.j_seq_aa_length - 1
+        except TypeError:  return None
+
+    @property
+    def j_germ_aa_end(self):
+        """
+        Position of the last amino acid in the J germline amino acid alignment
+        """
+        try:  return self.j_germ_aa_start + self.j_germ_aa_length - 1
         except TypeError:  return None
 
     @property
