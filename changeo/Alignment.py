@@ -12,7 +12,7 @@ from Bio.Seq import Seq
 from pkg_resources import resource_stream
 
 # Presto and changeo imports
-from changeo.Gene import parseAllele, v_allele_regex, j_allele_regex
+from changeo.Gene import getVAllele, getJAllele
 
 class RegionDefinition:
     """
@@ -258,7 +258,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
 
     # Extract first V call
     if not asis_calls:
-        vgene = parseAllele(v_call, v_allele_regex, 'first')
+        vgene = getVAllele(v_call, action='first')
     else:
         vgene = v_call.split(',')[0]
 
@@ -312,7 +312,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
 
     # Find germline J segment
     if not asis_calls:
-        jgene = parseAllele(j_call, j_allele_regex, 'first')
+        jgene = getJAllele(j_call, action='first')
     else:
         jgene = j_call.split(',')[0]
     jgerm = references.get(jgene, None)

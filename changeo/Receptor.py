@@ -13,8 +13,7 @@ from Bio.Seq import Seq
 
 # Presto and changeo imports
 from presto.IO import printError, printWarning
-from changeo.Gene import allele_number_regex, allele_regex, gene_regex, family_regex, \
-                         parseAllele
+from changeo.Gene import getAllele, getGene, getFamily, getAlleleNumber
 
 # class Schema:
 #     """
@@ -1127,7 +1126,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.v_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_regex, action=action)
+        return getAllele(x, action=action)
 
     def getDAllele(self, action='first', field=None):
         """
@@ -1142,7 +1141,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.d_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_regex, action=action)
+        return getAllele(x, action=action)
 
     def getJAllele(self, action='first', field=None):
         """
@@ -1157,7 +1156,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.j_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_regex, action=action)
+        return getAllele(x, action=action)
 
     def getVGene(self, action='first', field=None):
         """
@@ -1172,7 +1171,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.v_call if field is None else self.getField(field)
-        return parseAllele(x, regex=gene_regex, action=action)
+        return getGene(x, action=action)
 
     def getDGene(self, action='first', field=None):
         """
@@ -1187,7 +1186,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.d_call if field is None else self.getField(field)
-        return parseAllele(x, regex=gene_regex, action=action)
+        return getGene(x, action=action)
 
     def getJGene(self, action='first', field=None):
         """
@@ -1202,7 +1201,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.j_call if field is None else self.getField(field)
-        return parseAllele(x, regex=gene_regex, action=action)
+        return getGene(x, action=action)
 
     def getVFamily(self, action='first', field=None):
         """
@@ -1217,7 +1216,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.v_call if field is None else self.getField(field)
-        return parseAllele(x, regex=family_regex, action=action)
+        return getFamily(x, action=action)
 
     def getDFamily(self, action='first', field=None):
         """
@@ -1232,7 +1231,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.d_call if field is None else self.getField(field)
-        return parseAllele(x, regex=family_regex, action=action)
+        return getFamily(x, action=action)
 
     def getJFamily(self, action='first', field=None):
         """
@@ -1247,7 +1246,7 @@ class Receptor:
           tuple : Tuple of allele calls for 'set' or 'list' actions.
         """
         x = self.j_call if field is None else self.getField(field)
-        return parseAllele(x, regex=family_regex, action=action)
+        return getFamily(x, action=action)
 
     def getAlleleNumbers(self, calls, action='first'):
         """
@@ -1279,7 +1278,7 @@ class Receptor:
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
         x = self.v_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_number_regex, action=action)
+        return getAlleleNumber(x, action=action)
 
     def getDAlleleNumber(self, action='first', field=None):
         """
@@ -1294,7 +1293,7 @@ class Receptor:
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
         x = self.d_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_number_regex, action=action)
+        return getAlleleNumber(x, action=action)
 
     def getJAlleleNumber(self, action='first', field=None):
         """
@@ -1309,7 +1308,7 @@ class Receptor:
           tuple : Tuple of allele numbers for 'set' or 'list' actions.
         """
         x = self.j_call if field is None else self.getField(field)
-        return parseAllele(x, regex=allele_number_regex, action=action)
+        return getAlleleNumber(x, action=action)
 
     @property
     def v_seq_end(self):

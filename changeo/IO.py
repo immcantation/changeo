@@ -20,8 +20,7 @@ from Bio.Seq import Seq
 # Presto and changeo imports
 from presto.IO import getFileType, printError, printWarning
 from changeo.Defaults import default_csv_size
-from changeo.Gene import allele_regex, v_allele_regex, d_allele_regex, j_allele_regex, locus_regex, \
-                         parseAllele
+from changeo.Gene import getAllele, getLocus, getVAllele, getDAllele, getJAllele
 from changeo.Receptor import AIRRSchema, AIRRSchemaAA, ChangeoSchema, ChangeoSchemaAA, Receptor, ReceptorData
 from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, inferJunction, \
                               RegionDefinition, getRegions
@@ -539,8 +538,8 @@ class IMGTReader:
         j_call = delim_regex.sub(',', clean_regex.sub('', j_str)) if j_str else None
 
         # Locus
-        locus_list = [parseAllele(v_call, locus_regex, action='first'),
-                      parseAllele(j_call, locus_regex, action='first')]
+        locus_list = [getLocus(v_call, action='first'),
+                      getLocus(j_call, action='first')]
         locus = set(filter(None, locus_list))
 
         # Result
@@ -1045,9 +1044,9 @@ class IgBLASTReader:
         result = {}
         # Parse V, D, and J calls
         if not asis_calls:
-            v_call = parseAllele(summary['v_match'], v_allele_regex, action='list')
-            d_call = parseAllele(summary['d_match'], d_allele_regex, action='list')
-            j_call = parseAllele(summary['j_match'], j_allele_regex, action='list')
+            v_call = getVAllele(summary['v_match'], action='list')
+            d_call = getDAllele(summary['d_match'], action='list')
+            j_call = getJAllele(summary['j_match'], action='list')
             result['v_call'] = ','.join(v_call) if v_call else None
             result['d_call'] = ','.join(d_call) if d_call else None
             result['j_call'] = ','.join(j_call) if j_call else None
@@ -1625,7 +1624,7 @@ class IgBLASTReaderAA(IgBLASTReader):
         result['sequence_aa_trim'] = self._appendSeq(seq_trim, v_hit, 0, trim=True)
 
         # Derived functionality
-        result['locus'] = parseAllele(result['v_call'], locus_regex, action='first')
+        result['locus'] = getLocus(result['v_call'], action='first')
         result['stop'] = '*' in result['sequence_aa_vdj']
 
         return result
@@ -1898,13 +1897,13 @@ class IHMMuneReader:
           dict : database entries for gene calls.
         """
         # Extract allele calls
-        v_call = parseAllele(record['V_CALL'], v_allele_regex, action='list')
-        d_call = parseAllele(record['D_CALL'], d_allele_regex, action='list')
-        j_call = parseAllele(record['J_CALL'], j_allele_regex, action='list')
+        v_call = getVAllele(record['V_CALL'], action='list')
+        d_call = getDAllele(record['D_CALL'], action='list')
+        j_call = getJAllele(record['J_CALL'], action='list')
 
         # Locus
-        locus_list = [parseAllele(record['V_CALL'], locus_regex, action='first'),
-                      parseAllele(record['J_CALL'], locus_regex, action='first')]
+        locus_list = [getLocus(record['V_CALL'], action='first'),
+                      getLocus(record['J_CALL'], action='first')]
         locus = set(filter(None, locus_list))
 
         # Build return object
@@ -2205,7 +2204,7 @@ def readGermlines(references, asis=False):
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
-                germ_key = parseAllele(g.description, allele_regex, 'first') if not asis else g.id
+                germ_key = getAllele(g.description, 'first') if not asis else g.id
                 repo_dict[germ_key] = str(g.seq).upper()
 
     return repo_dict

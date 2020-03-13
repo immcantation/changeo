@@ -30,7 +30,7 @@ from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.Gene import c_gene_regex, parseAllele, buildGermline
+from changeo.Gene import getCGene, buildGermline
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
                        ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, \
                        checkFields, yamlDict
@@ -578,7 +578,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
         j_allele = record.getJAlleleNumber()
         # C region
         if c_field is not None:
-            c_gene = parseAllele(record.getField(c_field), c_gene_regex, action='first')
+            c_gene = getCGene(record.getField(c_field), action='first')
     else:
         # V gene
         v_split = iter(record.v_call.rsplit(allele_delim, maxsplit=1))
