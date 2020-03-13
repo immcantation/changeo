@@ -7,51 +7,49 @@ __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import re
+import yaml
 from Bio.Seq import Seq
+from pkg_resources import resource_stream
 
 # Presto and changeo imports
-from presto.IO import printError, printWarning
 from changeo.Gene import parseAllele, v_allele_regex, j_allele_regex
 
 class RegionDefinition:
     """
     FWR and CDR region boundary definitions
     """
-    def __init__(self, junction_length, cdr3_start=104, aa=False):
+    def __init__(self, junction_length, amino_acid=False, definition='default'):
         """
         Initializer
 
         Arguments:
-          junction_length : length of the junction region
-          cdr3 : start position of the CDR3 region in amino acid space
-          aa : if True define boundaries in amico acid space, otherwise use nucleotide positions
+          junction_length : length of the junction region.
+          definition : region definition entry in the data/regions.yaml file to use.
+          amino_acid : if True define boundaries in amino acid space, otherwise use nucleotide positions.
 
         Returns:
           changeo.Alignment.RegionDefinition
         """
         self.junction_length = junction_length
-        self.aa = aa
-        if (aa):
-            fwr4_start = max(cdr3_start, cdr3_start - 2 + junction_length) \
-                    if junction_length is not None else None
-            self.positions = {'fwr1': [0, 26],
-                              'cdr1': [26, 38],
-                              'fwr2': [38, 55],
-                              'cdr2': [55, 65],
-                              'fwr3': [65, cdr3_start],
-                              'cdr3': [cdr3_start, fwr4_start],
-                              'fwr4': [fwr4_start, None]}
-        else:
-            cdr3_start = cdr3_start * 3
-            fwr4_start = max(cdr3_start, cdr3_start - 6 + junction_length) \
+        self.amino_acid = amino_acid
+        self.definition = definition
+        pos_mod = 1 if amino_acid else 3
+
+        # Load regions
+        with resource_stream(__name__, 'data/regions.yaml') as f:
+            data = yaml.load(f, Loader=yaml.FullLoader)
+            regions = {k: (int(v) - 1) * pos_mod for k, v in data[definition].items()}
+
+        # Assign positions
+        fwr4_start = max(regions['cdr3'], regions['cdr3'] - (2 * pos_mod) + junction_length) \
                 if junction_length is not None else None
-            self.positions = {'fwr1': [0, 78],
-                              'cdr1': [78, 114],
-                              'fwr2': [114, 165],
-                              'cdr2': [165, 195],
-                              'fwr3': [195, cdr3_start],
-                              'cdr3': [cdr3_start, fwr4_start],
-                              'fwr4': [fwr4_start, None]}
+        self.positions = {'fwr1': [regions['fwr1'], regions['cdr1']],
+                          'cdr1': [regions['cdr1'], regions['fwr2']],
+                          'fwr2': [regions['fwr2'], regions['cdr2']],
+                          'cdr2': [regions['cdr2'], regions['fwr3']],
+                          'fwr3': [regions['fwr3'], regions['cdr3']],
+                          'cdr3': [regions['cdr3'], fwr4_start],
+                          'fwr4': [fwr4_start, None]}
 
     def getRegions(self, seq):
         """

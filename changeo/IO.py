@@ -1497,7 +1497,7 @@ class IgBLASTReader:
             db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
 
         # Add FWR and CDR regions
-        rd = RegionDefinition(junction_length=db.get('junction_length', None), aa=False)
+        rd = RegionDefinition(junction_length=db.get('junction_length', None), amino_acid=False)
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
 
         return db
@@ -1676,7 +1676,7 @@ class IgBLASTReaderAA(IgBLASTReader):
             del db['sequence_aa_trim']
 
         # Add FWR and CDR regions
-        rd = RegionDefinition(junction_length=db.get('junction_length', None), aa=True)
+        rd = RegionDefinition(junction_length=db.get('junction_length', None), amino_acid=True)
         regions = rd.getRegions(db.get('sequence_aa_imgt', None))
         regions = {'fwr1_aa_imgt': regions['fwr1_imgt'],
                    'fwr2_aa_imgt': regions['fwr2_imgt'],

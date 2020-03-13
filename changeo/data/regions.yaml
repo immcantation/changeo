@@ -1,0 +1,14 @@
+default:
+  fwr1: 1
+  cdr1: 27
+  fwr2: 39
+  cdr2: 56
+  fwr3: 66
+  cdr3: 105
+rhesus-igl:
+  fwr1: 1
+  cdr1: 28
+  fwr2: 40
+  cdr2: 59
+  fwr3: 69
+  cdr3: 108

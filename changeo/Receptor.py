@@ -7,7 +7,6 @@ __author__ = 'Jason Anthony Vander Heiden, Namita Gupta, Scott Christley'
 
 # Imports
 from collections import OrderedDict
-from itertools import chain
 from Bio.Seq import Seq
 # import yaml
 # from pkg_resources import resource_stream
