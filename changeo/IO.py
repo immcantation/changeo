@@ -867,7 +867,7 @@ class IgBLASTReader:
                   'j_score',
                   'j_identity',
                   'j_evalue',
-                  'j_cigar'
+                  'j_cigar',
                   'fwr1_imgt',
                   'fwr2_imgt',
                   'fwr3_imgt',
