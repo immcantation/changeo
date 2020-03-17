@@ -19,7 +19,8 @@ default_junction_field = 'JUNCTION'
 default_clone_field = 'CLONE'
 
 # External applications
-default_igblast_exec = 'igblastn'
+default_igblastn_exec = 'igblastn'
+default_igblastp_exec = 'igblastp'
 default_tbl2asn_exec = 'tbl2asn'
 default_igphyml_exec = 'igphyml'
 

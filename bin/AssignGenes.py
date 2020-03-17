@@ -17,8 +17,8 @@ from time import time
 
 # Presto imports
 from presto.IO import printLog, printMessage, printError, printWarning
-from changeo.Defaults import default_igblast_exec, default_out_args
-from changeo.Applications import runIgBLAST, getIgBLASTVersion
+from changeo.Defaults import default_igblastn_exec, default_igblastp_exec, default_out_args
+from changeo.Applications import runIgBLASTN, runIgBLASTP, getIgBLASTVersion
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import getOutputName
 
@@ -32,15 +32,16 @@ default_organism = 'human'
 default_igdata = '~/share/igblast'
 
 
-def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
+def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', organism='human',
                   vdb=None, ddb=None, jdb=None, format=default_format,
-                  igblast_exec=default_igblast_exec, out_file=None,
+                  igblast_exec=default_igblastn_exec, out_file=None,
                   out_args=default_out_args, nproc=None):
     """
     Performs clustering on sets of sequences
 
     Arguments:
       seq_file (str): the sample sequence file name.
+      amino_acid : if True then run igblastp. igblastn is assumed if False.
       igdata (str): path to the IgBLAST database directory (IGDATA environment).
       loci (str): receptor type; one of 'ig' or 'tr'.
       organism (str): species name.
@@ -73,7 +74,7 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AssignGenes'
-    log['COMMAND'] = 'igblast'
+    log['COMMAND'] = 'igblast-aa' if amino_acid else 'igblast'
     log['VERSION'] = version
     log['FILE'] = os.path.basename(seq_file)
     log['ORGANISM'] = organism
@@ -89,9 +90,14 @@ def assignIgBLAST(seq_file, igdata=default_igdata, loci='ig', organism='human',
     # Run IgBLAST clustering
     start_time = time()
     printMessage('Running IgBLAST', start_time=start_time, width=25)
-    console_out = runIgBLAST(seq_file, igdata, loci=loci, organism=organism,
-                             vdb=vdb, ddb=ddb, jdb=jdb, output=out_file,
-                             format=format, threads=nproc, exec=igblast_exec)
+    if not amino_acid:
+        console_out = runIgBLASTN(seq_file, igdata, loci=loci, organism=organism,
+                                  vdb=vdb, ddb=ddb, jdb=jdb, output=out_file,
+                                  format=format, threads=nproc, exec=igblast_exec)
+    else:
+        console_out = runIgBLASTP(seq_file, igdata, loci=loci, organism=organism,
+                                  vdb=vdb, output=out_file,
+                                  threads=nproc, exec=igblast_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Print log
@@ -136,16 +142,18 @@ def getArgParser():
     # Parent parser
     parent_parser = getCommonArgParser(db_in=False, log=False, failed=False, format=False, multiproc=True)
 
-    # Subparser to run IgBLAT
+    # Subparser to run igblastn
     parser_igblast = subparsers.add_parser('igblast', parents=[parent_parser],
                                            formatter_class=CommonHelpFormatter, add_help=False,
-                                           help='Executes IgBLAST.',
-                                           description='Executes IgBLAST.')
+                                           help='Executes igblastn.',
+                                           description='Executes igblastn.')
     group_igblast = parser_igblast.add_argument_group('alignment arguments')
     group_igblast.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                                help='A list of FASTA files containing sequences to process.')
     group_igblast.add_argument('-b', action='store', dest='igdata', required=True,
                                help='IgBLAST database directory (IGDATA).')
+    group_igblast.add_argument('--aa', action='store_true', dest='amino_acid',
+                               help='''Specify to run igplastp rather than igblastn (the default).''')
     group_igblast.add_argument('--organism', action='store', dest='organism', default=default_organism,
                                choices=choices_organism, help='Organism name.')
     group_igblast.add_argument('--loci', action='store', dest='loci', default=default_loci,
@@ -169,9 +177,33 @@ def getArgParser():
                                     Specifying "airr" will output the AIRR TSV format provided by
                                     the IgBLAST argument "-outfmt 19".''')
     group_igblast.add_argument('--exec', action='store', dest='igblast_exec',
-                               default=default_igblast_exec,
+                               default=default_igblastn_exec,
                                help='Path to the igblastn executable.')
-    parser_igblast.set_defaults(func=assignIgBLAST)
+    parser_igblast.set_defaults(func=assignIgBLAST, amino_acid=False)
+
+    # Subparser to run igblastp
+    parser_igblast_aa = subparsers.add_parser('igblast-aa', parents=[parent_parser],
+                                           formatter_class=CommonHelpFormatter, add_help=False,
+                                           help='Executes igblastp.',
+                                           description='Executes igblastp.')
+    group_igblast_aa = parser_igblast_aa.add_argument_group('alignment arguments')
+    group_igblast_aa.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
+                                  help='A list of FASTA files containing sequences to process.')
+    group_igblast_aa.add_argument('-b', action='store', dest='igdata', required=True,
+                                  help='IgBLAST database directory (IGDATA).')
+    group_igblast_aa.add_argument('--organism', action='store', dest='organism', default=default_organism,
+                                  choices=choices_organism, help='Organism name.')
+    group_igblast_aa.add_argument('--loci', action='store', dest='loci', default=default_loci,
+                                  choices=choices_loci, help='The receptor type.')
+    group_igblast_aa.add_argument('--vdb', action='store', dest='vdb', default=None,
+                                  help='''Name of the custom V reference in the IgBLAST database folder.
+                                       If not specified, then a default database name with the form 
+                                       imgt_aa_<organism>_<loci>_v will be used.''')
+    group_igblast_aa.add_argument('--exec', action='store', dest='igblast_exec',
+                                  default=default_igblastp_exec,
+                                  help='Path to the igblastp executable.')
+    parser_igblast_aa.set_defaults(func=assignIgBLAST, amino_acid=True, ddb=None, jdb=None, format='blast')
+
 
     return parser
 

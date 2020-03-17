@@ -7,11 +7,100 @@ __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import re
+import yaml
 from Bio.Seq import Seq
+from pkg_resources import resource_stream
 
 # Presto and changeo imports
-from presto.IO import printError, printWarning
-from changeo.Gene import parseAllele, v_allele_regex, j_allele_regex
+from changeo.Gene import getVAllele, getJAllele
+
+class RegionDefinition:
+    """
+    FWR and CDR region boundary definitions
+    """
+    def __init__(self, junction_length, amino_acid=False, definition='default'):
+        """
+        Initializer
+
+        Arguments:
+          junction_length : length of the junction region.
+          definition : region definition entry in the data/regions.yaml file to use.
+          amino_acid : if True define boundaries in amino acid space, otherwise use nucleotide positions.
+
+        Returns:
+          changeo.Alignment.RegionDefinition
+        """
+        self.junction_length = junction_length
+        self.amino_acid = amino_acid
+        self.definition = definition
+        pos_mod = 1 if amino_acid else 3
+
+        # Load regions
+        with resource_stream(__name__, 'data/regions.yaml') as f:
+            data = yaml.load(f, Loader=yaml.FullLoader)
+            regions = {k: (int(v) - 1) * pos_mod for k, v in data[definition].items()}
+
+        # Assign positions
+        fwr4_start = max(regions['cdr3'], regions['cdr3'] - (2 * pos_mod) + junction_length) \
+                if junction_length is not None else None
+        self.positions = {'fwr1': [regions['fwr1'], regions['cdr1']],
+                          'cdr1': [regions['cdr1'], regions['fwr2']],
+                          'fwr2': [regions['fwr2'], regions['cdr2']],
+                          'cdr2': [regions['cdr2'], regions['fwr3']],
+                          'fwr3': [regions['fwr3'], regions['cdr3']],
+                          'cdr3': [regions['cdr3'], fwr4_start],
+                          'fwr4': [fwr4_start, None]}
+
+    def getRegions(self, seq):
+        """
+        Return IMGT defined FWR and CDR regions
+
+        Arguments:
+          seq : IMGT-gapped sequence.
+
+        Returns:
+          dict : dictionary of FWR and CDR sequences.
+        """
+        regions = {'fwr1_imgt': None,
+                   'fwr2_imgt': None,
+                   'fwr3_imgt': None,
+                   'fwr4_imgt': None,
+                   'cdr1_imgt': None,
+                   'cdr2_imgt': None,
+                   'cdr3_imgt': None}
+        try:
+            seq_len = len(seq)
+            regions['fwr1_imgt'] = seq[self.positions['fwr1'][0]:min(self.positions['fwr1'][1], seq_len)]
+        except (KeyError, IndexError, TypeError):
+            return regions
+
+        try:
+            regions['cdr1_imgt'] = seq[self.positions['cdr1'][0]:min(self.positions['cdr1'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['fwr2_imgt'] = seq[self.positions['fwr2'][0]:min(self.positions['fwr2'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['cdr2_imgt'] = seq[self.positions['cdr2'][0]:min(self.positions['cdr2'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['fwr3_imgt'] = seq[self.positions['fwr3'][0]:min(self.positions['fwr3'][1], seq_len)]
+        except (IndexError):
+            return regions
+
+        try:
+            regions['cdr3_imgt'] = seq[self.positions['cdr3'][0]:min(self.positions['cdr3'][1], seq_len)]
+            regions['fwr4_imgt'] = seq[self.positions['fwr4'][0]:]
+        except (KeyError, IndexError, TypeError):
+            return regions
+
+        return regions
 
 
 def decodeBTOP(btop):
@@ -169,7 +258,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
 
     # Extract first V call
     if not asis_calls:
-        vgene = parseAllele(v_call, v_allele_regex, 'first')
+        vgene = getVAllele(v_call, action='first')
     else:
         vgene = v_call.split(',')[0]
 
@@ -223,7 +312,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
 
     # Find germline J segment
     if not asis_calls:
-        jgene = parseAllele(j_call, j_allele_regex, 'first')
+        jgene = getJAllele(j_call, action='first')
     else:
         jgene = j_call.split(',')[0]
     jgerm = references.get(jgene, None)

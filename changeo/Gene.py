@@ -13,6 +13,7 @@ from collections import OrderedDict
 from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_seq_field
 
 # Ig and TCR Regular expressions
+allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
 allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
 gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*))')
 family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+))')
@@ -21,11 +22,9 @@ locus_regex = re.compile(r'(IG[HLK]|TR[ABGD])')
 v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-
-allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
-# TODO:  might be cleaner as getAllele(), getGene(), getFamily()
+
 def parseAllele(alleles, regex, action='first'):
     """
     Extract alleles from strings
@@ -54,68 +53,228 @@ def parseAllele(alleles, regex, action='first'):
         return None
 
 
+def getAllele(gene, action='first'):
+    """
+    Extract allele from gene call string
+
+    Arguments:
+      gene (str): string with gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first allele calls when action is 'first'.
+      tuple: Tuple of allele calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, allele_regex, action=action)
+
+
+def getGene(gene, action='first'):
+    """
+    Extract gene from gene call string
+
+    Arguments:
+      gene (str): string with gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first gene call when action is 'first'.
+      tuple: Tuple of gene calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, gene_regex, action=action)
+
+
+def getFamily(gene, action='first'):
+    """
+    Extract family from gene call string
+
+    Arguments:
+      gene (str): string with gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first family call when action is 'first'.
+      tuple: Tuple of allele calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, family_regex, action=action)
+
+
+def getLocus(gene, action='first'):
+    """
+    Extract locus from gene call string
+
+    Arguments:
+      gene (str): string with gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first locus call when action is 'first'.
+      tuple: Tuple of locus calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, locus_regex, action=action)
+
+
+def getAlleleNumber(gene, action='first'):
+    """
+    Extract allele number from gene call string
+
+    Arguments:
+      gene (str): string with gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first allele number call when action is 'first'.
+      tuple: Tuple of allele numbers for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, allele_number_regex, action=action)
+
+
+def getCGene(gene, action='first'):
+    """
+    Extract C-region gene from gene call string
+
+    Arguments:
+      gene (str): string with C-region gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first C-region gene call when action is 'first'.
+      tuple: Tuple of gene calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, c_gene_regex, action=action)
+
+
+def getVAllele(gene, action='first'):
+    """
+    Extract V allele gene from gene call string
+
+    Arguments:
+      gene (str): string with V gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first V allele call when action is 'first'.
+      tuple: Tuple of V allele calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, v_allele_regex, action=action)
+
+
+def getDAllele(gene, action='first'):
+    """
+    Extract D allele gene from gene call string
+
+    Arguments:
+      gene (str): string with D gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first D allele call when action is 'first'.
+      tuple: Tuple of D allele calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, d_allele_regex, action=action)
+
+
+def getJAllele(gene, action='first'):
+    """
+    Extract J allele gene from gene call string
+
+    Arguments:
+      gene (str): string with J gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first J allele call when action is 'first'.
+      tuple: Tuple of J allele calls for 'set' or 'list' actions.
+    """
+    return parseAllele(gene, j_allele_regex, action=action)
+
+
 # TODO: this is not generalized for non-IMGT gapped sequences!
-def getVGermline(receptor, references, v_field=default_v_field):
+def getVGermline(receptor, references, v_field=default_v_field, amino_acid=False):
     """
     Extract V allele and germline sequence
 
     Arguments:
-      receptor : Receptor object
-      references : dictionary of germline sequences
-      v_field : field containing the V allele assignment
+      receptor (changeo.Receptor.Receptor): Receptor object
+      references (dict): dictionary of germline sequences
+      v_field (str): field containing the V allele assignment
+      amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
-      tuple : V allele name, V segment germline sequence
+      tuple: V allele name, V segment germline sequence
     """
     # Extract V allele call
     vgene = receptor.getVAllele(action='first', field=v_field)
 
-    # Build V segment germline sequence
-    if vgene is None:
-        try:  vlen = int(receptor.v_germ_length_imgt)
-        except (TypeError, ValueError):  vlen = 0
-        germ_vseq = 'N' * vlen
-    elif vgene in references:
-        # Define V germline positions
+    # Get germline start and length
+    if not amino_acid:
+        pad_char = 'N'
         try:  vstart = int(receptor.v_germ_start_imgt) - 1
         except (TypeError, ValueError):  vstart = 0
         try:  vlen = int(receptor.v_germ_length_imgt)
         except (TypeError, ValueError):  vlen = 0
-        # Define V germline sequence
+    else:
+        pad_char = 'X'
+        try:  vstart = int(receptor.v_germ_aa_start_imgt) - 1
+        except (TypeError, ValueError, AttributeError):  vstart = 0
+        try:  vlen = int(receptor.v_germ_aa_length_imgt)
+        except (TypeError, ValueError, AttributeError):  vlen = 0
+
+    # Build V segment germline sequence
+    if vgene is None:
+        germ_vseq = pad_char * vlen
+    elif vgene in references:
         vseq = references[vgene]
         vpad = vlen - len(vseq[vstart:])
         if vpad < 0: vpad = 0
-        germ_vseq = vseq[vstart:(vstart + vlen)] + ('N' * vpad)
+        germ_vseq = vseq[vstart:(vstart + vlen)] + (pad_char * vpad)
     else:
         germ_vseq = None
 
     return vgene, germ_vseq
 
 
-def getDGermline(receptor, references, d_field=default_d_field):
+def getDGermline(receptor, references, d_field=default_d_field, amino_acid=False):
     """
     Extract D allele and germline sequence
 
     Arguments:
-      receptor : Receptor object
-      references : dictionary of germline sequences
-      d_field : field containing the D allele assignment
+      receptor (changeo.Receptor.Receptor): Receptor object
+      references (dict): dictionary of germline sequences
+      d_field (str): field containing the D allele assignment
+      amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
+
 
     Returns:
-      tuple : D allele name, D segment germline sequence
+      tuple: D allele name, D segment germline sequence
     """
     # Extract D allele call
     dgene = receptor.getDAllele(action='first', field=d_field)
+
+    # Get germline start and length
+    if not amino_acid:
+        try:  dstart = int(receptor.d_germ_start) - 1
+        except (TypeError, ValueError):  dstart = 0
+        try:  dlen = int(receptor.d_germ_length)
+        except (TypeError, ValueError):  dlen = 0
+    else:
+        try:  dstart = int(receptor.d_germ_aa_start) - 1
+        except (TypeError, ValueError, AttributeError):  dstart = 0
+        try:  dlen = int(receptor.d_germ_aa_length)
+        except (TypeError, ValueError, AttributeError):  dlen = 0
 
     # Build D segment germline sequence
     if dgene is None:
         germ_dseq = ''
     elif dgene in references:
-        # Define D germline positions
-        try:  dstart = int(receptor.d_germ_start) - 1
-        except (TypeError, ValueError):  dstart = 0
-        try:  dlen = int(receptor.d_germ_length)
-        except (TypeError, ValueError):  dlen = 0
         # Define D germline sequence
         dseq = references[dgene]
         germ_dseq = dseq[dstart:(dstart + dlen)]
@@ -125,90 +284,102 @@ def getDGermline(receptor, references, d_field=default_d_field):
     return dgene, germ_dseq
 
 
-def getJGermline(receptor, references, j_field=default_j_field):
+def getJGermline(receptor, references, j_field=default_j_field, amino_acid=False):
     """
     Extract J allele and germline sequence
 
     Arguments:
-      receptor : Receptor object
-      references : dictionary of germline sequences
-      j_field : field containing the J allele assignment
+      receptor (changeo.Receptor.Receptor): Receptor object
+      references (dict): dictionary of germline sequences
+      j_field (str): field containing the J allele assignment
+      amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
-      tuple : J allele name, J segment germline sequence
+      tuple: J allele name, J segment germline sequence
     """
     # Extract J allele call
     jgene = receptor.getJAllele(action='first', field=j_field)
 
-    # Build J segment germline sequence
-    if jgene is None:
-        try:  jlen = int(receptor.j_germ_length)
-        except (TypeError, ValueError):  jlen = 0
-        germ_jseq = 'N' * jlen
-    elif jgene in references:
-        jseq = references[jgene]
-        # Define J germline positions
+    # Get germline start and length
+    if not amino_acid:
+        pad_char = 'N'
         try:  jstart = int(receptor.j_germ_start) - 1
         except (TypeError, ValueError):  jstart = 0
         try:  jlen = int(receptor.j_germ_length)
         except (TypeError, ValueError):  jlen = 0
-        # Define J germline sequence
+    else:
+        pad_char = 'X'
+        try:  jstart = int(receptor.j_germ_aa_start) - 1
+        except (TypeError, ValueError, AttributeError):  jstart = 0
+        try:  jlen = int(receptor.j_germ_aa_length)
+        except (TypeError, ValueError, AttributeError):  jlen = 0
+
+    # Build J segment germline sequence
+    if jgene is None:
+        germ_jseq = pad_char * jlen
+    elif jgene in references:
+        jseq = references[jgene]
         jpad = jlen - len(jseq[jstart:])
         if jpad < 0: jpad = 0
-        germ_jseq = jseq[jstart:(jstart + jlen)] + ('N' * jpad)
+        germ_jseq = jseq[jstart:(jstart + jlen)] + (pad_char * jpad)
     else:
         germ_jseq = None
 
     return jgene, germ_jseq
 
 
-def stitchVDJ(receptor, v_seq, d_seq, j_seq):
+def stitchVDJ(receptor, v_seq, d_seq, j_seq, amino_acid=False):
     """
     Assemble full length germline sequence
 
     Arguments:
-      receptor : Receptor object
-      v_seq : V segment sequence as a string
-      d_seq : D segment sequence as a string
-      j_seq : J segment sequence as a string
+      receptor (changeo.Receptor.Receptor): Receptor object
+      v_seq (str): V segment sequence as a string
+      d_seq (str): D segment sequence as a string
+      j_seq (str): J segment sequence as a string
+      amino_acid (bool): if True use X for N/P regions and amino acid positional fields,
+                         otherwise use N and nucleotide fields.
 
     Returns:
-      str : full germline sequence
+      str: full germline sequence
     """
+    # Get N/P lengths
+    if not amino_acid:
+        np_char = 'N'
+        try:  np1_len = int(receptor.np1_length)
+        except (TypeError, ValueError):  np1_len = 0
+        try:  np2_len = int(receptor.np2_length)
+        except (TypeError, ValueError):  np2_len = 0
+    else:
+        np_char = 'X'
+        try:  np1_len = int(receptor.np1_aa_length)
+        except (TypeError, ValueError, AttributeError):  np1_len = 0
+        try:  np2_len = int(receptor.np2_aa_length)
+        except (TypeError, ValueError, AttributeError):  np2_len = 0
+
     # Assemble pieces starting with V segment
     sequence = v_seq
-
-    # Add Ns for first N/P region
-    try:  np1_len = int(receptor.np1_length)
-    except (TypeError, ValueError):  np1_len = 0
-    sequence += 'N' * np1_len
-
-    # Add D segment
+    sequence += np_char * np1_len
     sequence += d_seq
-
-    # Add Ns for second N/P region
-    try:  np2_len = int(receptor.np2_length)
-    except (TypeError, ValueError):  np2_len = 0
-    sequence += 'N' * np2_len
-
-    # Add J segment
+    sequence += np_char * np2_len
     sequence += j_seq
 
     return sequence
 
 
-def stitchRegions(receptor, v_seq, d_seq, j_seq):
+def stitchRegions(receptor, v_seq, d_seq, j_seq, amino_acid=False):
     """
     Assemble full length region encoding
 
     Arguments:
-      receptor : Receptor object
-      v_seq : V segment germline sequence as a string
-      d_seq : D segment germline sequence as a string
-      j_seq : J segment germline sequence as a string
+      receptor (changeo.Receptor.Receptor): Receptor object
+      v_seq (str): V segment germline sequence as a string
+      d_seq (str): D segment germline sequence as a string
+      j_seq (str): J segment germline sequence as a string
+      amino_acid (bool): if True use amino acid positional fields, otherwise use nucleotide fields.
 
     Returns:
-      str : string defining germline regions
+      str: string defining germline regions
     """
     # Set mode for region definitions
     full_junction = True if getattr(receptor, 'n1_length', None) is not None else False
@@ -217,7 +388,12 @@ def stitchRegions(receptor, v_seq, d_seq, j_seq):
     regions = 'V' * len(v_seq)
 
     # NP nucleotide additions after V
-    if not full_junction:
+    if amino_acid:
+        # PNP nucleotide additions after V
+        try:  np1_len = int(receptor.np1_aa_length)
+        except (TypeError, ValueError, AttributeError):  np1_len = 0
+        regions += 'N' * np1_len
+    elif not full_junction:
         # PNP nucleotide additions after V
         try:  np1_len = int(receptor.np1_length)
         except (TypeError, ValueError):  np1_len = 0
@@ -242,7 +418,12 @@ def stitchRegions(receptor, v_seq, d_seq, j_seq):
     regions += 'D' * len(d_seq)
 
     # NP nucleotide additions before J
-    if not full_junction:
+    if amino_acid:
+        # NP nucleotide additions
+        try:  np2_len = int(receptor.np2_aa_length)
+        except (TypeError, ValueError, AttributeError):  np2_len = 0
+        regions += 'N' * np2_len
+    elif not full_junction:
         # NP nucleotide additions
         try:  np2_len = int(receptor.np2_length)
         except (TypeError, ValueError):  np2_len = 0
@@ -271,49 +452,50 @@ def stitchRegions(receptor, v_seq, d_seq, j_seq):
 
 # TODO: Should do 'first' method for ambiguous V/J groups. And explicit allele extraction.
 def buildGermline(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
-                  d_field=default_d_field, j_field=default_j_field):
+                  d_field=default_d_field, j_field=default_j_field, amino_acid=False):
     """
     Join gapped germline sequences aligned with sample sequences
 
     Arguments:
-      receptor : Receptor object
-      references : dictionary of IMGT gapped germline sequences
-      seq_field : field in which to look for sequence
-      v_field : field in which to look for V call
-      d_field : field in which to look for V call
-      j_field : field in which to look for V call
+      receptor (changeo.Receptor.Receptor): Receptor object.
+      references (dict): dictionary of IMGT gapped germline sequences.
+      seq_field (str): field in which to look for sequence.
+      v_field (str): field in which to look for V call.
+      d_field (str): field in which to look for V call.
+      j_field (str): field in which to look for V call.
+      amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
-      tuple : log dictionary, dictionary of {germline_type: germline_sequence}, dictionary of {segment: gene call}
+      tuple: log dictionary, dictionary of {germline_type: germline_sequence}, dictionary of {segment: gene call}
     """
     # Return objects
     log = OrderedDict()
     germlines = {'full': '', 'dmask': '', 'vonly': '', 'regions': ''}
 
     # Build V segment germline sequence
-    vgene, germ_vseq = getVGermline(receptor, references, v_field=v_field)
+    vgene, germ_vseq = getVGermline(receptor, references, v_field=v_field, amino_acid=amino_acid)
     log['V_CALL'] = vgene
     if germ_vseq is None:
         log['ERROR'] = 'Allele %s is not in the provided germline database.' % vgene
         return log, None, None
 
     # Build D segment germline sequence
-    dgene, germ_dseq = getDGermline(receptor, references, d_field=d_field)
+    dgene, germ_dseq = getDGermline(receptor, references, d_field=d_field, amino_acid=amino_acid)
     log['D_CALL'] = dgene
     if germ_dseq is None:
         log['ERROR'] = 'Allele %s is not in the provided germline database.' % dgene
         return log, None, None
 
     # Build J segment germline sequence
-    jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field)
+    jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field, amino_acid=amino_acid)
     log['J_CALL'] = jgene
     if germ_jseq is None:
         log['ERROR'] = 'Allele %s is not in the provided germline database.' % jgene
         return log, None, None
 
     # Stitch complete germlines
-    germ_seq = stitchVDJ(receptor, germ_vseq, germ_dseq, germ_jseq)
-    regions = stitchRegions(receptor, germ_vseq, germ_dseq, germ_jseq)
+    germ_seq = stitchVDJ(receptor, germ_vseq, germ_dseq, germ_jseq, amino_acid=amino_acid)
+    regions = stitchRegions(receptor, germ_vseq, germ_dseq, germ_jseq, amino_acid=amino_acid)
 
     # Update log
     log['SEQUENCE'] = receptor.getField(seq_field)
@@ -327,12 +509,13 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
 
     len_check = len(germ_seq) - len(receptor.getField(seq_field))
     if len_check != 0:
-        log['ERROR'] = 'Germline sequence differs in length from input sequence by %i nucleotides.' % abs(len_check)
+        log['ERROR'] = 'Germline sequence differs in length from input sequence by %i characters.' % abs(len_check)
         return log, None, None
 
     # Define return germlines object
+    pad_char = 'X' if amino_acid else 'N'
     germ_dmask = germ_seq[:len(germ_vseq)] + \
-                 'N' * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
+                 pad_char * (len(germ_seq) - len(germ_vseq) - len(germ_jseq)) + \
                  germ_seq[-len(germ_jseq):]
     germlines = {'full': germ_seq, 'dmask': germ_dmask, 'vonly': germ_vseq, 'regions': regions}
     for k, v in germlines.items():  germlines[k] = v.upper()
@@ -345,21 +528,23 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
     return log, germlines, genes
 
 
-def buildClonalGermline(receptors, references, seq_field=default_seq_field,
-                        v_field=default_v_field, d_field=default_d_field, j_field=default_j_field):
+def buildClonalGermline(receptors, references, seq_field=default_seq_field, v_field=default_v_field,
+                        d_field=default_d_field, j_field=default_j_field, amino_acid=False):
     """
     Determine consensus clone sequence and create germline for clone
 
     Arguments:
-      receptors : list of Receptor objects
-      references : dictionary of IMGT gapped germline sequences
-      seq_field : field in which to look for sequence
-      v_field : field in which to look for V call
-      d_field : field in which to look for D call
-      j_field : field in which to look for J call
+      receptors (changeo.Receptor.Receptor): list of Receptor objects
+      references (dict): dictionary of IMGT gapped germline sequences
+      seq_field (str): field in which to look for sequence
+      v_field (str): field in which to look for V call
+      d_field (str): field in which to look for D call
+      j_field (str): field in which to look for J call
+      amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
+
 
     Returns:
-      tuple : log dictionary, dictionary of {germline_type: germline_sequence},
+      tuple: log dictionary, dictionary of {germline_type: germline_sequence},
               dictionary of consensus {segment: gene call}
     """
     # Log
@@ -368,6 +553,9 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
     # Create dictionaries to count observed V/J calls
     v_dict = OrderedDict()
     j_dict = OrderedDict()
+
+    # Amino acid settings
+    pad_char = 'X' if amino_acid else 'N'
 
     # Find longest sequence in clone
     max_length = 0
@@ -406,18 +594,20 @@ def buildClonalGermline(receptors, references, seq_field=default_seq_field,
     # Pad end of consensus sequence with gaps to make it the max length
     gap_length = max_length - len(cons.getField(seq_field))
     if gap_length > 0:
-        cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
-        cons.setField(seq_field, cons.getField(seq_field) + ('N' * gap_length))
+        if amino_acid:  cons.j_germ_aa_length = int(cons.j_germ_aa_length or 0) + gap_length
+        else:  cons.j_germ_length = int(cons.j_germ_length or 0) + gap_length
+        cons.setField(seq_field, cons.getField(seq_field) + (pad_char * gap_length))
 
     # Update lengths padded to longest sequence in clone
     for rec in receptors:
         x = max_length - len(rec.getField(seq_field))
-        rec.j_germ_length = int(rec.j_germ_length or 0) + x
-        rec.setField(seq_field, rec.getField(seq_field) + ('N' * x))
+        if amino_acid:  rec.j_germ_aa_length = int(rec.j_germ_aa_length or 0) + x
+        else:  rec.j_germ_length = int(rec.j_germ_length or 0) + x
+        rec.setField(seq_field, rec.getField(seq_field) + (pad_char * x))
 
     # Stitch consensus germline
     cons_log, germlines, genes = buildGermline(cons, references, seq_field=seq_field, v_field=v_field,
-                                               d_field=d_field, j_field=j_field)
+                                               d_field=d_field, j_field=j_field, amino_acid=amino_acid)
 
     # Update log
     log['CONSENSUS'] = cons.sequence_id
