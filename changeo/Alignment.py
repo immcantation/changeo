@@ -352,7 +352,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
     return junc_dict
 
 
-def getRegions(seq, junction_length, regions='default'):
+def getRegions(seq, junction_length):
     """
     Identify FWR and CDR regions by IMGT definition.
 

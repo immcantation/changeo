@@ -2115,7 +2115,7 @@ class IHMMuneReader:
                                       j_germ_length=db['j_germ_length'],
                                       j_call=db['j_call'],
                                       references=self.references,
-                                      regions=self.regions)
+                                      regions='default')
             db.update(junc_dict)
 
         # Overall alignment score
