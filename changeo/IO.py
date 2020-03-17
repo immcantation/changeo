@@ -803,7 +803,9 @@ class IMGTReader:
 
         # Parse optional fields
         db.update(IMGTReader._parseScores(summary))
-        db.update(getRegions(db['sequence_imgt'], db['junction_length']))
+        rd = RegionDefinition(junction_length=db.get('junction_length', None),
+                              amino_acid=False, definition='default')
+        db.update(rd.getRegions(db.get('sequence_imgt', None)))
         db.update(IMGTReader._parseJuncDetails(junction))
 
         return db
@@ -1367,7 +1369,7 @@ class IgBLASTReader:
         #     'V-(D)-J rearrangement summary': (Top V gene match, Top D gene match, Top J gene match, Chain type, stop codon, V-J frame, Productive, Strand)
         #     'V-(D)-J junction details': (V end, V-D junction, D region, D-J junction, J start)
         #     'Alignment summary': (from, to, length, matches, mismatches, gaps, percent identity)
-        #     'subregion': (nucleotide sequence, translation)
+        #     'subregion': (nucleotide sequence, translation, start, end)
         #
         #   Ignored sections
         #     'junction': '# V-(D)-J junction details'
@@ -1472,7 +1474,8 @@ class IgBLASTReader:
                                       j_germ_length=db['j_germ_length'],
                                       j_call=db['j_call'],
                                       references=self.references,
-                                      asis_calls=self.asis_calls)
+                                      asis_calls=self.asis_calls,
+                                      regions=self.regions)
             db.update(junc_dict)
 
         # Add IgBLAST CDR3 sequences
@@ -1542,15 +1545,15 @@ class IgBLASTReaderAA(IgBLASTReader):
           list : list of field names.
         """
         # IgBLAST scoring fields
-        score_fields = ['v_score',
-                        'v_identity',
-                        'v_evalue',
-                        'v_cigar',
-                        'fwr1_aa_imgt',
-                        'fwr2_aa_imgt',
-                        'fwr3_aa_imgt',
-                        'cdr1_aa_imgt',
-                        'cdr2_aa_imgt']
+        fields = ['v_score',
+                  'v_identity',
+                  'v_evalue',
+                  'v_cigar',
+                  'fwr1_aa_imgt',
+                  'fwr2_aa_imgt',
+                  'fwr3_aa_imgt',
+                  'cdr1_aa_imgt',
+                  'cdr2_aa_imgt']
 
         # Convert field names if schema provided
         if schema is not None:
@@ -2111,14 +2114,17 @@ class IHMMuneReader:
                                       j_germ_start=db['j_germ_start'],
                                       j_germ_length=db['j_germ_length'],
                                       j_call=db['j_call'],
-                                      references=self.references)
+                                      references=self.references,
+                                      regions=self.regions)
             db.update(junc_dict)
 
         # Overall alignment score
         db.update(IHMMuneReader._parseScores(record))
 
         # FWR and CDR regions
-        db.update(getRegions(db.get('sequence_imgt', None), db.get('junction_length', None)))
+        rd = RegionDefinition(junction_length=db.get('junction_length', None),
+                              amino_acid=False, definition='default')
+        db.update(rd.getRegions(db.get('sequence_imgt', None)))
         
         return db
 

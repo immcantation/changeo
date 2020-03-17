@@ -23,7 +23,7 @@ class RegionDefinition:
         Initializer
 
         Arguments:
-          junction_length (int): length of the junction region.
+          junction_length (int): length of the junction region. If None then CDR3 end and FWR4 start/end are undefined.
           definition (str): region definition entry in the data/regions.yaml file to use.
           amino_acid (bool): if True define boundaries in amino acid space, otherwise use nucleotide positions.
 
@@ -41,15 +41,21 @@ class RegionDefinition:
             regions = {k: (int(v) - 1) * pos_mod for k, v in data[definition].items()}
 
         # Assign positions
-        fwr4_start = max(regions['cdr3'], regions['cdr3'] - (2 * pos_mod) + junction_length) \
+        if junction_length is not None:
+            fwr4_start = max(regions['cdr3'], regions['cdr3'] - (2 * pos_mod) + junction_length) \
                 if junction_length is not None else None
+            junction_end = fwr4_start + (1 * pos_mod)
+        else:
+            fwr4_start = None
+            junction_end = None
         self.positions = {'fwr1': [regions['fwr1'], regions['cdr1']],
                           'cdr1': [regions['cdr1'], regions['fwr2']],
                           'fwr2': [regions['fwr2'], regions['cdr2']],
                           'cdr2': [regions['cdr2'], regions['fwr3']],
                           'fwr3': [regions['fwr3'], regions['cdr3']],
                           'cdr3': [regions['cdr3'], fwr4_start],
-                          'fwr4': [fwr4_start, None]}
+                          'fwr4': [fwr4_start, None],
+                          'junction': [regions['cdr3'] - (1 * pos_mod), junction_end]}
 
     def getRegions(self, seq):
         """
@@ -291,7 +297,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
     return imgt_dict
 
 
-def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False):
+def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False, regions='default'):
     """
     Identify junction region by IMGT definition.
 
@@ -302,6 +308,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
       j_call (str): J segment allele assignment (J_CALL).
       references (dict): dictionary of IMGT-gapped reference sequences.
       asis_calls (bool): if True do not parse V_CALL for allele names and just split by comma.
+      regions (str): name of the IMGT FWR/CDR region definitions to use.
 
     Returns:
       dict : dictionary containing junction sequence, translation and length.
@@ -331,7 +338,9 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
             junc_end = seq_len
 
         # Extract junction
-        junc_dict['junction'] = seq[309:junc_end]
+        rd = RegionDefinition(None, amino_acid=False, definition=regions)
+        junc_start = rd.positions['junction'][0]
+        junc_dict['junction'] = seq[junc_start:junc_end]
         junc_len = len(junc_dict['junction'])
         junc_dict['junction_length'] = junc_len
 
@@ -343,7 +352,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
     return junc_dict
 
 
-def getRegions(seq, junction_length):
+def getRegions(seq, junction_length, regions='default'):
     """
     Identify FWR and CDR regions by IMGT definition.
 
