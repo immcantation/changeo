@@ -152,8 +152,6 @@ def getArgParser():
                                help='A list of FASTA files containing sequences to process.')
     group_igblast.add_argument('-b', action='store', dest='igdata', required=True,
                                help='IgBLAST database directory (IGDATA).')
-    group_igblast.add_argument('--aa', action='store_true', dest='amino_acid',
-                               help='''Specify to run igplastp rather than igblastn (the default).''')
     group_igblast.add_argument('--organism', action='store', dest='organism', default=default_organism,
                                choices=choices_organism, help='Organism name.')
     group_igblast.add_argument('--loci', action='store', dest='loci', default=default_loci,

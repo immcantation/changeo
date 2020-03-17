@@ -444,23 +444,24 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
 
 
 def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, partial=False,
-                 asis_id=True, asis_calls=False, extended=False,
+                 asis_id=True, asis_calls=False, extended=False, regions='default',
                  format='changeo', out_file=None, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
 
     Arguments:
-      aligner_file : IgBLAST output file to process.
-      seq_file : fasta file input to IgBlast (from which to get sequence).
-      repo : folder with germline repertoire files.
+      aligner_file (str): IgBLAST output file to process.
+      seq_file (str): fasta file input to IgBlast (from which to get sequence).
+      repo (str): folder with germline repertoire files.
+      amino_acid (bool): if True then the IgBLAST output files are results from igblastp. igblastn is assumed if False.
       partial : If True put incomplete alignments in the pass file.
-      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
-      asis_calls : if True do not parse gene calls for allele names.
-      extended : if True add alignment scores, FWR, IMGT CDR, and IgBLAST CDR3 to the output.
-      amino_acid : if True then the IgBLAST output files are results from igblastp. igblastn is assumed if False.
-      format : output format. one of 'changeo' or 'airr'.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
+      asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
+      asis_calls (bool): if True do not parse gene calls for allele names.
+      extended (bool): if True add alignment scores, FWR regions, and CDR regions to the output.
+      regions (str): name of the IMGT FWR/CDR region definitions to use.
+      format (str): output format. one of 'changeo' or 'airr'.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
 
     Returns:
       dict : names of the 'pass' and 'fail' output files.
@@ -520,16 +521,16 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     # Define output fields
     fields = list(schema.required)
     if extended:
-        custom = parser.customFields(scores=True, regions=True, cdr3=False, schema=schema)
+        custom = parser.customFields(schema=schema)
         fields.extend(custom)
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = parser(f, seq_dict, references, asis_calls=asis_calls)
+        parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls)
         germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
-                        annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
-                        writer=writer, out_file=out_file, out_args=out_args)
+                         annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
+                         writer=writer, out_file=out_file, out_args=out_args)
 
     return output
 
@@ -652,7 +653,6 @@ def getArgParser():
                   V_EVALUE, V_SCORE, V_IDENTITY, V_CIGAR,
                   D_EVALUE, D_SCORE, D_IDENTITY, D_CIGAR,
                   J_EVALUE, J_SCORE, J_IDENTITY, J_CIGAR,
-                  CDR3_IGBLAST, CDR3_IGBLAST_AA
 
               ihmm specific output fields:
                   V_GERM_START_VDJ, V_GERM_LENGTH_VDJ, VDJ_SCORE
@@ -721,8 +721,10 @@ def getArgParser():
                                help='''Specify to include additional aligner specific fields in the output. 
                                      Adds the <VDJ>_SCORE, <VDJ>_IDENTITY, <VDJ>_EVALUE, and <VDJ>_CIGAR;
                                      FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, and FWR4_IMGT; CDR1_IMGT, CDR2_IMGT, and
-                                     CDR3_IMGT; CDR3_IGBLAST_NT and CDR3_IGBLAST_AA (requires IgBLAST
-                                     version 1.5 or greater).''')
+                                     CDR3_IMGT.''')
+    group_igblast.add_argument('--regions', action='store', dest='regions',
+                               choices=('default', 'rhesus-igl'), default='default',
+                               help='''IMGT CDR and FWR boundary definition to use.''')
     parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
 
     # igblastp output parser
@@ -760,7 +762,11 @@ def getArgParser():
                                   help='''Specify to include additional aligner specific fields in the output. 
                                        Adds V_SCORE, V_IDENTITY, V_EVALUE, and V_CIGAR;
                                        FWR1_IMGT, FWR2_IMGT, FWR3_IMGT; CDR1_IMGT, CDR2_IMGT.''')
+    group_igblast_aa.add_argument('--regions', action='store', dest='regions',
+                                  choices=('default', 'rhesus-igl'), default='default',
+                                  help='''IMGT CDR and FWR boundary definition to use.''')
     parser_igblast_aa.set_defaults(func=parseIgBLAST, partial=True, amino_acid=True)
+
 
     # IMGT aligner
     parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],

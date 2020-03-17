@@ -23,9 +23,9 @@ class RegionDefinition:
         Initializer
 
         Arguments:
-          junction_length : length of the junction region.
-          definition : region definition entry in the data/regions.yaml file to use.
-          amino_acid : if True define boundaries in amino acid space, otherwise use nucleotide positions.
+          junction_length (int): length of the junction region.
+          definition (str): region definition entry in the data/regions.yaml file to use.
+          amino_acid (bool): if True define boundaries in amino acid space, otherwise use nucleotide positions.
 
         Returns:
           changeo.Alignment.RegionDefinition

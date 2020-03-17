@@ -844,14 +844,11 @@ class IgBLASTReader:
     """
     # Ordered list of known fields
     @staticmethod
-    def customFields(scores=False, regions=False, cdr3=False, schema=None):
+    def customFields(schema=None):
         """
         Returns non-standard fields defined by the parser
 
         Arguments:
-          scores : if True include alignment scoring fields.
-          regions : if True include IMGT-gapped CDR and FWR region fields.
-          cdr3 : if True include IgBLAST CDR3 assignment fields.
           schema : schema class to pass field through for conversion.
                    If None, return changeo.Receptor.Receptor attribute names.
 
@@ -859,36 +856,25 @@ class IgBLASTReader:
           list : list of field names.
         """
         # IgBLAST scoring fields
-        score_fields = ['v_score',
-                        'v_identity',
-                        'v_evalue',
-                        'v_cigar',
-                        'd_score',
-                        'd_identity',
-                        'd_evalue',
-                        'd_cigar',
-                        'j_score',
-                        'j_identity',
-                        'j_evalue',
-                        'j_cigar']
-
-        # FWR amd CDR fields
-        region_fields = ['fwr1_imgt',
-                         'fwr2_imgt',
-                         'fwr3_imgt',
-                         'fwr4_imgt',
-                         'cdr1_imgt',
-                         'cdr2_imgt',
-                         'cdr3_imgt']
-
-        # IgBLAST CDR3 fields
-        cdr3_fields = ['cdr3_igblast',
-                       'cdr3_igblast_aa']
-        
-        fields = []
-        if scores:  fields.extend(score_fields)
-        if regions:  fields.extend(region_fields)
-        if cdr3:  fields.extend(cdr3_fields)
+        fields = ['v_score',
+                  'v_identity',
+                  'v_evalue',
+                  'v_cigar',
+                  'd_score',
+                  'd_identity',
+                  'd_evalue',
+                  'd_cigar',
+                  'j_score',
+                  'j_identity',
+                  'j_evalue',
+                  'j_cigar'
+                  'fwr1_imgt',
+                  'fwr2_imgt',
+                  'fwr3_imgt',
+                  'fwr4_imgt',
+                  'cdr1_imgt',
+                  'cdr2_imgt',
+                  'cdr3_imgt']
 
         # Convert field names if schema provided
         if schema is not None:
@@ -896,7 +882,7 @@ class IgBLASTReader:
 
         return fields
 
-    def __init__(self, igblast, sequences, references, asis_calls=False, receptor=True):
+    def __init__(self, igblast, sequences, references, asis_calls=False, regions='default', receptor=True):
         """
         Initializer.
 
@@ -906,6 +892,7 @@ class IgBLASTReader:
                             sequence descriptions as keys with original query sequences as SeqRecord values.
           references (dict): dictionary of IMGT gapped germline sequences.
           asis_calls (bool): if True do not parse gene calls for allele names.
+          regions (str): name of the IMGT FWR/CDR region definitions to use.
           receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
@@ -915,6 +902,7 @@ class IgBLASTReader:
         self.igblast = igblast
         self.sequences = sequences
         self.references = references
+        self.regions = regions
         self.asis_calls = asis_calls
         self.receptor = receptor
 
@@ -1496,7 +1484,8 @@ class IgBLASTReader:
             db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
 
         # Add FWR and CDR regions
-        rd = RegionDefinition(junction_length=db.get('junction_length', None), amino_acid=False)
+        rd = RegionDefinition(junction_length=db.get('junction_length', None),
+                              amino_acid=False, definition=self.regions)
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
 
         return db
@@ -1541,14 +1530,11 @@ class IgBLASTReaderAA(IgBLASTReader):
     An iterator to read and parse IgBLAST amino acid alignment output files
     """
     @staticmethod
-    def customFields(scores=False, regions=False, cdr3=False, schema=None):
+    def customFields(schema=None):
         """
         Returns non-standard fields defined by the parser
 
         Arguments:
-          scores : if True include alignment scoring fields.
-          regions : if True include IMGT-gapped CDR and FWR region fields.
-          cdr3 : if True include IgBLAST CDR3 assignment fields.
           schema : schema class to pass field through for conversion.
                    If None, return changeo.Receptor.Receptor attribute names.
 
@@ -1559,18 +1545,12 @@ class IgBLASTReaderAA(IgBLASTReader):
         score_fields = ['v_score',
                         'v_identity',
                         'v_evalue',
-                        'v_cigar']
-
-        # FWR amd CDR fields
-        region_fields = ['fwr1_aa_imgt',
-                         'fwr2_aa_imgt',
-                         'fwr3_aa_imgt',
-                         'cdr1_aa_imgt',
-                         'cdr2_aa_imgt']
-
-        fields = []
-        if scores:  fields.extend(score_fields)
-        if regions:  fields.extend(region_fields)
+                        'v_cigar',
+                        'fwr1_aa_imgt',
+                        'fwr2_aa_imgt',
+                        'fwr3_aa_imgt',
+                        'cdr1_aa_imgt',
+                        'cdr2_aa_imgt']
 
         # Convert field names if schema provided
         if schema is not None:
@@ -1675,7 +1655,8 @@ class IgBLASTReaderAA(IgBLASTReader):
             del db['sequence_aa_trim']
 
         # Add FWR and CDR regions
-        rd = RegionDefinition(junction_length=db.get('junction_length', None), amino_acid=True)
+        rd = RegionDefinition(junction_length=db.get('junction_length', None),
+                              amino_acid=True, definition=self.regions)
         regions = rd.getRegions(db.get('sequence_aa_imgt', None))
         regions = {'fwr1_aa_imgt': regions['fwr1_imgt'],
                    'fwr2_aa_imgt': regions['fwr2_imgt'],
