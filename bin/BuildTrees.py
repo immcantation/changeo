@@ -24,7 +24,7 @@ from presto.Defaults import default_out_args
 from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
 from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName
-from changeo.Alignment import getRegions
+from changeo.Alignment import RegionDefinition, getRegions
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
@@ -797,8 +797,8 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
 
     if r.functional and ptcs < 0:
         #If IMGT regions are provided, record their positions
-        regions = getRegions(r.sequence_imgt, r.junction_length)
-        #print(regions["cdr1_imgt"]+regions["fwr4_imgt"])
+        rd = RegionDefinition(r.junction_length, amino_acid=False)
+        regions = rd.getRegions(r.sequence_imgt)
         if regions["cdr3_imgt"] is not "" and regions["cdr3_imgt"] is not None:
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
