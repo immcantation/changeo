@@ -24,7 +24,7 @@ from presto.Defaults import default_out_args
 from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
 from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName
-from changeo.Alignment import RegionDefinition, getRegions
+from changeo.Alignment import RegionDefinition
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
