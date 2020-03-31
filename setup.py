@@ -42,7 +42,6 @@ scripts = ['AlignRecords.py',
 install_scripts = [os.path.join('bin', s) for s in scripts]
 
 # Load long package description
-#desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
 desc_files = ['README.rst']
 long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
@@ -71,7 +70,7 @@ setup(name='changeo',
       install_requires=install_requires,
       packages=['changeo'],
       package_dir={'changeo': 'changeo'},
-      package_data={'changeo': ['data/*.tsv']},
+      package_data={'changeo': ['data/*_dist.tsv', 'regions.yaml']},
       scripts=install_scripts,
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',
