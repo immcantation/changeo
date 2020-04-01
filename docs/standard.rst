@@ -8,8 +8,8 @@ All Change-O tools supports both the original Change-O standard and the new
 standard developed by the AIRR Community (`AIRR-C <https://www.antibodysociety.org/the-airr-community/>`__).
 
 As of v1.0.0 the default file format will be the AIRR-C format, as described by the Rearrangement 
-Schema. To learn about this format, the valid field names and their expected values, visit the 
-AIRR-C `Rearrangement Schema documentation site <https://docs.airr-community.org/en/latest/datarep/rearrangements.html>`__.
+Schema (version 1.2). To learn about this format, the valid field names and their expected values, visit the 
+AIRR-C `Rearrangement Schema documentation site <https://docs.airr-community.org/en/v1.2.1/datarep/rearrangements.html>`__.
     
 The Change-O standard is a tab-delimited file format (``.tab``) with a set of predefined
 column names. The standardized column names used by the Change-O format are shown in the table below.
