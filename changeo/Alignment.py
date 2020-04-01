@@ -7,12 +7,29 @@ __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import re
-import yaml
 from Bio.Seq import Seq
-from pkg_resources import resource_stream
 
 # Presto and changeo imports
 from changeo.Gene import getVAllele, getJAllele
+
+# Load regions
+# import yaml
+# from pkg_resources import resource_stream
+# with resource_stream(__name__, 'data/regions.yaml') as f:
+#     imgt_regions = yaml.load(f, Loader=yaml.FullLoader)
+imgt_regions = {'default': {'fwr1': 1,
+                            'cdr1': 27,
+                            'fwr2': 39,
+                            'cdr2': 56,
+                            'fwr3': 66,
+                            'cdr3': 105},
+                'rhesus-igl': {'fwr1': 1,
+                               'cdr1': 28,
+                               'fwr2': 40,
+                               'cdr2': 59,
+                               'fwr3': 69,
+                               'cdr3': 108}}
+
 
 class RegionDefinition:
     """
@@ -35,10 +52,8 @@ class RegionDefinition:
         self.definition = definition
         pos_mod = 1 if amino_acid else 3
 
-        # Load regions
-        with resource_stream(__name__, 'data/regions.yaml') as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-            regions = {k: (int(v) - 1) * pos_mod for k, v in data[definition].items()}
+        # Define regions
+        regions = {k: (int(v) - 1) * pos_mod for k, v in imgt_regions[definition].items()}
 
         # Assign positions
         if junction_length is not None:
