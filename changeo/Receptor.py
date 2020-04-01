@@ -109,7 +109,7 @@ class AIRRSchema:
                 'd_germline_end',
                 'j_sequence_start',
                 'j_sequence_end',
-                'j_germline_start'
+                'j_germline_start',
                 'j_germline_end']
 
     # Mapping of AIRR column names to Receptor attributes
