@@ -1,14 +1,10 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.7.999:  April 3, 2020
+Version 0.4.6.999:  April 3, 2020
 -------------------------------------------------------------------------------
 
-
-Version 0.4.7:  April 3, 2020
--------------------------------------------------------------------------------
-
-Thre default output in all tools is now the AIRR rearrangement standard
+The default output in all tools is now the AIRR Rearrangement standard
 (``--format airr``). Support for the legacy Change-O data standard is still
 provided through the ``--format changeo`` argument to the tools.
 
@@ -16,12 +12,20 @@ AssignGenes:
 
 + Added the ``igblast-aa`` subcommand to run igblastp on amino acid input.
 
+CreateGermlines:
+
++ Added the ``--cf`` argument to allow specification of the clone field.
+
 MakeDb:
 
 + Added the ``igblast-aa`` subcommand to parse the output of igblastp.
 + Changed the log entry ``FUNCTIONAL`` to ``PRODUCTIVE`` and removed the
   ``IMGT_PASS`` log entry in favor of an informative ``ERROR`` entry
   when sequences fail the junction region validation.
++ Add --regions argument to the ``igblast`` and ``igblast-aa`` subcommands
+  to allow specification of the IMGT CDR/FWR region boundaries. Currently,
+  the supported specifications are ``default`` (human, mouse) and
+   ``rhesus-igl``.
 
 
 Version 0.4.6:  July 19, 2019
