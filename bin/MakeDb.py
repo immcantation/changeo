@@ -34,7 +34,6 @@ cellranger_extended = ['cell', 'c_call', 'conscount', 'umicount',
                        'v_call_10x', 'd_call_10x', 'j_call_10x',
                        'junction_10x', 'junction_10x_aa']
 
-
 def readCellRanger(cellranger_file, fields=cellranger_base):
     """
     Load a Cell Ranger annotation table
