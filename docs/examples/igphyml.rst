@@ -46,7 +46,7 @@ Download the IgPhyML repository, move to the ``examples`` folder, and run
 :ref:`BuildTrees <BuildTrees>`::
 
     # clone IgPhyML repository to get example files
-    git clone https://bitbucket.org/kbhoehn/igphyml
+    git clone https://bitbucket.org/kleinstein/igphyml
  
     # move to examples directory
     cd igphyml/examples
