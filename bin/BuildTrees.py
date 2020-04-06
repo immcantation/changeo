@@ -24,7 +24,7 @@ from presto.Defaults import default_out_args
 from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
 from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName
-from changeo.Alignment import getRegions
+from changeo.Alignment import RegionDefinition
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
 
@@ -778,7 +778,6 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
     if r.dupcount is None:
         r.dupcount = 1
     fails["rec_count"] += 1
-    fails["totalreads"] += 1
     #printProgress(rec_count, rec_count, 0.05, start_time)
     ptcs = hasPTC(r.sequence_imgt)
     gptcs = hasPTC(r.getField("germline_imgt_d_mask"))
@@ -797,8 +796,8 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
 
     if r.functional and ptcs < 0:
         #If IMGT regions are provided, record their positions
-        regions = getRegions(r.sequence_imgt, r.junction_length)
-        #print(regions["cdr1_imgt"]+regions["fwr4_imgt"])
+        rd = RegionDefinition(r.junction_length, amino_acid=False)
+        regions = rd.getRegions(r.sequence_imgt)
         if regions["cdr3_imgt"] is not "" and regions["cdr3_imgt"] is not None:
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
@@ -1126,6 +1125,9 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
             if init_clone_sizes[r.clone] >= min_seq:
                big_enough.append(r)
 
+    fails["totalreads"] = len(all_records)
+    #fails["minseq_fail"] =  len(all_records) - len(big_enough)         
+
     if len(big_enough) == 0:
         printError("\n\nNo sequences found that match specified criteria.",1)
 
@@ -1223,7 +1225,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     #printProgress(rec_count, rec_count, 0.05, start_time)
     log = OrderedDict()
     log["OUTPUT"] = os.path.basename(pass_handle.name) if pass_handle is not None else None
-    log["RECORDS"] = fails["rec_count"]
+    log["RECORDS"] = fails["totalreads"]
+    log["INITIAL_FILTER"] = fails["rec_count"]
     log["PASS"] = pass_count
     log["FAIL"] = fail_count
     log["NONFUNCTIONAL"] = fails["nf_fail"]
