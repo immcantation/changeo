@@ -27,6 +27,12 @@ MakeDb:
   the supported specifications are ``default`` (human, mouse) and
    ``rhesus-igl``.
 
+BuildTrees:
+
++ Adjusted ``RECORDS`` to indicate all sequences in input file. 
+  ``INITIAL_FILTER`` now shows sequence count after initial 
+  ``min_seq`` filtering.
+
 
 Version 0.4.6:  July 19, 2019
 -------------------------------------------------------------------------------
