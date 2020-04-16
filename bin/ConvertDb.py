@@ -254,8 +254,12 @@ def convertToAIRR(db_file, format=default_format,
 
     # Set output fields replacing length with end fields
     in_fields = [schema.toReceptor(f) for f in db_iter.fields]
-    out_fields = [ReceptorData.length_fields[f][1] if f in ReceptorData.length_fields else f \
-                  for f in in_fields]
+    out_fields = []
+    for f in in_fields:
+        if f in ReceptorData.length_fields:
+            if ReceptorData.length_fields[f][0] in in_fields and ReceptorData.length_fields[f][1] not in out_fields:
+                out_fields.append(ReceptorData.length_fields[f][1])
+        out_fields.append(f)
     out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
@@ -318,8 +322,12 @@ def convertToChangeo(db_file, out_file=None, out_args=default_out_args):
 
     # Set output fields replacing length with end fields
     in_fields = [AIRRSchema.toReceptor(f) for f in db_iter.fields]
-    out_fields = [ReceptorData.end_fields[f][1] if f in ReceptorData.end_fields else f \
-                  for f in in_fields]
+    out_fields = []
+    for f in in_fields:
+        out_fields.append(f)
+        if f in ReceptorData.end_fields:
+            if ReceptorData.end_fields[f][0] in in_fields and ReceptorData.end_fields[f][1] not in out_fields:
+                out_fields.append(ReceptorData.end_fields[f][1])
     out_fields = [ChangeoSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
