@@ -32,10 +32,10 @@ BuildTrees:
 + Adjusted ``RECORDS`` to indicate all sequences in input file. 
   ``INITIAL_FILTER`` now shows sequence count after initial 
   ``min_seq`` filtering.
-+ Added option to skip split codon masking: ``--nmask``.
++ Added option to skip codon masking: ``--nmask``.
 + Mask ``:``, ``,``, ``)``, and ``(`` in IDs and metadata with ``-``.
 + Can obtain germline from ``GERMLINE_IMGT`` if ``GERMLINE_IMGT_D_MASK``
-  not specified
+  not specified.
 
 
 Version 0.4.6:  July 19, 2019
