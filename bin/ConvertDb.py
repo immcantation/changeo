@@ -256,10 +256,10 @@ def convertToAIRR(db_file, format=default_format,
     in_fields = [schema.toReceptor(f) for f in db_iter.fields]
     out_fields = []
     for f in in_fields:
-        if f in ReceptorData.length_fields:
-            if ReceptorData.length_fields[f][0] in in_fields and ReceptorData.length_fields[f][1] not in out_fields:
-                out_fields.append(ReceptorData.length_fields[f][1])
+        if f in ReceptorData.length_fields and ReceptorData.length_fields[f][0] in in_fields:
+            out_fields.append(ReceptorData.length_fields[f][1])
         out_fields.append(f)
+    out_fields = list(OrderedDict.fromkeys(out_fields))
     out_fields = [AIRRSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
@@ -325,9 +325,9 @@ def convertToChangeo(db_file, out_file=None, out_args=default_out_args):
     out_fields = []
     for f in in_fields:
         out_fields.append(f)
-        if f in ReceptorData.end_fields:
-            if ReceptorData.end_fields[f][0] in in_fields and ReceptorData.end_fields[f][1] not in out_fields:
-                out_fields.append(ReceptorData.end_fields[f][1])
+        if f in ReceptorData.end_fields and ReceptorData.end_fields[f][0] in in_fields:
+            out_fields.append(ReceptorData.end_fields[f][1])
+    out_fields = list(OrderedDict.fromkeys(out_fields))
     out_fields = [ChangeoSchema.fromReceptor(f) for f in out_fields]
 
     # Open output writer
