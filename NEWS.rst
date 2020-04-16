@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.6.999:  April 3, 2020
+Version 0.4.6.999:  April 17, 2020
 -------------------------------------------------------------------------------
 
 The default output in all tools is now the AIRR Rearrangement standard
@@ -11,6 +11,11 @@ provided through the ``--format changeo`` argument to the tools.
 AssignGenes:
 
 + Added the ``igblast-aa`` subcommand to run igblastp on amino acid input.
+
+ConvertDb:
+
++ Fixed a bug in the ``airr`` subcommand that caused the ``junction_length``
+  field to be deleted from the output.
 
 CreateGermlines:
 
