@@ -2430,7 +2430,7 @@ def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=
         printError('File %s cannot be opened.' % out_file)
 
 
-def checkFields(attributes, header, schema=ChangeoSchema):
+def checkFields(attributes, header, schema=AIRRSchema):
     """
     Checks that a file header contains a required set of Receptor attributes
 

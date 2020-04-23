@@ -14,7 +14,7 @@ from time import time
 # Presto and changeo imports
 from presto.IO import printProgress, printLog, printError, printWarning
 from changeo.Defaults import default_out_args
-from changeo.IO import countDbFile, getOutputHandle, ChangeoReader, ChangeoWriter
+from changeo.IO import countDbFile, getOutputHandle, AIRRReader, AIRRWriter
 from changeo.Receptor import Receptor
 
 
@@ -94,7 +94,7 @@ class DbResult:
             return len(self.data)
 
 
-def feedDbQueue(alive, data_queue, db_file, reader=ChangeoReader, group_func=None, group_args={}):
+def feedDbQueue(alive, data_queue, db_file, reader=AIRRReader, group_func=None, group_args={}):
     """
     Feeds the data queue with Ig records
 
@@ -201,7 +201,7 @@ def processDbQueue(alive, data_queue, result_queue, process_func, process_args={
 
 
 def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
-                   writer=ChangeoWriter, out_file=None, out_args=default_out_args):
+                   writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 

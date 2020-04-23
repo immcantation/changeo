@@ -142,7 +142,7 @@ def getSeqDict(seq_file):
 
 def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotations=None,
             amino_acid=False, partial=False, asis_id=True, regions='default',
-            writer=ChangeoWriter, out_file=None, out_args=default_out_args):
+            writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
     

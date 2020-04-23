@@ -27,7 +27,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
                                 setDefaultFields
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter, checkFields
+                       AIRRWriter, checkFields
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue
 
 # Defaults
@@ -342,7 +342,7 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
 
 
 def collectQueue(alive, result_queue, collect_queue, db_file, fields,
-                 writer=ChangeoWriter, out_file=None, out_args=default_out_args):
+                 writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 

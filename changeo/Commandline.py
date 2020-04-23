@@ -245,21 +245,21 @@ def checkArgs(parser):
 
     return True
 
-def setDefaultFields(args, defaults, format='changeo'):
+def setDefaultFields(args, defaults, format='airr'):
     """
     Sets default field arguments by format
 
     Arguments:
       args (dict): parsed argument dictionary.
       defaults (dict): default variables to set with with keys as argument variables and values
-                       as Change-O field names.
+                       as AIRR field names.
       format (str): one of 'changeo' or 'airr' which defines the file format.
 
     Returns:
       dict: modified input args.
     """
-    if format == 'airr':
-        defaults = {k: AIRRSchema.fromReceptor(ChangeoSchema.toReceptor(v)) \
+    if format == 'changeo':
+        defaults = {k: ChangeoSchema.fromReceptor(AIRRSchema.toReceptor(v)) \
                     for k, v in defaults.items()}
     for f in defaults:
         if args[f] is None:  args[f] = defaults[f]
