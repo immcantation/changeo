@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.6.999:  April 17, 2020
+Version 0.4.6.999:  April 23, 2020
 -------------------------------------------------------------------------------
 
 The default output in all tools is now the AIRR Rearrangement standard
@@ -16,6 +16,8 @@ ConvertDb:
 
 + Fixed a bug in the ``airr`` subcommand that caused the ``junction_length``
   field to be deleted from the output.
++ Fixed a bug in the ``genbank`` subcommand that caused the junction CDS
+  to be missing from the ASN output.
 
 CreateGermlines:
 
