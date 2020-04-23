@@ -25,21 +25,21 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
 
-def parseAllele(alleles, regex, action='first'):
+def parseGeneCall(gene, regex, action='first'):
     """
     Extract alleles from strings
 
     Arguments:
-      alleles : string with allele calls
-      regex : compiled regular expression for allele match
-      action : action to perform for multiple alleles;
+      gene (str): string with gene calls
+      regex (re.Pattern): compiled regular expression for allele match
+      action (str): action to perform for multiple alleles;
                one of ('first', 'set', 'list').
     Returns:
-      str : String of the allele when action is 'first';
-      tuple : Tuple of allele calls for 'set' or 'list' actions.
+      str: String of the allele when action is 'first';
+      tuple: Tuple of allele calls for 'set' or 'list' actions.
     """
     try:
-        match = [x.group(0) for x in regex.finditer(alleles)]
+        match = [x.group(0) for x in regex.finditer(gene)]
     except:
         match = None
 
@@ -66,7 +66,7 @@ def getAllele(gene, action='first'):
       str: String of the first allele calls when action is 'first'.
       tuple: Tuple of allele calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, allele_regex, action=action)
+    return parseGeneCall(gene, allele_regex, action=action)
 
 
 def getGene(gene, action='first'):
@@ -82,7 +82,7 @@ def getGene(gene, action='first'):
       str: String of the first gene call when action is 'first'.
       tuple: Tuple of gene calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, gene_regex, action=action)
+    return parseGeneCall(gene, gene_regex, action=action)
 
 
 def getFamily(gene, action='first'):
@@ -98,7 +98,7 @@ def getFamily(gene, action='first'):
       str: String of the first family call when action is 'first'.
       tuple: Tuple of allele calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, family_regex, action=action)
+    return parseGeneCall(gene, family_regex, action=action)
 
 
 def getLocus(gene, action='first'):
@@ -114,7 +114,7 @@ def getLocus(gene, action='first'):
       str: String of the first locus call when action is 'first'.
       tuple: Tuple of locus calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, locus_regex, action=action)
+    return parseGeneCall(gene, locus_regex, action=action)
 
 
 def getAlleleNumber(gene, action='first'):
@@ -130,7 +130,7 @@ def getAlleleNumber(gene, action='first'):
       str: String of the first allele number call when action is 'first'.
       tuple: Tuple of allele numbers for 'set' or 'list' actions.
     """
-    return parseAllele(gene, allele_number_regex, action=action)
+    return parseGeneCall(gene, allele_number_regex, action=action)
 
 
 def getCGene(gene, action='first'):
@@ -146,7 +146,7 @@ def getCGene(gene, action='first'):
       str: String of the first C-region gene call when action is 'first'.
       tuple: Tuple of gene calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, c_gene_regex, action=action)
+    return parseGeneCall(gene, c_gene_regex, action=action)
 
 
 def getVAllele(gene, action='first'):
@@ -162,7 +162,7 @@ def getVAllele(gene, action='first'):
       str: String of the first V allele call when action is 'first'.
       tuple: Tuple of V allele calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, v_allele_regex, action=action)
+    return parseGeneCall(gene, v_allele_regex, action=action)
 
 
 def getDAllele(gene, action='first'):
@@ -178,7 +178,7 @@ def getDAllele(gene, action='first'):
       str: String of the first D allele call when action is 'first'.
       tuple: Tuple of D allele calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, d_allele_regex, action=action)
+    return parseGeneCall(gene, d_allele_regex, action=action)
 
 
 def getJAllele(gene, action='first'):
@@ -194,7 +194,7 @@ def getJAllele(gene, action='first'):
       str: String of the first J allele call when action is 'first'.
       tuple: Tuple of J allele calls for 'set' or 'list' actions.
     """
-    return parseAllele(gene, j_allele_regex, action=action)
+    return parseGeneCall(gene, j_allele_regex, action=action)
 
 
 # TODO: this is not generalized for non-IMGT gapped sequences!
