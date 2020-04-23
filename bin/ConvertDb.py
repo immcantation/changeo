@@ -703,6 +703,7 @@ def makeGenbankFeatures(record, start=None, end=None, product=default_product,
     #   codon_start (must indicate codon offset)
     #   function = JUNCTION
     #   inference
+    # print(record.v_germ_end_imgt, record.v_seq_end, record.v_germ_end_imgt - 310)
     # print(record.junction_start, record.junction_end, record.junction_length)
     if record.junction_start is not None and record.junction_end is not None:
         # Define junction boundaries

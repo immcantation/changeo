@@ -922,8 +922,8 @@ class Receptor:
             setattr(self, k, f(data.pop(k, None)))
 
         # Derive junction_start if not provided
-        if not hasattr(self, 'junction_start'):
-            setattr(self, 'junction_start', self._junction_start(self))
+        if not hasattr(self, 'junction_start') or self.junction_start is None:
+            setattr(self, 'junction_start', self._junction_start())
 
         # Add remaining elements as annotations dictionary
         self.annotations = data
