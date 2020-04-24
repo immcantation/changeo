@@ -9,14 +9,14 @@ __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
 default_csv_size = 2**24
 
 # Fields
-default_v_field = 'V_CALL'
-default_d_field = 'D_CALL'
-default_j_field = 'J_CALL'
-default_id_field = 'SEQUENCE_ID'
-default_seq_field = 'SEQUENCE_IMGT'
-default_germ_field = 'GERMLINE_IMGT_D_MASK'
-default_junction_field = 'JUNCTION'
-default_clone_field = 'CLONE'
+default_v_field = 'v_call'
+default_d_field = 'd_call'
+default_j_field = 'j_call'
+default_id_field = 'sequence_id'
+default_seq_field = 'sequence_alignment'
+default_germ_field = 'germline_alignment'
+default_junction_field = 'junction'
+default_clone_field = 'clone_id'
 
 # External applications
 default_igblastn_exec = 'igblastn'
@@ -30,5 +30,5 @@ default_format = 'airr'
 default_out_args = {'log_file': None,
                     'out_dir': None,
                     'out_name': None,
-                    'out_type': 'tab',
+                    'out_type': 'tsv',
                     'failed': False}
