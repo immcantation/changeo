@@ -36,6 +36,7 @@ BuildTrees:
 + Mask ``:``, ``,``, ``)``, and ``(`` in IDs and metadata with ``-``.
 + Can obtain germline from ``GERMLINE_IMGT`` if ``GERMLINE_IMGT_D_MASK``
   not specified.
++ Can reconstruct intermediate sequences with IgPhyML using ``--asr``.
 
 
 Version 0.4.6:  July 19, 2019
