@@ -899,7 +899,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
 
 # Run IgPhyML on outputed data
 def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omega="e,e", kappa="e", motifs="FCH",
-               hotness="e,e,e,e,e,e",oformat="tab", nohlp=False, clean="none"):
+               hotness="e,e,e,e,e,e", oformat="tab", nohlp=False, asr=-1, clean="none"):
     """
     Run IgPhyML on outputted data
 
@@ -927,6 +927,10 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omeg
     hlp_args = ["igphyml","--repfile", outrep, "-m", "HLP", "--run_id", "hlp", "--threads", str(nproc), "-o",
                 optimization, "--omega", omega, "-t", kappa, "--motifs", motifs, "--hotness", hotness, "--oformat",
                 oformat, "--outname", igphyml_out]
+
+    if asr >= 0:
+        hlp_args.append("--ASRc")
+        hlp_args.append(str(asr))
 
     log = OrderedDict()
     log["START"] = "IgPhyML GY94 tree estimation"
@@ -1006,7 +1010,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omeg
 def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr3=False, nmask=False,
                sample_depth=-1, min_seq=1,append=None, igphyml=False, nproc=1, optimization="lr", omega="e,e",
                kappa="e", motifs="FCH", hotness="e,e,e,e,e,e", oformat="tab", clean="none", nohlp=False,
-               format=default_format, out_args=default_out_args):
+               asr=-1, format=default_format, out_args=default_out_args):
     """
     Masks codons split by alignment to IMGT reference, then produces input files for IgPhyML
 
@@ -1246,7 +1250,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     if igphyml:
         runIgPhyML(pass_handle.name, igphyml_out=igphyml_out, clone_dir=clone_dir, nproc=nproc,
                    optimization=optimization, omega=omega, kappa=kappa, motifs=motifs,
-                   hotness=hotness, oformat=oformat, nohlp=nohlp,clean=clean)
+                   hotness=hotness, oformat=oformat, nohlp=nohlp,clean=clean,asr=asr)
 
     return output
 
@@ -1337,6 +1341,8 @@ def getArgParser():
                                help="""IgPhyML output format.""")
     igphyml_group.add_argument("--nohlp", action="store_true", dest="nohlp",
                                help="""Don't run HLP model?""")
+    igphyml_group.add_argument("--asr", action="store", dest="asr", type=float, default=-1,
+                               help="""Ancestral sequence reconstruction interval (0-1).""")
 
     return parser
 
