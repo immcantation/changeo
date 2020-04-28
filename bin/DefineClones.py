@@ -22,7 +22,8 @@ from Bio.Seq import translate
 from presto.Defaults import default_out_args
 from presto.IO import printLog, printProgress, printCount, printWarning, printError
 from presto.Multiprocessing import manageProcesses
-from changeo.Defaults import default_format, default_v_field, default_j_field, default_junction_field
+from changeo.Defaults import default_format, default_v_field, default_j_field, default_junction_field, \
+                             junction_attr, v_attr, j_attr
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs, \
                                 setDefaultFields
 from changeo.Distance import distance_models, calcDistances, formClusters
@@ -45,18 +46,18 @@ choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f',
                           'hs1f_compat', 'm1n_compat')
 
 
-def filterMissing(data, seq_field=default_junction_field, v_field=default_v_field,
-                  j_field=default_j_field, max_missing=default_max_missing):
+def filterMissing(data, seq_field=junction_attr, v_field=v_attr,
+                  j_field=j_attr, max_missing=default_max_missing):
     """
     Splits a set of sequence into passed and failed groups based on the number
     of missing characters in the sequence
 
     Arguments:
-        data : changeo.Multiprocessing.DbData object.
-        seq_field : sequence field to filter on.
-        v_field : field containing the V call.
-        j_field : field containing the J call.
-        max_missing : maximum number of missing characters (non-ACGT) to permit before failing the record.
+        data (changeo.Multiprocessing.DbData): data object.
+        seq_field (str): Receptor sequence field to filter on.
+        v_field (str): Receptor field containing the V call.
+        j_field (str): Receptor field containing the J call.
+        max_missing (int): maximum number of missing characters (non-ACGT) to permit before failing the record.
 
     Returns:
         changeo.Multiprocessing.DbResult : objected containing filtered records.
@@ -173,7 +174,7 @@ def indexByUnion(index, key, rec, group_fields=None):
         outer_dict[key[1]] = {key[0]: val}
 
 
-def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=default_j_field,
+def groupByGene(db_iter, group_fields=None, v_field=v_attr, j_field=j_attr,
                 mode=default_index_mode, action=default_index_action):
     """
     Identifies preclonal groups by V, J and junction length
@@ -182,6 +183,8 @@ def groupByGene(db_iter, group_fields=None, v_field=default_v_field, j_field=def
       db_iter : an iterator of Receptor objects defined by ChangeoReader
       group_fields : additional annotation fields to use to group preclones;
                      if None use only V, J and junction length
+      v_field (str): Receptor attribute for V call
+      j_field (str): Receptor attribute for J call
       mode : specificity of alignment call to use for assigning preclones;
              one of ('allele', 'gene')
       action : how to handle multiple value fields when assigning preclones;

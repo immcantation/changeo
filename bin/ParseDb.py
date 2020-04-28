@@ -19,8 +19,7 @@ from time import time
 
 # Presto and changeo imports
 from presto.IO import printLog, printProgress, printMessage
-from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
-                             default_csv_size, default_out_args
+from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
 

@@ -10,7 +10,7 @@ import re
 from collections import OrderedDict
 
 # Presto and changeo imports
-from changeo.Defaults import default_v_field, default_d_field, default_j_field, default_seq_field
+from changeo.Defaults import v_attr, d_attr, j_attr, seq_attr
 
 # Ig and TCR Regular expressions
 allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
@@ -198,14 +198,14 @@ def getJAllele(gene, action='first'):
 
 
 # TODO: this is not generalized for non-IMGT gapped sequences!
-def getVGermline(receptor, references, v_field=default_v_field, amino_acid=False):
+def getVGermline(receptor, references, v_field=v_attr, amino_acid=False):
     """
     Extract V allele and germline sequence
 
     Arguments:
       receptor (changeo.Receptor.Receptor): Receptor object
       references (dict): dictionary of germline sequences
-      v_field (str): field containing the V allele assignment
+      v_field (str): Receptor attribute containing the V allele assignment
       amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
@@ -242,14 +242,14 @@ def getVGermline(receptor, references, v_field=default_v_field, amino_acid=False
     return vgene, germ_vseq
 
 
-def getDGermline(receptor, references, d_field=default_d_field, amino_acid=False):
+def getDGermline(receptor, references, d_field=d_attr, amino_acid=False):
     """
     Extract D allele and germline sequence
 
     Arguments:
       receptor (changeo.Receptor.Receptor): Receptor object
       references (dict): dictionary of germline sequences
-      d_field (str): field containing the D allele assignment
+      d_field (str): Receptor attribute containing the D allele assignment
       amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
 
@@ -284,14 +284,14 @@ def getDGermline(receptor, references, d_field=default_d_field, amino_acid=False
     return dgene, germ_dseq
 
 
-def getJGermline(receptor, references, j_field=default_j_field, amino_acid=False):
+def getJGermline(receptor, references, j_field=j_attr, amino_acid=False):
     """
     Extract J allele and germline sequence
 
     Arguments:
       receptor (changeo.Receptor.Receptor): Receptor object
       references (dict): dictionary of germline sequences
-      j_field (str): field containing the J allele assignment
+      j_field (str): Receptor attribute containing the J allele assignment
       amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
@@ -451,18 +451,18 @@ def stitchRegions(receptor, v_seq, d_seq, j_seq, amino_acid=False):
 
 
 # TODO: Should do 'first' method for ambiguous V/J groups. And explicit allele extraction.
-def buildGermline(receptor, references, seq_field=default_seq_field, v_field=default_v_field,
-                  d_field=default_d_field, j_field=default_j_field, amino_acid=False):
+def buildGermline(receptor, references, seq_field=seq_attr, v_field=v_attr,
+                  d_field=d_attr, j_field=j_attr, amino_acid=False):
     """
     Join gapped germline sequences aligned with sample sequences
 
     Arguments:
       receptor (changeo.Receptor.Receptor): Receptor object.
       references (dict): dictionary of IMGT gapped germline sequences.
-      seq_field (str): field in which to look for sequence.
-      v_field (str): field in which to look for V call.
-      d_field (str): field in which to look for V call.
-      j_field (str): field in which to look for V call.
+      seq_field (str): Receptor attribute in which to look for sequence.
+      v_field (str): Receptor attribute in which to look for V call.
+      d_field (str): Receptor attribute in which to look for V call.
+      j_field (str): Receptor attribute in which to look for V call.
       amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
     Returns:
@@ -528,18 +528,18 @@ def buildGermline(receptor, references, seq_field=default_seq_field, v_field=def
     return log, germlines, genes
 
 
-def buildClonalGermline(receptors, references, seq_field=default_seq_field, v_field=default_v_field,
-                        d_field=default_d_field, j_field=default_j_field, amino_acid=False):
+def buildClonalGermline(receptors, references, seq_field=seq_attr, v_field=v_attr,
+                        d_field=d_attr, j_field=j_attr, amino_acid=False):
     """
     Determine consensus clone sequence and create germline for clone
 
     Arguments:
       receptors (changeo.Receptor.Receptor): list of Receptor objects
       references (dict): dictionary of IMGT gapped germline sequences
-      seq_field (str): field in which to look for sequence
-      v_field (str): field in which to look for V call
-      d_field (str): field in which to look for D call
-      j_field (str): field in which to look for J call
+      seq_field (str): Receptor attribute in which to look for sequence
+      v_field (str): Receptor attributein which to look for V call
+      d_field (str): Receptor attributein which to look for D call
+      j_field (str): Receptor attributein which to look for J call
       amino_acid (bool): if True then use the amino acid positional fields, otherwise use the nucleotide fields.
 
 

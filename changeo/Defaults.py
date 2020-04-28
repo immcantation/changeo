@@ -18,6 +18,16 @@ default_germ_field = 'germline_alignment'
 default_junction_field = 'junction'
 default_clone_field = 'clone_id'
 
+# Receptor attributes
+v_attr = 'v_call'
+d_attr = 'd_call'
+j_attr = 'j_call'
+id_attr = 'sequence_id'
+seq_attr = 'sequence_imgt'
+germ_attr = 'germline_imgt'
+junction_attr = 'junction'
+clone_attr = 'clone'
+
 # External applications
 default_igblastn_exec = 'igblastn'
 default_igblastp_exec = 'igblastp'
