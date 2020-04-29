@@ -639,24 +639,20 @@ def getArgParser():
               universal output fields:
                  sequence_id, sequence, sequence_alignment, germline_alignment, 
                  rev_comp, productive, stop_codon, vj_in_frame, locus, 
-                 v_call, d_call, j_call, 
-                 junction, junction_length, junction_aa, np1_length, np2_length,
+                 v_call, d_call, j_call, junction, junction_length, junction_aa, 
                  v_sequence_start, v_sequence_end, v_germline_start, v_germline_end,
                  d_sequence_start, d_sequence_end, d_germline_start, d_germline_end,
                  j_sequence_start, j_sequence_end, j_germline_start, j_germline_end,
-                 fwr1, fwr2, fwr3, fwr4, cdr1, cdr2, cdr3
+                 np1_length, np2_length, fwr1, fwr2, fwr3, fwr4, cdr1, cdr2, cdr3
 
               imgt specific output fields:
-                  n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length, d_frame,
-                  v_score, v_identity, 
-                  d_score, d_identity, 
-                  j_score, j_identity 
+                  n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length, 
+                  d_frame, v_score, v_identity, d_score, d_identity, j_score, j_identity 
                                
               igblast specific output fields:
-                  v_cigar, d_cigar, j_cigar,
-                  v_score, v_identity, v_support, 
-                  d_score, d_identity, d_support, 
-                  j_score, j_identity, j_support
+                  v_score, v_identity, v_support, v_cigar, 
+                  d_score, d_identity, d_support, d_cigar, 
+                  j_score, j_identity, j_support, j_cigar
 
               ihmm specific output fields:
                   vdj_score

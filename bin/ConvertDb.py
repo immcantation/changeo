@@ -955,8 +955,8 @@ def getArgParser():
 
              required fields:
                  sequence_id, sequence, sequence_alignment, junction, v_call, d_call, j_call, 
-                 v_sequence_start, v_sequence_end, d_sequence_start, d_sequence_end, j_sequence_start, j_sequence_end,
-                 v_germline_start, v_germline_end
+                 v_germline_start, v_germline_end, v_sequence_start, v_sequence_end, 
+                 d_sequence_start, d_sequence_end, j_sequence_start, j_sequence_end 
                  
              optional fields:
                  germline_alignment, c_call, clone_id 

@@ -270,8 +270,9 @@ def getArgParser():
                  clone_id
 
              output fields:
-                 germline_alignment, germline_alignment_d_mask, germline_alignment_v_region, 
-                 germline_regions, germline_v_call, germline_d_call, germline_j_call
+                 germline_v_call, germline_d_call, germline_j_call,
+                 germline_alignment, germline_alignment_d_mask, 
+                 germline_alignment_v_region, germline_regions, 
               ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
