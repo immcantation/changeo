@@ -844,12 +844,7 @@ def getArgParser():
                      the subcommands add, index, drop, delete, rename, select, sort or update.
 
              required fields:
-                 SEQUENCE_ID
-                 
-             optional fields:
-                 JUNCTION, SEQUENCE_IMGT, SEQUENCE_VDJ, GERMLINE_IMGT, GERMLINE_VDJ,
-                 GERMLINE_IMGT_D_MASK, GERMLINE_VDJ_D_MASK,
-                 GERMLINE_IMGT_V_REGION, GERMLINE_VDJ_V_REGION
+                 sequence_id
              ''')
     
     # Define ArgumentParser

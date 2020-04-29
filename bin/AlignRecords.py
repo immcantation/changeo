@@ -299,12 +299,12 @@ def getArgParser():
                      database with records failing alignment.
 
              required fields:
-                 SEQUENCE_ID, V_CALL, J_CALL
+                 sequence_id, v_call, j_call
                  <field>
                      user specified sequence fields to align.
 
              output fields:
-                 <field>_ALIGN
+                 <field>_align
              ''')
 
     # Define ArgumentParser

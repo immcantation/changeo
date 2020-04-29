@@ -954,13 +954,12 @@ def getArgParser():
                      feature tables and fasta files containing MiAIRR compliant input for tbl2asn.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_INPUT, JUNCTION, V_CALL, D_CALL, J_CALL, 
-                 V_SEQ_START, V_SEQ_LENGTH, D_SEQ_START, D_SEQ_LENGTH, J_SEQ_START, J_SEQ_LENGTH,
-                 NP1_LENGTH, NP2_LENGTH
-                 SEQUENCE_IMGT, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT
+                 sequence_id, sequence, sequence_alignment, junction, v_call, d_call, j_call, 
+                 v_sequence_start, v_sequence_end, d_sequence_start, d_sequence_end, j_sequence_start, j_sequence_end,
+                 v_germline_start, v_germline_end
                  
              optional fields:
-                 GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, CLONE, C_CALL
+                 germline_alignment, c_call, clone_id 
              ''')
     
     # Define ArgumentParser

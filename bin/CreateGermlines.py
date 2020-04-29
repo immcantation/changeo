@@ -259,21 +259,19 @@ def getArgParser():
                     database with records failing germline assignment.
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_IMGT, V_CALL, D_CALL, J_CALL,
-                 V_SEQ_START, V_SEQ_LENGTH, V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
-                 D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
-                 J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
-                 NP1_LENGTH, NP2_LENGTH
+                 sequence_id, sequence_alignment, v_call, d_call, j_call, 
+                 v_sequence_start, v_sequence_end, v_germline_start, v_germline_end,
+                 d_sequence_start, d_sequence_end, d_germline_start, d_germline_end,
+                 j_sequence_start, j_sequence_end, j_germline_start, j_germline_end,
+                 np1_length, np2_length
 
              optional fields:
-                 N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
-                 CLONE
-
+                 n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length,
+                 clone_id
 
              output fields:
-                 GERMLINE_IMGT, GERMLINE_IMGT_D_MASK, GERMLINE_IMGT_V_REGION,
-                 GERMLINE_V_CALL, GERMLINE_D_CALL, GERMLINE_J_CALL,
-                 GERMLINE_REGIONS
+                 germline_alignment, germline_alignment_d_mask, germline_alignment_v_region, 
+                 germline_regions, germline_v_call, germline_d_call, germline_j_call
               ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -296,25 +294,25 @@ def getArgParser():
                              germline with D segment masked, or germline for V segment only.''')
     group.add_argument('--cloned', action='store_true', dest='cloned',
                         help='''Specify to create only one germline per clone. Note, if allele 
-                             calls are ambiguous within a clonal group, this will place the germline call 
-                             used for the entire clone within the
-                             GERMLINE_V_CALL, GERMLINE_D_CALL and GERMLINE_J_CALL fields.''')
+                             calls are ambiguous within a clonal group, this will place the 
+                             germline call used for the entire clone within the
+                             germline_v_call, germline_d_call and germline_j_call fields.''')
     group.add_argument('--sf', action='store', dest='seq_field', default=None,
                         help='''Field containing the aligned sequence.
-                             Defaults to SEQUENCE_IMGT (changeo) or sequence_alignment (airr).''')
+                             Defaults to sequence_alignment (airr) or SEQUENCE_IMGT (changeo).''')
     group.add_argument('--vf', action='store', dest='v_field', default=None,
                         help='''Field containing the germline V segment call.
-                             Defaults to V_CALL (changeo) or v_call (airr).''')
+                             Defaults to v_call (airr) or V_CALL (changeo).''')
     group.add_argument('--df', action='store', dest='d_field', default=None,
                         help='''Field containing the germline D segment call.
-                             Defaults to D_CALL (changeo) or d_call (airr).''')
+                             Defaults to d_call (airr) or D_CALL (changeo).''')
     group.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='''Field containing the germline J segment call.
-                             Defaults to J_CALL (changeo) or j_call (airr).''')
+                             Defaults to j_call (airr) or J_CALL (changeo).''')
     group.add_argument('--cf', action='store', dest='clone_field', default=None,
                         help='''Field containing clone identifiers. 
                              Ignored if --cloned is not also specified.
-                             Defaults to CLONE (changeo) or clone_id (airr).''')
+                             Defaults to clone_id (airr) or CLONE (changeo).''')
 
     return parser
 

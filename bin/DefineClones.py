@@ -619,11 +619,11 @@ def getArgParser():
                      database with records failing clonal grouping.
 
              required fields:
-                 SEQUENCE_ID, V_CALL, J_CALL, JUNCTION
+                 sequence_id, v_call, j_call, junction
                 
              output fields:
-                 CLONE
-              ''')
+                 clone_id
+             ''')
     # Define argument parser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(format=True, multiproc=True)],
@@ -633,13 +633,13 @@ def getArgParser():
     group = parser.add_argument_group('cloning arguments')
     group.add_argument('--sf', action='store', dest='seq_field', default=None,
                         help='''Field to be used to calculate distance between records.
-                              Defaults to JUNCTION (changeo) or junction (airr).''')
+                              Defaults to junction (airr) or JUNCTION (changeo).''')
     group.add_argument('--vf', action='store', dest='v_field', default=None,
                         help='''Field containing the germline V segment call.
-                             Defaults to V_CALL (changeo) or v_call (airr).''')
+                             Defaults to v_call (airr) or V_CALL (changeo).''')
     group.add_argument('--jf', action='store', dest='j_field', default=None,
                         help='''Field containing the germline J segment call.
-                             Defaults to J_CALL (changeo) or j_call (airr).''')
+                             Defaults to j_call (airr) or J_CALL (changeo).''')
     group.add_argument('--gf', nargs='+', action='store', dest='group_fields', default=None,
                         help='Additional fields to use for grouping clones aside from V, J and junction length.')
     group.add_argument('--mode', action='store', dest='mode',

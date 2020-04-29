@@ -633,39 +633,38 @@ def getArgParser():
                       database of alignment records with functionality information,
                       V and J calls, and a junction region.
                   db-fail
-                      database with records that fail due to no functionality information
-                      (did not pass IMGT), no V call, no J call, or no junction region.
-
+                      database with records that fail due to no productivity information,
+                      no gene V assignment, no J assignment, or no junction region.
+                 
               universal output fields:
-                  SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_VDJ, SEQUENCE_IMGT,
-                  FUNCTIONAL, IN_FRAME, STOP, MUTATED_INVARIANT, INDELS,
-                  V_CALL, D_CALL, J_CALL,
-                  V_SEQ_START, V_SEQ_LENGTH,
-                  D_SEQ_START, D_SEQ_LENGTH, D_GERM_START, D_GERM_LENGTH,
-                  J_SEQ_START, J_SEQ_LENGTH, J_GERM_START, J_GERM_LENGTH,
-                  NP1_LENGTH, NP2_LENGTH,
-                  JUNCTION_LENGTH, JUNCTION, GERMLINE_IMGT, 
-                  FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, FWR4_IMGT,
-                  CDR1_IMGT, CDR2_IMGT, CDR3_IMGT
+                 sequence_id, sequence, sequence_alignment, germline_alignment, 
+                 rev_comp, productive, stop_codon, vj_in_frame, locus, 
+                 v_call, d_call, j_call, 
+                 junction, junction_length, junction_aa, np1_length, np2_length,
+                 v_sequence_start, v_sequence_end, v_germline_start, v_germline_end,
+                 d_sequence_start, d_sequence_end, d_germline_start, d_germline_end,
+                 j_sequence_start, j_sequence_end, j_germline_start, j_germline_end,
+                 fwr1, fwr2, fwr3, fwr4, cdr1, cdr2, cdr3
 
               imgt specific output fields:
-                  V_GERM_START_IMGT, V_GERM_LENGTH_IMGT,
-                  N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, P3D_LENGTH, P5J_LENGTH,
-                  D_FRAME, V_SCORE, V_IDENTITY, J_SCORE, J_IDENTITY,
-
+                  n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length, d_frame,
+                  v_score, v_identity, 
+                  d_score, d_identity, 
+                  j_score, j_identity 
+                               
               igblast specific output fields:
-                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ,
-                  V_EVALUE, V_SCORE, V_IDENTITY, V_CIGAR,
-                  D_EVALUE, D_SCORE, D_IDENTITY, D_CIGAR,
-                  J_EVALUE, J_SCORE, J_IDENTITY, J_CIGAR,
+                  v_cigar, d_cigar, j_cigar,
+                  v_score, v_identity, v_support, 
+                  d_score, d_identity, d_support, 
+                  j_score, j_identity, j_support
 
               ihmm specific output fields:
-                  V_GERM_START_VDJ, V_GERM_LENGTH_VDJ, VDJ_SCORE
+                  vdj_score
                   
               10X specific output fields:
-                  CELL, C_CALL, CONSCOUNT, UMICOUNT, 
-                  V_CALL_10X, D_CALL_10X, J_CALL_10X,
-                  JUNCTION_10X, JUNCTION_10X_AA
+                  cell_id, c_call, consensus_count, umi_count, 
+                  v_call_10x, d_call_10x, j_call_10x,
+                  junction_10x, junction_10x_aa
               ''')
                 
     # Define ArgumentParser
@@ -724,9 +723,8 @@ def getArgParser():
                                      J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--extended', action='store_true', dest='extended',
                                help='''Specify to include additional aligner specific fields in the output. 
-                                     Adds the <VDJ>_SCORE, <VDJ>_IDENTITY, <VDJ>_EVALUE, and <VDJ>_CIGAR;
-                                     FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, and FWR4_IMGT; CDR1_IMGT, CDR2_IMGT, and
-                                     CDR3_IMGT.''')
+                                    Adds <vdj>_score, <vdj>_identity, <vdj>_support, <vdj>_cigar,
+                                    fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     group_igblast.add_argument('--regions', action='store', dest='regions',
                                choices=('default', 'rhesus-igl'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
@@ -765,8 +763,7 @@ def getArgParser():
                                        database to be exact string matches.''')
     group_igblast_aa.add_argument('--extended', action='store_true', dest='extended',
                                   help='''Specify to include additional aligner specific fields in the output. 
-                                       Adds V_SCORE, V_IDENTITY, V_EVALUE, and V_CIGAR;
-                                       FWR1_IMGT, FWR2_IMGT, FWR3_IMGT; CDR1_IMGT, CDR2_IMGT.''')
+                                       Adds v_score, v_identity, v_support, v_cigar, fwr1, fwr2, fwr3, cdr1 and cdr2.''')
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
@@ -813,9 +810,9 @@ def getArgParser():
                                  J gene assignment, junction region, or productivity call.''')
     group_imgt.add_argument('--extended', action='store_true', dest='extended',
                             help='''Specify to include additional aligner specific fields in the output. 
-                                 Adds <VDJ>_SCORE and <VDJ>_IDENTITY>; FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, and FWR4_IMGT;
-                                 CDR1_IMGT, CDR2_IMGT, and CDR3_IMGT; and N1_LENGTH, N2_LENGTH, P3V_LENGTH, P5D_LENGTH, 
-                                 P3D_LENGTH, P5J_LENGTH, and D_FRAME.''')
+                                 Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
+                                 cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length, 
+                                 p3d_length, p5j_length and d_frame.''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
@@ -853,9 +850,8 @@ def getArgParser():
                                      J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--extended', action='store_true', dest='extended',
                              help='''Specify to include additional aligner specific fields in the output. 
-                                  Adds the path score of the iHMMune-Align hidden Markov model as VDJ_SCORE;
-                                  FWR1_IMGT, FWR2_IMGT, FWR3_IMGT, and FWR4_IMGT; CDR1_IMGT, CDR2_IMGT, and
-                                  CDR3_IMGT.''')
+                                  Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
+                                  adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser
