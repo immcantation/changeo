@@ -7,12 +7,12 @@ Example data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
+`UMI barcoded MiSeq workflow <https://presto.readthedocs.io/en/stable/workflows/Stern2014_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. In addition to the
 example FASTA files, we have included the standalone `IgBLAST <https://ncbi.github.io/igblast>`__
 results. The files can be downloded from here:
 
-`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__
+`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/AIRR_Example.tar.gz>`__
 
 Configuring IgBLAST
 --------------------------------------------------------------------------------
@@ -39,8 +39,8 @@ as follows:
 .. note::
 
     Several Immcantation tools require the observed V(D)J sequence
-    (``SEQUENCE_IMGT``) and associated germline fields (``GERMLINE_IMGT``
-    or ``GERMLINE_IMGT_D_MASK``) to have gaps inserted to conform to the
+    (``sequence_alignment``) and associated germline fields (``germline_alignment``
+    or ``germline_alignment_d_mask``) to have gaps inserted to conform to the
     IMGT numbering scheme. Thus, when a tool such as :ref:`MakeDb` or
     :ref:`CreateGermlines` requires a reference sequence set as input,
     it will required the IMGT-gapped reference set. Meaning,
@@ -73,7 +73,7 @@ Change-O provides a simple wrapper script to run IgBLAST with the required
 options as the :program:`igblast` subcommand of :ref:`AssignGenes`. This wrapper
 can be run as follows using the database built using the Immcantation scripts::
 
-    AssignGenes.py igblast -s S43_atleast-2.fasta -b ~/share/igblast \
+    AssignGenes.py igblast -s HD13M.fasta -b ~/share/igblast \
         --organism human --loci ig --format blast
 
 The optional :option:`--format blast <AssignGenes igblast --format>` argument
@@ -110,15 +110,15 @@ regarding the ``IGDATA`` environment variable.
 Processing the output of IgBLAST
 --------------------------------------------------------------------------------
 
-Standalone IgBLAST blast-style tabular output is parsed by the :program:`igblast` subcommand of :ref:`MakeDb`
-to generate the standardized tab-delimited database file on which all subsequent Change-O modules operate.
-In addition to the IgBLAST output (:option:`-i S43_atleast-2.fmt7  <MakeDb igblast -i>`),
-both the FASTA files input to IgBLAST (:option:`-s S43_atleast-2.fasta  <MakeDb igblast -s>`)
-and the IMGT-gapped reference sequences
+Standalone IgBLAST blast-style tabular output is parsed by the :program:`igblast`
+subcommand of :ref:`MakeDb` to generate the standardized tab-delimited database file
+on which all subsequent Change-O modules operate. In addition to the IgBLAST output
+(:option:`-i HD13M.fmt7  <MakeDb igblast -i>`), both the FASTA files input to IgBLAST
+(:option:`-s HD13M.fasta  <MakeDb igblast -s>`) and the IMGT-gapped reference sequences
 (:option:`-r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta <MakeDb igblast -r>`)
 must be provided to :ref:`MakeDb`::
 
-    MakeDb.py igblast -i S43_atleast-2.fmt7 -s S43_atleast-2.fasta \
+    MakeDb.py igblast -i HD13M.fmt7 -s HD13M.fasta \
         -r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta \
         --extended
 

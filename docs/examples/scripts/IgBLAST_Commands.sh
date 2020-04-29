@@ -20,5 +20,5 @@ igblastn \
     -auxiliary_data ~/share/igblast/optional_file/human_gl.aux \
     -domain_system imgt -ig_seqtype Ig -organism human \
     -outfmt '7 std qseq sseq btop' \
-    -query S43_atleast-2.fasta \
-    -out S43_atleast-2.fmt7
+    -query HD13M.fasta \
+    -out HD13M.fmt7

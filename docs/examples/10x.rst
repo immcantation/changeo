@@ -57,9 +57,9 @@ To group B cells into clones from Change-O format data, the output from :ref:`Ma
 must be parsed into a light chain :ref:`Change-O <Standard>` file and a heavy chain
 :ref:`Change-O <Standard>` file::
 
-    ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IGH" \
+    ParseDb.py select -d 10x_igblast_db-pass.tsv -f locus -u "IGH" \
 	    --logic all --regex --outname heavy
-    ParseDb.py select -d 10x_igblast_db-pass.tab -f LOCUS -u "IG[LK]" \
+    ParseDb.py select -d 10x_igblast_db-pass.tsv -f locus -u "IG[LK]" \
 	    --logic all --regex --outname light
 
 Assign clonal groups to the heavy chain data
@@ -77,20 +77,40 @@ cloning can be performed after heavy chain cloning using
 provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
 in the ``scripts`` directory::
 
-    light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
-	    -o 10X_clone-pass.tab
+    light_cluster.py -d heavy_select-pass_clone-pass.tsv -e light_select-pass.tsv \
+	    -o 10X_clone-pass.tsv
 
-Here, ``heavy_select-pass_clone-pass.tab`` refers to the cloned heavy chain Change-O format file.
-``light_select-pass.tab`` refers to the light chain Change-O format file, and
-``10X_clone-pass.tab`` is the resulting output file.
+Here, ``heavy_select-pass_clone-pass.tsv`` refers to the cloned heavy chain
+AIRR Rearrangement file, ``light_select-pass.tsv`` refers to the light chain file,
+and ``10X_clone-pass.tsv`` is the resulting output file.
 
-By default, ``light_chain.py`` expects the Change-O columns ``V_CALL``, ``J_CALL``, ``JUNCTION_LENGTH``, ``UMICOUNT``,
-``CELL``, and ``CLONE``. To process `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_
-(``v_call``, ``j_call``, ``junction_length``, ``umi_count``, ``cell_id`` and ``clone_id``), add the
-``--format airr`` argument::
+The algorithm will (1) remove cells associated with more than one heavy chain
+and (2) correct heavy chain clone definitions based on an analysis of the
+light chain partners associated with the heavy chain clone.
 
-    light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
-	    -o 10X_clone-pass.tab --format airr
+.. note::
+    By default, ``light_chain.py`` expects the
+    `AIRR Rearrangement <http://docs.airr-community.org/en/latest/datarep/overview.html>`_ columns:
 
-The algorithm will (1) remove cells associated with more than one heavy chain and (2) correct heavy chain
-clone definitions based on an analysis of the light chain partners associated with the heavy chain clone.
+    * ``v_call``
+    * ``j_call``
+    * ``junction_length``
+    * ``umi_count``
+    * ``cell_id``
+    * ``clone_id``
+
+    To process legacy Change-O formatted data add the ``--format changeo`` argument::
+
+        light_cluster.py -d heavy_select-pass_clone-pass.tab -e light_select-pass.tab \
+            -o 10X_clone-pass.tab --format changeo
+
+    Which expects the following Change-O columns:
+
+    * ``V_CALL``
+    * ``J_CALL``
+    * ``JUNCTION_LENGTH``
+    * ``UMICOUNT``
+    * ``CELL``
+    * ``CLONE``
+
+

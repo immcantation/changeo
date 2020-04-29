@@ -7,13 +7,13 @@ Example data
 --------------------------------------------------------------------------------
 
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
+`UMI barcoded MiSeq workflow <https://presto.readthedocs.io/en/stable/workflows/Stern2014_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. The files can be
 downloded from here:
 
-`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__
+`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/AIRR_Example.tar.gz>`__
 
-The following examples use the ``S43_db-pass_parse-select.tab`` database file provided in
+The following examples use the ``HD13M_db-pass.tsv`` database file provided in
 the example bundle, which has already undergone the :ref:`IMGT <IMGT>`/:ref:`IgBLAST <IgBLAST>`
 parsing and :ref:`filtering <Filtering-Functional>` operations.
 
@@ -35,7 +35,7 @@ function in the `SHazaM <http://shazam.readthedocs.io>`__ R package. The
 function allows selection of all parameters that are available in :ref:`DefineClones`. 
 Using the length normalization parameter ensures that mutations are weighted equally
 regardless of junction sequence length. The distance to nearest-neighbor distribution
-for the example data is shown below. The threshold is approximately ``0.15`` - indicated
+for the example data is shown below. The threshold is approximately ``0.16`` - indicated
 by the red dotted line.
 
 .. figure:: figures/cloning_threshold.svg
@@ -56,7 +56,7 @@ accounts for ambiguous V gene and J gene calls when grouping similar sequences. 
 distance metric :option:`--model ham <DefineClones --model>`
 is nucleotide Hamming distance. Because the threshold was generated using length
 normalized distances, the :option:`--norm len <DefineClones --norm>` argument is
-selected with the previously determined threshold :option:`--dist 0.15 <DefineClones --dist>`::
+selected with the previously determined threshold :option:`--dist 0.16 <DefineClones --dist>`::
 
-    DefineClones.py -d S43_db-pass_parse-select.tab --act set --model ham \
-        --norm len --dist 0.15
+    DefineClones.py -d HD13M_db-pass.tsv --act set --model ham \
+        --norm len --dist 0.16

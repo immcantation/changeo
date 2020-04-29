@@ -25,14 +25,14 @@ documentation site.
 Example data
 --------------------------------------------------------------------------------
 We have hosted a small example data set resulting from the
-`Roche 454 example workflow <http://presto.readthedocs.io/en/stable/workflows/Jiang2013_Workflow.html>`__
+`UMI barcoded MiSeq workflow <https://presto.readthedocs.io/en/stable/workflows/Stern2014_Workflow.html>`__
 described in the `pRESTO <http://presto.readthedocs.io>`__ documentation. The files can be
 downloded from here:
 
-`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/Changeo_Example.tar.gz>`__
+`Change-O Example Files <http://clip.med.yale.edu/immcantation/examples/AIRR_Example.tar.gz>`__
 
-The following examples use the ``S43_db-pass_parse-select.tab`` database file and
-``S43_template.sbt`` file provided in the example bundle, which has already undergone
+The following examples use the ``HD13M_db-pass.tsv`` database file and
+``HD13M_template.sbt`` file provided in the example bundle, which has already undergone
 the :ref:`IgBLAST <IgBLAST>` annotation, parsing, and :ref:`filtering <Filtering-Functional>`
 operations.
 
@@ -49,18 +49,18 @@ Requirements
     + A GenBank submission template file (``.sbt``), generating using the
       `NCBI Template Generator <https://submit.ncbi.nlm.nih.gov/genbank/template/submission>`__.
 
-Cleaning up C-region annotations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. warning::
 
-First, we need to rename the C primer annotations to valid constant region gene names so they are
-recognized by remote databases. We'll use the :program:`update` subcommand of
-:ref:`ParseDb` to rename the values in the ``CPRIMER`` column of the example file and save that
-file as ``S43_update.tab``::
+    C region annotations must use official gene symbols (IGHM, IGHG, etc) so that they are properly
+    recognized by remote databases. If your annotations are not of this form, then they must be updated
+    prior to generating the GenBank/TLS submission files. The following example shows how to use the
+    :program:`update` subcommand of :ref:`ParseDb` to rename the values in the ``c_call`` column.
+    The files provided for this example already have correctly annotated ``c_call`` information, so
+    the following is hypothetical example (``db.tsv``) with existing annotation of the for IgM, IgG, etc::
 
-    ParseDb.py update -d S43_db-pass_parse-select.tab -o S43_update.tab \
-        -f CPRIMER \
-        -u IgA-PCR IgD-PCR IgE-PCR IgG-PCR IgM-PCR \
-        -t IGHA IGHD IGHE IGHG IGHM
+        ParseDb.py update -d db.tsv -f c_call \
+            -u IgA IgD IgE IgG IgM \
+            -t IGHA IGHD IGHE IGHG IGHM
 
 Creating ASN files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,24 +68,24 @@ Creating ASN files
 ASN submission files are generated using the :program:`genbank` subcommand of
 :ref:`ConvertDb` as follows::
 
-    ConvertDb.py genbank -d S43_update.tab \
+    ConvertDb.py genbank -d HD13M_db-pass.tsv \
         --product "immunoglobulin heavy chain" \
         --db "IMGT/GENE-DB" \
-        --inf "IgBLAST:1.7.0" \
+        --inf "IgBLAST:1.14.0" \
         --organism "Homo sapiens" \
         --tissue "Peripheral blood" \
         --cell-type "B cell" \
-        --isolate S43 \
-        --cf CPRIMER \
-        --nf DUPCOUNT \
+        --isolate HD13M \
+        --cf c_call \
+        --nf duplicate_count \
         --asis-id \
         --asn \
-        --sbt S43_template.sbt \
-        --outdir S43_TLS
+        --sbt HD13M_template.sbt \
+        --outdir HD13M_TLS
 
-The resulting output in the ``S43_TLS`` folder will include a number of files.
-The Sequin file ``S43_update_genbank.sqn`` is the file that will be used for submission
-and the GenBank record file ``S43_update_genbank.gbf`` is similar to what the submission
+The resulting output in the ``HD13M_TLS`` folder will include a number of files.
+The Sequin file ``HD13M_db-pass_genbank.sqn`` is the file that will be used for submission
+and the GenBank record file ``HD13M_db-pass_genbank.gbf`` is similar to what the submission
 will look like once it has been accepted by GenBank.
 
 The command above manually specifies several required and optional annotations.
@@ -104,7 +104,7 @@ file will override equivalent features specified through the corresponding comma
     The example shown above automatically runs :program:`tbl2asn`, because the
     :option:`--asn <ConvertDb genbank --asn>` argument was specified. :ref:`ConvertDb`
     can be run without running :program:`tbl2asn`, which will generate only the
-    feature table (``S43_update_genbank.tbl``) and fasta (``S43_update_genbank.fsa``) files
+    feature table (``S43_update_genbank.tbl``) and fasta (``HD13M_db-pass_genbank.fsa``) files
     required to run :program:`tbl2asn` manually via the command::
 
         tbl2asn -p . -a s -V vb -t S43_template.sbt
