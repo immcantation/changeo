@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 0.4.6.999:  April 23, 2020
+Version 1.0.0:  May 1, 2020
 -------------------------------------------------------------------------------
 
 The default output in all tools is now the AIRR Rearrangement standard
