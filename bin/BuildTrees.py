@@ -1276,9 +1276,9 @@ def getArgParser():
                     parameter estimates and lineage trees from running IgPhyML, if specified
 
              required fields:
-                 SEQUENCE_ID, SEQUENCE_INPUT, SEQUENCE_IMGT,
-                 GERMLINE_IMGT_D_MASK, V_CALL, J_CALL, CLONE,
-                 V_SEQ_START
+                 sequence_id, sequence, sequence_alignment,
+                 germline_alignment_d_mask or germline_alignment,
+                 v_call, j_call, clone_id, v_sequence_start
               """)
 
     # Parent parser
