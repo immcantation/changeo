@@ -15,14 +15,6 @@ estimated repertoire-wide model parameter estimates.
 An in-depth description of IgPhyML installation and usage
 can be found at the `IgPhyML website <https://igphyml.readthedocs.io>`__.
 
-.. warning::
-
-    The new repertoire-wide version of IgPhyML isn't officially released yet,
-    so please let us know if you’re planning to publish anything using it.
-    A lot of the features are still in active development, so feedback,
-    especially with input/output format and problems encountered, would be
-    greatly appreciated.
-
 
 Quick start
 -------------------------------------------------------------------------------
