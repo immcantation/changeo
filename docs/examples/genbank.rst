@@ -20,7 +20,18 @@ and submission of processed and annotated data to the
 This example will cover generation of files for submission to TLS starting from Change-O
 formatted data.  For complete details of the required and optional elements of the TLS submission
 see the `AIRR Standards <http://docs.airr-community.org/en/latest/miairr/miairr_ncbi_overview.html>`__
-documentation site.
+documentation site. 
+
+Special attention should be paid to the 
+`REQUIRED <https://docs.airr-community.org/en/latest/miairr/specification_miairr_ncbi.html>`__ elements.
+Note that GenBank expects there to be a ``CDS`` element that corresponds to the ``JUNCTION``. If submitting
+single-cell heavy:light paired BCR data, GenBank expects separate files for the heavy, the kappa, and the 
+lambda chains. Note that even though the kappa and the lambda chain sequences should be in separate files, 
+their ``misc_feature`` comments should both read ``immunoglobulin light chain variable region``, per AIRR 
+standard requirements. In addition, every effort should be made to make sure that the values of the attributes
+for GenBank submission match those of the BioSample attributes. In particular, if the BioSample specifies 
+a ``strain`` value (e.g. for mouse data), then a ``strain`` attribute MUST be included when preparing GenBank
+submission, and that value MUST match the BioSample value.
 
 Example data
 --------------------------------------------------------------------------------
@@ -117,6 +128,13 @@ file will override equivalent features specified through the corresponding comma
     **Unable to read any FASTA records**. Running :program:`tbl2asn` manually should
     resolve the issue.
 
+.. warning::
+
+    It is recommended that the number of sequences in the output ``sqn`` file be verified
+    against the number of sequences in the input ``tab`` or ``tsv`` file. From the command line,
+    this can be achieved via ``grep -c iupacna *.sqn``. This step is not necessary if running
+    :program:`tbl2asn` outside :ref:`ConvertDb`.
+    
 
 Submitting to GenBank/TLS using SequinMacroSend
 --------------------------------------------------------------------------------
