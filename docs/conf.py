@@ -16,6 +16,7 @@
 import sys
 import os
 import sphinx_rtd_theme
+import datetime
 from unittest.mock import MagicMock
 
 # Changeo imports
@@ -71,7 +72,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'changeo'
-copyright = 'Kleinstein Lab, Yale University, 2018'
+copyright = 'Kleinstein Lab, Yale University, ' + str(datetime.datetime.now().year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

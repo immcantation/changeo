@@ -1,12 +1,13 @@
 Release Notes
 ===============================================================================
 
-Version 1.0.0:  May 1, 2020
+Version 1.0.0:  May 5, 2020
 -------------------------------------------------------------------------------
 
-The default output in all tools is now the AIRR Rearrangement standard
++ The default output in all tools is now the AIRR Rearrangement standard
 (``--format airr``). Support for the legacy Change-O data standard is still
 provided through the ``--format changeo`` argument to the tools.
++ License changed to AGPL-3.
 
 AssignGenes:
 
