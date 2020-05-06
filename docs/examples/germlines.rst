@@ -44,7 +44,7 @@ argument is recommended, as this will generate a single germline of consensus le
     CreateGermlines.py -d HD13M_db-pass_clone-pass.tsv -g dmask --cloned \
         -r IMGT_Human_IGHV.fasta IMGT_Human_IGHD.fasta IMGT_Human_IGHJ.fasta
 
-.. note::
+.. important::
 
     The germline set passed to :option:`-r <CreateGermlines -r>` **must** contain the
     complete set of germlines used by the reference alignment software

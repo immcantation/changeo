@@ -9,13 +9,13 @@ rows and columns.
 
 .. _Filtering-Functional:
 
-Removing non-functional sequences
+Removing non-productive sequences
 --------------------------------------------------------------------------------
 
 After building a Change-O database from either :ref:`IMGT/HighV-QUEST <IMGT>` or
-:ref:`IgBLAST <IgBLAST>` output, you may wish to subset your data to only functional
-sequences. This can be done in one of two roughly equivalent ways using the
-:ref:`ParseDb` tool:
+:ref:`IgBLAST <IgBLAST>` output, you may wish to subset your data to only
+productive sequences. This can be done in one of two roughly equivalent ways
+using the :ref:`ParseDb` tool:
 
 .. code-block:: none
     :linenos:
@@ -56,7 +56,7 @@ fields (:option:`-f v_call j_call c_call <ParseDb select -f>` and
 or one of ``IGK`` or ``IGL`` (lines 3-4). The :option:`--regex <ParseDb select --regex>`
 argument allows for partial matching and interpretation of regular expressions. The
 output from these two commands are two files, one containing only heavy chains
-(``heavy_parse-select.tab``) and one containg only light chains (``light_parse-select.tab``).
+(``heavy_parse-select.tsv``) and one containg only light chains (``light_parse-select.tsv``).
 
 
 Exporting records to FASTA files

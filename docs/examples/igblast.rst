@@ -32,7 +32,7 @@ Download and configure the IgBLAST and IMGT reference databases
 as follows:
 
 .. literalinclude:: scripts/IgBLAST_Wrapper.sh
-   :language: none
+   :language: bash
    :linenos:
    :lines: 2-6
 
@@ -59,7 +59,7 @@ as follows:
     the associated commands in your ``PATH`` and the appropriate directories created:
 
     .. literalinclude:: scripts/IgBLAST_Commands.sh
-       :language: none
+       :language: bash
        :linenos:
        :lines: 2-13
 
@@ -103,7 +103,7 @@ regarding the ``IGDATA`` environment variable.
     directly is shown below:
 
     .. literalinclude:: scripts/IgBLAST_Commands.sh
-       :language: none
+       :language: bash
        :linenos:
        :lines: 15-24
 

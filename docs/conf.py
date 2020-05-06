@@ -79,10 +79,6 @@ copyright = 'Kleinstein Lab, Yale University, ' + str(datetime.datetime.now().ye
 # built documents.
 #
 # The short X.Y version.
-#version = '0.3.1'
-# The full version, including alpha/beta/rc tags.
-#release = '0.3.1'
-# The short X.Y version.
 version = changeo.Version.__version__
 # The full version, including alpha/beta/rc tags.
 release = '%s-%s' % (changeo.Version.__version__, changeo.Version.__date__)
@@ -117,7 +113,8 @@ exclude_patterns = ['_build']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+highlight_language = 'bash'
+pygments_style = 'vs'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -134,7 +131,6 @@ todo_include_todos = True
 # a list of builtin themes.
 #html_theme = 'default'
 html_theme = "sphinx_rtd_theme"
-
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -165,6 +161,7 @@ html_favicon = "_static/immcantation.ico"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_context = {'css_files': ['_static/overrides.css']}
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

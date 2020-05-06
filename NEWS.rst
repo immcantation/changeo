@@ -1,17 +1,28 @@
 Release Notes
 ===============================================================================
 
-Version 1.0.0:  May 5, 2020
+Version 1.0.0:  May 6, 2020
 -------------------------------------------------------------------------------
 
 + The default output in all tools is now the AIRR Rearrangement standard
-(``--format airr``). Support for the legacy Change-O data standard is still
-provided through the ``--format changeo`` argument to the tools.
+  (``--format airr``). Support for the legacy Change-O data standard is still
+  provided through the ``--format changeo`` argument to the tools.
 + License changed to AGPL-3.
 
 AssignGenes:
 
 + Added the ``igblast-aa`` subcommand to run igblastp on amino acid input.
+
+BuildTrees:
+
++ Adjusted ``RECORDS`` to indicate all sequences in input file.
+  ``INITIAL_FILTER`` now shows sequence count after initial
+  ``min_seq`` filtering.
++ Added option to skip codon masking: ``--nmask``.
++ Mask ``:``, ``,``, ``)``, and ``(`` in IDs and metadata with ``-``.
++ Can obtain germline from ``GERMLINE_IMGT`` if ``GERMLINE_IMGT_D_MASK``
+  not specified.
++ Can reconstruct intermediate sequences with IgPhyML using ``--asr``.
 
 ConvertDb:
 
@@ -34,17 +45,6 @@ MakeDb:
   to allow specification of the IMGT CDR/FWR region boundaries. Currently,
   the supported specifications are ``default`` (human, mouse) and
    ``rhesus-igl``.
-
-BuildTrees:
-
-+ Adjusted ``RECORDS`` to indicate all sequences in input file. 
-  ``INITIAL_FILTER`` now shows sequence count after initial 
-  ``min_seq`` filtering.
-+ Added option to skip codon masking: ``--nmask``.
-+ Mask ``:``, ``,``, ``)``, and ``(`` in IDs and metadata with ``-``.
-+ Can obtain germline from ``GERMLINE_IMGT`` if ``GERMLINE_IMGT_D_MASK``
-  not specified.
-+ Can reconstruct intermediate sequences with IgPhyML using ``--asr``.
 
 
 Version 0.4.6:  July 19, 2019

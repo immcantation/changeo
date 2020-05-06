@@ -37,12 +37,13 @@ Build trees and estimate model parameters
 Download the IgPhyML repository, move to the ``examples`` folder, and run 
 :ref:`BuildTrees <BuildTrees>`::
 
-    # clone IgPhyML repository to get example files
+    # Clone IgPhyML repository to get example files
     git clone https://bitbucket.org/kleinstein/igphyml
  
-    # move to examples directory
+    # Move to examples directory
     cd igphyml/examples
 
+    # Run BuildTrees
     BuildTrees.py -d example.tsv --outname ex --log ex.log --collapse \
         --sample 3000 --igphyml --clean all --nproc 1
  
@@ -73,10 +74,10 @@ plotting the tree to create a pdf plot in the ``examples`` directory::
  
  db = readIgphyml("ex_igphyml-pass.tab")
 
- #plot largest lineage tree
+ # Plot largest lineage tree
  plot(db$trees[[1]],layout=layout_as_tree)
 
- #show HLP10 parameters
+ # Show HLP10 parameters
  print(t(db$param[1,]))
  CLONE         "REPERTOIRE"
  NSEQ          "4"         
@@ -108,7 +109,7 @@ again open an ``R`` session in the ``examples`` directory::
 
  db = readIgphyml("sample1_igphyml-pass.tab",format="phylo")
  
- #plot largest lineage tree
+ # Plot largest lineage tree
  plot(ladderize(db$trees[[1]]),cex=0.7,no.margin=TRUE)
 
    

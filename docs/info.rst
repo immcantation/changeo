@@ -21,6 +21,5 @@ License
 --------------------------------------------------------------------------------
 
 This work is licensed under the
-`Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) <https://creativecommons.org/licenses/by-sa/4.0/>`__
-license.
+`GNU Affero General Public License Version 3 (AGPL-3) <https://www.gnu.org/licenses/agpl-3.0.en.html>`__.
 

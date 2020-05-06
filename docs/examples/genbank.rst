@@ -60,7 +60,7 @@ Requirements
     + A GenBank submission template file (``.sbt``), generating using the
       `NCBI Template Generator <https://submit.ncbi.nlm.nih.gov/genbank/template/submission>`__.
 
-.. warning::
+.. important::
 
     C region annotations must use official gene symbols (IGHM, IGHG, etc) so that they are properly
     recognized by remote databases. If your annotations are not of this form, then they must be updated
@@ -120,6 +120,17 @@ file will override equivalent features specified through the corresponding comma
 
         tbl2asn -p . -a s -V vb -t S43_template.sbt
 
+.. important::
+
+    When running :program:`tbl2asn` using the :option:`--asn <ConvertDb genbank --asn>`
+    argument to :ref:`ConvertDb` there is no internal validation that the records
+    passing the filters in :ref:`ConvertDb` also pass the filters in :program:`tbl2asn`.
+    As such, it is recommended that the number of sequences in the output ``.sqn``
+    file be verified against the number of sequences in the ``.tbl`` and ``.fsa``
+    output files. From the command line, this can be achieved via::
+
+        grep -c iupacna *.sqn
+
 .. warning::
 
     There is a known issue with the :option:`--asn <ConvertDb genbank --asn>` argument.
@@ -128,12 +139,7 @@ file will override equivalent features specified through the corresponding comma
     **Unable to read any FASTA records**. Running :program:`tbl2asn` manually should
     resolve the issue.
 
-.. warning::
 
-    It is recommended that the number of sequences in the output ``sqn`` file be verified
-    against the number of sequences in the input ``tab`` or ``tsv`` file. From the command line,
-    this can be achieved via ``grep -c iupacna *.sqn``. This step is not necessary if running
-    :program:`tbl2asn` outside :ref:`ConvertDb`.
     
 
 Submitting to GenBank/TLS using SequinMacroSend

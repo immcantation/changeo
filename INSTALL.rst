@@ -27,7 +27,7 @@ Requirements
 + AlignRecords requires `MUSCLE 3.8 <http://www.drive5.com/muscle>`__
 + ConvertDb-genbank requires `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__
 + AssignGenes requires `IgBLAST 1.6 <https://ncbi.github.io/igblast>`__, but
-  version 1.11 or higher is recommended.
+  version 1.11 or higher is strongly recommended.
 + BuildTrees requires `IgPhyML 1.0.5 <https://bitbucket.org/kbhoehn/igphyml>`_
 
 Linux

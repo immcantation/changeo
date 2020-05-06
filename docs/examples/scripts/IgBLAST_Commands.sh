@@ -12,7 +12,7 @@ edit_imgt_file.pl IMGT_Human_IGHJ.fasta > ~/share/igblast/fasta/imgt_human_ig_j.
 makeblastdb -parse_seqids -dbtype nucl -in ~/share/igblast/fasta/imgt_human_ig_j.fasta \
     -out ~/share/igblast/database/imgt_human_ig_j
 # Run IgBLAST
-exprt IGDATA=~/share/igblast
+export IGDATA=~/share/igblast
 igblastn \
     -germline_db_V ~/share/igblast/database/imgt_human_ig_v\
     -germline_db_D ~/share/igblast/database/imgt_human_ig_d \
