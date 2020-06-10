@@ -16,6 +16,8 @@ pip3 command.
 Requirements
 --------------------------------------------------------------------------------
 
+The minimum dependencies for installation are:
+
 + `Python 3.4.0 <http://python.org>`__
 + `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
 + `NumPy 1.8 <http://numpy.org>`__
@@ -23,7 +25,11 @@ Requirements
 + `pandas 0.15 <http://pandas.pydata.org>`__
 + `Biopython 1.65 <http://biopython.org>`__
 + `presto 0.5.10 <http://presto.readthedocs.io>`__
-+ `airr 1.2.1 <https://docs.airr-community.org>`__.
++ `airr 1.2.1 <https://docs.airr-community.org>`__
+
+Some tools wrap external applications that are not required for installation.
+Those tools require minimum versions of:
+
 + AlignRecords requires `MUSCLE 3.8 <http://www.drive5.com/muscle>`__
 + ConvertDb-genbank requires `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__
 + AssignGenes requires `IgBLAST 1.6 <https://ncbi.github.io/igblast>`__, but
@@ -39,7 +45,7 @@ Linux
    Biopython according to its
    `instructions <http://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
+2. Install `presto 0.5.10 <http://presto.readthedocs.io>`__ or greater.
 
 3. Download the Change-O bundle and run::
 
@@ -80,7 +86,7 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
+8. Install `presto 0.5.10 <http://presto.readthedocs.io>`__ or greater.
 
 9. Download the Change-O bundle, open a terminal window, change directories
    to the download folder, and run::
@@ -98,7 +104,7 @@ Windows
    `Unofficial Windows binary <http://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Install `presto 0.5.0 <http://presto.readthedocs.io>`__ or greater.
+3. Install `presto 0.5.10 <http://presto.readthedocs.io>`__ or greater.
 
 4. Download the Change-O bundle, open a Command Prompt, change directories to
    the download folder, and run::
