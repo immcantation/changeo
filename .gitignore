@@ -1,0 +1,15 @@
+syntax: glob
+.*
+*~
+*.pyc
+*.pyo
+*.egg-info
+*.fastq
+output
+run
+run_*
+dist
+build
+docs/_build
+docs/_static
+docs/_templates
