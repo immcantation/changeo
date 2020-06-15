@@ -1,5 +1,5 @@
 image:
-  name: kleinstein/immcantation:test
+  name: immcantation/test:devel
 
 pipelines:
   default:
