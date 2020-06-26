@@ -5,7 +5,7 @@ The simplest way to install the latest stable release of Change-O is via pip::
 
     > pip3 install changeo --user
 
-The current development build can be installed using pip and mercurial in similar fashion::
+The current development build can be installed using pip and git in similar fashion::
 
     > pip3 install git+https://bitbucket.org/kleinstein/changeo@master --user
 
