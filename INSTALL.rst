@@ -22,7 +22,7 @@ The minimum dependencies for installation are:
 + `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
 + `NumPy 1.8 <http://numpy.org>`__
 + `SciPy 0.14 <http://scipy.org>`__
-+ `pandas 0.15 <http://pandas.pydata.org>`__
++ `pandas 0.24 <http://pandas.pydata.org>`__
 + `Biopython 1.65 <http://biopython.org>`__
 + `presto 0.5.10 <http://presto.readthedocs.io>`__
 + `airr 1.2.1 <https://docs.airr-community.org>`__
