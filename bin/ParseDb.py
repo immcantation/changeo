@@ -168,7 +168,7 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
     log['VALUES'] = ','.join(values)
     printLog(log)
 
-    # Open inut
+    # Open input
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)

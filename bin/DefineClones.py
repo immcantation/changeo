@@ -49,7 +49,7 @@ choices_distance_model = ('ham', 'aa', 'hh_s1f', 'hh_s5f',
 def filterMissing(data, seq_field=junction_attr, v_field=v_attr,
                   j_field=j_attr, max_missing=default_max_missing):
     """
-    Splits a set of sequence into passed and failed groups based on the number
+    Splits a set of sequences into passed and failed groups based on the number
     of missing characters in the sequence
 
     Arguments:
@@ -60,7 +60,7 @@ def filterMissing(data, seq_field=junction_attr, v_field=v_attr,
         max_missing (int): maximum number of missing characters (non-ACGT) to permit before failing the record.
 
     Returns:
-        changeo.Multiprocessing.DbResult : objected containing filtered records.
+        changeo.Multiprocessing.DbResult : object containing filtered records.
     """
     # Function to validate the sequence string
     def _pass(seq):
@@ -266,17 +266,17 @@ def distanceClones(result, seq_field=default_junction_field, model=default_dista
     """
     Separates a set of Receptor objects into clones
 
-    Arguments: 
+    Arguments:
       result : a changeo.Multiprocessing.DbResult object with filtered records to clone
       seq_field : sequence field used to calculate distance between records
       model : substitution model used to calculate distance
-      distance : the distance threshold to assign clonal groups
+      distance : t  distance threshold to assign clonal groups
       dist_mat : pandas DataFrame of pairwise nucleotide or amino acid distances
       norm : normalization method
       sym : symmetry method
       linkage : type of linkage
 
-    Returns: 
+    Returns:
       changeo.Multiprocessing.DbResult : an updated DbResult object
     """
     # Get distance matrix if not provided
@@ -349,7 +349,7 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
-    Arguments: 
+    Arguments:
       alive = a multiprocessing.Value boolean controlling whether processing continues
               if False exit process
       result_queue : a multiprocessing.Queue holding processQueue results
@@ -556,7 +556,7 @@ def defineClones(db_file, seq_field=default_junction_field, v_field=default_v_fi
     group_args['j_field'] = j_field
     feed_args = {'db_file': db_file,
                  'reader': reader,
-                 'group_func': group_func, 
+                 'group_func': group_func,
                  'group_args': group_args}
 
     # Define worker function and arguments

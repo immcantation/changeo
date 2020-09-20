@@ -81,7 +81,7 @@ Mac OS X
 
    > brew install --env=std gfortran
 
-7. Install NumPy, SciPy, pandas and Biopyton using the Python package
+7. Install NumPy, SciPy, pandas and Biopython using the Python package
    manager::
 
    > pip3 install numpy scipy pandas biopython
@@ -114,16 +114,16 @@ Windows
 5. For a default installation of Python 3.4, the Change-0 scripts will be
    installed into ``C:\Python34\Scripts`` and should be directly
    executable from the Command Prompt. If this is not the case, then
-   follow step 5 below.
+   follow step 6 below.
 
 6. Add both the ``C:\Python34`` and ``C:\Python34\Scripts`` directories
    to your ``%Path%``. On Windows 7 the ``%Path%`` setting is located
    under Control Panel -> System and Security -> System -> Advanced
    System Settings -> Environment variables -> System variables -> Path.
 
-6. If you have trouble with the ``.py`` file associations, try adding ``.PY``
-   to your ``PATHEXT`` environment variable. Also, opening a
-   command prompt as Administrator and run::
+7. If you have trouble with the ``.py`` file associations, try adding ``.PY``
+   to your ``PATHEXT`` environment variable. Also, try opening a
+   Command Prompt as Administrator and run::
 
     > assoc .py=Python.File
     > ftype Python.File="C:\Python34\python.exe" "%1" %*
