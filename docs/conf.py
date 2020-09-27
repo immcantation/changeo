@@ -29,8 +29,7 @@ if os.environ.get('READTHEDOCS', None) == 'True':
         def __getattr__(cls, name):  return MagicMock()
 
     mock_modules = ['numpy', 'scipy', 'scipy.cluster.hierarchy', 'scipy.spatial.distance',
-                    'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Alphabet',
-                    'Bio.Seq', 'Bio.SeqRecord',
+                    'pandas', 'Bio', 'Bio.Align', 'Bio.Align.Applications', 'Bio.Seq', 'Bio.SeqRecord',
                     'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
                     'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
     sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)

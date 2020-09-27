@@ -14,7 +14,6 @@ import zipfile
 from itertools import chain, groupby, zip_longest
 from tempfile import TemporaryDirectory
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 
 # Presto and changeo imports
@@ -1058,7 +1057,7 @@ class IgBLASTReader:
 
         # Reverse complement input sequence if required
         if summary['strand'] == '-':
-            seq_rc = Seq(db['sequence_input'], IUPAC.ambiguous_dna).reverse_complement()
+            seq_rc = Seq(db['sequence_input']).reverse_complement()
             result['sequence_input'] = str(seq_rc)
             result['rev_comp'] = 'T'
         else:

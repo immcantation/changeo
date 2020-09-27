@@ -20,7 +20,6 @@ from time import time
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import IUPAC
 
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
@@ -70,7 +69,7 @@ def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
     desc_str = flattenAnnotation(desc_dict)
     
     # Create SeqRecord
-    seq_record = SeqRecord(Seq(db_record[seq_field], IUPAC.ambiguous_dna),
+    seq_record = SeqRecord(Seq(db_record[seq_field]),
                            id=desc_str, name=desc_str, description='')
         
     return seq_record
@@ -787,8 +786,7 @@ def makeGenbankSequence(record, name=None, label=None, count_field=None, index_f
         name = '%s [note=%s]' % (name, note)
 
     # Return SeqRecord and positions
-    record = SeqRecord(Seq(seq[seq_start:seq_end], IUPAC.ambiguous_dna), id=name,
-                       name=name, description='')
+    record = SeqRecord(Seq(seq[seq_start:seq_end]), id=name, name=name, description='')
     result = {'record': record, 'start': seq_start, 'end': seq_end}
 
     return result
