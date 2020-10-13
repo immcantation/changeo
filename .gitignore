@@ -3,7 +3,7 @@
 *.pyc
 *.pyo
 *.egg-info
+dist/*
 ^run
-^dist
 ^build
 ^docs/_build
