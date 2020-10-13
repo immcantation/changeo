@@ -1,9 +1,10 @@
 Release Notes
 ===============================================================================
 
-Version 1.0.0.999:  September 27, 2020
+Version 1.0.1:  October 13, 2020
 -------------------------------------------------------------------------------
 
++ Updated to support Biopython v1.78.
 + Increased the biopython dependency to v1.71.
 
 
