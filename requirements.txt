@@ -4,5 +4,5 @@ pandas>=0.24
 biopython>=1.71
 PyYAML>=3.12
 setuptools>=2.0
-presto>=0.5.10
+presto>=0.6.2
 airr>=1.2.1

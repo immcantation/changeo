@@ -6,6 +6,7 @@ Version 1.0.1:  October 13, 2020
 
 + Updated to support Biopython v1.78.
 + Increased the biopython dependency to v1.71.
++ Increased the presto dependency to 0.6.2.
 
 
 Version 1.0.0:  May 6, 2020
