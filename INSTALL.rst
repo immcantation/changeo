@@ -117,9 +117,7 @@ Windows
    follow step 6 below.
 
 6. Add both the ``C:\Python34`` and ``C:\Python34\Scripts`` directories
-   to your ``%Path%``. On Windows 7 the ``%Path%`` setting is located
-   under Control Panel -> System and Security -> System -> Advanced
-   System Settings -> Environment variables -> System variables -> Path.
+   to your ``%Path%``. On both Windows 7 and Windows 10, the ``%Path%`` setting is located under Control Panel -> System and Security -> System -> Advanced System Settings -> Environment variables -> System variables -> Path.
 
 7. If you have trouble with the ``.py`` file associations, try adding ``.PY``
    to your ``PATHEXT`` environment variable. Also, try opening a

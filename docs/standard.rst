@@ -19,7 +19,7 @@ To learn more about this format, the valid field names and their expected values
 `Rearrangement Schema documentation site <https://docs.airr-community.org/en/stable/datarep/overview.html>`__.
 
 An API for the input and output of the AIRR-C format is provided in the
-`airr Python package <https://docs.airr-community.org/en/stable/packages/airr-python/overview.html>`__.
+`AIRR Python package <https://docs.airr-community.org/en/stable/packages/airr-python/overview.html>`__.
 Wrappers for this package are provided in the API as :class:`changeo.IO.AIRRReader`
 and :class:`changeo.IO.AIRRWriter`.
 
