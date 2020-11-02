@@ -19,7 +19,7 @@ Configuring IgBLAST
 
 A collection of scripts for setting up the standalone IgBLAST database from the
 IMGT reference sequences are available on the
-`Immcantation repository <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts>`__.
+`Immcantation repository <https://bitbucket.org/kleinstein/immcantation/src/master/scripts>`__.
 To use these scripts, copy all the tools in the ``/scripts`` folder to a location
 in your ``PATH``. At a minimum, you'll need the following scripts:
 
