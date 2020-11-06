@@ -355,7 +355,7 @@ def deduplicate(useqs, receptors, log=None, meta_data=None, delim=":"):
         for j in range(i+1,len(keys)):
             ki = keys[i]
             kj = keys[j]
-            if meta_data == None:
+            if meta_data is None:
                 ski = keys[i]
                 skj = keys[j]
             else:
@@ -365,7 +365,7 @@ def deduplicate(useqs, receptors, log=None, meta_data=None, delim=":"):
             rj = receptors[useqs[kj]]
             dist = unAmbigDist(ski, skj, True)
             m_match = True
-            if meta_data != None:
+            if meta_data is not None:
                 matches = 0
                 for m in meta_data:
                     if ri.getField(m) == rj.getField(m) and m != "DUPCOUNT":
@@ -400,7 +400,7 @@ def deduplicate(useqs, receptors, log=None, meta_data=None, delim=":"):
             rfrom = receptors[useqs[k]]
             rto = receptors[join[useqs[k]]]
             rto.dupcount += rfrom.dupcount
-            if log != None:
+            if log is not None:
                 log[rfrom.sequence_id]["PASS"] = False
                 log[rfrom.sequence_id]["DUPLICATE"] = True
                 log[rfrom.sequence_id]["COLLAPSETO"] = joinseqs[k]
@@ -514,10 +514,10 @@ def characterizePartitionErrors(sequences, clones, meta_data):
             cimgt.extend([last]*(imgtdiff))
             clones[j].setField("imgtpartlabels",cimgt)
 
-    if meta_data != None:
+    if meta_data is not None:
         meta_data_ar = meta_data[0].split(",")
     for c in clones:
-        if meta_data != None:
+        if meta_data is not None:
             c.setField(meta_data[0],c.getField(meta_data_ar[0]))
             for m in range(1,len(meta_data_ar)):
                 st = c.getField(meta_data[0])+":"+c.getField(meta_data_ar[m])
@@ -587,13 +587,13 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
             for seq_f, num in useqs_f.items():
                 seq = seq_f
                 cid = ""
-                if meta_data != None:
+                if meta_data is not None:
                     seq, cid = seq_f.split(delim)
                     cid = delim + cid.replace(":", "_")
                 sid = clones[num].sequence_id.translate(transtable) + cid
                 clonef.write(">%s\n%s\n" % (sid.replace(":","-"), seq.replace(".", "-")))
                 if len(useqs_f) == 1 and duplicate:
-                    if meta_data != None:
+                    if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[num].sequence_id.translate(transtable) + "_1" + cid
@@ -601,7 +601,7 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
         else:
             for j in range(0, nseqs):
                 cid = ""
-                if meta_data != None:
+                if meta_data is not None:
                     meta_data_list = []
                     for m in meta_data:
                         meta_data_list.append(clones[j].getField(m).replace(":", "_"))
@@ -609,14 +609,14 @@ def outputSeqPartFiles(out_dir, useqs_f, meta_data, clones, collapse, nseqs, del
                 sid = clones[j].sequence_id.translate(transtable) + cid
                 clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
                 if nseqs == 1 and duplicate:
-                    if meta_data != None:
+                    if meta_data is not None:
                         if meta_data[0] == "DUPCOUNT":
                             cid = delim + "0"
                     sid = clones[j].sequence_id.translate(transtable)+"_1" + cid
                     clonef.write(">%s\n%s\n" % (sid.replace(":","-"), conseqs[j].replace(".", "-")))
 
         germ_id = ["GERM"]
-        if meta_data != None:
+        if meta_data is not None:
             for i in range(1,len(meta_data)):
                 germ_id.append("GERM")
         clonef.write(">%s_%s\n" % (clones[0].clone,"_".join(germ_id)))
@@ -712,7 +712,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
     conseqs = []
     for j in range(0, nseqs):
         conseq = "".join([str(seq_rec) for seq_rec in newseqs[j]])
-        if meta_data != None:
+        if meta_data is not None:
             meta_data_list = []
             for m in range(0,len(meta_data)):
                 if isinstance(clones[j].getField(meta_data[m]), str):
@@ -726,7 +726,7 @@ def outputIgPhyML(clones, sequences, meta_data=None, collapse=False, ncdr3=False
             logs[clones[j].sequence_id]["PASS"] = False
             logs[clones[j].sequence_id]["FAIL"] = "Duplication of " + clones[useqs_f[conseq_f]].sequence_id
             logs[clones[j].sequence_id]["DUPLICATE"]=True
-            if fail_writer != None:
+            if fail_writer is not None:
                 fail_writer.writeReceptor(clones[j])
         else:
             useqs_f[conseq_f] = j
@@ -773,9 +773,9 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
       0: returns 0 if an error occurs or masking fails.
       1: returns 1 masking succeeds
     """
-    if r.clone == None:
+    if r.clone is None:
         printError("Cannot export datasets until sequences are clustered into clones.")
-    if r.dupcount == None:
+    if r.dupcount is None:
         r.dupcount = 1
     fails["rec_count"] += 1
     #printProgress(rec_count, rec_count, 0.05, start_time)
@@ -798,7 +798,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
         #If IMGT regions are provided, record their positions
         rd = RegionDefinition(r.junction_length, amino_acid=False)
         regions = rd.getRegions(r.sequence_imgt)
-        if regions["cdr3_imgt"] != "" and regions["cdr3_imgt"] != None:
+        if regions["cdr3_imgt"] != "" and regions["cdr3_imgt"] is not None:
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"] + regions["cdr3_imgt"] + regions["fwr4_imgt"]
             if len(simgt) < len(r.sequence_imgt):
@@ -824,7 +824,7 @@ def maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer, mas
                 fails["region_fail"] += 1
                 return 0
 
-        elif regions["fwr3_imgt"] != "" and regions["fwr3_imgt"] != None:
+        elif regions["fwr3_imgt"] != "" and regions["fwr3_imgt"] is not None:
             simgt = regions["fwr1_imgt"] + regions["cdr1_imgt"] + regions["fwr2_imgt"] + regions["cdr2_imgt"] + \
                     regions["fwr3_imgt"]
             nseq = r.sequence_imgt[len(simgt):len(r.sequence_imgt)]
@@ -1065,11 +1065,11 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
 
     dir_name, __ = os.path.split(pass_handle.name)
 
-    if out_args["out_name"] == None:
+    if out_args["out_name"] is None:
         __, clone_name, __ = splitName(db_file)
     else:
         clone_name = out_args["out_name"]
-    if dir_name == None:
+    if dir_name is None:
         clone_dir = clone_name
     else:
         clone_dir = os.path.join(dir_name, clone_name)
@@ -1113,9 +1113,9 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     all_records = []
     found_no_funct = False
     for r in records:
-        if r.functional == None:
+        if r.functional is None:
             r.functional = True
-            if found_no_funct == False:
+            if found_no_funct is False:
                 printWarning("FUNCTIONAL column not found.")
                 found_no_funct = True
         all_records.append(r)
@@ -1125,7 +1125,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
             init_clone_sizes[r.clone] = 1
 
     for r in all_records:
-        if target_clones == None or r.clone in target_clones:
+        if target_clones is None or r.clone in target_clones:
             if init_clone_sizes[r.clone] >= min_seq:
                big_enough.append(r)
 
@@ -1140,9 +1140,9 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
 
     total = 0
     for r in big_enough:
-        if r.functional == None:
+        if r.functional is None:
             r.functional = True
-            if found_no_funct == False:
+            if found_no_funct is False:
                 printWarning("FUNCTIONAL column not found.")
                 found_no_funct = True
 
@@ -1151,7 +1151,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
         r.sequence_id = r.sequence_id.replace(",","-") #remove commas from sequence ID
         r.sequence_id = r.sequence_id.replace(")","-") #remove parenthesis from sequence ID
         r.sequence_id = r.sequence_id.replace("(","-") #remove parenthesis from sequence ID
-        if(meta_data != None):
+        if(meta_data is not None):
             for m in range(0,len(meta_data)):
                 md = r.getField(meta_data[m])
                 md = md.replace(",","-") #remove commas from metadata
@@ -1161,8 +1161,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
                 md = md.replace("(","-") #remove parenthesis from metadata
                 r.setField(meta_data[m],md)
 
-        if append != None:
-            if append != None:
+        if append is not None:
+            if append is not None:
                 for m in append:
                     r.sequence_id = r.sequence_id + "_" + r.getField(m)
         total += maskCodonsLoop(r, clones, cloneseqs, logs, fails, out_args, fail_writer,
@@ -1198,7 +1198,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     printMessage("Done", start_time=start_time, end=True, width=50)
 
     log_handle = None
-    if out_args["log_file"] != None:
+    if out_args["log_file"] is not None:
         log_handle = open(out_args["log_file"], "w")
         for j in logs.keys():
             printLog(logs[j], handle=log_handle)
@@ -1210,25 +1210,25 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
         partfile = os.path.join(clone_dir, "%s.part.txt" % key)
         if clonesizes[key] > 0:
             germ_id = ["GERM"]
-            if meta_data != None:
+            if meta_data is not None:
                 for i in range(1, len(meta_data)):
                     germ_id.append("GERM")
             pass_handle.write("%s\t%s\t%s_%s\t%s\n" % (outfile, "N", key,"_".join(germ_id), partfile))
 
     handle.close()
     output = {"pass": None, "fail": None}
-    if pass_handle != None:
+    if pass_handle is not None:
         output["pass"] = pass_handle.name
         pass_handle.close()
-    if fail_handle != None:
+    if fail_handle is not None:
         output["fail"] = fail_handle.name
         fail_handle.close()
-    if log_handle != None:
+    if log_handle is not None:
         log_handle.close()
 
     #printProgress(rec_count, rec_count, 0.05, start_time)
     log = OrderedDict()
-    log["OUTPUT"] = os.path.basename(pass_handle.name) if pass_handle != None else None
+    log["OUTPUT"] = os.path.basename(pass_handle.name) if pass_handle is not None else None
     log["RECORDS"] = fails["totalreads"]
     log["INITIAL_FILTER"] = fails["rec_count"]
     log["PASS"] = pass_count
