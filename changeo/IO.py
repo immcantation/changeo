@@ -943,7 +943,8 @@ class IgBLASTReader:
                        'stop codon': 'stop_codon',
                        'V-J frame': 'vj_frame',
                        'Productive': 'productive',
-                       'Strand': 'strand'}
+                       'Strand': 'strand',
+                       'V Frame shift': 'v_frameshift'}
 
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
@@ -1062,6 +1063,10 @@ class IgBLASTReader:
             result['rev_comp'] = 'T'
         else:
             result['rev_comp'] = 'F'
+
+        # Add v_frameshift field if present
+        if 'v_frameshift' in summary:
+            result['v_frameshift'] = 'T' if summary['v_frameshift'] == 'Yes' else 'F'
 
         return result
 

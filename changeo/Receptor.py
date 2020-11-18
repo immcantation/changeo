@@ -124,6 +124,7 @@ class AIRRSchema:
                                ('productive', 'functional'),
                                ('stop_codon', 'stop'),
                                ('vj_in_frame', 'in_frame'),
+                               ('v_frameshift', 'v_frameshift'),
                                ('locus', 'locus'),
                                ('v_call', 'v_call'),
                                ('d_call', 'd_call'),
@@ -344,6 +345,7 @@ class ChangeoSchema:
                                ('STOP', 'stop'),
                                ('MUTATED_INVARIANT', 'mutated_invariant'),
                                ('INDELS', 'indels'),
+                               ('V_FRAMESHIFT', 'v_frameshift'),
                                ('LOCUS', 'locus'),
                                ('V_CALL', 'v_call'),
                                ('D_CALL', 'd_call'),
@@ -503,6 +505,7 @@ class ReceptorData:
       stop (bool): whether a stop codon is present in the V(D)J sequence.
       mutated_invariant (bool): whether the conserved amino acids are mutated in the V(D)J sequence.
       indels (bool): whether the V(D)J nucleotide sequence contains insertions and/or deletions.
+      v_frameshift (bool): whether the V segment contains a frameshift
 
       sequence_input (Bio.Seq.Seq): input nucleotide sequence.
       sequence_vdj (Bio.Seq.Seq): Aligned V(D)J nucleotide sequence without IMGT-gaps.
@@ -663,6 +666,7 @@ class ReceptorData:
                'stop': 'logical',
                'mutated_invariant': 'logical',
                'indels': 'logical',
+               'v_frameshift': 'logical',
                'sequence_input': 'nucleotide',
                'sequence_imgt': 'nucleotide',
                'sequence_vdj': 'nucleotide',
