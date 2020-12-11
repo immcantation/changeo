@@ -19,11 +19,11 @@ and submission of processed and annotated data to the
 
 This example will cover generation of files for submission to TLS starting from Change-O
 formatted data.  For complete details of the required and optional elements of the TLS submission
-see the `AIRR Standards <http://docs.airr-community.org/en/latest/miairr/miairr_ncbi_overview.html>`__
+see the `AIRR Standards <http://docs.airr-community.org/en/stable/miairr/miairr_ncbi_overview.html>`__
 documentation site. 
 
 Special attention should be paid to the 
-`REQUIRED <https://docs.airr-community.org/en/latest/miairr/specification_miairr_ncbi.html>`__ elements.
+`REQUIRED <https://docs.airr-community.org/en/stable/miairr/specification_miairr_ncbi.html>`__ elements.
 Note that GenBank expects there to be a ``CDS`` element that corresponds to the ``JUNCTION``. If submitting
 single-cell heavy:light paired BCR data, GenBank expects separate files for the heavy, the kappa, and the 
 lambda chains. Note that even though the kappa and the lambda chain sequences should be in separate files, 
@@ -54,7 +54,7 @@ Requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     + An annotated data set in either the :ref:`Change-O <Standard>` or the
-      `AIRR Data Representation <http://docs.airr-community.org/en/latest/datarep/rearrangements.html>`__
+      `AIRR Data Representation <http://docs.airr-community.org/en/stable/datarep/rearrangements.html>`__
       formats. Records must have valid V, J and junction region annotations to be suitable for submission.
     + `tbl2asn <https://www.ncbi.nlm.nih.gov/genbank/tbl2asn2>`__ installed and in your ``PATH``.
     + A GenBank submission template file (``.sbt``), generating using the

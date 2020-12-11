@@ -4,7 +4,7 @@ Data Standards
 ================================================================================
 
 All Change-O tools supports both the legacy Change-O standard and the new
-`Adaptive Immune Receptor Repertoire (AIRR) <https://docs.airr-community.org/en/latest/index.html>`__
+`Adaptive Immune Receptor Repertoire (AIRR) <https://docs.airr-community.org/en/stable/>`__
 standard developed by the AIRR Community (`AIRR-C <https://www.antibodysociety.org/the-airr-community/>`__).
 
 AIRR-C Format

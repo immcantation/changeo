@@ -81,8 +81,8 @@ defines the output format of IgBLAST. The default, ``blast``, is the
 blocked tabular output provided by specifying the ``-outfmt '7 std qseq sseq btop'``
 argument to IgBLAST. Specifying :option:`--format airr <AssignGenes igblast --format>`
 will output a tab-delimited file compliant with the
-`AIRR Rearrangement schema <https://airr-standards.readthedocs.io/en/latest/datarep/rearrangements.html>`__
-defined by the `AIRR Community <https://www.antibodysociety.org/about-the-airr-community>`__.
+`AIRR Rearrangement schema <https://airr-standards.readthedocs.io/en/stable/datarep/rearrangements.html>`__
+defined by the `AIRR Community <https://www.antibodysociety.org/the-airr-community/>`__.
 AIRR format support requires IgBLAST v1.9.0 or higher.
 
 The :option:`-b ~/share/igblast <AssignGenes igblast -b>` argument specifies the
