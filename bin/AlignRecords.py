@@ -73,6 +73,41 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
+def filterEmpty(data, seq_fields):
+    """
+    Splits a set of sequences into passed and failed groups based on missing sequence data
+
+    Arguments:
+        data (changeo.Multiprocessing.DbData): data object.
+        seq_fields (list): sequence fields to check.
+
+    Returns:
+        changeo.Multiprocessing.DbResult: object containing filtered records.
+    """
+    # Function to validate the sequence string
+    def _pass(rec):
+        if all([len(rec.getField(f)) > 0 for f in seq_fields]):
+            return True
+        else:
+            return False
+
+    # Define result object for iteration and get data records
+    result = DbResult(data.id, data.data)
+
+    if not data:
+        result.data_pass = []
+        result.data_fail = data.data
+        return result
+
+    result.data_pass = []
+    result.data_fail = []
+    for rec in data.data:
+        if _pass(rec):  result.data_pass.append(rec)
+        else:  result.data_fail.append(rec)
+
+    return result
+
+
 def alignBlocks(data, field_map, muscle_exec=default_muscle_exec):
     """
     Multiple aligns blocks of sequence fields together
@@ -85,18 +120,28 @@ def alignBlocks(data, field_map, muscle_exec=default_muscle_exec):
     Returns:
       changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
+    # Define sequence fields
+    seq_fields = list(field_map.keys())
+
+    # Function to validate record
+    def _pass(rec):
+        if all([len(rec.getField(f)) > 0 for f in seq_fields]):
+            return True
+        else:
+            return False
+
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
 
     # Fail invalid groups
-    if result.id is None:
+    if result.id is None or not all([_pass(x) for x in data.data]):
         result.log = None
         result.valid = False
         return result
 
-    seq_fields = list(field_map.keys())
+    # Run muscle and map results
     seq_list = [SeqRecord(r.getSeq(f), id='%s_%s' % (r.sequence_id.replace(' ', '_'), f)) for f in seq_fields \
                 for r in data.data]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
@@ -128,13 +173,23 @@ def alignAcross(data, field_map, muscle_exec=default_muscle_exec):
     Returns:
       changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
+    # Define sequence fields
+    seq_fields = list(field_map.keys())
+
+    # Function to validate record
+    def _pass(rec):
+        if all([len(rec.getField(f)) > 0 for f in seq_fields]):
+            return True
+        else:
+            return False
+
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
 
     # Fail invalid groups
-    if result.id is None:
+    if result.id is None or not all([_pass(x) for x in data.data]):
         result.log = None
         result.valid = False
         return result
@@ -169,19 +224,28 @@ def alignWithin(data, field_map, muscle_exec=default_muscle_exec):
     Returns:
       changeo.Multiprocessing.DbResult : object containing Receptor objects with multiple aligned sequence fields.
     """
+    # Define sequence fields
+    seq_fields = list(field_map.keys())
+
+    # Function to validate record
+    def _pass(rec):
+        if all([len(rec.getField(f)) > 0 for f in seq_fields]):
+            return True
+        else:
+            return False
+
     # Define return object
     result = DbResult(data.id, data.data)
     result.results = data.data
     result.valid = True
 
     # Fail invalid groups
-    if result.id is None:
+    if result.id is None or not _pass(data.data):
         result.log = None
         result.valid = False
         return result
 
     record = data.data
-    seq_fields = list(field_map.keys())
     seq_list = [SeqRecord(record.getSeq(f), id=f) for f in seq_fields]
     seq_aln = runMuscle(seq_list, aligner_exec=muscle_exec)
     if seq_aln is not None:

@@ -1,10 +1,17 @@
 Release Notes
 ===============================================================================
 
-Version 1.0.1.999:  November 18, 2020
+Version 1.0.2:  January 18, 2021
 -------------------------------------------------------------------------------
 
-+ Added support for IgBLAST v1.17.0 to MakeDb-igblast.
+AlignRecords:
+
++ Fixed a bug caused the program to exit when encountering missing sequence
+data. It will now fail the row or group with missing data and continue.
+
+MakeDb:
+
++ Added support for IgBLAST v1.17.0.
 
 
 Version 1.0.1:  October 13, 2020

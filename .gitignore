@@ -4,6 +4,6 @@
 *.pyo
 *.egg-info
 dist/*
-^run
-^build
-^docs/_build
+run/*
+build/*
+docs/_build
