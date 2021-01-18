@@ -21,7 +21,7 @@ from time import time
 from presto.IO import printLog, printProgress, printMessage
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
+from changeo.IO import checkFields, countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -58,6 +58,12 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
+
+    # Check fields
+    try:
+        checkFields([field], db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
 
     # Determine total numbers of records
     rec_count = countDbFile(db_file)
@@ -309,6 +315,12 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
 
+    # Check fields
+    try:
+        checkFields(fields, db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
+
     # Exclude dropped field from output
     out_fields = [f for f in db_iter.fields if f not in fields]
 
@@ -390,6 +402,12 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
 
+    # Check fields
+    try:
+        checkFields(fields, db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
+
     # Open output
     if out_file is not None:
         pass_handle = open(out_file, 'w')
@@ -461,6 +479,12 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
     db_handle = open(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
+
+    # Check fields
+    try:
+        checkFields(fields, db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
 
     # Get header and rename fields
     out_fields = list(db_iter.fields)
@@ -544,7 +568,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     log['FILE'] = os.path.basename(db_file)
     log['FIELDS'] = ','.join(fields)
     log['VALUES'] = ','.join(values)
-    log['REGEX'] =regex
+    log['REGEX'] = regex
     printLog(log)
 
     # Open input
@@ -552,6 +576,12 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
+
+    # Check fields
+    try:
+        checkFields(fields, db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
 
     # Open output
     if out_file is not None:
@@ -631,6 +661,12 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
 
+    # Check fields
+    try:
+        checkFields([field], db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
+
     # Open output
     if out_file is not None:
         pass_handle = open(out_file, 'w')
@@ -706,6 +742,12 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
+
+    # Check fields
+    try:
+        checkFields([field], db_iter.fields, schema=None)
+    except LookupError as e:
+        exit(e)
 
     # Open output
     if out_file is not None:

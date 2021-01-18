@@ -13,6 +13,10 @@ MakeDb:
 
 + Added support for IgBLAST v1.17.0.
 
+ParseDb:
+
++ Added a relevant error message when an input field is missing from the data.
+
 
 Version 1.0.1:  October 13, 2020
 -------------------------------------------------------------------------------

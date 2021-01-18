@@ -2449,7 +2449,8 @@ def checkFields(attributes, header, schema=AIRRSchema):
     Raises:
         LookupError:
     """
-    columns = [schema.fromReceptor(f) for f in attributes]
+    if schema is None:  columns = attributes
+    else:  columns = [schema.fromReceptor(f) for f in attributes]
     missing = [x for x in columns if x not in header]
 
     if len(missing) > 0:
