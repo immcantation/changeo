@@ -7,7 +7,7 @@ Version 1.0.2:  January 18, 2021
 AlignRecords:
 
 + Fixed a bug caused the program to exit when encountering missing sequence
-data. It will now fail the row or group with missing data and continue.
+  data. It will now fail the row or group with missing data and continue.
 
 MakeDb:
 
