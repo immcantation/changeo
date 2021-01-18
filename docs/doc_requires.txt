@@ -2,4 +2,4 @@ sphinx>=2.0
 sphinx_rtd_theme>=0.4
 PyYAML>=5.1
 sphinxcontrib-autoprogram>=0.1.2
-sphinxcontrib-bibtex>=0.3.3
+sphinxcontrib-bibtex==1.0.0
