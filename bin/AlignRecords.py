@@ -73,41 +73,6 @@ def groupRecords(records, fields=None, calls=['v', 'j'], mode='gene', action='fi
     return rec_index
 
 
-def filterEmpty(data, seq_fields):
-    """
-    Splits a set of sequences into passed and failed groups based on missing sequence data
-
-    Arguments:
-        data (changeo.Multiprocessing.DbData): data object.
-        seq_fields (list): sequence fields to check.
-
-    Returns:
-        changeo.Multiprocessing.DbResult: object containing filtered records.
-    """
-    # Function to validate the sequence string
-    def _pass(rec):
-        if all([len(rec.getField(f)) > 0 for f in seq_fields]):
-            return True
-        else:
-            return False
-
-    # Define result object for iteration and get data records
-    result = DbResult(data.id, data.data)
-
-    if not data:
-        result.data_pass = []
-        result.data_fail = data.data
-        return result
-
-    result.data_pass = []
-    result.data_fail = []
-    for rec in data.data:
-        if _pass(rec):  result.data_pass.append(rec)
-        else:  result.data_fail.append(rec)
-
-    return result
-
-
 def alignBlocks(data, field_map, muscle_exec=default_muscle_exec):
     """
     Multiple aligns blocks of sequence fields together
