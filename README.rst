@@ -1,3 +1,6 @@
+.. image:: https://img.shields.io/static/v1?label=AIRR-C%20sw-tools%20v1&message=compliant&color=008AFF&labelColor=000000&style=plastic
+    :target: https://docs.airr-community.org/en/stable/swtools/airr_swtools_standard.html
+
 Change-O - Repertoire clonal assignment toolkit
 ================================================================================
 
