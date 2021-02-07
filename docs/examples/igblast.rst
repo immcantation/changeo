@@ -29,12 +29,12 @@ in your ``PATH``. At a minimum, you'll need the following scripts:
 4. ``imgt2igblast.sh``
 
 Download and configure the IgBLAST and IMGT reference databases
-as follows:
+as follows, adjusting the version number to taste:
 
 .. literalinclude:: scripts/IgBLAST_Wrapper.sh
    :language: bash
    :linenos:
-   :lines: 2-6
+   :lines: 2-13
 
 .. note::
 

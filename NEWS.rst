@@ -69,7 +69,7 @@ MakeDb:
 + Add --regions argument to the ``igblast`` and ``igblast-aa`` subcommands
   to allow specification of the IMGT CDR/FWR region boundaries. Currently,
   the supported specifications are ``default`` (human, mouse) and
-   ``rhesus-igl``.
+  ``rhesus-igl``.
 
 
 Version 0.4.6:  July 19, 2019
