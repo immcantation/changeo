@@ -110,8 +110,10 @@ def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=
                                 fail processing.''')
     # Format arguments
     if format:
-        group.add_argument('--format', action='store', dest='format', default=default_format,
-                           choices=choices_format, help='''Specify input and output format.''')
+        group.add_argument('--format', action='store', dest='format',
+                           default=default_format, choices=choices_format,
+                           help='''Output format. Also specifies the input format for tools accepting 
+                                tab delimited AIRR Rearrangement or Change-O files.''')
 
     # Multiprocessing arguments
     if multiproc:
