@@ -116,10 +116,10 @@ def getIDforIMGT(seq_file):
     # Create a sequence ID translation using IDs truncate up to space or 50 chars
     ids = {}
     for rec in readSeqFile(seq_file):
-        if len(rec.description) <= 50:
+        if len(rec.description) <= 49:
             id_key = rec.description
         else:
-            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:50])
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:49])
         ids.update({id_key: rec.description})
 
     return ids
@@ -395,7 +395,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
 
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file) if seq_file else {}
-
+    
     # Load supplementary annotation table
     if cellranger_file is not None:
         f = cellranger_extended if extended else cellranger_base
@@ -436,8 +436,8 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
             if all('...' not in x for x in references.values()):
                 printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
             germ_iter = (addGermline(x, references) for x in parse_iter)
-
         # Write db
+        print(id_dict)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
                          annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
