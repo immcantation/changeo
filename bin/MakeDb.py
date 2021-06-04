@@ -437,7 +437,6 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
                 printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
             germ_iter = (addGermline(x, references) for x in parse_iter)
         # Write db
-        print(id_dict)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
                          annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
