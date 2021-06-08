@@ -42,3 +42,6 @@ default_out_args = {'log_file': None,
                     'out_name': None,
                     'out_type': 'tsv',
                     'failed': False}
+
+# IMGT
+default_imgt_id_len = 49

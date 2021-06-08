@@ -20,7 +20,7 @@ from Bio import SeqIO
 # Presto and changeo imports
 from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printMessage, printProgress, printError, printWarning, readSeqFile
-from changeo.Defaults import default_format, default_out_args
+from changeo.Defaults import default_format, default_out_args, default_imgt_id_len
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Alignment import RegionDefinition
 from changeo.Gene import buildGermline
@@ -102,7 +102,7 @@ def addGermline(receptor, references, amino_acid=False):
     return receptor
 
 
-def getIDforIMGT(seq_file):
+def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
     """
     Create a sequence ID translation using IMGT truncation.
 
@@ -113,13 +113,13 @@ def getIDforIMGT(seq_file):
       dict : a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
     """
 
-    # Create a sequence ID translation using IDs truncate up to space or 50 chars
+    # Create a sequence ID translation using IDs truncate up to space or 49 chars
     ids = {}
     for rec in readSeqFile(seq_file):
-        if len(rec.description) <= 49:
+        if len(rec.description) <= imgt_id_len:
             id_key = rec.description
         else:
-            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:49])
+            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
         ids.update({id_key: rec.description})
 
     return ids
@@ -355,7 +355,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
 
 def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, partial=False, asis_id=True,
-              extended=False, format=default_format, out_file=None, out_args=default_out_args):
+              extended=False, format=default_format, out_file=None, out_args=default_out_args, imgt_id_len=default_imgt_id_len):
     """
     Main for IMGT aligned sample sequences.
 
@@ -369,6 +369,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
       format : output format. one of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
+      imgt_id_len: maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
 
     Returns:
       dict : names of the 'pass' and 'fail' output files.
@@ -394,7 +395,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     total_count = countDbFile(imgt_files['summary'])
 
     # Get (parsed) IDs from fasta file submitted to IMGT
-    id_dict = getIDforIMGT(seq_file) if seq_file else {}
+    id_dict = getIDforIMGT(seq_file, imgt_id_len) if seq_file else {}
     
     # Load supplementary annotation table
     if cellranger_file is not None:
@@ -808,6 +809,9 @@ def getArgParser():
                                  Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
                                  cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length, 
                                  p3d_length, p5j_length and d_frame.''')
+    group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
+                        default=default_imgt_id_len,
+                        help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.''')    
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
