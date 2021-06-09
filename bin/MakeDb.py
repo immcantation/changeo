@@ -811,7 +811,9 @@ def getArgParser():
                                  p3d_length, p5j_length and d_frame.''')
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
                         default=default_imgt_id_len,
-                        help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.''')    
+                        help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST. 
+                        Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older 
+                        than 1.8.3 (7 May 2021).''')    
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
