@@ -1,6 +1,18 @@
 Release Notes
 ===============================================================================
 
+Version 1.0.2.999:  June 10, 2021
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Added the ``--imgt-id-len`` argument to accomodate for changes introduced in how
+  IMGT/HighV-QUEST truncates sequence identifiers as of version 1.8.3 (7 May 2021).
+  The header lines in the fasta files are now truncated to 49 characters. In
+  IMGT/HighV-QUEST versions older that 1.8.3, they were truncated to 50 characters.
+  ``--imgt-id-len`` default value is 49. Users should specify ``--imgt-id-len 50``
+  to analyze IMGT results generated with IMGT/HighV-QUEST versions older that 1.8.3.
+
 Version 1.0.2:  January 18, 2021
 -------------------------------------------------------------------------------
 
