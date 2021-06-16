@@ -2115,7 +2115,7 @@ class IHMMuneReader:
             db.update(imgt_dict)
 
         # Infer IMGT junction
-        if self.infer_junction and ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+        if ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
             junc_dict = inferJunction(db['sequence_imgt'],
                                       j_germ_start=db['j_germ_start'],
                                       j_germ_length=db['j_germ_length'],
