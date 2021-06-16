@@ -14,14 +14,14 @@ from changeo.Defaults import v_attr, d_attr, j_attr, seq_attr
 
 # Ig and TCR Regular expressions
 allele_number_regex = re.compile(r'(?<=\*)([\.\w]+)')
-allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
-gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*))')
-family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+))')
+allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+[-/\w]*[-\*][\.\w]+))')
+gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+[-/\w]*))')
+family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+))')
 locus_regex = re.compile(r'(IG[HLK]|TR[ABGD])')
 
-v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
-j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
+v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
+d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
+j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
 
