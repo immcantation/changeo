@@ -768,6 +768,9 @@ def getArgParser():
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
+    group_igblast_aa.add_argument('--infer-junction', action='store_true', dest='infer_junction',
+                                 help='''Infer the junction sequence. Use with with igblast v1.6.0 or older, 
+                                 before igblast added the IMGT-CDR3 inference.''') 
     parser_igblast_aa.set_defaults(func=parseIgBLAST, partial=True, amino_acid=True)
 
 
