@@ -883,7 +883,7 @@ class IgBLASTReader:
 
         return fields
 
-    def __init__(self, igblast, sequences, references, asis_calls=False, regions='default', receptor=True):
+    def __init__(self, igblast, sequences, references, asis_calls=False, regions='default', receptor=True, infer_junction=False):
         """
         Initializer.
 
@@ -895,6 +895,7 @@ class IgBLASTReader:
           asis_calls (bool): if True do not parse gene calls for allele names.
           regions (str): name of the IMGT FWR/CDR region definitions to use.
           receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
+          infer_junction (bool): if True, infer the junction region if not reported by IgBLAST
 
         Returns:
           changeo.IO.IgBLASTReader
@@ -906,6 +907,7 @@ class IgBLASTReader:
         self.regions = regions
         self.asis_calls = asis_calls
         self.receptor = receptor
+        self.infer_junction = infer_junction
 
         # Define parsing blocks
         self.groups = groupby(self.igblast, lambda x: not re.match('# IGBLAST', x))
@@ -1472,7 +1474,7 @@ class IgBLASTReader:
         if 'subregion' in sections and 'cdr3_igblast_start' in sections['subregion']:
             junc_dict = self._parseSubregionSection(sections['subregion'], db['sequence_input'])
             db.update(junc_dict)
-        elif ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+        elif self.infer_junction and ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
             junc_dict = inferJunction(db['sequence_imgt'],
                                       j_germ_start=db['j_germ_start'],
                                       j_germ_length=db['j_germ_length'],
@@ -2113,7 +2115,7 @@ class IHMMuneReader:
             db.update(imgt_dict)
 
         # Infer IMGT junction
-        if ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
+        if self.infer_junction and ('j_call' in db and db['j_call']) and ('sequence_imgt' in db and db['sequence_imgt']):
             junc_dict = inferJunction(db['sequence_imgt'],
                                       j_germ_start=db['j_germ_start'],
                                       j_germ_length=db['j_germ_length'],

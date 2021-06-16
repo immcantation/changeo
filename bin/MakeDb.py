@@ -449,7 +449,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
 
 
 def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, partial=False,
-                 asis_id=True, asis_calls=False, extended=False, regions='default',
+                 asis_id=True, asis_calls=False, extended=False, regions='default', infer_junction=False,
                  format='changeo', out_file=None, out_args=default_out_args):
     """
     Main for IgBLAST aligned sample sequences.
@@ -464,6 +464,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       asis_calls (bool): if True do not parse gene calls for allele names.
       extended (bool): if True add alignment scores, FWR regions, and CDR regions to the output.
       regions (str): name of the IMGT FWR/CDR region definitions to use.
+      infer_junction (bool): if True, infer the junction sequence, if not reported by IgBLAST
       format (str): output format. one of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
@@ -481,6 +482,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['ASIS_CALLS'] = asis_calls
     log['PARTIAL'] = partial
     log['EXTENDED'] = extended
+    log['INFER_JUNCTION'] = infer_junction
     printLog(log)
 
     # Set amino acid conditions
@@ -531,7 +533,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
 
     # Parse and write output
     with open(aligner_file, 'r') as f:
-        parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls)
+        parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls, infer_junction=infer_junction)
         germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
                          annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
@@ -724,6 +726,9 @@ def getArgParser():
     group_igblast.add_argument('--regions', action='store', dest='regions',
                                choices=('default', 'rhesus-igl'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
+    group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
+                                 help='''Infer the junction sequence. Use with with igblast v1.6.0 or older, 
+                                 before igblast added the IMGT-CDR3 inference.''') 
     parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
 
     # igblastp output parser

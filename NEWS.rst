@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.0.2.999:  June 10, 2021
+Version 1.0.2.999:  June 16, 2021
 -------------------------------------------------------------------------------
 
 MakeDb:
@@ -12,6 +12,11 @@ MakeDb:
   IMGT/HighV-QUEST versions older that 1.8.3, they were truncated to 50 characters.
   ``--imgt-id-len`` default value is 49. Users should specify ``--imgt-id-len 50``
   to analyze IMGT results generated with IMGT/HighV-QUEST versions older that 1.8.3.
+
++ Added the ``--infer-junction`` argument to ``MakeDb igblast``, to enable the inferrence
+  of the junction sequence when not reported by IgBLAST. Should be used with data from
+  IgBLAST v1.6.0 or older; before igblast added the IMGT-CDR3 inference.
+
 
 Version 1.0.2:  January 18, 2021
 -------------------------------------------------------------------------------
