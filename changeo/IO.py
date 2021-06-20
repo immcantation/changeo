@@ -883,7 +883,8 @@ class IgBLASTReader:
 
         return fields
 
-    def __init__(self, igblast, sequences, references, asis_calls=False, regions='default', receptor=True, infer_junction=False):
+    def __init__(self, igblast, sequences, references, asis_calls=False, regions='default', receptor=True,
+                 infer_junction=False):
         """
         Initializer.
 
@@ -895,7 +896,7 @@ class IgBLASTReader:
           asis_calls (bool): if True do not parse gene calls for allele names.
           regions (str): name of the IMGT FWR/CDR region definitions to use.
           receptor (bool): if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
-          infer_junction (bool): if True, infer the junction region if not reported by IgBLAST
+          infer_junction (bool): if True, infer the junction region if not reported by IgBLAST.
 
         Returns:
           changeo.IO.IgBLASTReader

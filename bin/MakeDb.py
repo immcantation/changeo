@@ -464,7 +464,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       asis_calls (bool): if True do not parse gene calls for allele names.
       extended (bool): if True add alignment scores, FWR regions, and CDR regions to the output.
       regions (str): name of the IMGT FWR/CDR region definitions to use.
-      infer_junction (bool): if True, infer the junction sequence, if not reported by IgBLAST
+      infer_junction (bool): if True, infer the junction sequence, if not reported by IgBLAST.
       format (str): output format. one of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
@@ -727,8 +727,8 @@ def getArgParser():
                                choices=('default', 'rhesus-igl'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
     group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
-                                 help='''Infer the junction sequence. Use with with igblast v1.6.0 or older, 
-                                 before igblast added the IMGT-CDR3 inference.''') 
+                                 help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older, 
+                                 prior to the addition of IMGT-CDR3 inference.''')
     parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
 
     # igblastp output parser
@@ -815,10 +815,10 @@ def getArgParser():
                                  cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length, 
                                  p3d_length, p5j_length and d_frame.''')
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
-                        default=default_imgt_id_len,
-                        help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST. 
-                        Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older 
-                        than 1.8.3 (7 May 2021).''')    
+                            default=default_imgt_id_len,
+                            help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST. 
+                            Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older 
+                            than 1.8.3 (May 7, 2021).''')
     parser_imgt.set_defaults(func=parseIMGT)
 
     # iHMMuneAlign Aligner
