@@ -1,5 +1,5 @@
-sphinx>=2.0
-sphinx_rtd_theme>=0.4
+sphinx~=3.5
+sphinx_rtd_theme>=0.5
 PyYAML>=5.1
 sphinxcontrib-autoprogram>=0.1.2
 sphinxcontrib-bibtex==1.0.0
