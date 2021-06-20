@@ -1,4 +1,4 @@
 .. _MakeDb:
 
 .. autoprogram:: MakeDb:getArgParser()
-   :prog: MakeDb
+   :prog: MakeDb.py

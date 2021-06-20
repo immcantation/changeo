@@ -1,4 +1,4 @@
 .. _AssignGenes:
 
 .. autoprogram:: AssignGenes:getArgParser()
-   :prog: AssignGenes
+   :prog: AssignGenes.py

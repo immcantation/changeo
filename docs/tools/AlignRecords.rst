@@ -1,4 +1,4 @@
 .. _AlignRecords:
 
 .. autoprogram:: AlignRecords:getArgParser()
-   :prog: AlignRecords
+   :prog: AlignRecords.py

@@ -1,4 +1,4 @@
 .. _ConvertDb:
 
 .. autoprogram:: ConvertDb:getArgParser()
-   :prog: ConvertDb
+   :prog: ConvertDb.py
