@@ -1,11 +1,11 @@
 Release Notes
 ===============================================================================
 
-Version 1.1.0:  June 20, 2021
+Version 1.1.0:  June 21, 2021
 -------------------------------------------------------------------------------
 
 + Fixed gene parsing for IMGT temporary designation nomenclature.
-+ Updated dependencies to biopython >= v1.77 and airr >= v1.3.1.
++ Updated dependencies to biopython >= v1.77, airr >= v1.3.1, PyYAML>=5.1.
 
 MakeDb:
 
