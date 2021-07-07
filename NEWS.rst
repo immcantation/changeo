@@ -1,5 +1,16 @@
 Release Notes
 ===============================================================================
+Version 1.1.0.999
+-------------------------------------------------------------------------------
+
+CreateGermlines:
+
++ Edited readGermlines to use the first allele found when duplicate allele
+  names are provided, consistent with clean_imgtdb.py. A warning will be 
+  printed if this occurs. Only appears to affect mouse BCR light chains
+  and TCR alleles in the IMGT database, when the same allele name differs
+  by strain.
+
 
 Version 1.1.0:  June 21, 2021
 -------------------------------------------------------------------------------

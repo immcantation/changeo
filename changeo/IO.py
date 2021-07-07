@@ -2194,12 +2194,20 @@ def readGermlines(references, asis=False):
         printError('No valid germline fasta files (.fasta, .fna, .fa) were found at %s.' % ','.join(references))
 
     repo_dict = {}
+    duplicates = ""
     for file_name in repo_files:
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
                 germ_key = getAllele(g.description, 'first') if not asis else g.id
-                repo_dict[germ_key] = str(g.seq).upper()
+                if germ_key not in repo_dict:
+                    repo_dict[germ_key] = str(g.seq).upper()
+                else:
+                    duplicates = duplicates + g.description + "\n"
+
+    if len(duplicates) > 0:
+        printWarning("Duplicated germline allele names excluded from references:\n" \
+         + duplicates)
 
     return repo_dict
 
