@@ -14,6 +14,7 @@ from collections import OrderedDict
 from pkg_resources import parse_version
 from textwrap import dedent
 from time import time
+import re
 
 # Presto imports
 from presto.IO import printLog, printMessage, printError, printWarning
@@ -99,9 +100,20 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
                                   vdb=vdb, output=out_file,
                                   threads=nproc, exec=igblast_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
+    
+    # Get number of processed sequences
+    with open(os.path.basename(out_file), 'rb') as f: 
+        f.seek(-2, os.SEEK_END) 
+        while f.read(1) != b'\n': 
+            f.seek(-2, os.SEEK_CUR)  
+        pass_info = f.readline().decode()
 
+    num_seqs_match = re.search('(# BLAST processed )(\d+)( .*)', pass_info)
+    num_sequences = num_seqs_match.group(2)
+        
     # Print log
     log = OrderedDict()
+    log['PASS'] = num_sequences
     log['OUTPUT'] = os.path.basename(out_file)
     log['END'] = 'AssignGenes'
     printLog(log)
