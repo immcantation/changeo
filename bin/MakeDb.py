@@ -686,8 +686,7 @@ def getArgParser():
                                            help='Process igblastn output.',
                                            description='Process igblastn output.')
     group_igblast = parser_igblast.add_argument_group('aligner parsing arguments')
-    group_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files',
-                                required=True,
+    group_igblast.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                                 help='''IgBLAST output files in format 7 with query sequence
                                      (igblastn argument \'-outfmt "7 std qseq sseq btop"\').''')
     group_igblast.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
@@ -737,8 +736,7 @@ def getArgParser():
                                            help='Process igblastp output.',
                                            description='Process igblastp output.')
     group_igblast_aa = parser_igblast_aa.add_argument_group('aligner parsing arguments')
-    group_igblast_aa.add_argument('-i', nargs='+', action='store', dest='aligner_files',
-                                  required=True,
+    group_igblast_aa.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                                   help='''IgBLAST output files in format 7 with query sequence
                                        (igblastp argument \'-outfmt "7 std qseq sseq btop"\').''')
     group_igblast_aa.add_argument('-r', nargs='+', action='store', dest='repo', required=True,
@@ -779,7 +777,7 @@ def getArgParser():
                                         description='''Process IMGT/HighV-Quest output
                                              (does not work with V-QUEST).''')
     group_imgt = parser_imgt.add_argument_group('aligner parsing arguments')
-    group_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_files',
+    group_imgt.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                             help='''Either zipped IMGT output files (.zip or .txz) or a
                                  folder containing unzipped IMGT output files (which must
                                  include 1_Summary, 2_IMGT-gapped, 3_Nt-sequences,
