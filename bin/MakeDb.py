@@ -118,7 +118,9 @@ def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
     for rec in readSeqFile(seq_file):
         if len(rec.description) <= imgt_id_len:
             id_key = rec.description
-        else:
+        elif len(rec.description) == (1+imgt_id_len): # truncate
+            id_key = rec.description[:imgt_id_len]
+        else: # truncate and replace characters
             id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
         ids.update({id_key: rec.description})
 
