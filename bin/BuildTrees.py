@@ -1323,11 +1323,9 @@ def getArgParser():
                                help="""Optimize combination of topology (t) branch lengths (l) and parameters (r), or 
                                nothing (n), for IgPhyML.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
-                               choices = ("e", "ce", "e,e", "ce,e", "e,ce", "ce,ce"),
                                help="""Omega parameters to estimate for FWR,CDR respectively: 
                                e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
-                               choices=("e", "ce"),
                                help="""Kappa parameters to estimate: 
                                e = estimate, ce = estimate + confidence interval""")
     igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
