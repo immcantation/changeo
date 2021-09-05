@@ -103,7 +103,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
     
     # Get number of processed sequences
     if (format == 'blast'):
-        with open(os.path.basename(out_file), 'rb') as f: 
+        with open(out_file, 'rb') as f: 
             f.seek(-2, os.SEEK_END) 
             while f.read(1) != b'\n': 
                 f.seek(-2, os.SEEK_CUR)  
@@ -111,7 +111,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
         num_seqs_match = re.search('(# BLAST processed )(\d+)( .*)', pass_info)
         num_sequences = num_seqs_match.group(2)
     else:
-        f = open(os.path.basename(out_file), 'rb')
+        f = open(out_file, 'rb')
         lines = 0
         buf_size = 1024 * 1024
         read_f = f.raw.read
