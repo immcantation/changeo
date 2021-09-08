@@ -142,12 +142,15 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
         log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
     log['RECORDS'] = rec_count
     log['PARTS'] = len(handles_dict)
+
+    # Close output file handles and log file size
+    db_handle.close()
+    for i, t in enumerate(handles_dict):
+        handles_dict[t].close()
+        log['SIZE%i' % (i + 1)] = countDbFile(handles_dict[t].name)
+
     log['END'] = 'ParseDb'
     printLog(log)
-
-    # Close output file handles
-    db_handle.close()
-    for t in handles_dict: handles_dict[t].close()
 
     return [handles_dict[t].name for t in handles_dict]
 
@@ -364,7 +367,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     """
     Deletes records from a database file
 
-    Arguments: 
+    Arguments:
       db_file : the database file name.
       fields : a list of fields to check for deletion criteria.
       values : a list of values defining deletion targets.
@@ -372,8 +375,8 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
       regex : if False do exact full string matches; if True allow partial regex matches.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-                    
-    Returns: 
+
+    Returns:
       str : output file name.
     """
     # Define string match function
@@ -428,14 +431,14 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
         rec_count += 1
         # Check for deletion values in all fields
         delete = _logic_func([_match_func(rec.get(f, False), values) for f in fields])
-        
+
         # Write sequences
         if not delete:
             pass_count += 1
             pass_writer.writeDict(rec)
         else:
             fail_count += 1
-        
+
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
@@ -449,7 +452,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     # Close file handles
     pass_handle.close()
     db_handle.close()
- 
+
     return pass_handle.name
 
 
@@ -867,10 +870,10 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
+    Arguments:
     None
-                      
-    Returns: 
+
+    Returns:
     an ArgumentParser object
     """
     # Define input and output field help message
@@ -888,7 +891,7 @@ def getArgParser():
              required fields:
                  sequence_id
              ''')
-    
+
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             formatter_class=CommonHelpFormatter, add_help=False)
@@ -1027,11 +1030,11 @@ def getArgParser():
                                          description='Merges files.')
     group_merge = parser_merge.add_argument_group('parsing arguments')
     group_merge.add_argument('-o', action='store', dest='out_file', default=None,
-                              help='''Explicit output file name. Note, this argument cannot be used with 
+                              help='''Explicit output file name. Note, this argument cannot be used with
                                    the --failed, --outdir or --outname arguments.''')
     group_merge.add_argument('--drop', action='store_true', dest='drop',
                               help='''If specified, drop fields that do not exist in all input files.
-                                   Otherwise, include all columns in all files and fill missing data 
+                                   Otherwise, include all columns in all files and fill missing data
                                    with empty strings.''')
     parser_merge.set_defaults(func=mergeDbFiles)
 
@@ -1092,4 +1095,4 @@ if __name__ == '__main__':
             args_dict['out_file'] = args.__dict__['out_files'][i] \
                 if args.__dict__['out_files'] else None
             args.func(**args_dict)
- 
+
