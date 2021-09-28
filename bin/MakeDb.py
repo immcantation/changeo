@@ -118,10 +118,11 @@ def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
     for rec in readSeqFile(seq_file):
         if len(rec.description) <= imgt_id_len:
             id_key = rec.description
-        elif len(rec.description) == (1+imgt_id_len): # truncate
-            id_key = rec.description[:imgt_id_len]
         else: # truncate and replace characters
-            id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
+            if imgt_id_len == 49: # 28 September 2021 (version 1.8.4)
+                id_key = re.sub('\s|\t', '_', rec.description[:imgt_id_len])
+            else: # older versions
+                id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
         ids.update({id_key: rec.description})
 
     return ids
@@ -147,8 +148,8 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
             writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
-    
-    Arguments: 
+
+    Arguments:
       records : a iterator of Receptor objects containing alignment data.
       fields : a list of ordered field names to write.
       aligner_file : input file name.
@@ -398,7 +399,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
 
     # Get (parsed) IDs from fasta file submitted to IMGT
     id_dict = getIDforIMGT(seq_file, imgt_id_len) if seq_file else {}
-    
+
     # Load supplementary annotation table
     if cellranger_file is not None:
         f = cellranger_extended if extended else cellranger_base
@@ -440,7 +441,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
                 printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
             germ_iter = (addGermline(x, references) for x in parse_iter)
         # Write db
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
                          writer=writer, out_file=out_file, out_args=out_args)
 
@@ -537,7 +538,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     with open(aligner_file, 'r') as f:
         parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls, infer_junction=infer_junction)
         germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
                          regions=regions, writer=writer, out_file=out_file, out_args=out_args)
 
@@ -616,7 +617,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
     with open(aligner_file, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, references)
         germ_iter = (addGermline(x, references) for x in parse_iter)
-        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count, 
+        output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                         annotations=annotations, asis_id=asis_id, partial=partial,
                         writer=writer, out_file=out_file, out_args=out_args)
 
@@ -627,7 +628,7 @@ def getArgParser():
     """
     Defines the ArgumentParser.
 
-    Returns: 
+    Returns:
       argparse.ArgumentParser
     """
     fields = dedent(
@@ -639,34 +640,34 @@ def getArgParser():
                   db-fail
                       database with records that fail due to no productivity information,
                       no gene V assignment, no J assignment, or no junction region.
-                 
+
               universal output fields:
-                 sequence_id, sequence, sequence_alignment, germline_alignment, 
-                 rev_comp, productive, stop_codon, vj_in_frame, locus, 
-                 v_call, d_call, j_call, junction, junction_length, junction_aa, 
+                 sequence_id, sequence, sequence_alignment, germline_alignment,
+                 rev_comp, productive, stop_codon, vj_in_frame, locus,
+                 v_call, d_call, j_call, junction, junction_length, junction_aa,
                  v_sequence_start, v_sequence_end, v_germline_start, v_germline_end,
                  d_sequence_start, d_sequence_end, d_germline_start, d_germline_end,
                  j_sequence_start, j_sequence_end, j_germline_start, j_germline_end,
                  np1_length, np2_length, fwr1, fwr2, fwr3, fwr4, cdr1, cdr2, cdr3
 
               imgt specific output fields:
-                  n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length, 
-                  d_frame, v_score, v_identity, d_score, d_identity, j_score, j_identity 
-                               
+                  n1_length, n2_length, p3v_length, p5d_length, p3d_length, p5j_length,
+                  d_frame, v_score, v_identity, d_score, d_identity, j_score, j_identity
+
               igblast specific output fields:
-                  v_score, v_identity, v_support, v_cigar, 
-                  d_score, d_identity, d_support, d_cigar, 
+                  v_score, v_identity, v_support, v_cigar,
+                  d_score, d_identity, d_support, d_cigar,
                   j_score, j_identity, j_support, j_cigar
 
               ihmm specific output fields:
                   vdj_score
-                  
+
               10X specific output fields:
-                  cell_id, c_call, consensus_count, umi_count, 
+                  cell_id, c_call, consensus_count, umi_count,
                   v_call_10x, d_call_10x, j_call_10x,
                   junction_10x, junction_10x_aa
               ''')
-                
+
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             formatter_class=CommonHelpFormatter, add_help=False)
@@ -717,18 +718,18 @@ def getArgParser():
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-gapped sequence 
-                                     cannot be built or that is missing a V gene assignment, 
+                                     is defined as a record for which a valid IMGT-gapped sequence
+                                     cannot be built or that is missing a V gene assignment,
                                      J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--extended', action='store_true', dest='extended',
-                               help='''Specify to include additional aligner specific fields in the output. 
+                               help='''Specify to include additional aligner specific fields in the output.
                                     Adds <vdj>_score, <vdj>_identity, <vdj>_support, <vdj>_cigar,
                                     fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     group_igblast.add_argument('--regions', action='store', dest='regions',
                                choices=('default', 'rhesus-igl'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
     group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
-                                 help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older, 
+                                 help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
                                  prior to the addition of IMGT-CDR3 inference.''')
     parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
 
@@ -763,7 +764,7 @@ def getArgParser():
                                        the sequence identifiers in the reference sequence set and the IgBLAST
                                        database to be exact string matches.''')
     group_igblast_aa.add_argument('--extended', action='store_true', dest='extended',
-                                  help='''Specify to include additional aligner specific fields in the output. 
+                                  help='''Specify to include additional aligner specific fields in the output.
                                        Adds v_score, v_identity, v_support, v_cigar, fwr1, fwr2, fwr3, cdr1 and cdr2.''')
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
@@ -786,14 +787,14 @@ def getArgParser():
                                  and 6_Junction).''')
     group_imgt.add_argument('-s', nargs='*', action='store', dest='seq_files', required=False,
                             help='''List of FASTA files (with .fasta, .fna or .fa
-                                  extension) that were submitted to IMGT/HighV-QUEST. 
+                                  extension) that were submitted to IMGT/HighV-QUEST.
                                   If unspecified, sequence identifiers truncated by IMGT/HighV-QUEST
                                   will not be corrected.''')
     group_imgt.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
                             help='''List of folders and/or fasta files containing
-                                 the germline sequence set used by IMGT/HighV-QUEST. 
+                                 the germline sequence set used by IMGT/HighV-QUEST.
                                  These reference sequences must contain IMGT-numbering spacers (gaps)
-                                 in the V segment. If unspecified, the germline sequence reconstruction 
+                                 in the V segment. If unspecified, the germline sequence reconstruction
                                  will not be included in the output.''')
     group_imgt.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
                             help='''Table file containing 10X annotations (with .csv or .tsv
@@ -807,17 +808,17 @@ def getArgParser():
     group_imgt.add_argument('--partial', action='store_true', dest='partial',
                             help='''If specified, include incomplete V(D)J alignments in
                                  the pass file instead of the fail file. An incomplete alignment
-                                 is defined as a record that is missing a V gene assignment, 
+                                 is defined as a record that is missing a V gene assignment,
                                  J gene assignment, junction region, or productivity call.''')
     group_imgt.add_argument('--extended', action='store_true', dest='extended',
-                            help='''Specify to include additional aligner specific fields in the output. 
+                            help='''Specify to include additional aligner specific fields in the output.
                                  Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
-                                 cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length, 
+                                 cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length,
                                  p3d_length, p5j_length and d_frame.''')
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
                             default=default_imgt_id_len,
-                            help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST. 
-                            Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older 
+                            help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
+                            Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older
                             than 1.8.3 (May 7, 2021).''')
     parser_imgt.set_defaults(func=parseIMGT)
 
@@ -851,18 +852,18 @@ def getArgParser():
     group_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-gapped sequence 
-                                     cannot be built or that is missing a V gene assignment, 
+                                     is defined as a record for which a valid IMGT-gapped sequence
+                                     cannot be built or that is missing a V gene assignment,
                                      J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--extended', action='store_true', dest='extended',
-                             help='''Specify to include additional aligner specific fields in the output. 
+                             help='''Specify to include additional aligner specific fields in the output.
                                   Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
                                   adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     parser_ihmm.set_defaults(func=parseIHMM)
 
     return parser
-    
-    
+
+
 if __name__ == "__main__":
     """
     Parses command line arguments and calls main
@@ -881,7 +882,7 @@ if __name__ == "__main__":
     if 'seq_files' in args_dict: del args_dict['seq_files']
     if 'out_files' in args_dict: del args_dict['out_files']
     if 'command' in args_dict: del args_dict['command']
-    if 'func' in args_dict: del args_dict['func']           
+    if 'func' in args_dict: del args_dict['func']
 
     # Call main
     for i, f in enumerate(args.__dict__['aligner_files']):
