@@ -358,7 +358,8 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
 
 def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, partial=False, asis_id=True,
-              extended=False, format=default_format, out_file=None, out_args=default_out_args, imgt_id_len=default_imgt_id_len):
+              extended=False, format=default_format, out_file=None, out_args=default_out_args,
+              imgt_id_len=default_imgt_id_len):
     """
     Main for IMGT aligned sample sequences.
 

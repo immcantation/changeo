@@ -1,15 +1,36 @@
 Release Notes
 ===============================================================================
-Version 1.1.0.999
+
+Version 1.1.0.999:  October 25, 2021
 -------------------------------------------------------------------------------
+
+AssignGenes:
+
++ Fixed reporting of IgBLAST output counts when specifying ``--format airr``.
+
+BuildTrees:
+
++ Added support for specifying fixed omega and hotness parameters at the
+  commandline.
 
 CreateGermlines:
 
-+ Edited readGermlines to use the first allele found when duplicate allele
-  names are provided, consistent with clean_imgtdb.py. A warning will be 
-  printed if this occurs. Only appears to affect mouse BCR light chains
-  and TCR alleles in the IMGT database, when the same allele name differs
-  by strain.
++ Will now use the first allele in the reference database when duplicate allele
+  names are provided. A warning will be printed if this occurs. Only appears
+  to affect mouse BCR light chains and TCR alleles in the IMGT database, when
+  the same allele name differs by strain.
+
+MakeDb:
+
++ Added support for changes in how IMGT/HighV-QUEST v1.8.4 handles special
+  characters in sequence identifiers.
++ Fixed the ``imgt`` subcommand permitting execution without specifying the
+  IMGT/HighV-QUEST output file at the commandline.
+
+ParseDb:
+
++ Added reporting of output file sizes to the console log of the ``split``
+  subcommand.
 
 
 Version 1.1.0:  June 21, 2021
@@ -19,13 +40,12 @@ Version 1.1.0:  June 21, 2021
 + Updated dependencies to biopython >= v1.77, airr >= v1.3.1, PyYAML>=5.1.
 
 MakeDb:
-
 + Added the ``--imgt-id-len`` argument to accommodate changes introduced in how
-  IMGT/HighV-QUEST truncates sequence identifiers as of version 1.8.3 (May 7, 2021).
+  IMGT/HighV-QUEST truncates sequence identifiers as of v1.8.3 (May 7, 2021).
   The header lines in the fasta files are now truncated to 49 characters. In
-  IMGT/HighV-QUEST versions older that 1.8.3, they were truncated to 50 characters.
+  IMGT/HighV-QUEST versions older than v1.8.3, they were truncated to 50 characters.
   ``--imgt-id-len`` default value is 49. Users should specify ``--imgt-id-len 50``
-  to analyze IMGT results generated with IMGT/HighV-QUEST versions older that 1.8.3.
+  to analyze IMGT results generated with IMGT/HighV-QUEST versions older than v1.8.3.
 + Added the ``--infer-junction`` argument to ``MakeDb igblast``, to enable the inference
   of the junction sequence when not reported by IgBLAST. Should be used with data from
   IgBLAST v1.6.0 or older; before igblast added the IMGT-CDR3 inference.
