@@ -13,11 +13,12 @@ import yaml
 import zipfile
 from itertools import chain, groupby, zip_longest
 from tempfile import TemporaryDirectory
+from textwrap import indent
 from Bio import SeqIO
 from Bio.Seq import Seq
 
 # Presto and changeo imports
-from presto.IO import getFileType, printError, printWarning
+from presto.IO import getFileType, printError, printWarning, printDebug
 from changeo.Defaults import default_csv_size
 from changeo.Gene import getAllele, getLocus, getVAllele, getDAllele, getJAllele
 from changeo.Receptor import AIRRSchema, AIRRSchemaAA, ChangeoSchema, ChangeoSchemaAA, Receptor, ReceptorData
@@ -2167,13 +2168,14 @@ class IHMMuneReader:
             return db
 
 
-def readGermlines(references, asis=False):
+def readGermlines(references, asis=False, warn=False):
     """
     Parses germline repositories
 
     Arguments:
       references (list): list of strings specifying directories and/or files from which to read germline records.
       asis (bool): if True use sequence ID as record name and do not parse headers for allele names.
+      warn (bool): print warning messages to standard error if True.
 
     Returns:
       dict: Dictionary of germlines in the form {allele: sequence}.
@@ -2194,7 +2196,7 @@ def readGermlines(references, asis=False):
         printError('No valid germline fasta files (.fasta, .fna, .fa) were found at %s.' % ','.join(references))
 
     repo_dict = {}
-    duplicates = ""
+    duplicates = []
     for file_name in repo_files:
         with open(file_name, 'rU') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
@@ -2203,11 +2205,11 @@ def readGermlines(references, asis=False):
                 if germ_key not in repo_dict:
                     repo_dict[germ_key] = str(g.seq).upper()
                 else:
-                    duplicates = duplicates + g.description + "\n"
+                    duplicates.append(g.description)
 
-    if len(duplicates) > 0:
-        printWarning("Duplicated germline allele names excluded from references:\n" \
-         + duplicates)
+    if warn and len(duplicates) > 0:
+        w = indent('\n'.join(duplicates), ' '*9)
+        printWarning('Duplicated germline allele names excluded from references:\n%s' % w)
 
     return repo_dict
 

@@ -16,9 +16,8 @@ BuildTrees:
 CreateGermlines:
 
 + Will now use the first allele in the reference database when duplicate allele
-  names are provided. A warning will be printed if this occurs. Only appears
-  to affect mouse BCR light chains and TCR alleles in the IMGT database, when
-  the same allele name differs by strain.
+  names are provided. Only appears to affect mouse BCR light chains and TCR
+  alleles in the IMGT database, when the same allele name differs by strain.
 
 MakeDb:
 
