@@ -999,7 +999,7 @@ def runIgPhyML(outfile, igphyml_out, clone_dir, nproc=1, optimization="lr", omeg
         if oformat == "tab":
             os.rmdir(clone_dir)
         else:
-            printWarning("Using --clean all with --oformat txt will delete all tree file results.\n"
+            printWarning("Using --clean all with --oformat txt will not delete all tree file results.\n"
                          "You'll have to do that yourself.")
         log = OrderedDict()
         log["END"] = "IgPhyML analysis"
