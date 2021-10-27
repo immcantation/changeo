@@ -1324,16 +1324,16 @@ def getArgParser():
                                nothing (n), for IgPhyML.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
                                help="""Omega parameters to estimate for FWR,CDR respectively: 
-                               e = estimate, ce = estimate + confidence interval""")
+                               e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
                                help="""Kappa parameters to estimate: 
-                               e = estimate, ce = estimate + confidence interval""")
+                               e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
                                default="WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5",
                                help="""Which motifs to estimate mutability.""")
     igphyml_group.add_argument("--hotness", action="store", dest="hotness", type=str, default="e,e,e,e,e,e",
                                help="""Mutability parameters to estimate: 
-                               e = estimate, ce = estimate + confidence interval""")
+                               e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="tab",
                                choices=("tab", "txt"),
                                help="""IgPhyML output format.""")
