@@ -54,7 +54,6 @@
     :maxdepth: 1
     :caption: About
 
-    news
     info
 
 Indices
