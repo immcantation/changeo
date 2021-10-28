@@ -24,7 +24,7 @@ The minimum dependencies for installation are:
 + `SciPy 0.14 <http://scipy.org>`__
 + `pandas 0.24 <http://pandas.pydata.org>`__
 + `Biopython 1.77 <http://biopython.org>`__
-+ `presto 0.6.2 <http://presto.readthedocs.io>`__
++ `presto 0.7.0 <http://presto.readthedocs.io>`__
 + `airr 1.3.1 <https://docs.airr-community.org>`__
 
 Some tools wrap external applications that are not required for installation.
