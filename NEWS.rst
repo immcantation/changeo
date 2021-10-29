@@ -4,6 +4,8 @@ Release Notes
 Version 1.2.0:  October 28, 2021
 -------------------------------------------------------------------------------
 
++ Updated dependencies to presto >= v0.7.0.
+
 AssignGenes:
 
 + Fixed reporting of IgBLAST output counts when specifying ``--format airr``.
@@ -15,16 +17,17 @@ BuildTrees:
 
 CreateGermlines:
 
-+ Will now use the first allele in the reference database when duplicate allele
-  names are provided. Only appears to affect mouse BCR light chains and TCR
-  alleles in the IMGT database, when the same allele name differs by strain.
++ Will now use the first allele in the reference database when duplicate
+  allele names are provided. Only appears to affect mouse BCR light chains
+  and TCR alleles in the IMGT database, when the same allele name differs by
+  strain.
 
 MakeDb:
 
 + Added support for changes in how IMGT/HighV-QUEST v1.8.4 handles special
   characters in sequence identifiers.
-+ Fixed the ``imgt`` subcommand permitting execution without specifying the
-  IMGT/HighV-QUEST output file at the commandline.
++ Fixed the ``imgt`` subcommand incorrectly allowing execution without
+  specifying the IMGT/HighV-QUEST output file at the commandline.
 
 ParseDb:
 
