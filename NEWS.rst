@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.2.0:  October 28, 2021
+Version 1.2.0:  October 29, 2021
 -------------------------------------------------------------------------------
 
 + Updated dependencies to presto >= v0.7.0.
@@ -19,7 +19,7 @@ CreateGermlines:
 
 + Will now use the first allele in the reference database when duplicate
   allele names are provided. Only appears to affect mouse BCR light chains
-  and TCR alleles in the IMGT database, when the same allele name differs by
+  and TCR alleles in the IMGT database when the same allele name differs by
   strain.
 
 MakeDb:
