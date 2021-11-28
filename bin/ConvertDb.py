@@ -24,12 +24,11 @@ from Bio.SeqRecord import SeqRecord
 # Presto and changeo imports
 from presto.Annotation import flattenAnnotation
 from presto.IO import printLog, printMessage, printProgress, printError, printWarning
-from changeo.Alignment import gapV
 from changeo.Applications import default_tbl2asn_exec, runASN
 from changeo.Defaults import default_id_field, default_seq_field, default_germ_field, \
                              default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.Gene import getCGene, buildGermline
+from changeo.Gene import getCGene
 from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
                        ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, \
                        checkFields, yamlDict
@@ -73,152 +72,6 @@ def buildSeqRecord(db_record, id_field, seq_field, meta_fields=None):
                            id=desc_str, name=desc_str, description='')
         
     return seq_record
-
-
-def correctIMGTFields(receptor, references):
-    """
-    Add IMGT-gaps to IMGT fields in a Receptor object
-
-    Arguments:
-      receptor (changeo.Receptor.Receptor): Receptor object to modify.
-      references (dict): dictionary of IMGT-gapped references sequences.
-
-    Returns:
-      changeo.Receptor.Receptor: modified Receptor with IMGT-gapped fields.
-    """
-    # Initialize update object
-    imgt_dict = {'sequence_imgt': None,
-                 'v_germ_start_imgt': None,
-                 'v_germ_length_imgt': None,
-                 'germline_imgt': None}
-
-    try:
-        if not all([receptor.sequence_imgt,
-                    receptor.v_germ_start_imgt,
-                    receptor.v_germ_length_imgt,
-                    receptor.v_call]):
-            raise AttributeError
-    except AttributeError:
-        return None
-
-    # Update IMGT fields
-    try:
-        gapped = gapV(receptor.sequence_imgt,
-                      receptor.v_germ_start_imgt,
-                      receptor.v_germ_length_imgt,
-                      receptor.v_call,
-                      references)
-    except KeyError as e:
-        printWarning(e)
-        return None
-
-    # Verify IMGT-gapped sequence and junction concur
-    try:
-        check = (receptor.junction == gapped['sequence_imgt'][309:(309 + receptor.junction_length)])
-    except TypeError:
-        check = False
-    if not check:
-        return None
-
-    # Rebuild germline sequence
-    __, germlines, __ = buildGermline(receptor, references)
-    if germlines is None:
-        return None
-    else:
-        gapped['germline_imgt'] = germlines['full']
-
-    # Update return object
-    imgt_dict.update(gapped)
-
-    return imgt_dict
-
-
-def insertGaps(db_file, references=None, format=default_format,
-               out_file=None, out_args=default_out_args):
-    """
-    Inserts IMGT numbering into V fields
-
-    Arguments:
-      db_file : the database file name.
-      references : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
-      format : input format.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
-
-    Returns:
-     str : output file name
-    """
-    log = OrderedDict()
-    log['START'] = 'ConvertDb'
-    log['COMMAND'] = 'imgt'
-    log['FILE'] = os.path.basename(db_file)
-    printLog(log)
-
-    # Define format operators
-    try:
-        reader, writer, schema = getFormatOperators(format)
-    except ValueError:
-        printError('Invalid format %s.' % format)
-
-    # Open input
-    db_handle = open(db_file, 'rt')
-    db_iter = reader(db_handle)
-
-    # Check for required columns
-    try:
-        required = ['sequence_imgt', 'v_germ_start_imgt']
-        checkFields(required, db_iter.fields, schema=schema)
-    except LookupError as e:
-        printError(e)
-
-    # Load references
-    reference_dict = readGermlines(references)
-
-    # Check for IMGT-gaps in germlines
-    if all('...' not in x for x in reference_dict.values()):
-        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
-
-    # Open output writer
-    if out_file is not None:
-        pass_handle = open(out_file, 'w')
-    else:
-        pass_handle = getOutputHandle(db_file, out_label='gap', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=schema.out_type)
-    pass_writer = writer(pass_handle, fields=db_iter.fields)
-
-    # Count records
-    result_count = countDbFile(db_file)
-
-    # Iterate over records
-    start_time = time()
-    rec_count = pass_count = 0
-    for rec in db_iter:
-        # Print progress for previous iteration
-        printProgress(rec_count, result_count, 0.05, start_time=start_time)
-        rec_count += 1
-        # Update IMGT fields
-        imgt_dict = correctIMGTFields(rec, reference_dict)
-        # Write records
-        if imgt_dict is not None:
-            pass_count += 1
-            rec.setDict(imgt_dict, parse=False)
-            pass_writer.writeReceptor(rec)
-
-    # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time=start_time)
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['RECORDS'] = rec_count
-    log['PASS'] = pass_count
-    log['FAIL'] = rec_count - pass_count
-    log['END'] = 'ConvertDb'
-    printLog(log)
-
-    # Close file handles
-    pass_handle.close()
-    db_handle.close()
-
-    return pass_handle.name
 
 
 def convertToAIRR(db_file, format=default_format,
@@ -989,25 +842,6 @@ def getArgParser():
                                        help='Converts input into a Change-O TSV file.',
                                        description='Converts input into a Change-O TSV file.')
     parser_changeo.set_defaults(func=convertToChangeo)
-
-    # Subparser to insert IMGT-gaps
-    # desc_gap = dedent('''
-    #                   Inserts IMGT numbering spacers into the observed sequence
-    #                   (SEQUENCE_IMGT, sequence_alignment) and rebuilds the germline sequence
-    #                   (GERMLINE_IMGT, germline_alignment) if present. Also adjusts the values
-    #                   in the V germline coordinate fields (V_GERM_START_IMGT, V_GERM_LENGTH_IMGT;
-    #                   v_germline_end, v_germline_start), which are required.
-    #                   ''')
-    # parser_gap = subparsers.add_parser('gap', parents=[format_parent],
-    #                                     formatter_class=CommonHelpFormatter, add_help=False,
-    #                                     help='Inserts IMGT numbering spacers into the V region.',
-    #                                     description=desc_gap)
-    # group_gap = parser_gap.add_argument_group('conversion arguments')
-    # group_gap.add_argument('-r', nargs='+', action='store', dest='references', required=False,
-    #                         help='''List of folders and/or fasta files containing
-    #                                 IMGT-gapped germline sequences corresponding to the
-    #                                 set of germlines used for the alignment.''')
-    # parser_gap.set_defaults(func=insertGaps)
 
     # Subparser to convert database entries to sequence file
     parser_fasta = subparsers.add_parser('fasta', parents=[default_parent],

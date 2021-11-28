@@ -22,10 +22,11 @@ from presto.Annotation import parseAnnotation
 from presto.IO import countSeqFile, printLog, printMessage, printProgress, printError, printWarning, readSeqFile
 from changeo.Defaults import default_format, default_out_args, default_imgt_id_len
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.Alignment import RegionDefinition
+from changeo.Alignment import RegionDefinition, gapV
 from changeo.Gene import buildGermline
 from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTReaderAA, IMGTReader, IHMMuneReader
+                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTReaderAA, IMGTReader, IHMMuneReader, \
+                       checkFields
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # 10X Receptor attributes
@@ -126,6 +127,64 @@ def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
         ids.update({id_key: rec.description})
 
     return ids
+
+
+def correctIMGTFields(receptor, references):
+    """
+    Add IMGT-numbering to IMGT fields in a Receptor object
+
+    Arguments:
+      receptor (changeo.Receptor.Receptor): Receptor object to modify.
+      references (dict): dictionary of IMGT-gapped references sequences.
+
+    Returns:
+      changeo.Receptor.Receptor: modified Receptor with IMGT-gapped fields.
+    """
+    # Initialize update object
+    imgt_dict = {'sequence_imgt': None,
+                 'v_germ_start_imgt': None,
+                 'v_germ_length_imgt': None,
+                 'germline_imgt': None}
+
+    try:
+        if not all([receptor.sequence_imgt,
+                    receptor.v_germ_start_imgt,
+                    receptor.v_germ_length_imgt,
+                    receptor.v_call]):
+            raise AttributeError
+    except AttributeError:
+        return None
+
+    # Update IMGT fields
+    try:
+        gapped = gapV(receptor.sequence_imgt,
+                      receptor.v_germ_start_imgt,
+                      receptor.v_germ_length_imgt,
+                      receptor.v_call,
+                      references)
+    except KeyError as e:
+        printWarning(e)
+        return None
+
+    # Verify IMGT-gapped sequence and junction concur
+    try:
+        check = (receptor.junction == gapped['sequence_imgt'][309:(309 + receptor.junction_length)])
+    except TypeError:
+        check = False
+    if not check:
+        return None
+
+    # Rebuild germline sequence
+    __, germlines, __ = buildGermline(receptor, references)
+    if germlines is None:
+        return None
+    else:
+        gapped['germline_imgt'] = germlines['full']
+
+    # Update return object
+    imgt_dict.update(gapped)
+
+    return imgt_dict
 
 
 def getSeqDict(seq_file):
@@ -625,6 +684,100 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
     return output
 
 
+
+def parseAIRR(aligner_file, repo=None, format=default_format,
+               out_file=None, out_args=default_out_args):
+    """
+    Inserts IMGT numbering into V fields
+
+    Arguments:
+      aligner_file : AIRR Rearrangement file from the alignment tool.
+      repo : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
+      format : output format.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
+
+    Returns:
+     str : output file name
+    """
+    log = OrderedDict()
+    log['START'] = 'MakeDb'
+    log['COMMAND'] = 'airr'
+    log['ALIGNER_FILE'] = os.path.basename(aligner_file)
+    printLog(log)
+
+    # Define format operators
+    try:
+        reader, writer, schema = getFormatOperators(format)
+    except ValueError:
+        printError('Invalid format %s.' % format)
+
+    # Open input
+    db_handle = open(aligner_file, 'rt')
+    db_iter = reader(db_handle)
+
+    # Check for required columns
+    try:
+        required = ['sequence_imgt', 'v_germ_start_imgt']
+        checkFields(required, db_iter.fields, schema=schema)
+    except LookupError as e:
+        printError(e)
+
+    # Load references
+    reference_dict = readGermlines(repo)
+
+    # Check for IMGT-gaps in germlines
+    if all('...' not in x for x in reference_dict.values()):
+        printWarning('Germline reference sequences do not appear to contain IMGT-numbering spacers. Results may be incorrect.')
+
+    # Open output writer
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(aligner_file, out_label='db-pass', out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'], out_type=schema.out_type)
+    pass_writer = writer(pass_handle, fields=db_iter.fields)
+
+    # Count records
+    result_count = countDbFile(aligner_file)
+
+    # Iterate over records
+    start_time = time()
+    rec_count = pass_count = 0
+    for rec in db_iter:
+        # Print progress for previous iteration
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
+        rec_count += 1
+        # Update IMGT fields
+        imgt_dict = correctIMGTFields(rec, reference_dict)
+        # Write records
+        if imgt_dict is not None:
+            pass_count += 1
+            rec.setDict(imgt_dict, parse=False)
+            pass_writer.writeReceptor(rec)
+
+    # Write db
+    # output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
+    #                  annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
+    #                  writer=writer, out_file=out_file, out_args=out_args)
+
+    # Print counts
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['RECORDS'] = rec_count
+    log['PASS'] = pass_count
+    log['FAIL'] = rec_count - pass_count
+    log['END'] = 'MakeDb'
+    printLog(log)
+
+    # Close file handles
+    pass_handle.close()
+    db_handle.close()
+
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser.
@@ -702,7 +855,7 @@ def getArgParser():
                                 required=True,
                                 help='''List of input FASTA files (with .fasta, .fna or .fa
                                      extension), containing sequences.''')
-    group_igblast.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
+    group_igblast.add_argument('--10x', action='store', nargs='+', dest='cellranger_files',
                                 help='''Table file containing 10X annotations (with .csv or .tsv
                                      extension).''')
     group_igblast.add_argument('--asis-id', action='store_true', dest='asis_id',
@@ -719,7 +872,7 @@ def getArgParser():
     group_igblast.add_argument('--partial', action='store_true', dest='partial',
                                 help='''If specified, include incomplete V(D)J alignments in
                                      the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-gapped sequence
+                                     is defined as a record for which a valid IMGT-numbered sequence
                                      cannot be built or that is missing a V gene assignment,
                                      J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--extended', action='store_true', dest='extended',
@@ -751,7 +904,7 @@ def getArgParser():
     group_igblast_aa.add_argument('-s', action='store', nargs='+', dest='seq_files', required=True,
                                   help='''List of input FASTA files (with .fasta, .fna or .fa
                                        extension), containing sequences.''')
-    group_igblast_aa.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
+    group_igblast_aa.add_argument('--10x', action='store', nargs='+', dest='cellranger_files',
                                   help='''Table file containing 10X annotations (with .csv or .tsv extension).''')
     group_igblast_aa.add_argument('--asis-id', action='store_true', dest='asis_id',
                                   help='''Specify to prevent input sequence headers from being parsed
@@ -797,7 +950,7 @@ def getArgParser():
                                  These reference sequences must contain IMGT-numbering spacers (gaps)
                                  in the V segment. If unspecified, the germline sequence reconstruction
                                  will not be included in the output.''')
-    group_imgt.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
+    group_imgt.add_argument('--10x', action='store', nargs='+', dest='cellranger_files',
                             help='''Table file containing 10X annotations (with .csv or .tsv
                                  extension).''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
@@ -841,7 +994,7 @@ def getArgParser():
                              required=True,
                              help='''List of input FASTA files (with .fasta, .fna or .fa
                                   extension) containing sequences.''')
-    group_ihmm.add_argument('--10x', action='store', nargs='+', dest='cellranger_file',
+    group_ihmm.add_argument('--10x', action='store', nargs='+', dest='cellranger_files',
                                 help='''Table file containing 10X annotations (with .csv or .tsv
                                      extension).''')
     group_ihmm.add_argument('--asis-id', action='store_true', dest='asis_id',
@@ -853,7 +1006,7 @@ def getArgParser():
     group_ihmm.add_argument('--partial', action='store_true', dest='partial',
                              help='''If specified, include incomplete V(D)J alignments in
                                   the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-gapped sequence
+                                     is defined as a record for which a valid IMGT-numbered sequence
                                      cannot be built or that is missing a V gene assignment,
                                      J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--extended', action='store_true', dest='extended',
@@ -861,6 +1014,25 @@ def getArgParser():
                                   Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
                                   adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     parser_ihmm.set_defaults(func=parseIHMM)
+
+    # Subparser to normalize AIRR file with IMGT-numbering
+    desc_airr = dedent('''
+                      Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
+                      in germline_alignment, and adjusts the values in the coordinate fields v_germline_start 
+                      and v_germline_end accordingly.
+                      ''')
+    parser_airr = subparsers.add_parser('airr', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Standardize an AIRR Rearrangement TSV.',
+                                        description=desc_airr)
+    group_airr = parser_airr.add_argument_group('aligner parsing arguments')
+    group_airr.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
+                            help='''AIRR Rearrangement TSV files.''')
+    group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+                            help='''List of folders and/or fasta files containing
+                                    IMGT-numbered germline sequences corresponding to the
+                                    set of germlines used for the alignment.''')
+    parser_airr.set_defaults(func=parseAIRR)
 
     return parser
 
@@ -881,6 +1053,7 @@ if __name__ == "__main__":
     # Delete
     if 'aligner_files' in args_dict: del args_dict['aligner_files']
     if 'seq_files' in args_dict: del args_dict['seq_files']
+    if 'cellranger_files' in args_dict: del args_dict['cellranger_files']
     if 'out_files' in args_dict: del args_dict['out_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']
@@ -888,10 +1061,12 @@ if __name__ == "__main__":
     # Call main
     for i, f in enumerate(args.__dict__['aligner_files']):
         args_dict['aligner_file'] = f
-        args_dict['seq_file'] = args.__dict__['seq_files'][i] \
-                                if args.__dict__['seq_files'] else None
         args_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
-        args_dict['cellranger_file'] = args.__dict__['cellranger_file'][i] \
-                                if args.__dict__['cellranger_file'] else None
+        if 'seq_files' in args.__dict__:
+            args_dict['seq_file'] = args.__dict__['seq_files'][i] \
+                                    if args.__dict__['seq_files'] else None
+        if 'cellranger_files' in args.__dict__:
+            args_dict['cellranger_file'] = args.__dict__['cellranger_files'][i] \
+                                           if args.__dict__['cellranger_files'] else None
         args.func(**args_dict)
