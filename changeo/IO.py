@@ -20,7 +20,7 @@ from Bio.Seq import Seq
 # Presto and changeo imports
 from presto.IO import getFileType, printError, printWarning, printDebug
 from changeo.Defaults import default_csv_size
-from changeo.Gene import getAllele, getLocus, getVAllele, getDAllele, getJAllele
+from changeo.Gene import getAllele, getLocus, getVAllele, getDAllele, getJAllele, getCAllele
 from changeo.Receptor import AIRRSchema, AIRRSchemaAA, ChangeoSchema, ChangeoSchemaAA, Receptor, ReceptorData
 from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, inferJunction, \
                               RegionDefinition, getRegions
@@ -943,6 +943,7 @@ class IgBLASTReader:
         summary_map = {'Top V gene match': 'v_match',
                        'Top D gene match': 'd_match',
                        'Top J gene match': 'j_match',
+                       'Top C gene match': 'c_match',
                        'Chain type': 'chain_type',
                        'stop codon': 'stop_codon',
                        'V-J frame': 'vj_frame',
@@ -1041,13 +1042,16 @@ class IgBLASTReader:
             v_call = getVAllele(summary['v_match'], action='list')
             d_call = getDAllele(summary['d_match'], action='list')
             j_call = getJAllele(summary['j_match'], action='list')
+            c_call = getCAllele(summary['c_match'], action='list')
             result['v_call'] = ','.join(v_call) if v_call else None
             result['d_call'] = ','.join(d_call) if d_call else None
             result['j_call'] = ','.join(j_call) if j_call else None
+            result['c_call'] = ','.join(c_call) if c_call else None
         else:
             result['v_call'] = None if summary['v_match'] == 'N/A' else summary['v_match']
             result['d_call'] = None if summary['d_match'] == 'N/A' else summary['d_match']
             result['j_call'] = None if summary['j_match'] == 'N/A' else summary['j_match']
+            result['c_call'] = None if summary['c_match'] == 'N/A' else summary['c_match']
 
         # Parse locus
         locus = None if summary['chain_type'] == 'N/A' else summary['chain_type']

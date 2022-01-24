@@ -798,7 +798,7 @@ def getArgParser():
               universal output fields:
                  sequence_id, sequence, sequence_alignment, germline_alignment,
                  rev_comp, productive, stop_codon, vj_in_frame, locus,
-                 v_call, d_call, j_call, junction, junction_length, junction_aa,
+                 v_call, d_call, j_call, c_call, junction, junction_length, junction_aa,
                  v_sequence_start, v_sequence_end, v_germline_start, v_germline_end,
                  d_sequence_start, d_sequence_end, d_germline_start, d_germline_end,
                  j_sequence_start, j_sequence_end, j_germline_start, j_germline_end,
@@ -816,8 +816,8 @@ def getArgParser():
               ihmm specific output fields:
                   vdj_score
 
-              10X specific output fields:
-                  cell_id, c_call, consensus_count, umi_count,
+              10x specific output fields:
+                  cell_id, consensus_count, umi_count,
                   v_call_10x, d_call_10x, j_call_10x,
                   junction_10x, junction_10x_aa
               ''')
