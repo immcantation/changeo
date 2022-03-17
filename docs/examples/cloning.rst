@@ -60,3 +60,9 @@ selected with the previously determined threshold :option:`--dist 0.16 <DefineCl
 
     DefineClones.py -d HD13M_db-pass.tsv --act set --model ham \
         --norm len --dist 0.16
+
+.. note::
+
+     Because T cells don't undergo SHM, non-zero nucleotide distances suggest sequences 
+     orginate from a different ancestor. To identify TCR clones, use `--dist 0` or a 
+     very low distance value to allow for sequencing error.
