@@ -294,6 +294,7 @@ class AIRRReader(TSVReader):
 
         # Assign length based on start and end
         for end, (start, length) in ReceptorData.end_fields.items():
+            #print(length + "\t" + start + "\t" + end)
             if end in result and result[end] is not None:
                 result[length] = int(result[end]) - int(result[start]) + 1
 
