@@ -15,6 +15,8 @@ from pkg_resources import parse_version
 from textwrap import dedent
 from time import time
 import re
+import Bio
+from Bio import SeqIO
 
 # Presto imports
 from presto.IO import printLog, printMessage, printError, printWarning
@@ -87,6 +89,24 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
     if out_file is None:
         out_file = getOutputName(seq_file, out_label='igblast', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=out_type)
+
+    # convert to FASTA if needed
+    infile = open(seq_file, 'r')
+    test = infile.read()[0]
+    if test == "@":
+        printMessage("Running conversion from FASTQ to FASTA")
+        out_file = os.path.split(seq_file)[1]
+        out_file = '%s.fasta' % os.path.splitext(out_file)[0]
+        with open(out_file, "w") as out_handle:
+            records = SeqIO.parse(seq_file, 'fastq')
+            if parse_version(Bio.__version__) >= parse_version('1.71'):
+                # Biopython >= v1.71
+                SeqIO.write(records, out_handle, format='fasta-2line')
+            else:
+                # Biopython < v1.71
+                writer = SeqIO.FastaIO.FastaWriter(out_handle, wrap=None)
+                writer.write_file(records)
+        seq_file = out_file
 
     # Run IgBLAST clustering
     start_time = time()
