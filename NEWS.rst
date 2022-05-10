@@ -1,6 +1,14 @@
 Release Notes
 ===============================================================================
 
+Version 1.2.0.999:  May 10, 2022
+-------------------------------------------------------------------------------
+
+AssignGenes:
+
++ Added support for ``.fastq`` files. If ``-s`` is a ``.fastq`` file, a ``.fasta``
+  version will be created in ``--outdir``.
+
 Version 1.2.0:  October 29, 2021
 -------------------------------------------------------------------------------
 
@@ -184,12 +192,12 @@ CreateGermlines:
 
 DefineClones:
 
-+ Fixed a bug that caused a missing junction column to cluster sequences 
++ Fixed a bug that caused a missing junction column to cluster sequences
   together.
 
 MakeDb:
 
-+ Fixed a bug that caused failed germline reconstructions to be recorded as 
++ Fixed a bug that caused failed germline reconstructions to be recorded as
   ``None``, rather than an empty string, in the ``GERMLINE_IMGT`` column.
 
 
@@ -507,7 +515,7 @@ MakeDb:
   reading frame. This provides the following additional output fields:
   ``D_FRAME``, ``N1_LENGTH``, ``N2_LENGTH``, ``P3V_LENGTH``, ``P5D_LENGTH``,
   ``P3D_LENGTH``, ``P5J_LENGTH``.
-+ The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate 
++ The fields ``N1_LENGTH`` and ``N2_LENGTH`` have been renamed to accommodate
   adding additional output from IMGT under the ``--junction`` flag. The new
   names are ``NP1_LENGTH`` and ``NP2_LENGTH``.
 + Fixed a bug that caused the ``IN_FRAME``, ``MUTATED_INVARIANT`` and
@@ -538,9 +546,9 @@ CreateGermlines:
 
 MakeDb:
 
-+ Updated igblast subcommand to correctly parse records with indels. Now 
++ Updated igblast subcommand to correctly parse records with indels. Now
   igblast must be run with the argument ``outfmt "7 std qseq sseq btop"``.
-+ Changed the names of the FWR and CDR output columns added with 
++ Changed the names of the FWR and CDR output columns added with
   ``--regions`` to ``<region>_IMGT``.
 + Added ``V_BTOP`` and ``J_BTOP`` output when the ``--scores`` flag is
   specified to the igblast subcommand.
@@ -551,14 +559,14 @@ Version 0.3.1:  December 18, 2015
 
 MakeDb:
 
-+ Fixed bug wherein the imgt subcommand was not properly recognizing an 
++ Fixed bug wherein the imgt subcommand was not properly recognizing an
   extracted folder as input to the ``-i`` argument.
 
 
 Version 0.3.0:  December 4, 2015
 -------------------------------------------------------------------------------
 
-Conversion to a proper Python package which uses pip and setuptools for 
+Conversion to a proper Python package which uses pip and setuptools for
 installation.
 
 The package now requires Python 3.4. Python 2.7 is not longer supported.
@@ -577,7 +585,7 @@ IgCore:
 
 AnalyzeAa:
 
-+ This tool was removed. This functionality has been migrated to the alakazam 
++ This tool was removed. This functionality has been migrated to the alakazam
   R package.
 
 DefineClones:
@@ -585,13 +593,13 @@ DefineClones:
 + Added ``--sf`` flag to specify sequence field to be used to calculate
   distance between sequences.
 + Fixed bug in wherein sequences with missing data in grouping columns
-  were being assigned into a single group and clustered. Sequences with 
+  were being assigned into a single group and clustered. Sequences with
   missing grouping variables will now be failed.
 + Fixed bug where sequences with "None" junctions were grouped together.
-  
+
 GapRecords:
 
-+ This tool was removed in favor of adding IMGT gapping support to igblast 
++ This tool was removed in favor of adding IMGT gapping support to igblast
   subcommand of MakeDb.
 
 MakeDb:
@@ -600,7 +608,7 @@ MakeDb:
   junction region as defined by IMGT.
 + Added the ``--regions`` flag which adds extra columns containing FWR and CDR
   regions as defined by IMGT.
-+ Added support to imgt subcommand for the new IMGT/HighV-QUEST compression 
++ Added support to imgt subcommand for the new IMGT/HighV-QUEST compression
   scheme (.txz files).
 
 
@@ -609,11 +617,11 @@ Version 0.2.5:  August 25, 2015
 
 CreateGermlines:
 
-+ Removed default '-r' repository and added informative error messages when 
++ Removed default '-r' repository and added informative error messages when
   invalid germline repositories are provided.
 + Updated '-r' flag to take list of folders and/or fasta files with germlines.
-  
-  
+
+
 Version 0.2.4:  August 19, 2015
 -------------------------------------------------------------------------------
 
@@ -624,46 +632,46 @@ MakeDb:
 
 ParseDb:
 
-+ Fixed a bug wherein specifying the ``-f`` argument to the index subcommand 
++ Fixed a bug wherein specifying the ``-f`` argument to the index subcommand
   would cause an error.
-  
+
 
 Version 0.2.3:  July 22, 2015
 -------------------------------------------------------------------------------
 
 DefineClones:
 
-+ Fixed a typo in the default normalization setting of the bygroup subcommand, 
++ Fixed a typo in the default normalization setting of the bygroup subcommand,
   which was being interpreted as 'none' rather than 'len'.
-+ Changed the 'hs5f' model of the bygroup subcommand to be centered -log10 of 
++ Changed the 'hs5f' model of the bygroup subcommand to be centered -log10 of
   the targeting probability.
-+ Added the ``--sym`` argument to the bygroup subcommand which determines how 
++ Added the ``--sym`` argument to the bygroup subcommand which determines how
   asymmetric distances are handled.
-   
+
 
 Version 0.2.2:  July 8, 2015
 -------------------------------------------------------------------------------
 
 CreateGermlines:
 
-+ Germline creation now works for IgBLAST output parsed with MakeDb. The 
-  argument ``--sf SEQUENCE_VDJ`` must be provided to generate germlines from 
++ Germline creation now works for IgBLAST output parsed with MakeDb. The
+  argument ``--sf SEQUENCE_VDJ`` must be provided to generate germlines from
   IgBLAST output. The same reference database used for the IgBLAST alignment
   must be specified with the ``-r`` flag.
 + Fixed a bug with determination of N1 and N2 region positions.
 
 MakeDb:
 
-+ Combined the ``-z`` and ``-f`` flags of the imgt subcommand into a single flag, 
++ Combined the ``-z`` and ``-f`` flags of the imgt subcommand into a single flag,
   ``-i``, which autodetects the input type.
-+ Added requirement that IgBLAST input be generated using the 
++ Added requirement that IgBLAST input be generated using the
   ``-outfmt "7 std qseq"`` argument to igblastn.
-+ Modified SEQUENCE_VDJ output from IgBLAST parser to include gaps inserted 
++ Modified SEQUENCE_VDJ output from IgBLAST parser to include gaps inserted
   during alignment.
 + Added correction for IgBLAST alignments where V/D, D/J or V/J segments are
   assigned overlapping positions.
 + Corrected N1_LENGTH and N2_LENGTH calculation from IgBLAST output.
-+ Added the ``--scores`` flag which adds extra columns containing alignment 
++ Added the ``--scores`` flag which adds extra columns containing alignment
   scores from IMGT and IgBLAST output.
 
 
@@ -672,17 +680,17 @@ Version 0.2.1:  June 18, 2015
 
 DefineClones:
 
-+ Removed mouse 3-mer model, 'm3n'. 
++ Removed mouse 3-mer model, 'm3n'.
 
 
 Version 0.2.0:  June 17, 2015
 -------------------------------------------------------------------------------
 
-Initial public prerelease.  
+Initial public prerelease.
 
-Output files were added to the usage documentation of all scripts. 
+Output files were added to the usage documentation of all scripts.
 
-General code cleanup.  
+General code cleanup.
 
 DbCore:
 
@@ -690,7 +698,7 @@ DbCore:
 
 AnalyzeAa:
 
-+ Fixed a bug where junctions less than one codon long would lead to a 
++ Fixed a bug where junctions less than one codon long would lead to a
   division by zero error.
 + Added ``--failed`` flag to create database with records that fail analysis.
 + Added ``--sf`` flag to specify sequence field to be analyzed.
@@ -701,16 +709,16 @@ CreateGermlines:
 
 DefineClones:
 
-+ Added a human 1-mer model, 'hs1f', which uses the substitution rates from 
++ Added a human 1-mer model, 'hs1f', which uses the substitution rates from
   from Yaari et al, 2013.
-+ Changed default model to 'hs1f' and default normalization to length for 
++ Changed default model to 'hs1f' and default normalization to length for
   bygroup subcommand.
 + Added ``--link`` argument which allows for specification of single, complete,
   or average linkage during clonal clustering (default single).
 
 GapRecords:
 
-+ Fixed a bug wherein non-standard sequence fields could not be aligned. 
++ Fixed a bug wherein non-standard sequence fields could not be aligned.
 
 MakeDb:
 
