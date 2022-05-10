@@ -96,7 +96,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
     if test == "@":
         printMessage("Running conversion from FASTQ to FASTA")
         out_fasta_file = os.path.split(seq_file)[1]
-        out_fasta_file = '%s.fasta' % os.path.splitext(out_fasta_file)[0]
+        out_fasta_file = os.path.join(out_args['out_dir'],'%s.fasta' % os.path.splitext(out_fasta_file)[0])
         with open(out_fasta_file, "w") as out_handle:
             records = SeqIO.parse(seq_file, 'fastq')
             if parse_version(Bio.__version__) >= parse_version('1.71'):
