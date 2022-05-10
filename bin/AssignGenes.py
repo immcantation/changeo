@@ -95,9 +95,9 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
     test = infile.read()[0]
     if test == "@":
         printMessage("Running conversion from FASTQ to FASTA")
-        out_file = os.path.split(seq_file)[1]
-        out_file = '%s.fasta' % os.path.splitext(out_file)[0]
-        with open(out_file, "w") as out_handle:
+        out_fasta_file = os.path.split(seq_file)[1]
+        out_fasta_file = '%s.fasta' % os.path.splitext(out_fasta_file)[0]
+        with open(out_fasta_file, "w") as out_handle:
             records = SeqIO.parse(seq_file, 'fastq')
             if parse_version(Bio.__version__) >= parse_version('1.71'):
                 # Biopython >= v1.71
@@ -106,7 +106,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
                 # Biopython < v1.71
                 writer = SeqIO.FastaIO.FastaWriter(out_handle, wrap=None)
                 writer.write_file(records)
-        seq_file = out_file
+        seq_file = out_fasta_file
 
     # Run IgBLAST clustering
     start_time = time()
@@ -120,13 +120,13 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
                                   vdb=vdb, output=out_file,
                                   threads=nproc, exec=igblast_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
-    
+
     # Get number of processed sequences
     if (format == 'blast'):
-        with open(out_file, 'rb') as f: 
-            f.seek(-2, os.SEEK_END) 
-            while f.read(1) != b'\n': 
-                f.seek(-2, os.SEEK_CUR)  
+        with open(out_file, 'rb') as f:
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b'\n':
+                f.seek(-2, os.SEEK_CUR)
             pass_info = f.readline().decode()
         num_seqs_match = re.search('(# BLAST processed )(\d+)( .*)', pass_info)
         num_sequences = num_seqs_match.group(2)
@@ -140,7 +140,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
             lines += buf.count(b'\n')
             buf = read_f(buf_size)
         num_sequences = lines - 1
-        
+
     # Print log
     log = OrderedDict()
     log['PASS'] = num_sequences
@@ -157,8 +157,8 @@ def getArgParser():
 
     Arguments:
     None
-                      
-    Returns: 
+
+    Returns:
     an ArgumentParser object
     """
     # Define output file names and header fields
@@ -200,15 +200,15 @@ def getArgParser():
                                choices=choices_loci, help='The receptor type.')
     group_igblast.add_argument('--vdb', action='store', dest='vdb', default=None,
                                help='''Name of the custom V reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form 
+                                    If not specified, then a default database name with the form
                                     imgt_<organism>_<loci>_v will be used.''')
     group_igblast.add_argument('--ddb', action='store', dest='ddb', default=None,
                                help='''Name of the custom D reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form 
+                                    If not specified, then a default database name with the form
                                     imgt_<organism>_<loci>_d will be used.''')
     group_igblast.add_argument('--jdb', action='store', dest='jdb', default=None,
                                help='''Name of the custom J reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form 
+                                    If not specified, then a default database name with the form
                                     imgt_<organism>_<loci>_j will be used.''')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
@@ -237,7 +237,7 @@ def getArgParser():
                                   choices=choices_loci, help='The receptor type.')
     group_igblast_aa.add_argument('--vdb', action='store', dest='vdb', default=None,
                                   help='''Name of the custom V reference in the IgBLAST database folder.
-                                       If not specified, then a default database name with the form 
+                                       If not specified, then a default database name with the form
                                        imgt_aa_<organism>_<loci>_v will be used.''')
     group_igblast_aa.add_argument('--exec', action='store', dest='igblast_exec',
                                   default=default_igblastp_exec,
