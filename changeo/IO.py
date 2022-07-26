@@ -2237,6 +2237,10 @@ def extractIMGT(imgt_output):
         # Extract required files
         imgt_files = sorted([n for n in imgt_zip.namelist() \
                              if os.path.basename(n).startswith(imgt_names)])
+        if len(imgt_files) < len(imgt_names):
+            print("")
+            printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
+            
         imgt_zip.extractall(temp_dir.name, imgt_files)
         # Define file dictionary
         imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
@@ -2248,6 +2252,10 @@ def extractIMGT(imgt_output):
         # Define file dictionary
         imgt_files = sorted([n for n in folder_files \
                              if os.path.basename(n).startswith(imgt_names)])
+        if len(imgt_files) < len(imgt_names):
+            print("")
+            printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
+            
         imgt_dict = {k: f for k, f in zip_longest(imgt_keys, imgt_files)}
     # Tarball input
     elif tarfile.is_tarfile(imgt_output):
@@ -2255,6 +2263,10 @@ def extractIMGT(imgt_output):
         # Extract required files
         imgt_files = sorted([n for n in imgt_tar.getnames() \
                              if os.path.basename(n).startswith(imgt_names)])
+        if len(imgt_files) < len(imgt_names):
+            print("")
+            printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
+            
         imgt_tar.extractall(temp_dir.name, [imgt_tar.getmember(n) for n in imgt_files])
         # Define file dictionary
         imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
