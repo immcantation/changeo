@@ -422,7 +422,7 @@ class IMGTReader:
 
         return fields
 
-    def __init__(self, summary, gapped, ntseq, junction, receptor=True):
+    def __init__(self, summary, gapped, ntseq, junction, regions='default', receptor=True):
         """
         Initializer
 
@@ -431,6 +431,7 @@ class IMGTReader:
           gapped : handle to an open '2_IMGT-gapped-nt-sequences' IMGT/HighV-QUEST output file.
           ntseq: handle to an open '3_Nt-sequences' IMGT/HighV-QUEST output file.
           junction : handle to an open '6_Junction' IMGT/HighV-QUEST output file.
+          regions (str): name of the IMGT FWR/CDR region definitions to use.
           receptor : if True (default) iteration returns an Receptor object, otherwise it returns a dictionary.
 
         Returns:
@@ -442,6 +443,7 @@ class IMGTReader:
         self.ntseq = ntseq
         self.junction = junction
         self.receptor = receptor
+        self.regions = regions
 
         # Open readers
         readers = [csv.DictReader(self.summary, delimiter='\t'),
@@ -804,7 +806,7 @@ class IMGTReader:
         # Parse optional fields
         db.update(IMGTReader._parseScores(summary))
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=False, definition='default')
+                              amino_acid=False, definition=self.regions, definition_key=db['v_call'])
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
         db.update(IMGTReader._parseJuncDetails(junction))
 
@@ -1496,7 +1498,7 @@ class IgBLASTReader:
 
         # Add FWR and CDR regions
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=False, definition=self.regions)
+                              amino_acid=False, definition=self.regions, definition_key=db['v_call'])
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
 
         return db
@@ -1667,7 +1669,7 @@ class IgBLASTReaderAA(IgBLASTReader):
 
         # Add FWR and CDR regions
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=True, definition=self.regions)
+                              amino_acid=True, definition=self.regions, definition_key=db['v_call'])
         regions = rd.getRegions(db.get('sequence_aa_imgt', None))
         regions = {'fwr1_aa_imgt': regions['fwr1_imgt'],
                    'fwr2_aa_imgt': regions['fwr2_imgt'],
@@ -2133,7 +2135,7 @@ class IHMMuneReader:
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
                               amino_acid=False, definition='default')
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
-        
+
         return db
 
     def __iter__(self):
@@ -2240,7 +2242,7 @@ def extractIMGT(imgt_output):
         if len(imgt_files) < len(imgt_names):
             print("")
             printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
-            
+
         imgt_zip.extractall(temp_dir.name, imgt_files)
         # Define file dictionary
         imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}
@@ -2255,7 +2257,7 @@ def extractIMGT(imgt_output):
         if len(imgt_files) < len(imgt_names):
             print("")
             printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
-            
+
         imgt_dict = {k: f for k, f in zip_longest(imgt_keys, imgt_files)}
     # Tarball input
     elif tarfile.is_tarfile(imgt_output):
@@ -2266,7 +2268,7 @@ def extractIMGT(imgt_output):
         if len(imgt_files) < len(imgt_names):
             print("")
             printError('Missing necessary file(s) in IMGT output %s.' % imgt_output + ' Expecting:' + ', '.join(imgt_names))
-            
+
         imgt_tar.extractall(temp_dir.name, [imgt_tar.getmember(n) for n in imgt_files])
         # Define file dictionary
         imgt_dict = {k: os.path.join(temp_dir.name, f) for k, f in zip_longest(imgt_keys, imgt_files)}

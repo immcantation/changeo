@@ -10,7 +10,7 @@ import re
 from Bio.Seq import Seq
 
 # Presto and changeo imports
-from changeo.Gene import getVAllele, getJAllele
+from changeo.Gene import getVAllele, getJAllele, getLocus
 
 # Load regions
 # import yaml
@@ -18,24 +18,39 @@ from changeo.Gene import getVAllele, getJAllele
 # with resource_stream(__name__, 'data/regions.yaml') as f:
 #     imgt_regions = yaml.load(f, Loader=yaml.FullLoader)
 imgt_regions = {'default': {'fwr1': 1,
+
                             'cdr1': 27,
                             'fwr2': 39,
                             'cdr2': 56,
                             'fwr3': 66,
                             'cdr3': 105},
-                'rhesus-igl': {'fwr1': 1,
-                               'cdr1': 28,
-                               'fwr2': 40,
-                               'cdr2': 59,
-                               'fwr3': 69,
-                               'cdr3': 108}}
-
+                'rhesus': {
+                        'ighv': {'fwr1': 1,
+                                'cdr1': 29,
+                                'fwr2': 41,
+                                'cdr2': 58,
+                                'fwr3': 68,
+                                'cdr3': 107},
+                        'igkv': {'fwr1': 1,
+                                'cdr1': 28,
+                                'fwr2': 40,
+                                'cdr2': 57,
+                                'fwr3': 67,
+                                'cdr3': 106},
+                        'iglv': {'fwr1': 1,
+                                'cdr1': 28,
+                                'fwr2': 40,
+                                'cdr2': 59,
+                                'fwr3': 69,
+                                'cdr3': 108}
+                        }
+                }
 
 class RegionDefinition:
     """
     FWR and CDR region boundary definitions
     """
-    def __init__(self, junction_length, amino_acid=False, definition='default'):
+    def __init__(self, junction_length, amino_acid=False, definition='default', definition_key=None):
         """
         Initializer
 
@@ -43,7 +58,7 @@ class RegionDefinition:
           junction_length (int): length of the junction region. If None then CDR3 end and FWR4 start/end are undefined.
           definition (str): region definition entry in the data/regions.yaml file to use.
           amino_acid (bool): if True define boundaries in amino acid space, otherwise use nucleotide positions.
-
+          definition_key (str): a v_call or locus call that will be used to identify the regions boundaries in the definition.
         Returns:
           changeo.Alignment.RegionDefinition
         """
@@ -53,8 +68,16 @@ class RegionDefinition:
         pos_mod = 1 if amino_acid else 3
 
         # Define regions
-        regions = {k: (int(v) - 1) * pos_mod for k, v in imgt_regions[definition].items()}
-
+        if definition == 'default':
+            regions = {k: (int(v) - 1) * pos_mod for k, v in imgt_regions[definition].items()}
+        elif definition_key in imgt_regions[definition].keys():
+            # Try definition_key.
+            regions = {k: (int(v) - 1) * pos_mod for k, v in imgt_regions[definition][definition_key].items()}
+        elif getLocus(definition_key).lower()+'v' in imgt_regions[definition].keys():
+            # Try with definition_key's locus
+            regions = {k: (int(v) - 1) * pos_mod for k, v in imgt_regions[definition][getLocus(definition_key).lower()+'v'].items()}
+        else:
+            printError('definition_key must be one of: ',  ', '.join(list(imgt_regions[definition].keys())) )
         # Assign positions
         if junction_length is not None:
             fwr4_start = max(regions['cdr3'], regions['cdr3'] - (2 * pos_mod) + junction_length) \
@@ -353,7 +376,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
             junc_end = seq_len
 
         # Extract junction
-        rd = RegionDefinition(None, amino_acid=False, definition=regions)
+        rd = RegionDefinition(None, amino_acid=False, definition=regions, definition_key=j_call)
         junc_start = rd.positions['junction'][0]
         junc_dict['junction'] = seq[junc_start:junc_end]
         junc_len = len(junc_dict['junction'])

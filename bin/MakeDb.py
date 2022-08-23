@@ -194,11 +194,11 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     def _imgt_check(rec):
         try:
             if amino_acid:
-                rd = RegionDefinition(rec.junction_aa_length, amino_acid=amino_acid, definition=regions)
+                rd = RegionDefinition(rec.junction_aa_length, amino_acid=amino_acid, definition=regions, definition_key=rec.v_call)
                 x, y = rd.positions['junction']
                 check = (rec.junction_aa == rec.sequence_aa_imgt[x:y])
             else:
-                rd = RegionDefinition(rec.junction_length, amino_acid=amino_acid, definition=regions)
+                rd = RegionDefinition(rec.junction_length, amino_acid=amino_acid, definition=regions, definition_key=rec.v_call)
                 x, y = rd.positions['junction']
                 check = (rec.junction == rec.sequence_imgt[x:y])
         except (TypeError, AttributeError):
@@ -358,7 +358,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
 
 def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, partial=False, asis_id=True,
-              extended=False, format=default_format, out_file=None, out_args=default_out_args,
+              extended=False, regions='default', format=default_format, out_file=None, out_args=default_out_args,
               imgt_id_len=default_imgt_id_len):
     """
     Main for IMGT aligned sample sequences.
@@ -370,6 +370,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
       partial : If True put incomplete alignments in the pass file.
       asis_id : if ID is to be parsed for pRESTO output with default delimiters.
       extended : if True add alignment score, FWR, CDR and junction fields to output file.
+      regions (str): name of the IMGT FWR/CDR region definitions to use.
       format : output format. one of 'changeo' or 'airr'.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -387,6 +388,8 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     log['ASIS_ID'] = asis_id
     log['PARTIAL'] = partial
     log['EXTENDED'] = extended
+    if regions != 'default':
+        log['REGIONS'] = regions
     printLog(log)
 
     start_time = time()
@@ -444,7 +447,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
         # Write db
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
                          annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
-                         writer=writer, out_file=out_file, out_args=out_args)
+                         regions=regions,writer=writer, out_file=out_file, out_args=out_args)
 
     # Cleanup temp directory
     temp_dir.cleanup()
@@ -487,6 +490,8 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['PARTIAL'] = partial
     log['EXTENDED'] = extended
     log['INFER_JUNCTION'] = infer_junction
+    if regions != 'default':
+        log['REGIONS'] = regions
     printLog(log)
 
     # Set amino acid conditions
@@ -727,7 +732,7 @@ def getArgParser():
                                     Adds <vdj>_score, <vdj>_identity, <vdj>_support, <vdj>_cigar,
                                     fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     group_igblast.add_argument('--regions', action='store', dest='regions',
-                               choices=('default', 'rhesus-igl'), default='default',
+                               choices=('default', 'rhesus'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
     group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
                                  help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
@@ -768,7 +773,7 @@ def getArgParser():
                                   help='''Specify to include additional aligner specific fields in the output.
                                        Adds v_score, v_identity, v_support, v_cigar, fwr1, fwr2, fwr3, cdr1 and cdr2.''')
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
-                                  choices=('default', 'rhesus-igl'), default='default',
+                                  choices=('default', 'rhesus'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
     parser_igblast_aa.set_defaults(func=parseIgBLAST, partial=True, amino_acid=True)
 
@@ -816,6 +821,9 @@ def getArgParser():
                                  Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
                                  cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length,
                                  p3d_length, p5j_length and d_frame.''')
+    group_imgt.add_argument('--regions', action='store', dest='regions',
+                               choices=('default', 'rhesus'), default='default',
+                               help='''IMGT CDR and FWR boundary definition to use.''')
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
                             default=default_imgt_id_len,
                             help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.

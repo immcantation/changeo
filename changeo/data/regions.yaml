@@ -5,10 +5,25 @@ default:
   cdr2: 56
   fwr3: 66
   cdr3: 105
-rhesus-igl:
-  fwr1: 1
-  cdr1: 28
-  fwr2: 40
-  cdr2: 59
-  fwr3: 69
-  cdr3: 108
+rhesus:
+  iglv:
+    fwr1: 1
+    cdr1: 28
+    fwr2: 40
+    cdr2: 59
+    fwr3: 69
+    cdr3: 108
+  ighv:
+    fwr1: 1
+    cdr1: 29
+    fwr2: 41
+    cdr2: 58
+    fwr3: 68
+    cdr3: 107
+  igkv:
+    fwr1: 1
+    cdr1: 28
+    fwr2: 40
+    cdr2: 57
+    fwr3: 67
+    cdr3: 106
