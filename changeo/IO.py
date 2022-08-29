@@ -805,8 +805,9 @@ class IMGTReader:
 
         # Parse optional fields
         db.update(IMGTReader._parseScores(summary))
+        dk = summary['V-GENE and allele']
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=False, definition=self.regions, definition_key=db['v_call'])
+                              amino_acid=False, definition=self.regions, definition_key=dk)
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
         db.update(IMGTReader._parseJuncDetails(junction))
 
@@ -1485,7 +1486,8 @@ class IgBLASTReader:
                                       j_call=db['j_call'],
                                       references=self.references,
                                       asis_calls=self.asis_calls,
-                                      regions=self.regions)
+                                      regions=self.regions,
+                                      regions_key=db['v_call'])
             db.update(junc_dict)
 
         # Add IgBLAST CDR3 sequences
@@ -1497,8 +1499,11 @@ class IgBLASTReader:
             db.update({'cdr3_igblast': None, 'cdr3_igblast_aa': None})
 
         # Add FWR and CDR regions
+        dk = None
+        if ('v_call' in db and db['v_call']):
+          dk = db['v_call']
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=False, definition=self.regions, definition_key=db['v_call'])
+                              amino_acid=False, definition=self.regions, definition_key=dk)
         db.update(rd.getRegions(db.get('sequence_imgt', None)))
 
         return db
@@ -1668,8 +1673,11 @@ class IgBLASTReaderAA(IgBLASTReader):
             del db['sequence_aa_trim']
 
         # Add FWR and CDR regions
+        dk = None
+        if ('v_call' in db and db['v_call']):
+          dk = db['v_call']
         rd = RegionDefinition(junction_length=db.get('junction_length', None),
-                              amino_acid=True, definition=self.regions, definition_key=db['v_call'])
+                              amino_acid=True, definition=self.regions, definition_key=dk)
         regions = rd.getRegions(db.get('sequence_aa_imgt', None))
         regions = {'fwr1_aa_imgt': regions['fwr1_imgt'],
                    'fwr2_aa_imgt': regions['fwr2_imgt'],

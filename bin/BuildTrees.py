@@ -41,7 +41,7 @@ def correctMidCodonStart(scodons, qi, debug):
     Returns:
       tuple: (modified input sequence, modified starting position of IMGT sequence in input sequence).
     """
-    spos = 0   
+    spos = 0
     for i in range(0, len(scodons)):
         printDebug("%s %s" % (scodons[i], qi[0:3]), debug)
         if scodons[i] != "...":
@@ -78,7 +78,7 @@ def checkFrameShifts(receptor, oqpos, ospos, log, debug):
       ospos (int) : position of interest in IMGT sequence.
       log (dict) : log of information for each sequence.
       debug (bool) : print debugging statements.
-    """   
+    """
     frameshifts = 0
     for ins in range(1, 3):
         ros = receptor.sequence_input
@@ -434,9 +434,9 @@ def rmCDR3(sequences, clones):
     """
     Remove CDR3 from all sequences and germline of a clone
 
-     Arguments:
-       sequences (list): list of sequences in clones.
-       clones (list): list of Receptor objects.
+    Arguments:
+      sequences (list): list of sequences in clones.
+      clones (list): list of Receptor objects.
     """
 
     for i in range(0,len(sequences)):
@@ -475,7 +475,7 @@ def characterizePartitionErrors(sequences, clones, meta_data):
       sequences (list): list of sequences in clones.
       clones (list): list of Receptor objects.
       meta_data (str): Field to append to sequence IDs. Splits identical sequences with different meta_data.
-        
+
     Returns:
       tuple: tuple of length four containing a list of IMGT positions for first sequence in clones,
              the germline sequence of the first receptor in clones, the length of the first sequence in clones,
@@ -1130,7 +1130,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
                big_enough.append(r)
 
     fails["totalreads"] = len(all_records)
-    #fails["minseq_fail"] =  len(all_records) - len(big_enough)         
+    #fails["minseq_fail"] =  len(all_records) - len(big_enough)
 
     if len(big_enough) == 0:
         printError("\n\nNo sequences found that match specified criteria.",1)
@@ -1297,7 +1297,7 @@ def getArgParser():
     group.add_argument("--nmask", action="store_true", dest="nmask",
                        help="""If specified, do not attempt to mask split codons.""")
     group.add_argument("--md", nargs="+", action="store", dest="meta_data",
-                       help="""List of fields to containing metadata to include in output fasta file 
+                       help="""List of fields to containing metadata to include in output fasta file
                             sequence headers.""")
     group.add_argument("--clones", nargs="+", action="store", dest="target_clones",
                        help="""List of clone IDs to output, if specified.""")
@@ -1316,23 +1316,23 @@ def getArgParser():
                                help="""Number of threads to parallelize IgPhyML across.""")
     igphyml_group.add_argument("--clean", action="store", choices=("none", "all"),
                                dest="clean", type=str, default="none",
-                               help="""Delete intermediate files? 
+                               help="""Delete intermediate files?
                                none: leave all intermediate files; all: delete all intermediate files.""")
     igphyml_group.add_argument("--optimize", action="store", dest="optimization", type=str, default="lr",
                                choices=("n","r","l","lr","tl","tlr"),
-                               help="""Optimize combination of topology (t) branch lengths (l) and parameters (r), or 
+                               help="""Optimize combination of topology (t) branch lengths (l) and parameters (r), or
                                nothing (n), for IgPhyML.""")
     igphyml_group.add_argument("--omega", action="store", dest="omega", type=str, default="e,e",
-                               help="""Omega parameters to estimate for FWR,CDR respectively: 
+                               help="""Omega parameters to estimate for FWR,CDR respectively:
                                e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("-t", action="store", dest="kappa", type=str, default="e",
-                               help="""Kappa parameters to estimate: 
+                               help="""Kappa parameters to estimate:
                                e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("--motifs", action="store", dest="motifs", type=str,
                                default="WRC_2:0,GYW_0:1,WA_1:2,TW_0:3,SYC_2:4,GRS_0:5",
                                help="""Which motifs to estimate mutability.""")
     igphyml_group.add_argument("--hotness", action="store", dest="hotness", type=str, default="e,e,e,e,e,e",
-                               help="""Mutability parameters to estimate: 
+                               help="""Mutability parameters to estimate:
                                e = estimate, ce = estimate + confidence interval, or numeric value""")
     igphyml_group.add_argument("--oformat", action="store", dest="oformat", type=str, default="tab",
                                choices=("tab", "txt"),

@@ -335,7 +335,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
     return imgt_dict
 
 
-def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False, regions='default'):
+def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False, regions='default', regions_key=None):
     """
     Identify junction region by IMGT definition.
 
@@ -347,6 +347,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
       references (dict): dictionary of IMGT-gapped reference sequences.
       asis_calls (bool): if True do not parse V_CALL for allele names and just split by comma.
       regions (str): name of the IMGT FWR/CDR region definitions to use.
+      regions_key (str): a v_call or locus call that will be used to identify the regions boundaries in `regions`.
 
     Returns:
       dict : dictionary containing junction sequence, translation and length.
@@ -376,7 +377,7 @@ def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_cal
             junc_end = seq_len
 
         # Extract junction
-        rd = RegionDefinition(None, amino_acid=False, definition=regions, definition_key=j_call)
+        rd = RegionDefinition(None, amino_acid=False, definition=regions, definition_key=regions_key)
         junc_start = rd.positions['junction'][0]
         junc_dict['junction'] = seq[junc_start:junc_end]
         junc_len = len(junc_dict['junction'])
