@@ -60,6 +60,9 @@ extensions = ['sphinx.ext.autodoc',
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# Set path to bibtex_bibfiles
+bibtex_bibfiles = "references.bib"
+
 # The suffix of source filenames.
 source_suffix = '.rst'
 
@@ -160,7 +163,8 @@ html_favicon = "_static/immcantation.ico"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-html_context = {'css_files': ['_static/overrides.css']}
+#html_context = {'css_files': ['_static/overrides.css']}
+html_css_files = ['overrides.css']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
