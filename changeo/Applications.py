@@ -8,6 +8,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import os
 import re
+from pkg_resources import parse_version
 from subprocess import check_output, STDOUT, CalledProcessError
 
 # Presto and changeo imports
@@ -94,8 +95,8 @@ def runIgPhyML(rep_file, rep_dir, model='HLP17', motifs='FCH',
     return None
 
 
-def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, jdb=None, output=None,
-                format=default_igblast_output, threads=1, exec=default_igblastn_exec):
+def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, jdb=None, cdb=None,
+                output=None, format=default_igblast_output, threads=1, exec=default_igblastn_exec):
     """
     Runs igblastn on a sequence file
 
@@ -107,6 +108,7 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
       vdb (str): name of a custom V reference in the database folder to use.
       ddb (str): name of a custom D reference in the database folder to use.
       jdb (str): name of a custom J reference in the database folder to use.
+      cdb (str): name of a custom C reference in the database folder to use.
       output (str): output file name. If None, automatically generate from the fasta file name.
       format (str): output format. One of 'blast' or 'airr'.
       threads (int): number of threads for igblastn.
@@ -123,12 +125,14 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
     # GERMLINE_V = "imgt_${SPECIES}_${RECEPTOR}_v"
     # GERMLINE_D = "imgt_${SPECIES}_${RECEPTOR}_d"
     # GERMLINE_J = "imgt_${SPECIES}_${RECEPTOR}_j"
+    # GERMLINE_C = "imgt_${SPECIES}_${RECEPTOR}_c"
     # AUXILIARY = "${SPECIES}_gl.aux"
     # IGBLAST_DB = "${IGDATA}/database"
     # IGBLAST_CMD = "igblastn \
     #     -germline_db_V ${IGBLAST_DB}/${GERMLINE_V} \
     #     -germline_db_D ${IGBLAST_DB}/${GERMLINE_D} \
     #     -germline_db_J ${IGBLAST_DB}/${GERMLINE_J} \
+    #     -c_region_db ${IGBLAST_DB}/${GERMLINE_C} \
     #     -auxiliary_data ${IGDATA}/optional_file/${AUXILIARY} \
     #     -ig_seqtype ${SEQTYPE[${RECEPTOR}]} -organism ${SPECIES} \
     #     -domain_system imgt -outfmt '7 std qseq sseq btop'"
@@ -139,6 +143,7 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
     # IGBLAST_VER =$(${IGBLAST_CMD} -version | grep 'Package' | sed s / 'Package: ' //)
     # IGBLAST_RUN = "${IGBLAST_CMD} -query ${READFILE} -out ${OUTFILE} -num_threads ${NPROC}"
 
+    # Define arguments
     try:
         outfmt = {'blast': '7 std qseq sseq btop', 'airr': '19'}[format]
     except KeyError:
@@ -149,8 +154,8 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
     except KeyError:
         printError('Invalid receptor type %s.' % loci)
 
-    # Set auxilary data
-    auxilary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
+    # Set auxiliary data
+    auxiliary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
     # Set V database
     if vdb is not None:  v_germ = os.path.join(igdata, 'database', vdb)
     else:  v_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
@@ -160,6 +165,9 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
     # Set J database
     if jdb is not None:  j_germ = os.path.join(igdata, 'database', jdb)
     else:  j_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_j' % (organism, loci))
+    # Set C database
+    if cdb is not None:  c_germ = os.path.join(igdata, 'database', cdb)
+    else:  c_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_c' % (organism, loci))
 
     # Define IgBLAST command
     cmd = [exec,
@@ -168,12 +176,18 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
            '-num_threads', str(threads),
            '-ig_seqtype', seqtype,
            '-organism', organism,
-           '-auxiliary_data', str(auxilary),
+           '-auxiliary_data', str(auxiliary),
            '-germline_db_V', str(v_germ),
            '-germline_db_D', str(d_germ),
            '-germline_db_J', str(j_germ),
            '-outfmt', outfmt,
            '-domain_system', 'imgt']
+
+    # Add C-region arguments for igblastn v1.18.0
+    version = getIgBLASTVersion(exec=exec)
+    if parse_version(version) >= parse_version('1.18.0'):
+        cmd = cmd + ['-c_region_db', str(c_germ)]
+    #print(cmd)
 
     # Execute IgBLAST
     env = os.environ.copy()

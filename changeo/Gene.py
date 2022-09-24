@@ -22,6 +22,7 @@ locus_regex = re.compile(r'(IG[HLK]|TR[ABGD])')
 v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
 d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
 j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
+c_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?)[\*][\.\w]+)')
 c_gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([DMAGEC][P0-9]?[A-Z]?))')
 
 
@@ -133,22 +134,6 @@ def getAlleleNumber(gene, action='first'):
     return parseGeneCall(gene, allele_number_regex, action=action)
 
 
-def getCGene(gene, action='first'):
-    """
-    Extract C-region gene from gene call string
-
-    Arguments:
-      gene (str): string with C-region gene calls
-      action (str): action to perform for multiple alleles;
-                    one of ('first', 'set', 'list').
-
-    Returns:
-      str: String of the first C-region gene call when action is 'first'.
-      tuple: Tuple of gene calls for 'set' or 'list' actions.
-    """
-    return parseGeneCall(gene, c_gene_regex, action=action)
-
-
 def getVAllele(gene, action='first'):
     """
     Extract V allele gene from gene call string
@@ -195,6 +180,38 @@ def getJAllele(gene, action='first'):
       tuple: Tuple of J allele calls for 'set' or 'list' actions.
     """
     return parseGeneCall(gene, j_allele_regex, action=action)
+
+
+def getCAllele(gene, action='first'):
+    """
+    Extract C-region allele gene call string
+
+    Arguments:
+      gene (str): string with C-region gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first C-region allele call when action is 'first'.
+      tuple: Tuple of allele calls for 'set' or 'list' actions.
+    """
+    return parseGeneCall(gene, c_allele_regex, action=action)
+
+
+def getCGene(gene, action='first'):
+    """
+    Extract C-region gene from gene call string
+
+    Arguments:
+      gene (str): string with C-region gene calls
+      action (str): action to perform for multiple alleles;
+                    one of ('first', 'set', 'list').
+
+    Returns:
+      str: String of the first C-region gene call when action is 'first'.
+      tuple: Tuple of gene calls for 'set' or 'list' actions.
+    """
+    return parseGeneCall(gene, c_gene_regex, action=action)
 
 
 # TODO: this is not generalized for non-IMGT gapped sequences!

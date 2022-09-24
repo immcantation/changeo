@@ -36,7 +36,7 @@ default_igdata = '~/share/igblast'
 
 
 def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', organism='human',
-                  vdb=None, ddb=None, jdb=None, format=default_format,
+                  vdb=None, ddb=None, jdb=None, cdb=None, format=default_format,
                   igblast_exec=default_igblastn_exec, out_file=None,
                   out_args=default_out_args, nproc=None):
     """
@@ -51,6 +51,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
       vdb (str): name of a custom V reference in the database folder to use.
       ddb (str): name of a custom D reference in the database folder to use.
       jdb (str): name of a custom J reference in the database folder to use.
+      cdb (str): name of a custom C reference in the database folder to use.
       format (str): output format. One of 'blast' or 'airr'.
       exec (str): the path to the igblastn executable.
       out_file (str): output file name. Automatically generated from the input file if None.
@@ -113,7 +114,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
     printMessage('Running IgBLAST', start_time=start_time, width=25)
     if not amino_acid:
         console_out = runIgBLASTN(seq_file, igdata, loci=loci, organism=organism,
-                                  vdb=vdb, ddb=ddb, jdb=jdb, output=out_file,
+                                  vdb=vdb, ddb=ddb, jdb=jdb, cdb=cdb, output=out_file,
                                   format=format, threads=nproc, exec=igblast_exec)
     else:
         console_out = runIgBLASTP(seq_file, igdata, loci=loci, organism=organism,
@@ -210,6 +211,11 @@ def getArgParser():
                                help='''Name of the custom J reference in the IgBLAST database folder.
                                     If not specified, then a default database name with the form
                                     imgt_<organism>_<loci>_j will be used.''')
+    group_igblast.add_argument('--cdb', action='store', dest='cdb', default=None,
+                               help='''Name of the custom C reference in the IgBLAST database folder.
+                                    If not specified, then a default database name with the form 
+                                    imgt_<organism>_<loci>_c will be used. Note, this argument will be 
+                                    ignored for IgBLAST versions below 1.18.0.''')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
                                help='''Specify the output format. The "blast" will result in
