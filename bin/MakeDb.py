@@ -108,10 +108,10 @@ def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
     Create a sequence ID translation using IMGT truncation.
 
     Arguments:
-      seq_file : a fasta file of sequences input to IMGT.
+      seq_file (str): a fasta file of sequences input to IMGT.
 
     Returns:
-      dict : a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
+      dict: a dictionary of with the IMGT truncated ID as the key and the full sequence description as the value.
     """
 
     # Create a sequence ID translation using IDs truncate up to space or 49 chars
@@ -192,10 +192,10 @@ def getSeqDict(seq_file):
     Create a dictionary from a sequence file.
 
     Arguments:
-      seq_file : sequence file.
+      seq_file (str): sequence file.
 
     Returns:
-        dict : sequence description as keys with Bio.SeqRecords as values.
+      dict: sequence description as keys with Bio.SeqRecords as values.
     """
     seq_dict = SeqIO.to_dict(readSeqFile(seq_file), key_function=lambda x: x.description)
 
@@ -203,25 +203,25 @@ def getSeqDict(seq_file):
 
 
 def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotations=None,
-            amino_acid=False, partial=False, asis_id=True, regions='default',
+            amino_acid=False, validate='default', asis_id=True, regions='default',
             writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
 
     Arguments:
-      records : a iterator of Receptor objects containing alignment data.
-      fields : a list of ordered field names to write.
-      aligner_file : input file name.
-      total_count : number of records (for progress bar).
-      id_dict : a dictionary of the truncated sequence ID mapped to the full sequence ID.
-      annotations : additional annotation dictionary.
-      amino_acid : if True do verification on amino acid fields.
-      partial : if True put incomplete alignments in the pass file.
-      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
+      records (iter): a iterator of Receptor objects containing alignment data.
+      fields (list): a list of ordered field names to write.
+      aligner_file (str): input file name.
+      total_count (int): number of records (for progress bar).
+      id_dict (dict): a dictionary of the truncated sequence ID mapped to the full sequence ID.
+      annotations (dict): additional annotation dictionary.
+      amino_acid (bool): if True do verification on amino acid fields.
+      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       regions (str): name of the IMGT FWR/CDR region definitions to use.
-      writer : writer class.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
+      writer (changeo.IO.TSVWriter): writer class.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
 
     Returns:
       None
@@ -314,7 +314,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     #     _append_table = lambda sequence_id: anntab_dict[sequence_id]
 
     # Set pass criteria
-    _pass = _gentle if partial else _strict
+    _pass = _gentle if validate == 'partial' else _strict
 
     # Define log handle
     if out_args['log_file'] is None:
@@ -416,26 +416,26 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     return output
 
 
-def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, partial=False, asis_id=True,
+def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, validate='default', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args,
               imgt_id_len=default_imgt_id_len):
     """
     Main for IMGT aligned sample sequences.
 
     Arguments:
-      aligner_file : zipped file or unzipped folder output by IMGT.
-      seq_file : FASTA file input to IMGT (from which to get seqID).
-      repo : folder with germline repertoire files.
-      partial : If True put incomplete alignments in the pass file.
-      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
-      extended : if True add alignment score, FWR, CDR and junction fields to output file.
-      format : output format. one of 'changeo' or 'airr'.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
-      imgt_id_len: maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
+      aligner_file (str): zipped file or unzipped folder output by IMGT.
+      seq_file (str): FASTA file input to IMGT (from which to get seqID).
+      repo (str): folder with germline repertoire files.
+      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
+      extended (bool): if True add alignment score, FWR, CDR and junction fields to output file.
+      format (str): output format. one of 'changeo' or 'airr'.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
+      imgt_id_len (int): maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
 
     Returns:
-      dict : names of the 'pass' and 'fail' output files.
+      dict: names of the 'pass' and 'fail' output files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -444,7 +444,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     log['ALIGNER_FILE'] = aligner_file
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
     log['ASIS_ID'] = asis_id
-    log['PARTIAL'] = partial
+    log['VALIDATE'] = validate
     log['EXTENDED'] = extended
     printLog(log)
 
@@ -502,7 +502,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
             germ_iter = (addGermline(x, references) for x in parse_iter)
         # Write db
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
-                         annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
+                         annotations=annotations, id_dict=id_dict, asis_id=asis_id, validate=validate,
                          writer=writer, out_file=out_file, out_args=out_args)
 
     # Cleanup temp directory
@@ -511,7 +511,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, part
     return output
 
 
-def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, partial=False,
+def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, validate='default',
                  asis_id=True, asis_calls=False, extended=False, regions='default', infer_junction=False,
                  format='changeo', out_file=None, out_args=default_out_args):
     """
@@ -522,7 +522,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       seq_file (str): fasta file input to IgBlast (from which to get sequence).
       repo (str): folder with germline repertoire files.
       amino_acid (bool): if True then the IgBLAST output files are results from igblastp. igblastn is assumed if False.
-      partial : If True put incomplete alignments in the pass file.
+      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
       asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       asis_calls (bool): if True do not parse gene calls for allele names.
       extended (bool): if True add alignment scores, FWR regions, and CDR regions to the output.
@@ -533,7 +533,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       out_args (dict): common output argument dictionary from parseCommonArgs.
 
     Returns:
-      dict : names of the 'pass' and 'fail' output files.
+      dict: names of the 'pass' and 'fail' output files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -543,7 +543,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ASIS_ID'] = asis_id
     log['ASIS_CALLS'] = asis_calls
-    log['PARTIAL'] = partial
+    log['VALIDATE'] = validate
     log['EXTENDED'] = extended
     log['INFER_JUNCTION'] = infer_junction
     printLog(log)
@@ -599,30 +599,30 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
         parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls, infer_junction=infer_junction)
         germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
-                         annotations=annotations, amino_acid=amino_acid, partial=partial, asis_id=asis_id,
+                         annotations=annotations, amino_acid=amino_acid, validate=validate, asis_id=asis_id,
                          regions=regions, writer=writer, out_file=out_file, out_args=out_args)
 
     return output
 
 
-def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False, asis_id=True,
+def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='default', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
     Arguments:
-      aligner_file : iHMMune-Align output file to process.
-      seq_file : fasta file input to iHMMuneAlign (from which to get sequence).
-      repo : folder with germline repertoire files.
-      partial : If True put incomplete alignments in the pass file.
-      asis_id : if ID is to be parsed for pRESTO output with default delimiters.
-      extended : if True parse alignment scores, FWR and CDR region fields.
-      format : output format. One of 'changeo' or 'airr'.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
+      aligner_file (str): iHMMune-Align output file to process.
+      seq_file (str): fasta file input to iHMMuneAlign (from which to get sequence).
+      repo (str): folder with germline repertoire files.
+      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
+      extended (bool): if True parse alignment scores, FWR and CDR region fields.
+      format (str): output format. One of 'changeo' or 'airr'.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
 
     Returns:
-      dict : names of the 'pass' and 'fail' output files.
+      dict: names of the 'pass' and 'fail' output files.
     """
     # Print parameter info
     log = OrderedDict()
@@ -631,7 +631,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
     log['ASIS_ID'] = asis_id
-    log['PARTIAL'] = partial
+    log['VALIDATE'] = validate
     log['EXTENDED'] = extended
     printLog(log)
 
@@ -678,7 +678,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, partial=False,
         parse_iter = IHMMuneReader(f, seq_dict, references)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
-                        annotations=annotations, asis_id=asis_id, partial=partial,
+                        annotations=annotations, asis_id=asis_id, validate=validate,
                         writer=writer, out_file=out_file, out_args=out_args)
 
     return output
@@ -691,14 +691,14 @@ def parseAIRR(aligner_file, repo=None, format=default_format,
     Inserts IMGT numbering into V fields
 
     Arguments:
-      aligner_file : AIRR Rearrangement file from the alignment tool.
-      repo : folder with germline repertoire files. If None, do not updated alignment columns wtih IMGT gaps.
-      format : output format.
-      out_file : output file name. Automatically generated from the input file if None.
-      out_args : common output argument dictionary from parseCommonArgs.
+      aligner_file (str): AIRR Rearrangement file from the alignment tool.
+      repo (str): folder with germline repertoire files. If None, do not updated alignment columns with IMGT gaps.
+      format (str): output format.
+      out_file (str): output file name. Automatically generated from the input file if None.
+      out_args (dict): common output argument dictionary from parseCommonArgs.
 
     Returns:
-     str : output file name
+      str: output file name.
     """
     log = OrderedDict()
     log['START'] = 'MakeDb'
@@ -755,11 +755,6 @@ def parseAIRR(aligner_file, repo=None, format=default_format,
             pass_count += 1
             rec.setDict(imgt_dict, parse=False)
             pass_writer.writeReceptor(rec)
-
-    # Write db
-    # output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
-    #                  annotations=annotations, id_dict=id_dict, asis_id=asis_id, partial=partial,
-    #                  writer=writer, out_file=out_file, out_args=out_args)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time=start_time)
@@ -869,12 +864,18 @@ def getArgParser():
                                      in both the IgBLAST output and reference database. Note, this requires
                                      the sequence identifiers in the reference sequence set and the IgBLAST
                                      database to be exact string matches.''')
-    group_igblast.add_argument('--partial', action='store_true', dest='partial',
-                                help='''If specified, include incomplete V(D)J alignments in
-                                     the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-numbered sequence
-                                     cannot be built or that is missing a V gene assignment,
-                                     J gene assignment, junction region, or productivity call.''')
+    group_igblast_validate = group_igblast.add_mutually_exclusive_group(required=False)
+    group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+                                        help='''If specified, require that any passing records contain a valid 
+                                             V gene assignment, J gene assignment, junction region, and 
+                                             productivity call. Also requires that the junction region start a 
+                                             position 310 in the IMGT-numbered sequence.''')
+    group_igblast_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+                                        help='''If specified, include incomplete V(D)J alignments in
+                                             the pass file instead of the fail file. An incomplete alignment
+                                             is defined as a record for which a valid IMGT-numbered sequence
+                                             cannot be built or that is missing a V gene assignment,
+                                             J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--extended', action='store_true', dest='extended',
                                help='''Specify to include additional aligner specific fields in the output.
                                     Adds <vdj>_score, <vdj>_identity, <vdj>_support, <vdj>_cigar,
@@ -883,9 +884,9 @@ def getArgParser():
                                choices=('default', 'rhesus-igl'), default='default',
                                help='''IMGT CDR and FWR boundary definition to use.''')
     group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
-                                 help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
-                                 prior to the addition of IMGT-CDR3 inference.''')
-    parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False)
+                               help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
+                                    prior to the addition of IMGT-CDR3 inference.''')
+    parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False, validate='default')
 
     # igblastp output parser
     parser_igblast_aa = subparsers.add_parser('igblast-aa', parents=[parser_parent],
@@ -923,7 +924,7 @@ def getArgParser():
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
-    parser_igblast_aa.set_defaults(func=parseIgBLAST, partial=True, amino_acid=True)
+    parser_igblast_aa.set_defaults(func=parseIgBLAST, amino_acid=True, validate='partial')
 
 
     # IMGT aligner
@@ -959,11 +960,18 @@ def getArgParser():
                                  headers to be in the pRESTO annotation format, so this should be specified
                                  when sequence headers are incompatible with the pRESTO annotation scheme.
                                  Note, unrecognized header formats will default to this behavior.''')
-    group_imgt.add_argument('--partial', action='store_true', dest='partial',
-                            help='''If specified, include incomplete V(D)J alignments in
-                                 the pass file instead of the fail file. An incomplete alignment
-                                 is defined as a record that is missing a V gene assignment,
-                                 J gene assignment, junction region, or productivity call.''')
+    group_imgt_validate = group_imgt.add_mutually_exclusive_group(required=False)
+    group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+                                     help='''If specified, require that any passing records contain a valid 
+                                          V gene assignment, J gene assignment, junction region, and 
+                                          productivity call. Also requires that the junction region start a 
+                                          position 310 in the IMGT-numbered sequence.''')
+    group_imgt_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+                                     help='''If specified, include incomplete V(D)J alignments in
+                                          the pass file instead of the fail file. An incomplete alignment
+                                          is defined as a record for which a valid IMGT-numbered sequence
+                                          cannot be built or that is missing a V gene assignment,
+                                          J gene assignment, junction region, or productivity call.''')
     group_imgt.add_argument('--extended', action='store_true', dest='extended',
                             help='''Specify to include additional aligner specific fields in the output.
                                  Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
@@ -972,9 +980,9 @@ def getArgParser():
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
                             default=default_imgt_id_len,
                             help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
-                            Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older
-                            than 1.8.3 (May 7, 2021).''')
-    parser_imgt.set_defaults(func=parseIMGT)
+                                 Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older
+                                 than 1.8.3 (May 7, 2021).''')
+    parser_imgt.set_defaults(func=parseIMGT, validate='default')
 
     # iHMMuneAlign Aligner
     parser_ihmm = subparsers.add_parser('ihmm', parents=[parser_parent],
@@ -1003,17 +1011,23 @@ def getArgParser():
                                   headers to be in the pRESTO annotation format, so this should be specified
                                   when sequence headers are incompatible with the pRESTO annotation scheme.
                                   Note, unrecognized header formats will default to this behavior.''')
-    group_ihmm.add_argument('--partial', action='store_true', dest='partial',
-                             help='''If specified, include incomplete V(D)J alignments in
-                                  the pass file instead of the fail file. An incomplete alignment
-                                     is defined as a record for which a valid IMGT-numbered sequence
-                                     cannot be built or that is missing a V gene assignment,
-                                     J gene assignment, junction region, or productivity call.''')
+    group_ihmm_validate = group_ihmm.add_mutually_exclusive_group(required=False)
+    group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+                                     help='''If specified, require that any passing records contain a valid 
+                                          V gene assignment, J gene assignment, junction region, and 
+                                          productivity call. Also requires that the junction region start a 
+                                          position 310 in the IMGT-numbered sequence.''')
+    group_ihmm_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+                                     help='''If specified, include incomplete V(D)J alignments in
+                                          the pass file instead of the fail file. An incomplete alignment
+                                          is defined as a record for which a valid IMGT-numbered sequence
+                                          cannot be built or that is missing a V gene assignment,
+                                          J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--extended', action='store_true', dest='extended',
                              help='''Specify to include additional aligner specific fields in the output.
                                   Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
                                   adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
-    parser_ihmm.set_defaults(func=parseIHMM)
+    parser_ihmm.set_defaults(func=parseIHMM, validate='default')
 
     # Subparser to normalize AIRR file with IMGT-numbering
     desc_airr = dedent('''
@@ -1045,6 +1059,7 @@ if __name__ == "__main__":
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='aligner_files')
+    print(args_dict)
 
     # Set no ID parsing if sequence files are not provided
     if 'seq_files' in args_dict and not args_dict['seq_files']:

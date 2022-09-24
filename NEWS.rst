@@ -1,13 +1,25 @@
 Release Notes
 ===============================================================================
 
-Version 1.2.0.999:  May 10, 2022
+Version 1.2.0.999:  September 24, 2022
 -------------------------------------------------------------------------------
 
 AssignGenes:
 
 + Added support for ``.fastq`` files. If ``-s`` is a ``.fastq`` file, a ``.fasta``
   version will be created in ``--outdir``.
+
+MakeDb:
+
++ Added the ``-strict`` argument to multiple subcommands to provide more control
+  over the passing record validation criteria. ``--strict`` is mutually exclusive
+  with the ``--partial`` argument.
++ Added support for C region alignment calls provide by IgBLAST v1.18+.
++ Added the ``airr`` subcommand which will modify the ``sequence_alignment`` and
+  ``germline_aligment`` fields in an AIRR Rearrangement file to include
+  IMGT-numbering spacers and change the position information in
+  ``v_germline_start`` and ``v_germline_end`` accordingly.
+
 
 Version 1.2.0:  October 29, 2021
 -------------------------------------------------------------------------------
