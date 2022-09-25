@@ -264,6 +264,22 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
             check = False
         return check
 
+    # Default function to check for valid records
+    def _gentle(rec):
+        if amino_acid:
+            valid = [rec.v_call and rec.v_call != 'None',
+                     rec.j_call and rec.j_call != 'None',
+                     rec.functional is not None,
+                     rec.sequence_aa_imgt,
+                     rec.junction_aa]
+        else:
+            valid = [rec.v_call and rec.v_call != 'None',
+                     rec.j_call and rec.j_call != 'None',
+                     rec.functional is not None,
+                     rec.sequence_imgt,
+                     rec.junction]
+        return all(valid)
+
     # Function to check for valid records strictly
     def _strict(rec):
         if amino_acid:
@@ -283,7 +299,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
         return all(valid)
 
     # Function to check for valid records loosely
-    def _gentle(rec):
+    def _partial(rec):
         valid = [rec.v_call and rec.v_call != 'None',
                  rec.d_call and rec.d_call != 'None',
                  rec.j_call and rec.j_call != 'None']
@@ -297,24 +313,9 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     else:
         printError('Invalid output writer.')
 
-    # Additional annotation (e.g. 10X cell calls)
-    # _append_table = None
-    # if cellranger_file is not None:
-    #     with open(cellranger_file) as csv_file:
-    #         # Read in annotation file (use Sniffer to discover file delimiters)
-    #         dialect = csv.Sniffer().sniff(csv_file.readline())
-    #         csv_file.seek(0)
-    #         csv_reader = csv.DictReader(csv_file, dialect = dialect)
-    #
-    #         # Generate annotation dictionary
-    #         anntab_dict = {entry['contig_id']: {cellranger_map[field]: entry[field] \
-    #                        for field in cellranger_map.keys()} for entry in csv_reader}
-    #
-    #     fields = _annotate(fields, cellranger_map.values())
-    #     _append_table = lambda sequence_id: anntab_dict[sequence_id]
-
     # Set pass criteria
-    _pass = _gentle if validate == 'partial' else _strict
+    validate_map = {'default': _gentle, 'strict': _strict, 'partial': _partial}
+    _pass = validate_map.get(validate, _gentle)
 
     # Define log handle
     if out_args['log_file'] is None:
@@ -864,18 +865,6 @@ def getArgParser():
                                      in both the IgBLAST output and reference database. Note, this requires
                                      the sequence identifiers in the reference sequence set and the IgBLAST
                                      database to be exact string matches.''')
-    group_igblast_validate = group_igblast.add_mutually_exclusive_group(required=False)
-    group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                        help='''If specified, require that any passing records contain a valid 
-                                             V gene assignment, J gene assignment, junction region, and 
-                                             productivity call. Also requires that the junction region start a 
-                                             position 310 in the IMGT-numbered sequence.''')
-    group_igblast_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
-                                        help='''If specified, include incomplete V(D)J alignments in
-                                             the pass file instead of the fail file. An incomplete alignment
-                                             is defined as a record for which a valid IMGT-numbered sequence
-                                             cannot be built or that is missing a V gene assignment,
-                                             J gene assignment, junction region, or productivity call.''')
     group_igblast.add_argument('--extended', action='store_true', dest='extended',
                                help='''Specify to include additional aligner specific fields in the output.
                                     Adds <vdj>_score, <vdj>_identity, <vdj>_support, <vdj>_cigar,
@@ -886,6 +875,17 @@ def getArgParser():
     group_igblast.add_argument('--infer-junction', action='store_true', dest='infer_junction',
                                help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
                                     prior to the addition of IMGT-CDR3 inference.''')
+    group_igblast_validate = group_igblast.add_mutually_exclusive_group(required=False)
+    group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+                                        help='''By default, passing records must contain valid values for the
+                                             V gene, J gene, junction region, and productivity call. If specified, 
+                                             this argument adds the additional requirement that the junction region must 
+                                             start at position 310 in the IMGT-numbered sequence.''')
+    group_igblast_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+                                        help='''If specified, include incomplete V(D)J alignments in
+                                             the pass file instead of the fail file. An incomplete alignment
+                                             is defined as a record that is missing a V gene assignment,
+                                             J gene assignment, junction region, or productivity call.''')
     parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False, validate='default')
 
     # igblastp output parser
@@ -954,34 +954,33 @@ def getArgParser():
     group_imgt.add_argument('--10x', action='store', nargs='+', dest='cellranger_files',
                             help='''Table file containing 10X annotations (with .csv or .tsv
                                  extension).''')
+    group_imgt.add_argument('--extended', action='store_true', dest='extended',
+                            help='''Specify to include additional aligner specific fields in the output.
+                                 Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
+                                 cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length,
+                                 p3d_length, p5j_length and d_frame.''')
     group_imgt.add_argument('--asis-id', action='store_true', dest='asis_id',
                             help='''Specify to prevent input sequence headers from being parsed
                                  to add new columns to database. Parsing of sequence headers requires
                                  headers to be in the pRESTO annotation format, so this should be specified
                                  when sequence headers are incompatible with the pRESTO annotation scheme.
                                  Note, unrecognized header formats will default to this behavior.''')
-    group_imgt_validate = group_imgt.add_mutually_exclusive_group(required=False)
-    group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                     help='''If specified, require that any passing records contain a valid 
-                                          V gene assignment, J gene assignment, junction region, and 
-                                          productivity call. Also requires that the junction region start a 
-                                          position 310 in the IMGT-numbered sequence.''')
-    group_imgt_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
-                                     help='''If specified, include incomplete V(D)J alignments in
-                                          the pass file instead of the fail file. An incomplete alignment
-                                          is defined as a record for which a valid IMGT-numbered sequence
-                                          cannot be built or that is missing a V gene assignment,
-                                          J gene assignment, junction region, or productivity call.''')
-    group_imgt.add_argument('--extended', action='store_true', dest='extended',
-                            help='''Specify to include additional aligner specific fields in the output.
-                                 Adds <vdj>_score, <vdj>_identity>, fwr1, fwr2, fwr3, fwr4,
-                                 cdr1, cdr2, cdr3, n1_length, n2_length, p3v_length, p5d_length,
-                                 p3d_length, p5j_length and d_frame.''')
     group_imgt.add_argument('--imgt-id-len', action='store', dest='imgt_id_len', type=int,
                             default=default_imgt_id_len,
                             help='''The maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
                                  Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older
                                  than 1.8.3 (May 7, 2021).''')
+    group_imgt_validate = group_imgt.add_mutually_exclusive_group(required=False)
+    group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+                                     help='''By default, passing records must contain valid values for the
+                                          V gene, J gene, junction region, and productivity call. If specified, 
+                                          this argument adds the additional requirement that the junction region must 
+                                          start at position 310 in the IMGT-numbered sequence.''')
+    group_imgt_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+                                     help='''If specified, include incomplete V(D)J alignments in
+                                          the pass file instead of the fail file. An incomplete alignment
+                                          is defined as a record that is missing a V gene assignment,
+                                          J gene assignment, junction region, or productivity call.''')
     parser_imgt.set_defaults(func=parseIMGT, validate='default')
 
     # iHMMuneAlign Aligner
@@ -1013,15 +1012,14 @@ def getArgParser():
                                   Note, unrecognized header formats will default to this behavior.''')
     group_ihmm_validate = group_ihmm.add_mutually_exclusive_group(required=False)
     group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                     help='''If specified, require that any passing records contain a valid 
-                                          V gene assignment, J gene assignment, junction region, and 
-                                          productivity call. Also requires that the junction region start a 
-                                          position 310 in the IMGT-numbered sequence.''')
+                                     help='''By default, passing records must contain valid values for the
+                                          V gene, J gene, junction region, and productivity call. If specified, 
+                                          this argument adds the additional requirement that the junction region must 
+                                          start at position 310 in the IMGT-numbered sequence.''')
     group_ihmm_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                      help='''If specified, include incomplete V(D)J alignments in
                                           the pass file instead of the fail file. An incomplete alignment
-                                          is defined as a record for which a valid IMGT-numbered sequence
-                                          cannot be built or that is missing a V gene assignment,
+                                          is defined as a record that is missing a V gene assignment,
                                           J gene assignment, junction region, or productivity call.''')
     group_ihmm.add_argument('--extended', action='store_true', dest='extended',
                              help='''Specify to include additional aligner specific fields in the output.
