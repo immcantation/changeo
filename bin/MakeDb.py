@@ -686,7 +686,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='defa
 
 
 
-def parseAIRR(aligner_file, repo=None, format=default_format,
+def numberAIRR(aligner_file, repo=None, format=default_format,
                out_file=None, out_args=default_out_args):
     """
     Inserts IMGT numbering into V fields
@@ -1010,6 +1010,10 @@ def getArgParser():
                                   headers to be in the pRESTO annotation format, so this should be specified
                                   when sequence headers are incompatible with the pRESTO annotation scheme.
                                   Note, unrecognized header formats will default to this behavior.''')
+    group_ihmm.add_argument('--extended', action='store_true', dest='extended',
+                             help='''Specify to include additional aligner specific fields in the output.
+                                  Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
+                                  adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     group_ihmm_validate = group_ihmm.add_mutually_exclusive_group(required=False)
     group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
                                      help='''By default, passing records must contain valid values for the
@@ -1021,30 +1025,26 @@ def getArgParser():
                                           the pass file instead of the fail file. An incomplete alignment
                                           is defined as a record that is missing a V gene assignment,
                                           J gene assignment, junction region, or productivity call.''')
-    group_ihmm.add_argument('--extended', action='store_true', dest='extended',
-                             help='''Specify to include additional aligner specific fields in the output.
-                                  Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
-                                  adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     parser_ihmm.set_defaults(func=parseIHMM, validate='default')
 
     # Subparser to normalize AIRR file with IMGT-numbering
-    desc_airr = dedent('''
-                      Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
-                      in germline_alignment, and adjusts the values in the coordinate fields v_germline_start 
-                      and v_germline_end accordingly.
-                      ''')
-    parser_airr = subparsers.add_parser('airr', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                        help='Standardize an AIRR Rearrangement TSV.',
-                                        description=desc_airr)
-    group_airr = parser_airr.add_argument_group('aligner parsing arguments')
-    group_airr.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
+    desc_number = dedent('''
+                         Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
+                         in germline_alignment, and adjusts the values in the coordinate fields v_germline_start 
+                         and v_germline_end accordingly.
+                         ''')
+    parser_number = subparsers.add_parser('number', parents=[parser_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
+                                          help='Add IMGT-numbering to an AIRR Rearrangement TSV.',
+                                          description=desc_number)
+    group_number = parser_number.add_argument_group('aligner parsing arguments')
+    group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                             help='''AIRR Rearrangement TSV files.''')
-    group_airr.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+    group_number.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
                             help='''List of folders and/or fasta files containing
-                                    IMGT-numbered germline sequences corresponding to the
-                                    set of germlines used for the alignment.''')
-    parser_airr.set_defaults(func=parseAIRR)
+                                 IMGT-numbered germline sequences corresponding to the
+                                 set of germlines used for the alignment.''')
+    parser_number.set_defaults(func=numberAIRR)
 
     return parser
 
@@ -1057,7 +1057,6 @@ if __name__ == "__main__":
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='aligner_files')
-    print(args_dict)
 
     # Set no ID parsing if sequence files are not provided
     if 'seq_files' in args_dict and not args_dict['seq_files']:

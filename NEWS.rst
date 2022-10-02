@@ -1,24 +1,24 @@
 Release Notes
 ===============================================================================
 
-Version 1.2.0.999:  September 24, 2022
+Version 1.3.0:  October 2, 2022
 -------------------------------------------------------------------------------
 
 AssignGenes:
 
-+ Added support for ``.fastq`` files. If ``-s`` is a ``.fastq`` file, a ``.fasta``
-  version will be created in ``--outdir``.
++ Added support for ``.fastq`` files. If a ``.fastq`` file is input, then a
+  corresponding ``.fasta`` file will be created in output directory.
 
 MakeDb:
 
 + Modified the default validation criteria for passing records to exclude
   validation that the junction region starts at position 310 in the
   IMGT-numbered sequence. The new ``-strict`` argument is equivalent to the
-  prior behavior and is mutually exclusive with the ``--partial`` argument
-  (which is unchanged).
+  prior behavior and is mutually exclusive with the ``--partial`` argument.
+  The behavior of ``--partial`` is unchanged.
 + Added support for C region alignment calls provide by IgBLAST v1.18+.
-+ Added the ``airr`` subcommand which will modify the ``sequence_alignment`` and
-  ``germline_aligment`` fields in an AIRR Rearrangement file to include
++ Added the ``number`` subcommand which will modify the ``sequence_alignment``
+  and ``germline_aligment`` fields in an AIRR Rearrangement file to include
   IMGT-numbering spacers and change the position information in
   ``v_germline_start`` and ``v_germline_end`` accordingly.
 
