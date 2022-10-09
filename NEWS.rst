@@ -8,6 +8,7 @@ AssignGenes:
 
 + Added support for ``.fastq`` files. If a ``.fastq`` file is input, then a
   corresponding ``.fasta`` file will be created in output directory.
++ Added support for C region alignment calls provide by IgBLAST v1.18+.
 
 MakeDb:
 
@@ -16,11 +17,11 @@ MakeDb:
   IMGT-numbered sequence. The new ``-strict`` argument is equivalent to the
   prior behavior and is mutually exclusive with the ``--partial`` argument.
   The behavior of ``--partial`` is unchanged.
-+ Added support for C region alignment calls provide by IgBLAST v1.18+.
 + Added the ``number`` subcommand which will modify the ``sequence_alignment``
   and ``germline_aligment`` fields in an AIRR Rearrangement file to include
   IMGT-numbering spacers and change the position information in
   ``v_germline_start`` and ``v_germline_end`` accordingly.
++ Added support for C region alignment calls provide by IgBLAST v1.18+.
 
 
 Version 1.2.0:  October 29, 2021
