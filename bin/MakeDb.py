@@ -717,6 +717,12 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
     db_handle = open(aligner_file, 'rt')
     db_iter = reader(db_handle)
 
+    # Define log handle
+    if out_args['log_file'] is None:
+        log_handle = None
+    else:
+        log_handle = open(out_args['log_file'], 'w')
+
     # Check for required columns
     try:
         required = ['sequence_imgt', 'v_germ_start_imgt']
@@ -736,15 +742,20 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         pass_handle = open(out_file, 'w')
     else:
         pass_handle = getOutputHandle(aligner_file, out_label='db-pass', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=schema.out_type)
+                                        out_name=out_args['out_name'], out_type=schema.out_type)
     pass_writer = writer(pass_handle, fields=db_iter.fields)
+
+    if out_args['failed']:
+        fail_handle = getOutputHandle(aligner_file, out_label='db-fail', out_dir=out_args['out_dir'],
+                                        out_name=out_args['out_name'], out_type=schema.out_type)
+        fail_writer = writer(fail_handle, fields=db_iter.fields)
 
     # Count records
     result_count = countDbFile(aligner_file)
 
     # Iterate over records
     start_time = time()
-    rec_count = pass_count = 0
+    rec_count = pass_count = fail_count= 0
     for rec in db_iter:
         # Print progress for previous iteration
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
@@ -756,6 +767,19 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
             pass_count += 1
             rec.setDict(imgt_dict, parse=False)
             pass_writer.writeReceptor(rec)
+        else:
+            fail_count += 1
+            # Write row to fail file if specified
+            if out_args['failed']:
+                fail_writer.writeReceptor(rec)
+        # Write log
+        if log_handle is not None:
+            log = OrderedDict([('ID', rec.sequence_id),
+                                ('V_CALL', rec.v_call),
+                                ('D_CALL', rec.d_call),
+                                ('J_CALL', rec.j_call),
+                                ('PRODUCTIVE', rec.functional)])
+            printLog(log, log_handle)
 
     # Print counts
     printProgress(rec_count, result_count, 0.05, start_time=start_time)
@@ -878,8 +902,8 @@ def getArgParser():
     group_igblast_validate = group_igblast.add_mutually_exclusive_group(required=False)
     group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
                                         help='''By default, passing records must contain valid values for the
-                                             V gene, J gene, junction region, and productivity call. If specified, 
-                                             this argument adds the additional requirement that the junction region must 
+                                             V gene, J gene, junction region, and productivity call. If specified,
+                                             this argument adds the additional requirement that the junction region must
                                              start at position 310 in the IMGT-numbered sequence.''')
     group_igblast_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                         help='''If specified, include incomplete V(D)J alignments in
@@ -973,8 +997,8 @@ def getArgParser():
     group_imgt_validate = group_imgt.add_mutually_exclusive_group(required=False)
     group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
                                      help='''By default, passing records must contain valid values for the
-                                          V gene, J gene, junction region, and productivity call. If specified, 
-                                          this argument adds the additional requirement that the junction region must 
+                                          V gene, J gene, junction region, and productivity call. If specified,
+                                          this argument adds the additional requirement that the junction region must
                                           start at position 310 in the IMGT-numbered sequence.''')
     group_imgt_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                      help='''If specified, include incomplete V(D)J alignments in
@@ -1017,8 +1041,8 @@ def getArgParser():
     group_ihmm_validate = group_ihmm.add_mutually_exclusive_group(required=False)
     group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
                                      help='''By default, passing records must contain valid values for the
-                                          V gene, J gene, junction region, and productivity call. If specified, 
-                                          this argument adds the additional requirement that the junction region must 
+                                          V gene, J gene, junction region, and productivity call. If specified,
+                                          this argument adds the additional requirement that the junction region must
                                           start at position 310 in the IMGT-numbered sequence.''')
     group_ihmm_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                      help='''If specified, include incomplete V(D)J alignments in
@@ -1030,7 +1054,7 @@ def getArgParser():
     # Subparser to normalize AIRR file with IMGT-numbering
     desc_number = dedent('''
                          Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
-                         in germline_alignment, and adjusts the values in the coordinate fields v_germline_start 
+                         in germline_alignment, and adjusts the values in the coordinate fields v_germline_start
                          and v_germline_end accordingly.
                          ''')
     parser_number = subparsers.add_parser('number', parents=[parser_parent],
