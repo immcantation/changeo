@@ -203,7 +203,7 @@ def getSeqDict(seq_file):
 
 
 def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotations=None,
-            amino_acid=False, validate='default', asis_id=True, regions='default',
+            amino_acid=False, validate='strict', asis_id=True, regions='default',
             writer=AIRRWriter, out_file=None, out_args=default_out_args):
     """
     Writes parsed records to an output file
@@ -216,7 +216,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
       id_dict (dict): a dictionary of the truncated sequence ID mapped to the full sequence ID.
       annotations (dict): additional annotation dictionary.
       amino_acid (bool): if True do verification on amino acid fields.
-      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      validate (str): validation criteria for passing records; one of 'strict', 'gentle', or 'partial'.
       asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       regions (str): name of the IMGT FWR/CDR region definitions to use.
       writer (changeo.IO.TSVWriter): writer class.
@@ -314,7 +314,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
         printError('Invalid output writer.')
 
     # Set pass criteria
-    validate_map = {'default': _gentle, 'strict': _strict, 'partial': _partial}
+    validate_map = {'strict': _strict, 'gentle': _gentle, 'partial': _partial}
     _pass = validate_map.get(validate, _gentle)
 
     # Define log handle
@@ -417,7 +417,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     return output
 
 
-def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, validate='default', asis_id=True,
+def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, validate='strict', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args,
               imgt_id_len=default_imgt_id_len):
     """
@@ -427,7 +427,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
       aligner_file (str): zipped file or unzipped folder output by IMGT.
       seq_file (str): FASTA file input to IMGT (from which to get seqID).
       repo (str): folder with germline repertoire files.
-      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      validate (str): validation criteria for passing records; one of 'strict', 'gentle', or 'partial'.
       asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       extended (bool): if True add alignment score, FWR, CDR and junction fields to output file.
       format (str): output format. one of 'changeo' or 'airr'.
@@ -512,7 +512,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
     return output
 
 
-def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, validate='default',
+def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, validate='strict',
                  asis_id=True, asis_calls=False, extended=False, regions='default', infer_junction=False,
                  format='changeo', out_file=None, out_args=default_out_args):
     """
@@ -523,7 +523,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       seq_file (str): fasta file input to IgBlast (from which to get sequence).
       repo (str): folder with germline repertoire files.
       amino_acid (bool): if True then the IgBLAST output files are results from igblastp. igblastn is assumed if False.
-      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      validate (str): validation criteria for passing records; one of 'strict', 'gentle', or 'partial'.
       asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       asis_calls (bool): if True do not parse gene calls for allele names.
       extended (bool): if True add alignment scores, FWR regions, and CDR regions to the output.
@@ -606,7 +606,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     return output
 
 
-def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='default', asis_id=True,
+def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='strict', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args):
     """
     Main for iHMMuneAlign aligned sample sequences.
@@ -615,7 +615,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='defa
       aligner_file (str): iHMMune-Align output file to process.
       seq_file (str): fasta file input to iHMMuneAlign (from which to get sequence).
       repo (str): folder with germline repertoire files.
-      validate (str): validation criteria for passing records; one of 'default', 'strict' or 'partial'.
+      validate (str): validation criteria for passing records; one of 'strict', 'gentle', or 'partial'.
       asis_id (bool): if ID is to be parsed for pRESTO output with default delimiters.
       extended (bool): if True parse alignment scores, FWR and CDR region fields.
       format (str): output format. One of 'changeo' or 'airr'.
@@ -900,17 +900,17 @@ def getArgParser():
                                help='''Infer the junction sequence. For use with IgBLAST v1.6.0 or older,
                                     prior to the addition of IMGT-CDR3 inference.''')
     group_igblast_validate = group_igblast.add_mutually_exclusive_group(required=False)
-    group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                        help='''By default, passing records must contain valid values for the
-                                             V gene, J gene, junction region, and productivity call. If specified,
-                                             this argument adds the additional requirement that the junction region must
-                                             start at position 310 in the IMGT-numbered sequence.''')
+    # group_igblast_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+    #                                     help='''By default, passing records must contain valid values for the
+    #                                          V gene, J gene, junction region, and productivity call. If specified,
+    #                                          this argument adds the additional requirement that the junction region must
+    #                                          start at position 310 in the IMGT-numbered sequence.''')
     group_igblast_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                         help='''If specified, include incomplete V(D)J alignments in
                                              the pass file instead of the fail file. An incomplete alignment
                                              is defined as a record that is missing a V gene assignment,
                                              J gene assignment, junction region, or productivity call.''')
-    parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False, validate='default')
+    parser_igblast.set_defaults(func=parseIgBLAST, amino_acid=False, validate='strict')
 
     # igblastp output parser
     parser_igblast_aa = subparsers.add_parser('igblast-aa', parents=[parser_parent],
@@ -948,7 +948,7 @@ def getArgParser():
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
-    parser_igblast_aa.set_defaults(func=parseIgBLAST, amino_acid=True, validate='partial')
+    parser_igblast_aa.set_defaults(func=parseIgBLAST, amino_acid=True, validate='strict')
 
 
     # IMGT aligner
@@ -995,17 +995,17 @@ def getArgParser():
                                  Specify 50 if the IMGT files (-i) were generated with an IMGT/HighV-QUEST version older
                                  than 1.8.3 (May 7, 2021).''')
     group_imgt_validate = group_imgt.add_mutually_exclusive_group(required=False)
-    group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                     help='''By default, passing records must contain valid values for the
-                                          V gene, J gene, junction region, and productivity call. If specified,
-                                          this argument adds the additional requirement that the junction region must
-                                          start at position 310 in the IMGT-numbered sequence.''')
+    # group_imgt_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+    #                                  help='''By default, passing records must contain valid values for the
+    #                                       V gene, J gene, junction region, and productivity call. If specified,
+    #                                       this argument adds the additional requirement that the junction region must
+    #                                       start at position 310 in the IMGT-numbered sequence.''')
     group_imgt_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                      help='''If specified, include incomplete V(D)J alignments in
                                           the pass file instead of the fail file. An incomplete alignment
                                           is defined as a record that is missing a V gene assignment,
                                           J gene assignment, junction region, or productivity call.''')
-    parser_imgt.set_defaults(func=parseIMGT, validate='default')
+    parser_imgt.set_defaults(func=parseIMGT, validate='strict')
 
     # iHMMuneAlign Aligner
     parser_ihmm = subparsers.add_parser('ihmm', parents=[parser_parent],
@@ -1039,17 +1039,17 @@ def getArgParser():
                                   Adds the path score of the iHMMune-Align hidden Markov model as vdj_score;
                                   adds fwr1, fwr2, fwr3, fwr4, cdr1, cdr2 and cdr3.''')
     group_ihmm_validate = group_ihmm.add_mutually_exclusive_group(required=False)
-    group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
-                                     help='''By default, passing records must contain valid values for the
-                                          V gene, J gene, junction region, and productivity call. If specified,
-                                          this argument adds the additional requirement that the junction region must
-                                          start at position 310 in the IMGT-numbered sequence.''')
+    # group_ihmm_validate.add_argument('--strict', action='store_const', const='strict', dest='validate',
+    #                                  help='''By default, passing records must contain valid values for the
+    #                                       V gene, J gene, junction region, and productivity call. If specified,
+    #                                       this argument adds the additional requirement that the junction region must
+    #                                       start at position 310 in the IMGT-numbered sequence.''')
     group_ihmm_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
                                      help='''If specified, include incomplete V(D)J alignments in
                                           the pass file instead of the fail file. An incomplete alignment
                                           is defined as a record that is missing a V gene assignment,
                                           J gene assignment, junction region, or productivity call.''')
-    parser_ihmm.set_defaults(func=parseIHMM, validate='default')
+    parser_ihmm.set_defaults(func=parseIHMM, validate='strict')
 
     # Subparser to normalize AIRR file with IMGT-numbering
     desc_number = dedent('''

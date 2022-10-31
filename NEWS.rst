@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.0:  October 2, 2022
+Version 1.3.0:  October 30, 2022
 -------------------------------------------------------------------------------
 
 AssignGenes:
@@ -12,11 +12,6 @@ AssignGenes:
 
 MakeDb:
 
-+ Modified the default validation criteria for passing records to exclude
-  validation that the junction region starts at position 310 in the
-  IMGT-numbered sequence. The new ``-strict`` argument is equivalent to the
-  prior behavior and is mutually exclusive with the ``--partial`` argument.
-  The behavior of ``--partial`` is unchanged.
 + Added the ``number`` subcommand which will modify the ``sequence_alignment``
   and ``germline_aligment`` fields in an AIRR Rearrangement file to include
   IMGT-numbering spacers and change the position information in
