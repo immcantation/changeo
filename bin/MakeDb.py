@@ -703,7 +703,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
     """
     log = OrderedDict()
     log['START'] = 'MakeDb'
-    log['COMMAND'] = 'airr'
+    log['COMMAND'] = 'number'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     printLog(log)
 
