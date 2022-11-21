@@ -146,6 +146,7 @@ def correctIMGTFields(receptor, references):
                  'v_germ_length_imgt': None,
                  'germline_imgt': None}
 
+    # Check for necessary fields
     try:
         if not all([receptor.sequence_imgt,
                     receptor.v_germ_start_imgt,
@@ -155,7 +156,7 @@ def correctIMGTFields(receptor, references):
     except AttributeError:
         return None
 
-    # Update IMGT fields
+    # Gap V region
     try:
         gapped = gapV(receptor.sequence_imgt,
                       receptor.v_germ_start_imgt,
@@ -167,19 +168,22 @@ def correctIMGTFields(receptor, references):
         return None
 
     # Verify IMGT-gapped sequence and junction concur
-    try:
-        check = (receptor.junction == gapped['sequence_imgt'][309:(309 + receptor.junction_length)])
-    except TypeError:
-        check = False
-    if not check:
-        return None
+    # try:
+    #     check = (receptor.junction == gapped['sequence_imgt'][309:(309 + receptor.junction_length)])
+    # except TypeError:
+    #     check = False
+    # if not check:
+    #     return None
 
     # Rebuild germline sequence
+    receptor.setDict(gapped, parse=False)
     __, germlines, __ = buildGermline(receptor, references)
-    if germlines is None:
-        return None
-    else:
+    # log, germlines, genes = buildGermline(receptor, references)
+    # print(log)
+    if germlines is not None:
         gapped['germline_imgt'] = germlines['full']
+    else:
+        return None
 
     # Update return object
     imgt_dict.update(gapped)
