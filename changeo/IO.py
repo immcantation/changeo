@@ -2202,7 +2202,7 @@ def readGermlines(references, asis=False, warn=False):
     repo_dict = {}
     duplicates = []
     for file_name in repo_files:
-        with open(file_name, 'rU') as file_handle:
+        with open(file_name, 'r') as file_handle:
             germlines = SeqIO.parse(file_handle, 'fasta')
             for g in germlines:
                 germ_key = getAllele(g.description, 'first') if not asis else g.id
