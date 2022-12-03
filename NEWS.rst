@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.0:  October 30, 2022
+Version 1.3.0:  December 4, 2022
 -------------------------------------------------------------------------------
 
 AssignGenes:
@@ -12,10 +12,6 @@ AssignGenes:
 
 MakeDb:
 
-+ Added the ``number`` subcommand which will modify the ``sequence_alignment``
-  and ``germline_aligment`` fields in an AIRR Rearrangement file to include
-  IMGT-numbering spacers and change the position information in
-  ``v_germline_start`` and ``v_germline_end`` accordingly.
 + Added support for C region alignment calls provide by IgBLAST v1.18+.
 
 
