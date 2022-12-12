@@ -1,8 +1,10 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.0:  December 4, 2022
+Version 1.3.0:  December 11, 2022
 -------------------------------------------------------------------------------
+
++ Various updates to internals and error messages.
 
 AssignGenes:
 
