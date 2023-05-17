@@ -1056,23 +1056,23 @@ def getArgParser():
     parser_ihmm.set_defaults(func=parseIHMM, validate='strict')
 
     # Subparser to normalize AIRR file with IMGT-numbering
-    desc_number = dedent('''
-                         Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
-                         in germline_alignment, and adjusts the values in the coordinate fields v_germline_start
-                         and v_germline_end accordingly.
-                         ''')
-    parser_number = subparsers.add_parser('number', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter, add_help=False,
-                                          help='Add IMGT-numbering to an AIRR Rearrangement TSV.',
-                                          description=desc_number)
-    group_number = parser_number.add_argument_group('aligner parsing arguments')
-    group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
-                            help='''AIRR Rearrangement TSV files.''')
-    group_number.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-                            help='''List of folders and/or fasta files containing
-                                 IMGT-numbered germline sequences corresponding to the
-                                 set of germlines used for the alignment.''')
-    parser_number.set_defaults(func=numberAIRR)
+    # desc_number = dedent('''
+    #                      Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
+    #                      in germline_alignment, and adjusts the values in the coordinate fields v_germline_start
+    #                      and v_germline_end accordingly.
+    #                      ''')
+    # parser_number = subparsers.add_parser('number', parents=[parser_parent],
+    #                                       formatter_class=CommonHelpFormatter, add_help=False,
+    #                                       help='Add IMGT-numbering to an AIRR Rearrangement TSV.',
+    #                                       description=desc_number)
+    # group_number = parser_number.add_argument_group('aligner parsing arguments')
+    # group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
+    #                         help='''AIRR Rearrangement TSV files.''')
+    # group_number.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+    #                         help='''List of folders and/or fasta files containing
+    #                              IMGT-numbered germline sequences corresponding to the
+    #                              set of germlines used for the alignment.''')
+    # parser_number.set_defaults(func=numberAIRR)
 
     return parser
 
