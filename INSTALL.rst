@@ -47,7 +47,8 @@ Linux
 
 2. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-3. Download the Change-O bundle and run::
+3. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__
+   and run::
 
    > pip3 install changeo-x.y.z.tar.gz --user
 
@@ -88,8 +89,8 @@ Mac OS X
 
 8. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-9. Download the Change-O bundle, open a terminal window, change directories
-   to the download folder, and run::
+9. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__, 
+   open a terminal window, change directories to the download folder, and run::
 
    > pip3 install changeo-x.y.z.tar.gz
 
@@ -106,8 +107,8 @@ Windows
 
 3. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-4. Download the Change-O bundle, open a Command Prompt, change directories to
-   the download folder, and run::
+4. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__, 
+   open a Command Prompt, change directories to the download folder, and run::
 
    > pip install changeo-x.y.z.tar.gz
 
