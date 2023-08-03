@@ -3,4 +3,3 @@ sphinx_rtd_theme>=0.5
 PyYAML>=5.1
 sphinxcontrib-autoprogram>=0.1.2
 sphinxcontrib-bibtex==1.0.0
-setuptools>=2.0
