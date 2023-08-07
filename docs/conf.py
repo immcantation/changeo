@@ -55,13 +55,14 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
               'sphinx.ext.todo',
               'sphinxcontrib.autoprogram',
-              'sphinxcontrib.bibtex']
+              'sphinxcontrib.bibtex',
+              'sphinx_rtd_theme']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # Set path to bibtex_bibfiles
-bibtex_bibfiles = "references.bib"
+bibtex_bibfiles = ["references.bib"]
 
 # The suffix of source filenames.
 source_suffix = '.rst'
