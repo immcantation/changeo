@@ -58,6 +58,7 @@ Version 1.1.0:  June 21, 2021
 + Updated dependencies to biopython >= v1.77, airr >= v1.3.1, PyYAML>=5.1.
 
 MakeDb:
+
 + Added the ``--imgt-id-len`` argument to accommodate changes introduced in how
   IMGT/HighV-QUEST truncates sequence identifiers as of v1.8.3 (May 7, 2021).
   The header lines in the fasta files are now truncated to 49 characters. In
