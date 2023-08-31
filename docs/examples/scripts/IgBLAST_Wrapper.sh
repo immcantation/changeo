@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Download and extract IgBLAST
-VERSION="1.17.0"
+VERSION="1.21.0"
 wget ftp://ftp.ncbi.nih.gov/blast/executables/igblast/release/${VERSION}/ncbi-igblast-${VERSION}-x64-linux.tar.gz
 tar -zxf ncbi-igblast-${VERSION}-x64-linux.tar.gz
 cp ncbi-igblast-${VERSION}/bin/* ~/bin
