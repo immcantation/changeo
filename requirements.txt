@@ -1,7 +1,7 @@
 numpy>=1.8
 scipy>=0.14
 pandas>=0.24
-biopython>=1.77
+biopython>=1.81
 PyYAML>=5.1
 setuptools>=2.0
 presto>=0.7.0
