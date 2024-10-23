@@ -6,7 +6,7 @@ If you have questions you can email the
 
 If you've discovered a bug or have a feature request, you can create an issue
 on Bitbucket using the
-`Issue Tracker <http://bitbucket.org/kleinstein/changeo/issues>`__.
+`Issue Tracker <http://github.com/immcantation/changeo/issues>`__.
 
 Citation
 --------------------------------------------------------------------------------

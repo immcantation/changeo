@@ -7,7 +7,7 @@ The simplest way to install the latest stable release of Change-O is via pip::
 
 The current development build can be installed using pip and git in similar fashion::
 
-    > pip3 install git+https://bitbucket.org/kleinstein/changeo@master --user
+    > pip3 install git+https://github.com/immcantation/changeo@master --user
 
 If you currently have a development version installed, then you will likely
 need to add the arguments ``--upgrade --no-deps --force-reinstall`` to the
@@ -47,7 +47,7 @@ Linux
 
 2. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-3. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__
+3. Download the `Change-O bundle <https://github.com/immcantation/changeo/packages>`__
    and run::
 
    > pip3 install changeo-x.y.z.tar.gz --user
@@ -89,7 +89,7 @@ Mac OS X
 
 8. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-9. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__, 
+9. Download the `Change-O bundle <https://github.com/immcantation/changeo/packages>`__, 
    open a terminal window, change directories to the download folder, and run::
 
    > pip3 install changeo-x.y.z.tar.gz
@@ -107,7 +107,7 @@ Windows
 
 3. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
 
-4. Download the `Change-O bundle <https://bitbucket.org/kleinstein/changeo/downloads>`__, 
+4. Download the `Change-O bundle <https://github.com/immcantation/changeo/packages>`__, 
    open a Command Prompt, change directories to the download folder, and run::
 
    > pip install changeo-x.y.z.tar.gz
