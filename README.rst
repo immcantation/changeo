@@ -24,8 +24,9 @@ Change-O has moved to https://github.com/immcantation/changeo
 
 To update Git configuration settings:
 
-```
-git config user.email "your-gh-user@email.com"
-git config user.name "your-gh-user-name"
-git remote set-url origin git@github.com:immcantation/changeo.git
-```
+   git config user.email "your-gh-user@email.com"
+   
+   git config user.name "your-gh-user-name"
+   
+   git remote set-url origin git@github.com:immcantation/changeo.git
+
