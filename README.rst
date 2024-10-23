@@ -18,3 +18,14 @@ Ig and TCR sequences following germline segment assignment. Change-O
 handles output from IMGT/HighV-QUEST and IgBLAST, and provides a wide variety of
 clustering methods for assigning clonal groups to Ig sequences. Record sorting, 
 grouping, and various database manipulation operations are also included.
+
+**IMPORTANT!** 
+Change-O has moved to https://github.com/immcantation/changeo
+
+To update Git configuration settings:
+
+```
+git config user.email "your-gh-user@email.com"
+git config user.name "your-gh-user-name"
+git remote set-url origin git@github.com:immcantation/changeo.git
+```
