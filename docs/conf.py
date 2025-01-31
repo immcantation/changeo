@@ -33,17 +33,6 @@ if os.environ.get('READTHEDOCS', None) == 'True':
                     'presto', 'presto.Annotation', 'presto.Applications', 'presto.Defaults',
                     'presto.IO', 'presto.Multiprocessing', 'presto.Sequence']
     sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
-    
-rst_prolog = """
-.. important::
-    *Are you an Immcantation user and/or interested in adaptive immune receptor repertoire analysis?*
-    
-    Register now for the upcoming Immcantation Users Group Meeting!
-    It will be held virtually on **January 30th, 2025, from 10 to 1:30pm (ET)**.
-    All talks will be from user-submitted abstracts.
-
-    Full information here: https://immcantation.github.io/users-meeting/
-"""
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
