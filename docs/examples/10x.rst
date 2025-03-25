@@ -79,8 +79,8 @@ Correct clonal groups based on light chain data
 
 :ref:`DefineClones` currently does not support light chain cloning. However,
 cloning can be performed after heavy chain cloning using
-`light_cluster.py <https://bitbucket.org/kleinstein/immcantation/src/tip/scripts/light_cluster.py>`__
-provided on the `Immcantation Bitbucket repository <https://bitbucket.org/kleinstein/immcantation>`__
+`light_cluster.py <https://github.com/immcantation/immcantation/blob/master/scripts/light_cluster.py>`__
+provided on the `Immcantation GitHub repository <https://github.com/immcantation/immcantation>`__
 in the ``scripts`` directory::
 
     light_cluster.py -d heavy_select-pass_clone-pass.tsv -e light_select-pass.tsv \
