@@ -61,7 +61,7 @@ as follows, adjusting the version number to taste:
     .. literalinclude:: scripts/IgBLAST_Commands.sh
        :language: bash
        :linenos:
-       :lines: 2-13
+       :lines: 2-17
 
     Once these databases are built for each segment they can be referenced when
     running IgBLAST.
@@ -105,7 +105,7 @@ regarding the ``IGDATA`` environment variable.
     .. literalinclude:: scripts/IgBLAST_Commands.sh
        :language: bash
        :linenos:
-       :lines: 15-24
+       :lines: 19-29
 
 Processing the output of IgBLAST
 --------------------------------------------------------------------------------
