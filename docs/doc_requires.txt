@@ -4,6 +4,7 @@ docutils<0.19
 PyYAML>=5.1
 sphinxcontrib-autoprogram>=0.1.8
 sphinxcontrib-bibtex==2.5.0
+sphinxcontrib-googleanalytics==0.4
 setuptools==65.5.1
 numpy==1.24.4
 scipy==1.10.1

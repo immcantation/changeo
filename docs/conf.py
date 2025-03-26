@@ -56,6 +56,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinxcontrib.autoprogram',
               'sphinxcontrib.bibtex',
+              'sphinxcontrib.googleanalytics',
               'sphinx_rtd_theme']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -139,8 +140,10 @@ html_theme = "sphinx_rtd_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'analytics_id': 'G-16PHZM9YQV'
+#    'analytics_id': 'G-16PHZM9YQV'
 }
+
+googleanalytics_id = 'G-16PHZM9YQV'
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = []
