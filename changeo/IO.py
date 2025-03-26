@@ -526,8 +526,8 @@ class IMGTReader:
         Returns:
           dict : database entries for gene calls.
         """
-        clean_regex = re.compile('(,)|(\(see comment\))')
-        delim_regex = re.compile('\sor\s')
+        clean_regex = re.compile(r'(,)|(\(see comment\))')
+        delim_regex = re.compile(r'\sor\s')
 
         # Gene calls
         v_str = summary['V-GENE and allele']
@@ -953,7 +953,7 @@ class IgBLASTReader:
 
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# V-(D)-J rearrangement summary')))
-        f = re.search('summary for query sequence \((.+)\)\.', f).group(1)
+        f = re.search(r'summary for query sequence \((.+)\)\.', f).group(1)
         columns = [summary_map[x.strip()] for x in f.split(',')]
 
         # Extract first row as a list
@@ -987,7 +987,7 @@ class IgBLASTReader:
 
         # Extract column names from comments
         f = next((x for x in chunk if x.startswith('# Sub-region sequence details')))
-        f = re.search('sequence details \((.+)\)', f).group(1)
+        f = re.search(r'sequence details \((.+)\)', f).group(1)
         columns = [cdr3_map[x.strip()] for x in f.split(',')]
 
         # Extract first CDR3 as a list and remove the CDR3 label

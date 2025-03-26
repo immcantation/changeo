@@ -78,8 +78,8 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
             tag_list = list(set([row[field] for row in tmp_iter]))
 
         # Forbidden characters in filename and replacements
-        no_good = {'\/':'f','\\':'b','?':'q','\%':'p','*':'s',':':'c',
-                   '\|':'pi','\"':'dq','\'':'sq','<':'gt','>':'lt',' ':'_'}
+        no_good = {r'\/':'f',r'\\':'b',r'?':'q',r'\%':'p',r'*':'s',r':':'c',
+                   r'\|':'pi',r'\"':'dq',r'\'':'sq',r'<':'gt',r'>':'lt',r' ':'_'}
         # Replace forbidden characters in tag_list
         tag_dict = {}
         for tag in tag_list:

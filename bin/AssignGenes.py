@@ -129,7 +129,7 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
             while f.read(1) != b'\n':
                 f.seek(-2, os.SEEK_CUR)
             pass_info = f.readline().decode()
-        num_seqs_match = re.search('(# BLAST processed )(\d+)( .*)', pass_info)
+        num_seqs_match = re.search(r'(# BLAST processed )(\d+)( .*)', pass_info)
         num_sequences = num_seqs_match.group(2)
     else:
         f = open(out_file, 'rb')

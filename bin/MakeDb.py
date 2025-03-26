@@ -121,9 +121,9 @@ def getIDforIMGT(seq_file, imgt_id_len=default_imgt_id_len):
             id_key = rec.description
         else: # truncate and replace characters
             if imgt_id_len == 49: # 28 September 2021 (version 1.8.4)
-                id_key = re.sub('\s|\t', '_', rec.description[:imgt_id_len])
+                id_key = re.sub(r'\s|\t', '_', rec.description[:imgt_id_len])
             else: # older versions
-                id_key = re.sub('\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
+                id_key = re.sub(r'\||\s|!|&|\*|<|>|\?', '_', rec.description[:imgt_id_len])
         ids.update({id_key: rec.description})
 
     return ids

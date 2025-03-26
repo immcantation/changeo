@@ -280,7 +280,7 @@ def getIgBLASTVersion(exec=default_igblastn_exec):
         printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     # Extract version number
-    match = re.search('(?<=Package: igblast )(\d+\.\d+\.\d+)', stdout_str)
+    match = re.search(r'(?<=Package: igblast )(\d+\.\d+\.\d+)', stdout_str)
     version = match.group(0)
 
     return version
