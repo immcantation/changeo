@@ -105,7 +105,7 @@ regarding the ``IGDATA`` environment variable.
     .. literalinclude:: scripts/IgBLAST_Commands.sh
        :language: bash
        :linenos:
-       :lines: 19-29
+       :lines: 19-30
 
 Processing the output of IgBLAST
 --------------------------------------------------------------------------------
