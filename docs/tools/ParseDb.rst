@@ -1,4 +1,4 @@
 .. _ParseDb:
 
 .. autoprogram:: ParseDb:getArgParser()
-   :prog: ParseDb.py
+    :prog: ParseDb.py

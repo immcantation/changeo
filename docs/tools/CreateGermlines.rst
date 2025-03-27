@@ -1,4 +1,4 @@
 .. _CreateGermlines:
 
 .. autoprogram:: CreateGermlines:getArgParser()
-   :prog: CreateGermlines.py
+    :prog: CreateGermlines.py

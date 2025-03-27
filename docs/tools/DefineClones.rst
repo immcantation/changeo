@@ -1,4 +1,4 @@
 .. _DefineClones:
 
 .. autoprogram:: DefineClones:getArgParser()
-   :prog: DefineClones.py
+    :prog: DefineClones.py

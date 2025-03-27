@@ -1,4 +1,4 @@
 .. _BuildTrees:
 
 .. autoprogram:: BuildTrees:getArgParser()
-   :prog: BuildTrees.py
+    :prog: BuildTrees.py
