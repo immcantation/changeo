@@ -18,14 +18,16 @@ Requirements
 
 The minimum dependencies for installation are:
 
-+ `Python 3.4.0 <http://python.org>`__
++ `Python 3.7.0 <http://python.org>`__
 + `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
 + `NumPy 1.8 <http://numpy.org>`__
 + `SciPy 0.14 <http://scipy.org>`__
 + `pandas 0.24 <http://pandas.pydata.org>`__
-+ `Biopython 1.77 <http://biopython.org>`__
++ `Biopython 1.81 <http://biopython.org>`__
 + `presto 0.7.0 <http://presto.readthedocs.io>`__
 + `airr 1.3.1 <https://docs.airr-community.org>`__
++ `PyYAML 5.1 <http://pyyaml.org>`__
++ `packaging 23.2 <https://packaging.pypa.io>`__
 
 Some tools wrap external applications that are not required for installation.
 Those tools require minimum versions of:

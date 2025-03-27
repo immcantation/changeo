@@ -7,8 +7,8 @@ import os
 import sys
 
 # Check setup requirements
-if sys.version_info < (3,4,0):
-    sys.exit('At least Python 3.4.0 is required.\n')
+if sys.version_info < (3,7,0):
+    sys.exit('At least Python 3.7.0 is required.\n')
 
 try:
     from setuptools import setup
@@ -77,5 +77,5 @@ setup(name='changeo',
                    'Intended Audience :: Science/Research',
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
-                   'Programming Language :: Python :: 3.4',
+                   'Programming Language :: Python :: 3.7',
                    'Topic :: Scientific/Engineering :: Bio-Informatics'])

@@ -1,6 +1,14 @@
 Release Notes
 ===============================================================================
 
+Version 1.3.1:  March 27, 2025
+-------------------------------------------------------------------------------
+
++ Active development has moved from Bitbucket to GitHub (https://github.com/immcantation/changeo).
++ Documentation updates.
++ Various updates to internals to avoid deprecation warnings.
++ Updates in requirements: Python 3.7.0, biopython>=1.81 and packaging>=23.2.
+
 Version 1.3.0:  December 11, 2022
 -------------------------------------------------------------------------------
 
