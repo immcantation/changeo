@@ -47,7 +47,7 @@ Linux
    Biopython according to its
    `instructions <http://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
+2. Install `presto 0.7.0 <http://presto.readthedocs.io>`__ or greater.
 
 3. Download the `Change-O bundle <https://github.com/immcantation/changeo/tags>`__
    and run::
@@ -89,7 +89,7 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
+8. Install `presto 0.7.0 <http://presto.readthedocs.io>`__ or greater.
 
 9. Download the `Change-O bundle <https://github.com/immcantation/changeo/tags>`__, 
    open a terminal window, change directories to the download folder, and run::
@@ -107,7 +107,7 @@ Windows
    `Unofficial Windows binary <http://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Install `presto 0.6.2 <http://presto.readthedocs.io>`__ or greater.
+3. Install `presto 0.7.0 <http://presto.readthedocs.io>`__ or greater.
 
 4. Download the `Change-O bundle <https://github.com/immcantation/changeo/tags>`__, 
    open a Command Prompt, change directories to the download folder, and run::
