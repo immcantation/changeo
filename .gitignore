@@ -1,6 +1,8 @@
 *~
 .DS_Store
+.history
 .idea
+.vscode
 *.pyc
 *.pyo
 *.egg-info
