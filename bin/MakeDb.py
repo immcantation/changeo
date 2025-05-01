@@ -1121,6 +1121,7 @@ if __name__ == "__main__":
 
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(args.func, **d) for d in ds]
-        result = [f.result() for f in futures]
+        for future in as_completed(futures):
+            result = future.result()
         # original code threw away return values, so I am too...
                        
