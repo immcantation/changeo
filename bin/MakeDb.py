@@ -1,4 +1,4 @@
-#!/home/rdb9/.conda/envs/changeo/bin/python
+#!/usr/bin/env python3```
 """
 Create tab-delimited database file to store sequence alignment information
 """
