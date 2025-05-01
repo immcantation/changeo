@@ -1117,6 +1117,7 @@ if __name__ == "__main__":
 
     # now do the loop in parallel
     from concurrent.futures import ProcessPoolExecutor
+    from concurrent.futures import as_completed
 
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(args.func, **d) for d in ds]
