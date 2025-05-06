@@ -11,7 +11,7 @@ import os
 import shutil
 from argparse import ArgumentParser
 from collections import OrderedDict
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 from textwrap import dedent
 from time import time
 import re
