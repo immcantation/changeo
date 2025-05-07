@@ -8,7 +8,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import os
 import re
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 from subprocess import check_output, STDOUT, CalledProcessError
 
 # Presto and changeo imports

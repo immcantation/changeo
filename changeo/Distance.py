@@ -9,7 +9,7 @@ __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
 import numpy as np
 import pandas as pd
 from itertools import combinations, product, zip_longest
-from pkg_resources import resource_stream
+from importlib.resources import open_text
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 
@@ -220,22 +220,22 @@ aa_model = getAADistMatrix(mask_dist=0, gap_dist=0)
 ham_model = getDNADistMatrix(mask_dist=0, gap_dist=0)
 
 # Load model data
-with resource_stream(__name__, 'data/hh_s1f_dist.tsv') as f:
+with open_text(__name__, 'data/hh_s1f_dist.tsv') as f:
     hh_s1f_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/hh_s5f_dist.tsv') as f:
+with open_text(__name__, 'data/hh_s5f_dist.tsv') as f:
     hh_s5f_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/mk_rs1nf_dist.tsv') as f:
+with open_text(__name__, 'data/mk_rs1nf_dist.tsv') as f:
     mk_rs1nf_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/mk_rs5nf_dist.tsv') as f:
+with open_text(__name__, 'data/mk_rs5nf_dist.tsv') as f:
     mk_rs5nf_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/m1n_compat_dist.tsv') as f:
+with open_text(__name__, 'data/m1n_compat_dist.tsv') as f:
     m1n_compat_model = pd.read_csv(f, sep='\t', index_col=0)
 
-with resource_stream(__name__, 'data/hs1f_compat_dist.tsv') as f:
+with open_text(__name__, 'data/hs1f_compat_dist.tsv') as f:
     hs1f_compat_model = pd.read_csv(f, sep='\t', index_col=0)
 
 distance_models = {'ham': ham_model,
