@@ -12,3 +12,4 @@ pandas==1.5.3
 biopython>=1.77
 presto
 airr==1.4.1
+importlib
