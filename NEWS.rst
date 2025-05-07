@@ -4,8 +4,8 @@ Release Notes
 Version 1.3.2:  May 7, 2025
 -------------------------------------------------------------------------------
 
-+ Updated dependencies to address deprecation warnings. Replaced `pkg_resources`
-  with `packaging` and `importlib`.
++ Updated dependencies to address deprecation warnings. Replaced ``pkg_resources``
+  with ``packaging`` and ``importlib``.
 
 Version 1.3.1:  March 27, 2025
 -------------------------------------------------------------------------------
