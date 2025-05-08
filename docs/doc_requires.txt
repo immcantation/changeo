@@ -6,10 +6,11 @@ sphinxcontrib-autoprogram>=0.1.8
 sphinxcontrib-bibtex==2.6.3
 sphinxcontrib-googleanalytics==0.4
 setuptools==80.3.1
-numpy==1.24.4
-scipy==1.10.1
-pandas==1.5.3
-biopython>=1.77
+numpy==1.26.4
+scipy==1.15.2
+pandas==2.2.3
+biopython==1.85
 presto
-airr==1.4.1
+airr==1.5.1
 importlib~=1.0.4
+snowballstemmer==2.2.0
