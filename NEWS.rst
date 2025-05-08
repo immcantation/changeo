@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.2:  May 7, 2025
+Version 1.3.2dev:  Unreleased
 -------------------------------------------------------------------------------
 
 + Updated dependencies to address deprecation warnings. Replaced ``pkg_resources``
