@@ -11,6 +11,7 @@ jobs:
   min-deps:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         PYTHON_VERSION: ['3.11', '3.12', '3.13']
     steps:
