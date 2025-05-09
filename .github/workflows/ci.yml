@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: ['3.11', '3.12', '3.13']
+        PYTHON_VERSION: ['3.11']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +25,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_min.txt
+      - name: Install package
+        run: |
+          python setup.py install
+      - name: Unit tests
+        run: |
+          python -m unittest discover
+  python-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        PYTHON_VERSION: ['3.11', '3.12', '3.13']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
       - name: Install package
         run: |
           python setup.py install
