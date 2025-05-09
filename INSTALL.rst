@@ -18,7 +18,7 @@ Requirements
 
 The minimum dependencies for installation are:
 
-+ `Python 3.7.0 <http://python.org>`__
++ `Python 3.11.0 <http://python.org>`__
 + `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
 + `NumPy 1.8 <http://numpy.org>`__
 + `SciPy 0.14 <http://scipy.org>`__
