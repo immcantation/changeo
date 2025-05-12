@@ -10,7 +10,7 @@ numpy==1.26.4
 scipy==1.15.2
 pandas==2.2.3
 biopython==1.85
-presto
+presto>=0.7.0
 airr==1.5.1
-importlib~=1.0.4
+importlib-resources>=6.0
 snowballstemmer==2.2.0

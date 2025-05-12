@@ -9,7 +9,7 @@ __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
 import numpy as np
 import pandas as pd
 from itertools import combinations, product, zip_longest
-from importlib.resources import open_text
+from importlib_resources import open_text
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 
