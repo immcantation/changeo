@@ -6,6 +6,9 @@ Version 1.3.2dev:  Unreleased
 
 + Updated dependencies to address deprecation warnings. Replaced ``pkg_resources``
   with ``packaging`` and ``importlib``.
++ Bumped minimum Python version to 3.10.0 and updated requirements to: numpy>=1.23.2,
+  scipy>=1.9.3, pandas>=1.5.0, biopython>=1.81, PyYAML>=6.0, setuptools>=65.5.0,
+  presto>=0.7.1, airr>=1.3.1, packaging>=21.3, importlib-resources>=6.4.0.
 
 Version 1.3.1:  March 27, 2025
 -------------------------------------------------------------------------------
