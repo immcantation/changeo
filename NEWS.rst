@@ -4,12 +4,6 @@ Release Notes
 Version 1.3.3:  May 14, 2025
 -------------------------------------------------------------------------------
 
-+ No changes from 1.3.2. This release fixes a broken release process and 
-  reuploads the package to PyPI.
-
-Version 1.3.2:  May 14, 2025
--------------------------------------------------------------------------------
-
 + Updated dependencies to address deprecation warnings. Replaced ``pkg_resources``
   with ``packaging`` and ``importlib``.
 + Bumped minimum Python version to 3.10.0 and updated requirements to: numpy>=1.23.2,
