@@ -4,3 +4,4 @@ docutils==0.21.2
 sphinxcontrib-autoprogram>=0.1.8
 sphinxcontrib-bibtex==2.6.3
 sphinxcontrib-googleanalytics==0.4
+importlib-resources>=6.4.0
