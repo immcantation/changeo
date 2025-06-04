@@ -1098,15 +1098,30 @@ if __name__ == "__main__":
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']
 
-    # Call main
+
+    ds=[]
+
+    # initialize a dict for each execution, and add to list
     for i, f in enumerate(args.__dict__['aligner_files']):
-        args_dict['aligner_file'] = f
-        args_dict['out_file'] = args.__dict__['out_files'][i] \
+        tmp_dict=args_dict.copy()
+        tmp_dict['aligner_file'] = f
+        tmp_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
         if 'seq_files' in args.__dict__:
-            args_dict['seq_file'] = args.__dict__['seq_files'][i] \
+            tmp_dict['seq_file'] = args.__dict__['seq_files'][i] \
                                     if args.__dict__['seq_files'] else None
         if 'cellranger_files' in args.__dict__:
-            args_dict['cellranger_file'] = args.__dict__['cellranger_files'][i] \
+            tmp_dict['cellranger_file'] = args.__dict__['cellranger_files'][i] \
                                            if args.__dict__['cellranger_files'] else None
-        args.func(**args_dict)
+        ds.append(tmp_dict)
+
+    # now do the loop in parallel
+    from concurrent.futures import ProcessPoolExecutor
+    from concurrent.futures import as_completed
+
+    with ProcessPoolExecutor() as executor:
+        futures = [executor.submit(args.func, **d) for d in ds]
+        for future in as_completed(futures):
+            result = future.result()
+        # original code threw away return values, so I am too...
+                       
