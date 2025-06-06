@@ -20,6 +20,7 @@
 
     overview
     install
+    contributing
     standard
     news
 
