@@ -783,6 +783,8 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
                                 ('D_CALL', rec.d_call),
                                 ('J_CALL', rec.j_call),
                                 ('PRODUCTIVE', rec.functional)])
+            if not imgt_dict:
+                log['ERROR'] = 'Could not add IMGT-numbering to sequence.'
             printLog(log, log_handle)
 
     # Print counts
