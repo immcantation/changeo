@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.4:  Unreleased
+Version 1.3.4dev:  Unreleased
 -------------------------------------------------------------------------------
 
 + Added the flag ``--partial`` to MakeDb igblast-aa to pass incomplete alignment
