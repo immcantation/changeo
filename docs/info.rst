@@ -1,12 +1,12 @@
 Contact
 --------------------------------------------------------------------------------
 
-If you have questions you can email the
-`Immcantation Group <mailto:immcantation@googlegroups.com>`__.
+If you need help or have any questions, please contact the `Immcantation Group <mailto:immcantation@googlegroups.com>`__.
 
-If you've discovered a bug or have a feature request, you can create an issue
-on GitHub using the
-`Issue Tracker <http://github.com/immcantation/changeo/issues>`__.
+If you have discovered a bug or have a feature request, you can open an issue using the
+`issue tracker <http://github.com/immcantation/changeo/issues>`__.
+
+To receive alerts about Immcantation releases, news, events, and tutorials, join the `Immcantation News <https://groups.google.com/g/immcantation-news>`__ Google Group. `Membership settings <https://groups.google.com/g/immcantation-news/membership>`__ can be adjusted to change the frequency of email updates.
 
 Citation
 --------------------------------------------------------------------------------
