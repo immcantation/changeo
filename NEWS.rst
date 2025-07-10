@@ -5,10 +5,10 @@ Version 1.3.4dev:  Unreleased
 -------------------------------------------------------------------------------
 
 + Added the flag ``--partial`` to MakeDb igblast-aa to pass incomplete alignment
-  results. As ``igblastp`` only uses the V germline database, all sequences will 
-  be missing the ``junction`` and ``j_call`` fields and be considered incomplete.
-  Specifying ``--partial`` will allow these sequences to be processed ignoring the
-  missing fields.
+  results. As ``igblastp`` (as at igblast 1.22.0) only uses the V germline 
+  database, all sequences will be missing the ``junction`` and ``j_call`` fields 
+  and be considered incomplete. Specifying ``--partial`` will allow these 
+  sequences to be processed ignoring the missing fields.
 
 Version 1.3.3:  May 14, 2025
 -------------------------------------------------------------------------------
