@@ -138,5 +138,60 @@ class Test_MakeDb(unittest.TestCase):
 
         self.fail('TODO')
 
+    @unittest.skip("-> igblast-aa partial execution test skipped\n")
+    def test_igblast_aa_partial_execution(self):
+        """Test actual execution of MakeDb.py with and without --partial"""
+        import subprocess, tempfile, shutil
+        temp_dir = tempfile.mkdtemp()
+        try:
+            strict_pass = os.path.join(temp_dir, 'strict_db-pass.tsv')
+            strict_fail = os.path.join(temp_dir, 'strict_db-fail.tsv')
+            partial_pass = os.path.join(temp_dir, 'partial_db-pass.tsv')
+            partial_fail = os.path.join(temp_dir, 'partial_db-fail.tsv')
+            bin_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'bin')
+            # Run MakeDb.py with strict validation (default)
+            strict_cmd = [
+                os.path.join(bin_path, 'MakeDb.py'),
+                'igblast-aa',
+                '-i', self.igblast_ig_aa,
+                '-s', self.reads_ig_aa,
+                '-r', self.repo_ig_aa,
+                '--outname', os.path.join(temp_dir, 'strict')
+            ]
+            subprocess.run(strict_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Run MakeDb.py with partial validation
+            partial_cmd = [
+                os.path.join(bin_path, 'MakeDb.py'),
+                'igblast-aa',
+                '-i', self.igblast_ig_aa,
+                '-s', self.reads_ig_aa,
+                '-r', self.repo_ig_aa,
+                '--partial',
+                '--outname', os.path.join(temp_dir, 'partial')
+            ]
+            subprocess.run(partial_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Output files may not exist if there are no records for that category
+            for f in [strict_pass, strict_fail, partial_pass, partial_fail]:
+                if os.path.exists(f):
+                    self.assertTrue(os.path.isfile(f))
+            def count_records(filepath):
+                if os.path.isfile(filepath) and os.path.getsize(filepath) > 0:
+                    return sum(1 for line in open(filepath) if not line.startswith('#'))
+                return 0
+            strict_pass_count = count_records(strict_pass)
+            strict_fail_count = count_records(strict_fail)
+            partial_pass_count = count_records(partial_pass)
+            partial_fail_count = count_records(partial_fail)
+            self.assertGreaterEqual(partial_pass_count + partial_fail_count,
+                                 strict_pass_count + strict_fail_count,
+                                 "Total records should be the same or greater with partial validation")
+            if strict_fail_count > 0:
+                self.assertTrue(
+                    partial_pass_count > strict_pass_count or partial_fail_count < strict_fail_count,
+                    "Partial validation should pass more records or fail fewer records than strict validation"
+                )
+        finally:
+            shutil.rmtree(temp_dir)
+
 if __name__ == '__main__':
     unittest.main()
