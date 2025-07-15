@@ -952,6 +952,10 @@ def getArgParser():
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
+    # Add mutually exclusive group for validation, including --partial
+    group_igblast_aa_validate = group_igblast_aa.add_mutually_exclusive_group(required=False)
+    group_igblast_aa_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+        help='''If specified, include incomplete V(D)J alignments in the pass file instead of the fail file. An incomplete alignment is defined as a record that is missing a V gene assignment, J gene assignment, junction region, or productivity call.''')
     parser_igblast_aa.set_defaults(func=parseIgBLAST, amino_acid=True, validate='strict')
 
 
