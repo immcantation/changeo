@@ -119,7 +119,7 @@ def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=
     if multiproc:
         group.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
                            help='''The number of simultaneous computational processes to execute
-                                (CPU cores to utilized).''')
+                                (CPU cores to utilize).''')
 
     return parser
 
