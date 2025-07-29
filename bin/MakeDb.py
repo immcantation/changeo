@@ -859,7 +859,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(db_in=False)
+    parser_parent = getCommonArgParser(db_in=False, multiproc=True)
 
     # igblastn output parser
     parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],
@@ -1094,6 +1094,9 @@ if __name__ == "__main__":
     if 'seq_files' in args_dict and not args_dict['seq_files']:
         args_dict['asis_id'] = True
 
+    # Extract nproc before deleting
+    nproc = args_dict.get('nproc', None)
+
     # Delete
     if 'aligner_files' in args_dict: del args_dict['aligner_files']
     if 'seq_files' in args_dict: del args_dict['seq_files']
@@ -1101,6 +1104,7 @@ if __name__ == "__main__":
     if 'out_files' in args_dict: del args_dict['out_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']
+    if 'nproc' in args_dict: del args_dict['nproc']
 
 
     ds=[]
@@ -1123,7 +1127,7 @@ if __name__ == "__main__":
     from concurrent.futures import ProcessPoolExecutor
     from concurrent.futures import as_completed
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=nproc) as executor:
         futures = [executor.submit(args.func, **d) for d in ds]
         for future in as_completed(futures):
             result = future.result()
