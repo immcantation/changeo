@@ -423,7 +423,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
 def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, validate='strict', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args,
-              imgt_id_len=default_imgt_id_len):
+              imgt_id_len=default_imgt_id_len, nproc=None):
     """
     Main for IMGT aligned sample sequences.
 
@@ -448,6 +448,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
     log['COMMAND'] = 'imgt'
     log['ALIGNER_FILE'] = aligner_file
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['VALIDATE'] = validate
     log['EXTENDED'] = extended
@@ -518,7 +519,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
 
 def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, validate='strict',
                  asis_id=True, asis_calls=False, extended=False, regions='default', infer_junction=False,
-                 format='changeo', out_file=None, out_args=default_out_args):
+                 format='changeo', out_file=None, out_args=default_out_args, nproc=None):
     """
     Main for IgBLAST aligned sample sequences.
 
@@ -546,6 +547,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['COMMAND'] = 'igblast-aa' if amino_acid else 'igblast'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['ASIS_CALLS'] = asis_calls
     log['VALIDATE'] = validate
@@ -611,7 +613,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
 
 
 def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='strict', asis_id=True,
-              extended=False, format=default_format, out_file=None, out_args=default_out_args):
+              extended=False, format=default_format, out_file=None, out_args=default_out_args, nproc=None):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
@@ -635,6 +637,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
     log['COMMAND'] = 'ihmm'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['VALIDATE'] = validate
     log['EXTENDED'] = extended
@@ -691,7 +694,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
 
 
 def numberAIRR(aligner_file, repo=None, format=default_format,
-               out_file=None, out_args=default_out_args):
+               out_file=None, out_args=default_out_args, nproc=None):
     """
     Inserts IMGT numbering into V fields
 
@@ -709,6 +712,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
     log['START'] = 'MakeDb'
     log['COMMAND'] = 'number'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
+    log['NPROC'] = nproc
     printLog(log)
 
     # Define format operators
@@ -1113,6 +1117,7 @@ if __name__ == "__main__":
     for i, f in enumerate(args.__dict__['aligner_files']):
         tmp_dict=args_dict.copy()
         tmp_dict['aligner_file'] = f
+        tmp_dict['nproc'] = nproc
         tmp_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
         if 'seq_files' in args.__dict__:
