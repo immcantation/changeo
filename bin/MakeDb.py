@@ -16,6 +16,8 @@ from collections import OrderedDict
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import as_completed
 
 # Presto and changeo imports
 from presto.Annotation import parseAnnotation
@@ -1129,9 +1131,6 @@ if __name__ == "__main__":
         ds.append(tmp_dict)
 
     # now do the loop in parallel
-    from concurrent.futures import ProcessPoolExecutor
-    from concurrent.futures import as_completed
-
     with ProcessPoolExecutor(max_workers=nproc) as executor:
         futures = [executor.submit(args.func, **d) for d in ds]
         for future in as_completed(futures):
