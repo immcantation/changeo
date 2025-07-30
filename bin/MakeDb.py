@@ -1104,8 +1104,9 @@ if __name__ == "__main__":
     if 'seq_files' in args_dict and not args_dict['seq_files']:
         args_dict['asis_id'] = True
 
-    # Extract nproc before deleting
-    nproc = args_dict.get('nproc', None)
+    # Extract nproc before deleting, use parser default if not specified
+    nproc_default = parser.get_default('nproc')
+    nproc = args_dict.get('nproc', nproc_default)
 
     # Delete
     if 'aligner_files' in args_dict: del args_dict['aligner_files']
