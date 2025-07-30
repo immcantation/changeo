@@ -440,6 +440,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
       imgt_id_len (int): maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -539,6 +540,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       format (str): output format. one of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -629,6 +631,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
       format (str): output format. One of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -706,6 +709,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
       format (str): output format.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       str: output file name.
