@@ -1,7 +1,7 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.4dev:  Unreleased
+Version 1.3.4:  July 31, 2025
 -------------------------------------------------------------------------------
 
 MakeDb:
@@ -13,6 +13,11 @@ MakeDb:
   database, all sequences will be missing the ``junction`` and ``j_call`` fields 
   and be considered incomplete. Specifying ``--partial`` will allow these 
   sequences to be processed ignoring the missing fields.
+
+Documentation:
+
++ Added a "Contributing" section to the documentation menu for community guidelines.
++ Updated "Contact".
 
 Version 1.3.3:  May 14, 2025
 -------------------------------------------------------------------------------
