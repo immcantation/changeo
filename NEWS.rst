@@ -4,7 +4,11 @@ Release Notes
 Version 1.3.4dev:  Unreleased
 -------------------------------------------------------------------------------
 
-+ Added the flag ``--partial`` to MakeDb igblast-aa to pass incomplete alignment
+MakeDb:
+
++ ``MakeDb.py`` is now parallelized across input files. The ``--nproc`` argument 
+   can be used to restrict the resources used.
++ Added the flag ``--partial`` to ``MakeDb igblast-aa`` to pass incomplete alignment
   results. As ``igblastp`` (as at igblast 1.22.0) only uses the V germline 
   database, all sequences will be missing the ``junction`` and ``j_call`` fields 
   and be considered incomplete. Specifying ``--partial`` will allow these 
