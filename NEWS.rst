@@ -1,6 +1,16 @@
 Release Notes
 ===============================================================================
 
+Version 1.3.5dev:  Unreleased
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ ``MakeDb.py igblast-aa`` now reports all top-scoring ``v_call`` hits in the 
+  event of ties. Previously, only the first top-scoring hit was reported. The 
+  new behavior aligns with that of the ``igblast`` subcommand.
+
+
 Version 1.3.4:  July 31, 2025
 -------------------------------------------------------------------------------
 
