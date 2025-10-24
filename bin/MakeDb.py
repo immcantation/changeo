@@ -144,7 +144,8 @@ def correctIMGTFields(receptor, references):
     imgt_dict = {'sequence_imgt': None,
                  'v_germ_start_imgt': None,
                  'v_germ_length_imgt': None,
-                 'germline_imgt': None}
+                 'germline_imgt': None,
+                 'alignment': None}
 
     # Check for necessary fields
     try:
@@ -158,13 +159,14 @@ def correctIMGTFields(receptor, references):
 
     # Gap V region
     try:
-        gapped = gapV(receptor.sequence_imgt,
+        indels,gapped = gapV(receptor.sequence_imgt,
                       receptor.v_germ_start_imgt,
                       receptor.v_germ_length_imgt,
                       receptor.v_call,
                       references)
     except KeyError as e:
-        printWarning(e)
+        raise KeyError(e)
+        #printWarning(e)
         return None
 
     # Verify IMGT-gapped sequence and junction concur
@@ -177,18 +179,18 @@ def correctIMGTFields(receptor, references):
 
     # Rebuild germline sequence
     receptor.setDict(gapped, parse=False)
-    __, germlines, __ = buildGermline(receptor, references)
-    # log, germlines, genes = buildGermline(receptor, references)
-    # print(log)
+    #__, germlines, __ = buildGermline(receptor, references)
+    log, germlines, __ = buildGermline(receptor, references)
+    #print(log)
     if germlines is not None:
         gapped['germline_imgt'] = germlines['full']
     else:
-        return None
+        return None, log, None
 
     # Update return object
     imgt_dict.update(gapped)
 
-    return imgt_dict
+    return imgt_dict, None, indels
 
 
 def getSeqDict(seq_file):
@@ -765,7 +767,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Update IMGT fields
-        imgt_dict = correctIMGTFields(rec, reference_dict)
+        imgt_dict, error_log, indels = correctIMGTFields(rec, reference_dict)
         # Write records
         if imgt_dict is not None:
             pass_count += 1
@@ -783,8 +785,15 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
                                 ('D_CALL', rec.d_call),
                                 ('J_CALL', rec.j_call),
                                 ('PRODUCTIVE', rec.functional)])
+            if indels:
+                log['INDELS'] = 'Found %s indels in sequence that were removed from the alignment:' % len(indels) + ';'.join(['%s:%s:%s' % (p,b,t) for p,b,t in indels])
+                log['ALIGNMENT'] = imgt_dict['alignment']
             if not imgt_dict:
-                log['ERROR'] = 'Could not add IMGT-numbering to sequence.'
+                log['ERROR'] = error_log['ERROR']
+                log['SEQUENCE'] = error_log['SEQUENCE']
+                log['GERMLINE'] = error_log['GERMLINE']
+                log['REGIONS'] = error_log['REGIONS']
+                
             printLog(log, log_handle)
 
     # Print counts
