@@ -91,8 +91,8 @@ def assignIgBLAST(seq_file, amino_acid=False, igdata=default_igdata, loci='ig', 
         out_file = getOutputName(seq_file, out_label='igblast', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=out_type)
     # convert to FASTA if needed
-    infile = open(seq_file, 'r')
-    test = infile.read()[0]
+    with open(seq_file, 'r') as infile:
+        test = infile.read()[0]
     if test == "@":
         printMessage("Running conversion from FASTQ to FASTA")
         fasta_out_dir, filename = os.path.split(out_file)
