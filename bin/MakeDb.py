@@ -144,15 +144,16 @@ def correctIMGTFields(receptor, references):
     imgt_dict = {'sequence_imgt': None,
                  'v_germ_start_imgt': None,
                  'v_germ_length_imgt': None,
-                 'germline_imgt': None,
-                 'alignment': None}
+                 'v_call': None,
+                 'germline_imgt': None}
 
     # Check for necessary fields
     try:
         if not all([receptor.sequence_imgt,
                     receptor.v_germ_start_imgt,
                     receptor.v_germ_length_imgt,
-                    receptor.v_call]):
+                    receptor.v_call,
+                    receptor.germline_imgt]):
             raise AttributeError
     except AttributeError:
         return None
@@ -163,7 +164,9 @@ def correctIMGTFields(receptor, references):
                       receptor.v_germ_start_imgt,
                       receptor.v_germ_length_imgt,
                       receptor.v_call,
-                      references)
+                      references,
+                      remove_indels=True,
+                      germline_alignment = receptor.germline_imgt)
     except KeyError as e:
         raise KeyError(e)
         #printWarning(e)
@@ -181,7 +184,6 @@ def correctIMGTFields(receptor, references):
     receptor.setDict(gapped, parse=False)
     #__, germlines, __ = buildGermline(receptor, references)
     log, germlines, __ = buildGermline(receptor, references)
-    #print(log)
     if germlines is not None:
         gapped['germline_imgt'] = germlines['full']
     else:
@@ -190,7 +192,7 @@ def correctIMGTFields(receptor, references):
     # Update return object
     imgt_dict.update(gapped)
 
-    return imgt_dict, None, indels
+    return imgt_dict, log, indels
 
 
 def getSeqDict(seq_file):
@@ -692,17 +694,19 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
 
 
 
-def numberAIRR(aligner_file, repo=None, format=default_format,
-               out_file=None, out_args=default_out_args):
+def numberAIRR(aligner_file, germline_reference=None, format=default_format,
+               out_file=None, out_args=default_out_args,
+               debug_mode=False):
     """
     Inserts IMGT numbering into V fields
 
     Arguments:
       aligner_file (str): AIRR Rearrangement file from the alignment tool.
-      repo (str): folder with germline repertoire files. If None, do not updated alignment columns with IMGT gaps.
+      germline_reference (str): folder with germline repertoire files. If None, do not updated alignment columns with IMGT gaps.
       format (str): output format.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      debug_mode (bool): if True, output debug information to log file.
 
     Returns:
       str: output file name.
@@ -737,7 +741,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         printError(e)
 
     # Load references
-    reference_dict = readGermlines(repo)
+    reference_dict = readGermlines(germline_reference)
 
     # Check for IMGT-gaps in germlines
     if all('...' not in x for x in reference_dict.values()):
@@ -768,6 +772,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         rec_count += 1
         # Update IMGT fields
         imgt_dict, error_log, indels = correctIMGTFields(rec, reference_dict)
+        
         # Write records
         if imgt_dict is not None:
             pass_count += 1
@@ -786,10 +791,10 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
                                 ('J_CALL', rec.j_call),
                                 ('PRODUCTIVE', rec.functional)])
             if indels:
-                log['INDELS'] = 'Found %s indels in sequence that were removed from the alignment:' % len(indels) + ';'.join(['%s:%s:%s' % (p,b,t) for p,b,t in indels])
-                log['ALIGNMENT'] = imgt_dict['alignment']
+                log['INDELS'] = 'Found %s indels (I: insertion, D:deletion) that were removed from the sequence alignment to be consistent with IMGT positions:' % len(indels) + ','.join(['(%s:%s:%s)' % (p,b,t) for p,b,t in indels])
             if not imgt_dict:
                 log['ERROR'] = error_log['ERROR']
+            if (not imgt_dict) or debug_mode:
                 log['SEQUENCE'] = error_log['SEQUENCE']
                 log['GERMLINE'] = error_log['GERMLINE']
                 log['REGIONS'] = error_log['REGIONS']
@@ -797,7 +802,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
             printLog(log, log_handle)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time=start_time)
+    #printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count

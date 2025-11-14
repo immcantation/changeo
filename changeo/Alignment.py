@@ -252,8 +252,50 @@ def alignmentPositions(alignment):
 
     return result
 
+def find_indels(sequence_alignment, germline_alignment):
+    """
+    Identify indels between a sequence alignment and a germline alignment.
 
-def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False):
+    Arguments:
+      sequence_alignment (str): Aligned sequence.
+      germline_alignment (str): Aligned germline sequence.
+    Returns:
+      list: List of indels as tuples (position, base, type).
+    """
+    indels = []
+    ref_pos = 0
+    query_pos = 0
+    for ref_base, query_base in zip(germline_alignment, sequence_alignment):
+        if ref_base != '-':
+            ref_pos += 1
+        if query_base != '-':
+            query_pos += 1
+        if ref_base == '-' and query_base != '-':
+            indels.append((ref_pos, query_base, "I"))
+        if ref_base != '-' and query_base == '-':
+            indels.append((ref_pos, ref_base, "D"))
+    return indels
+
+def remove_insertions(sequence_alignment, indels):
+    """
+    Remove insertions from a sequence alignment based on identified indels.
+
+    Arguments:
+      sequence_alignment (str): Aligned sequence.
+      indels (list): List of indels as tuples (position, base, type).
+
+    Returns:
+      str: Sequence alignment with insertions removed.
+    """
+    seq_imgt = sequence_alignment
+    offset = 0
+    for indel_pos, indel_base, indel_type in indels:
+        if indel_type == "I":
+            seq_imgt = seq_imgt[:indel_pos + offset] + seq_imgt[indel_pos + offset + 1:]
+            offset -= 1
+    return seq_imgt
+
+def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False, remove_indels=False, germline_alignment=None):
     """
     Construction IMGT-gapped V segment sequences.
 
@@ -277,10 +319,8 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
                  'v_germ_length_imgt': None}
 
     # Initialize imgt gapped sequence
-    seq_imgt = '.' * (int(v_germ_start) - 1) + seq
-
-    # Initialize indels list
-    indels = []
+    seq_imgt = seq
+    #print("\n" + seq_imgt)
 
     # Extract first V call
     if not asis_calls:
@@ -295,58 +335,24 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
     except KeyError as e:
         raise KeyError('%s was not found in the germline repository.' % vgene)
 
-    # Check for indels first
-    ungapped_reference = vgap.replace('.', '')
+    # We need to check for indels first
+    # If aligned germline is provided use that to identify indels
+    # Otherwise perform pairwise alignment with reference
+    indels = []
+    if remove_indels:
+        if not germline_alignment:
+            raise ValueError('Aligned germline sequence must be provided when remove_indels is True.')
 
-    #print('Inconsistent lengths between V germline and input sequence for %s.' % vgene)
-    #print(ungapped_reference)
-    #print(len(ungapped_reference), v_germ_length)
-    #print(seq_imgt)
-    #print(len(seq_imgt), v_germ_length)
+        ungapped_reference = germline_alignment
+        #print(ungapped_reference)
 
-    # Identify indels
-    score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(1, 1))
-    sub_matrix = Align.substitution_matrices.Array(data=score_dict)
-    gap_penalty = (2, 1)
-    pairwise_aligner = Align.PairwiseAligner(mode='local',
-                                            substitution_matrix=sub_matrix,
-                                            open_gap_score = -gap_penalty[0],
-                                            extend_gap_score = -gap_penalty[1])
-    # Alignment of query to target (target, query)
-    pairwise_alignment = pairwise_aligner.align(ungapped_reference, seq_imgt[:v_germ_start+v_germ_length])
-    
-    if pairwise_alignment and (pairwise_alignment[0][0].count('-') > 0 or pairwise_alignment[0][1].count('-') > 0):
-        #print(pairwise_alignment[0])
-        #print(seq_imgt)
-        # Identify position of insertions:
-        indels = []
-        # Identify position at which target has "-"
-        ref_pos = 0
-        query_pos = 0
-        for ref_base, query_base in zip(pairwise_alignment[0][0], pairwise_alignment[0][1]):
-            if ref_base != '-':
-                ref_pos += 1
-            if query_base != '-':
-                query_pos += 1
-            if ref_base == '-' and query_base != '-':
-                indels.append((ref_pos, query_base, "I"))
-            if ref_base != '-' and query_base == '-':
-                indels.append((ref_pos, ref_base, "D"))
-        #print(indels)
-        # Remove insertions in seq_imgt
-        offset = 0
-        for indel_pos, indel_base, indel_type in indels:
-            if indel_type == "I":
-                seq_imgt = seq_imgt[:indel_pos + offset] + seq_imgt[indel_pos + offset + 1:]
-                offset -= 1
-            if indel_type == "D":
-                pass
-        # We do not need to fill in deletions as these are already in the sequence
-        #print(seq_imgt)
-    else:
-        offset = 0
+        if seq_imgt.count('-') > 0 or ungapped_reference.count('-') > 0:
+            indels = find_indels(seq, ungapped_reference)
+            seq_imgt = remove_insertions(seq, indels)
 
     # Iterate over gaps in the germline segment
+    seq_imgt = '.' * (int(v_germ_start) - 1) + seq_imgt
+
     gaps = re.finditer(r'\.', vgap)
     gapcount = int(v_germ_start) - 1
     for gap in gaps:
@@ -359,12 +365,13 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
         # Update gap counter
         gapcount += 1
 
+
+
     # Assign IMGT gapped sequence
     imgt_dict['sequence_imgt'] = seq_imgt
     # Update IMGT positioning information for V
     imgt_dict['v_germ_start_imgt'] = 1
     imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
-    imgt_dict["alignment"] = pairwise_alignment[0]
 
     # Return indels if present
     return (indels if indels else None), imgt_dict

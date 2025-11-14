@@ -8,6 +8,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import re
 from collections import OrderedDict
+from Bio.Seq import Seq
 
 # Presto and changeo imports
 from changeo.Defaults import v_attr, d_attr, j_attr, seq_attr
@@ -294,6 +295,13 @@ def getDGermline(receptor, references, d_field=d_attr, amino_acid=False):
     elif dgene in references:
         # Define D germline sequence
         dseq = references[dgene]
+        # Handle D gene inversions
+        if receptor.d_germ_start > receptor.d_germ_end:
+            dlen = receptor.d_germ_start - receptor.d_germ_end + 1
+            reverse_complement = Seq(dseq).reverse_complement()
+            dseq = str(reverse_complement)
+            dstart = receptor.d_germ_end -1
+
         germ_dseq = dseq[dstart:(dstart + dlen)]
     else:
         germ_dseq = None
@@ -502,6 +510,7 @@ def buildGermline(receptor, references, seq_field=seq_attr, v_field=v_attr,
     if germ_dseq is None:
         log['ERROR'] = 'Allele %s is not in the provided germline database.' % dgene
         return log, None, None
+    log['D_GENE'] = germ_dseq
 
     # Build J segment germline sequence
     jgene, germ_jseq = getJGermline(receptor, references, j_field=j_field, amino_acid=amino_acid)
