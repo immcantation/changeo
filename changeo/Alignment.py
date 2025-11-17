@@ -263,17 +263,16 @@ def find_indels(sequence_alignment, germline_alignment):
       list: List of indels as tuples (position, base, type).
     """
     indels = []
-    ref_pos = 0
-    query_pos = 0
+    ref_pos = 1
+    query_pos = 1
     for ref_base, query_base in zip(germline_alignment, sequence_alignment):
-        if ref_base != '-':
-            ref_pos += 1
-        if query_base != '-':
-            query_pos += 1
         if ref_base == '-' and query_base != '-':
             indels.append((ref_pos, query_base, "I"))
-        if ref_base != '-' and query_base == '-':
+        elif ref_base != '-' and query_base == '-':
             indels.append((ref_pos, ref_base, "D"))
+        ref_pos += 1
+        query_pos += 1
+        
     return indels
 
 def remove_insertions(sequence_alignment, indels):
@@ -282,13 +281,13 @@ def remove_insertions(sequence_alignment, indels):
 
     Arguments:
       sequence_alignment (str): Aligned sequence.
-      indels (list): List of indels as tuples (position, base, type).
+      indels (list): List of indels as tuples (position, base, type). The indel type can be I (insertion) or D (deletion).
 
     Returns:
       str: Sequence alignment with insertions removed.
     """
     seq_imgt = sequence_alignment
-    offset = 0
+    offset = -1 # Offset starts with -1 since positions are 1-based, and python indexing is 0-based
     for indel_pos, indel_base, indel_type in indels:
         if indel_type == "I":
             seq_imgt = seq_imgt[:indel_pos + offset] + seq_imgt[indel_pos + offset + 1:]
@@ -316,7 +315,8 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False,
     # Initialize return object
     imgt_dict = {'sequence_imgt': None,
                  'v_germ_start_imgt': None,
-                 'v_germ_length_imgt': None}
+                 'v_germ_length_imgt': None,
+                 'v_call': None}
 
     # Initialize imgt gapped sequence
     seq_imgt = seq
@@ -372,6 +372,7 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False,
     # Update IMGT positioning information for V
     imgt_dict['v_germ_start_imgt'] = 1
     imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
+    imgt_dict['v_call'] = v_call
 
     # Return indels if present
     return (indels if indels else None), imgt_dict

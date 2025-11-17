@@ -791,7 +791,7 @@ def numberAIRR(aligner_file, germline_reference=None, format=default_format,
                                 ('J_CALL', rec.j_call),
                                 ('PRODUCTIVE', rec.functional)])
             if indels:
-                log['INDELS'] = 'Found %s indels (I: insertion, D:deletion) that were removed from the sequence alignment to be consistent with IMGT positions:' % len(indels) + ','.join(['(%s:%s:%s)' % (p,b,t) for p,b,t in indels])
+                log['INDELS'] = 'Found %s indels (I:insertion, D:deletion). The insertions were removed from the sequence alignment to be consistent with IMGT positions:' % len(indels) + ','.join(['(%s%s:%s)' % (p,b,t) for p,b,t in indels])
             if not imgt_dict:
                 log['ERROR'] = error_log['ERROR']
             if (not imgt_dict) or debug_mode:
@@ -1084,7 +1084,7 @@ def getArgParser():
     group_number = parser_number.add_argument_group('aligner parsing arguments')
     group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
                             help='''AIRR Rearrangement TSV files.''')
-    group_number.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
+    group_number.add_argument('-g', nargs='+', action='store', dest='germline_reference', required=False,
                             help='''List of folders and/or fasta files containing
                                  IMGT-numbered germline sequences corresponding to the
                                  set of germlines used for the alignment.''')
