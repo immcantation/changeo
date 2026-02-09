@@ -54,7 +54,7 @@ as follows, adjusting the version number to taste:
     The provided scripts download only the mouse and human IMGT reference databases.
     See the `IgBLAST documentation <https://ncbi.github.io/igblast>`__ for instructions
     on how to build the database in a more general case. Shown below is an example of how
-    to performed the same steps as the Immcantation scripts using a separately
+    to perform the same steps as the Immcantation scripts using a separately
     downloaded IMGT reference set and the scripts provided by IgBLAST. You must have all of
     the associated commands in your ``PATH`` and the appropriate directories created:
 

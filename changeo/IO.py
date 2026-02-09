@@ -1608,13 +1608,37 @@ class IgBLASTReaderAA(IgBLASTReader):
         result = {}
         seq_vdj = db['sequence_aa_vdj']
         seq_trim = db['sequence_aa_trim']
-        v_hit = next(x for x in hits if x['segment'] == 'V')
-
+        
+        # Get all V hits
+        v_hits = [x for x in hits if x['segment'] == 'V']
+        
+        # Find the top score
+        top_score = max(float(hit['bit score']) for hit in v_hits)
+        
+        # Get all hits with the top score
+        top_v_hits = [hit for hit in v_hits if float(hit['bit score']) == top_score]
+        
+        # Sort top-scoring hits by subject id and 
+        # use the first hit for positional information and sequence building
+        top_v_hits = sorted(top_v_hits, key=lambda hit: hit['subject id'])
+        v_hit = top_v_hits[0]
+        
         # Alignment positions
         result.update(self._parseVHitPos(v_hit))
 
-        # Assign V gene and update VDJ sequence with and without removing insertions
-        result['v_call'] = v_hit['subject id']
+        # Assign V gene calls from all top-scoring hits (comma-separated) and update VDJ sequence with and without removing insertions
+        if not self.asis_calls:
+            # Parse gene calls and join multiple alleles with commas (consistent with nucleotide parser)
+            v_calls = []
+            for hit in top_v_hits:
+                v_call = getVAllele(hit['subject id'], action='list')
+                if v_call:
+                    v_calls.extend(v_call)
+            result['v_call'] = ','.join(set(v_calls)) if v_calls else None
+        else:
+            # Join raw subject IDs with commas
+            result['v_call'] = ','.join(set(hit['subject id'] for hit in top_v_hits))
+        
         result['sequence_aa_vdj'] = self._appendSeq(seq_vdj, v_hit, 0, trim=False)
         result['sequence_aa_trim'] = self._appendSeq(seq_trim, v_hit, 0, trim=True)
 

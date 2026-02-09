@@ -16,6 +16,8 @@ from collections import OrderedDict
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import as_completed
 
 # Presto and changeo imports
 from presto.Annotation import parseAnnotation
@@ -427,7 +429,7 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
 
 def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, validate='strict', asis_id=True,
               extended=False, format=default_format, out_file=None, out_args=default_out_args,
-              imgt_id_len=default_imgt_id_len):
+              imgt_id_len=default_imgt_id_len, nproc=None):
     """
     Main for IMGT aligned sample sequences.
 
@@ -442,6 +444,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
       imgt_id_len (int): maximum character length of sequence identifiers reported by IMGT/HighV-QUEST.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -452,6 +455,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
     log['COMMAND'] = 'imgt'
     log['ALIGNER_FILE'] = aligner_file
     log['SEQ_FILE'] = os.path.basename(seq_file) if seq_file else ''
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['VALIDATE'] = validate
     log['EXTENDED'] = extended
@@ -522,7 +526,7 @@ def parseIMGT(aligner_file, seq_file=None, repo=None, cellranger_file=None, vali
 
 def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file=None, validate='strict',
                  asis_id=True, asis_calls=False, extended=False, regions='default', infer_junction=False,
-                 format='changeo', out_file=None, out_args=default_out_args):
+                 format='changeo', out_file=None, out_args=default_out_args, nproc=None):
     """
     Main for IgBLAST aligned sample sequences.
 
@@ -540,6 +544,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
       format (str): output format. one of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -550,6 +555,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
     log['COMMAND'] = 'igblast-aa' if amino_acid else 'igblast'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['ASIS_CALLS'] = asis_calls
     log['VALIDATE'] = validate
@@ -615,7 +621,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
 
 
 def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='strict', asis_id=True,
-              extended=False, format=default_format, out_file=None, out_args=default_out_args):
+              extended=False, format=default_format, out_file=None, out_args=default_out_args, nproc=None):
     """
     Main for iHMMuneAlign aligned sample sequences.
 
@@ -629,6 +635,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
       format (str): output format. One of 'changeo' or 'airr'.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
@@ -639,6 +646,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
     log['COMMAND'] = 'ihmm'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
     log['SEQ_FILE'] = os.path.basename(seq_file)
+    log['NPROC'] = nproc
     log['ASIS_ID'] = asis_id
     log['VALIDATE'] = validate
     log['EXTENDED'] = extended
@@ -696,7 +704,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
 
 def numberAIRR(aligner_file, germline_reference=None, format=default_format,
                out_file=None, out_args=default_out_args,
-               debug_mode=False):
+               debug_mode=False, nproc=None):
     """
     Inserts IMGT numbering into V fields
 
@@ -707,6 +715,7 @@ def numberAIRR(aligner_file, germline_reference=None, format=default_format,
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
       debug_mode (bool): if True, output debug information to log file.
+      nproc (int): number of processes to use for parallel processing.
 
     Returns:
       str: output file name.
@@ -715,6 +724,7 @@ def numberAIRR(aligner_file, germline_reference=None, format=default_format,
     log['START'] = 'MakeDb'
     log['COMMAND'] = 'number'
     log['ALIGNER_FILE'] = os.path.basename(aligner_file)
+    log['NPROC'] = nproc
     printLog(log)
 
     # Define format operators
@@ -875,7 +885,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(db_in=False)
+    parser_parent = getCommonArgParser(db_in=False, multiproc=True)
 
     # igblastn output parser
     parser_igblast = subparsers.add_parser('igblast', parents=[parser_parent],
@@ -968,6 +978,10 @@ def getArgParser():
     group_igblast_aa.add_argument('--regions', action='store', dest='regions',
                                   choices=('default', 'rhesus-igl'), default='default',
                                   help='''IMGT CDR and FWR boundary definition to use.''')
+    # Add mutually exclusive group for validation, including --partial
+    group_igblast_aa_validate = group_igblast_aa.add_mutually_exclusive_group(required=False)
+    group_igblast_aa_validate.add_argument('--partial', action='store_const', const='partial', dest='validate',
+        help='''If specified, include incomplete V(D)J alignments in the pass file instead of the fail file. An incomplete alignment is defined as a record that is missing a V gene assignment, J gene assignment, junction region, or productivity call.''')
     parser_igblast_aa.set_defaults(func=parseIgBLAST, amino_acid=True, validate='strict')
 
 
@@ -1106,6 +1120,10 @@ if __name__ == "__main__":
     if 'seq_files' in args_dict and not args_dict['seq_files']:
         args_dict['asis_id'] = True
 
+    # Extract nproc before deleting, use parser default if not specified
+    nproc_default = parser.get_default('nproc')
+    nproc = args_dict.get('nproc', nproc_default)
+
     # Delete
     if 'aligner_files' in args_dict: del args_dict['aligner_files']
     if 'seq_files' in args_dict: del args_dict['seq_files']
@@ -1113,6 +1131,7 @@ if __name__ == "__main__":
     if 'out_files' in args_dict: del args_dict['out_files']
     if 'command' in args_dict: del args_dict['command']
     if 'func' in args_dict: del args_dict['func']
+    if 'nproc' in args_dict: del args_dict['nproc']
 
 
     ds=[]
@@ -1121,6 +1140,7 @@ if __name__ == "__main__":
     for i, f in enumerate(args.__dict__['aligner_files']):
         tmp_dict=args_dict.copy()
         tmp_dict['aligner_file'] = f
+        tmp_dict['nproc'] = nproc
         tmp_dict['out_file'] = args.__dict__['out_files'][i] \
                                 if args.__dict__['out_files'] else None
         if 'seq_files' in args.__dict__:
@@ -1132,10 +1152,7 @@ if __name__ == "__main__":
         ds.append(tmp_dict)
 
     # now do the loop in parallel
-    from concurrent.futures import ProcessPoolExecutor
-    from concurrent.futures import as_completed
-
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=nproc) as executor:
         futures = [executor.submit(args.func, **d) for d in ds]
         for future in as_completed(futures):
             result = future.result()

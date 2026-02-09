@@ -19,6 +19,7 @@ allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+[-/\w]*[-\*][\.\w]
 gene_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+[-/\w]*))')
 family_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-R0-9]+))')
 locus_regex = re.compile(r'(IG[HLK]|TR[ABGD])')
+multi_locus_tra_trd = re.compile(r'TRAV\d+(?:-\d+)?/DV\d+')
 
 v_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])V[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
 d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-R0-9]+[-/\w]*[-\*][\.\w]+)')
@@ -116,6 +117,12 @@ def getLocus(gene, action='first'):
       str: String of the first locus call when action is 'first'.
       tuple: Tuple of locus calls for 'set' or 'list' actions.
     """
+    if multi_locus_tra_trd.search(gene):
+        dual = ['TRA', 'TRD']
+        if action == 'first':
+            return 'TRA/TRD'
+        elif action in ('set', 'list'):
+            return tuple(dual)   
     return parseGeneCall(gene, locus_regex, action=action)
 
 
