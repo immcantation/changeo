@@ -8,9 +8,11 @@ __author__ = 'Jason Anthony Vander Heiden'
 # Imports
 import re
 from Bio.Seq import Seq
+from Bio import Align
 
 # Presto and changeo imports
 from changeo.Gene import getVAllele, getJAllele
+from presto.Sequence import getDNAScoreDict
 
 # Load regions
 # import yaml
@@ -250,8 +252,49 @@ def alignmentPositions(alignment):
 
     return result
 
+def find_indels(sequence_alignment, germline_alignment):
+    """
+    Identify indels between a sequence alignment and a germline alignment.
 
-def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False):
+    Arguments:
+      sequence_alignment (str): Aligned sequence.
+      germline_alignment (str): Aligned germline sequence.
+    Returns:
+      list: List of indels as tuples (position, base, type).
+    """
+    indels = []
+    ref_pos = 1
+    query_pos = 1
+    for ref_base, query_base in zip(germline_alignment, sequence_alignment):
+        if ref_base == '-' and query_base != '-':
+            indels.append((ref_pos, query_base, "I"))
+        elif ref_base != '-' and query_base == '-':
+            indels.append((ref_pos, ref_base, "D"))
+        ref_pos += 1
+        query_pos += 1
+        
+    return indels
+
+def remove_insertions(sequence_alignment, indels):
+    """
+    Remove insertions from a sequence alignment based on identified indels.
+
+    Arguments:
+      sequence_alignment (str): Aligned sequence.
+      indels (list): List of indels as tuples (position, base, type). The indel type can be I (insertion) or D (deletion).
+
+    Returns:
+      str: Sequence alignment with insertions removed.
+    """
+    seq_imgt = sequence_alignment
+    offset = -1 # Offset starts with -1 since positions are 1-based, and python indexing is 0-based
+    for indel_pos, indel_base, indel_type in indels:
+        if indel_type == "I":
+            seq_imgt = seq_imgt[:indel_pos + offset] + seq_imgt[indel_pos + offset + 1:]
+            offset -= 1
+    return seq_imgt
+
+def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False, remove_indels=False, germline_alignment=None):
     """
     Construction IMGT-gapped V segment sequences.
 
@@ -272,10 +315,12 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
     # Initialize return object
     imgt_dict = {'sequence_imgt': None,
                  'v_germ_start_imgt': None,
-                 'v_germ_length_imgt': None}
+                 'v_germ_length_imgt': None,
+                 'v_call': None}
 
     # Initialize imgt gapped sequence
-    seq_imgt = '.' * (int(v_germ_start) - 1) + seq
+    seq_imgt = seq
+    #print("\n" + seq_imgt)
 
     # Extract first V call
     if not asis_calls:
@@ -287,30 +332,50 @@ def gapV(seq, v_germ_start, v_germ_length, v_call, references, asis_calls=False)
     try:
     #if vgene in references:
         vgap = references[vgene]
-        # Iterate over gaps in the germline segment
-        gaps = re.finditer(r'\.', vgap)
-        gapcount = int(v_germ_start) - 1
-        for gap in gaps:
-            i = gap.start()
-            # Break if gap begins after V region
-            if i >= v_germ_length + gapcount:
-                break
-            # Insert gap into IMGT sequence
-            seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
-            # Update gap counter
-            gapcount += 1
-
-        imgt_dict['sequence_imgt'] = seq_imgt
-        # Update IMGT positioning information for V
-        imgt_dict['v_germ_start_imgt'] = 1
-        imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
     except KeyError as e:
         raise KeyError('%s was not found in the germline repository.' % vgene)
-    #else:
-    #    printWarning('%s was not found in the germline repository. IMGT-gapped sequence cannot be determined.' % vgene)
 
-    return imgt_dict
+    # We need to check for indels first
+    # If aligned germline is provided use that to identify indels
+    # Otherwise perform pairwise alignment with reference
+    indels = []
+    if remove_indels:
+        if not germline_alignment:
+            raise ValueError('Aligned germline sequence must be provided when remove_indels is True.')
 
+        ungapped_reference = germline_alignment
+        #print(ungapped_reference)
+
+        if seq_imgt.count('-') > 0 or ungapped_reference.count('-') > 0:
+            indels = find_indels(seq, ungapped_reference)
+            seq_imgt = remove_insertions(seq, indels)
+
+    # Iterate over gaps in the germline segment
+    seq_imgt = '.' * (int(v_germ_start) - 1) + seq_imgt
+
+    gaps = re.finditer(r'\.', vgap)
+    gapcount = int(v_germ_start) - 1
+    for gap in gaps:
+        i = gap.start()
+        # Break if gap begins after V region
+        if i >= v_germ_length + gapcount:
+            break
+        # Insert gap into IMGT sequence
+        seq_imgt = seq_imgt[:i] + '.' + seq_imgt[i:]
+        # Update gap counter
+        gapcount += 1
+
+
+
+    # Assign IMGT gapped sequence
+    imgt_dict['sequence_imgt'] = seq_imgt
+    # Update IMGT positioning information for V
+    imgt_dict['v_germ_start_imgt'] = 1
+    imgt_dict['v_germ_length_imgt'] = v_germ_length + gapcount
+    imgt_dict['v_call'] = v_call
+
+    # Return indels if present
+    return (indels if indels else None), imgt_dict
 
 def inferJunction(seq, j_germ_start, j_germ_length, j_call, references, asis_calls=False, regions='default'):
     """
