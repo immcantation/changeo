@@ -60,6 +60,13 @@ argument is recommended, as this will generate a single germline of consensus le
     there is insufficient information to successfully reconstruct germline sequences
     for all cases using :ref:`CreateGermlines`.
 
+.. warning::
+
+    :ref:`CreateGermlines` only supports reconstruction from **nucleotide sequences**.
+    Amino acid sequences are not currently supported. Ensure that the sequence field 
+    (e.g., ``sequence_alignment`` or ``SEQUENCE_IMGT``) contains nucleotide data, not 
+    amino acid data (e.g., ``sequence_alignment_aa`` or ``SEQUENCE_AA``).
+
 .. seealso::
 
     The `TIgGER <https://github.com/immcantation/tigger>`__ R package provided tools for

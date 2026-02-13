@@ -24,3 +24,11 @@ single V and J allele to use as the germline from all the assigned
 annotations in each clone. The selection is made by simple majority rule of all 
 the allele calls in the clone. After the germline reconstruction process, all 
 sequences belonging to the same clone have been assigned the same germline.
+
+Limitations
+--------------------------------------------------------------------------------
+
+:ref:`CreateGermlines` currently only supports reconstruction from **nucleotide sequences**.
+Amino acid sequences are not supported at this time. The tool requires nucleotide-based 
+positional fields (e.g., ``v_germ_start_imgt``, ``d_germ_start``, ``j_germ_start``) and 
+nucleotide sequence data to perform accurate germline reconstruction.

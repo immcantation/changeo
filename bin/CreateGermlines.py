@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Reconstructs germline sequences from alignment data
+Reconstructs germline sequences from nucleotide alignment data
+
+Note: Amino acid sequences are not currently supported.
 """
 
 # Info
@@ -40,7 +42,7 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
     Arguments:
       db_file : input tab-delimited database file.
       references : folders and/or files containing germline repertoire data in FASTA format.
-      seq_field : field in which to look for sequence.
+      seq_field : field in which to look for sequence. Must be a nucleotide sequence field.
       v_field : field in which to look for V call.
       d_field : field in which to look for D call.
       j_field : field in which to look for J call.
@@ -53,6 +55,9 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
 
     Returns:
       dict: names of the 'pass' and 'fail' output files.
+      
+    Note:
+      Amino acid sequences are not currently supported. The seq_field must contain nucleotide sequences.
     """
     # Print parameter info
     log = OrderedDict()
@@ -114,6 +119,12 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
     for f in [v_field, d_field, j_field, seq_field]:
         if f not in db_iter.fields:
             printError('%s field does not exist in input database file.' % f)
+
+    # Check for amino acid sequences
+    aa_fields = ['sequence_aa', 'sequence_alignment_aa', 'SEQUENCE_AA', 'SEQUENCE_ALIGNMENT_AA']
+    if seq_field in aa_fields:
+        printError('Reconstruction of germlines from amino acid sequences is not currently supported. '
+                   'Please use a nucleotide sequence field (e.g., sequence_alignment or SEQUENCE_IMGT).')
 
     # Translate to Receptor attribute names
     v_field = schema.toReceptor(v_field)
@@ -299,7 +310,8 @@ def getArgParser():
                              germline call used for the entire clone within the
                              germline_v_call, germline_d_call and germline_j_call fields.''')
     group.add_argument('--sf', action='store', dest='seq_field', default=None,
-                        help='''Field containing the aligned sequence.
+                        help='''Field containing the aligned sequence. Must be a nucleotide sequence field.
+                             Amino acid sequences are not currently supported.
                              Defaults to sequence_alignment (airr) or SEQUENCE_IMGT (changeo).''')
     group.add_argument('--vf', action='store', dest='v_field', default=None,
                         help='''Field containing the germline V segment call.
