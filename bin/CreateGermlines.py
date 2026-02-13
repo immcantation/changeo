@@ -125,6 +125,26 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
     if seq_field in aa_fields:
         printError('Reconstruction of germlines from amino acid sequences is not currently supported. '
                    'Please use a nucleotide sequence field (e.g., sequence_alignment or SEQUENCE_IMGT).')
+    
+    # Also check actual sequence content to detect amino acids
+    # Sample first few sequences to detect amino acid-specific characters
+    aa_chars = set('EFIKLMPQWY')  # Amino acid characters not valid in nucleotide sequences
+    sample_count = 0
+    max_samples = 10
+    for rec in db_iter:
+        seq = rec.getField(seq_field)
+        if seq and any(c in aa_chars for c in seq.upper().replace('.', '').replace('-', '')):
+            printError('Amino acid sequence detected in %s field. '
+                       'Reconstruction of germlines from amino acid sequences is not currently supported. '
+                       'Please use a nucleotide sequence field.' % seq_field)
+        sample_count += 1
+        if sample_count >= max_samples:
+            break
+    
+    # Reset the file handle after sampling
+    db_handle.close()
+    db_handle = open(db_file, 'rt')
+    db_iter = reader(db_handle)
 
     # Translate to Receptor attribute names
     v_field = schema.toReceptor(v_field)
