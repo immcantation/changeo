@@ -3,9 +3,9 @@
 Parsing 10X Genomics V(D)J data
 ================================================================================
 
-.. admonition:: New
+.. warning::
 
-    We have an updated `tutorial <https://immcantation.readthedocs.io/en/latest/getting_started/10x_tutorial.html>`__
+    This is an old tutorial. We have an updated `tutorial <https://immcantation.readthedocs.io/en/latest/getting_started/10x_tutorial.html>`__
     covering the processing of 10x Genomics VDJ data with Change-O and `SCOPer <https://scoper.readthedocs.org/>`__. You can also follow the steps
     below to process 10x VDJ data using methods available in Change-O.
 
