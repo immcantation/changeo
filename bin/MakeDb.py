@@ -146,6 +146,7 @@ def correctIMGTFields(receptor, references):
     imgt_dict = {'sequence_imgt': None,
                  'v_germ_start_imgt': None,
                  'v_germ_length_imgt': None,
+                 'v_call': None,
                  'germline_imgt': None}
 
     # Check for necessary fields
@@ -153,20 +154,24 @@ def correctIMGTFields(receptor, references):
         if not all([receptor.sequence_imgt,
                     receptor.v_germ_start_imgt,
                     receptor.v_germ_length_imgt,
-                    receptor.v_call]):
+                    receptor.v_call,
+                    receptor.germline_imgt]):
             raise AttributeError
     except AttributeError:
         return None
 
     # Gap V region
     try:
-        gapped = gapV(receptor.sequence_imgt,
+        indels,gapped = gapV(receptor.sequence_imgt,
                       receptor.v_germ_start_imgt,
                       receptor.v_germ_length_imgt,
                       receptor.v_call,
-                      references)
+                      references,
+                      remove_indels=True,
+                      germline_alignment = receptor.germline_imgt)
     except KeyError as e:
-        printWarning(e)
+        raise KeyError(e)
+        #printWarning(e)
         return None
 
     # Verify IMGT-gapped sequence and junction concur
@@ -179,18 +184,17 @@ def correctIMGTFields(receptor, references):
 
     # Rebuild germline sequence
     receptor.setDict(gapped, parse=False)
-    __, germlines, __ = buildGermline(receptor, references)
-    # log, germlines, genes = buildGermline(receptor, references)
-    # print(log)
+    #__, germlines, __ = buildGermline(receptor, references)
+    log, germlines, __ = buildGermline(receptor, references)
     if germlines is not None:
         gapped['germline_imgt'] = germlines['full']
     else:
-        return None
+        return None, log, None
 
     # Update return object
     imgt_dict.update(gapped)
 
-    return imgt_dict
+    return imgt_dict, log, indels
 
 
 def getSeqDict(seq_file):
@@ -698,17 +702,19 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
 
 
 
-def numberAIRR(aligner_file, repo=None, format=default_format,
-               out_file=None, out_args=default_out_args, nproc=None):
+def numberAIRR(aligner_file, germline_reference=None, format=default_format,
+               out_file=None, out_args=default_out_args,
+               debug_mode=False, nproc=None):
     """
     Inserts IMGT numbering into V fields
 
     Arguments:
       aligner_file (str): AIRR Rearrangement file from the alignment tool.
-      repo (str): folder with germline repertoire files. If None, do not updated alignment columns with IMGT gaps.
+      germline_reference (str): folder with germline repertoire files. If None, do not updated alignment columns with IMGT gaps.
       format (str): output format.
       out_file (str): output file name. Automatically generated from the input file if None.
       out_args (dict): common output argument dictionary from parseCommonArgs.
+      debug_mode (bool): if True, output debug information to log file.
       nproc (int): number of processes to use for parallel processing.
 
     Returns:
@@ -745,7 +751,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         printError(e)
 
     # Load references
-    reference_dict = readGermlines(repo)
+    reference_dict = readGermlines(germline_reference)
 
     # Check for IMGT-gaps in germlines
     if all('...' not in x for x in reference_dict.values()):
@@ -775,7 +781,8 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += 1
         # Update IMGT fields
-        imgt_dict = correctIMGTFields(rec, reference_dict)
+        imgt_dict, error_log, indels = correctIMGTFields(rec, reference_dict)
+        
         # Write records
         if imgt_dict is not None:
             pass_count += 1
@@ -793,10 +800,19 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
                                 ('D_CALL', rec.d_call),
                                 ('J_CALL', rec.j_call),
                                 ('PRODUCTIVE', rec.functional)])
+            if indels:
+                log['INDELS'] = 'Found %s indels (I:insertion, D:deletion). The insertions were removed from the sequence alignment to be consistent with IMGT positions:' % len(indels) + ','.join(['(%s%s:%s)' % (p,b,t) for p,b,t in indels])
+            if not imgt_dict:
+                log['ERROR'] = error_log['ERROR']
+            if (not imgt_dict) or debug_mode:
+                log['SEQUENCE'] = error_log['SEQUENCE']
+                log['GERMLINE'] = error_log['GERMLINE']
+                log['REGIONS'] = error_log['REGIONS']
+                
             printLog(log, log_handle)
 
     # Print counts
-    printProgress(rec_count, result_count, 0.05, start_time=start_time)
+    #printProgress(rec_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['RECORDS'] = rec_count
@@ -1070,23 +1086,23 @@ def getArgParser():
     parser_ihmm.set_defaults(func=parseIHMM, validate='strict')
 
     # Subparser to normalize AIRR file with IMGT-numbering
-    # desc_number = dedent('''
-    #                      Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
-    #                      in germline_alignment, and adjusts the values in the coordinate fields v_germline_start
-    #                      and v_germline_end accordingly.
-    #                      ''')
-    # parser_number = subparsers.add_parser('number', parents=[parser_parent],
-    #                                       formatter_class=CommonHelpFormatter, add_help=False,
-    #                                       help='Add IMGT-numbering to an AIRR Rearrangement TSV.',
-    #                                       description=desc_number)
-    # group_number = parser_number.add_argument_group('aligner parsing arguments')
-    # group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
-    #                         help='''AIRR Rearrangement TSV files.''')
-    # group_number.add_argument('-r', nargs='+', action='store', dest='repo', required=False,
-    #                         help='''List of folders and/or fasta files containing
-    #                              IMGT-numbered germline sequences corresponding to the
-    #                              set of germlines used for the alignment.''')
-    # parser_number.set_defaults(func=numberAIRR)
+    desc_number = dedent('''
+                         Inserts IMGT numbering spacers into sequence_alignment, rebuilds the germline sequence
+                         in germline_alignment, and adjusts the values in the coordinate fields v_germline_start
+                         and v_germline_end accordingly.
+                         ''')
+    parser_number = subparsers.add_parser('number', parents=[parser_parent],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
+                                          help='Add IMGT-numbering to an AIRR Rearrangement TSV.',
+                                          description=desc_number)
+    group_number = parser_number.add_argument_group('aligner parsing arguments')
+    group_number.add_argument('-i', nargs='+', action='store', dest='aligner_files', required=True,
+                            help='''AIRR Rearrangement TSV files.''')
+    group_number.add_argument('-g', nargs='+', action='store', dest='germline_reference', required=False,
+                            help='''List of folders and/or fasta files containing
+                                 IMGT-numbered germline sequences corresponding to the
+                                 set of germlines used for the alignment.''')
+    parser_number.set_defaults(func=numberAIRR)
 
     return parser
 
