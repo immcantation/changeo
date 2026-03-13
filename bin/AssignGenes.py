@@ -201,21 +201,24 @@ def getArgParser():
                                choices=choices_loci, help='The receptor type.')
     group_igblast.add_argument('--vdb', action='store', dest='vdb', default=None,
                                help='''Name of the custom V reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form
-                                    imgt_<organism>_<loci>_v will be used.''')
+                                    If not specified, the database folder is searched for a file
+                                    matching airrc-imgt_<organism>_<loci>_v first, then imgt_<organism>_<loci>_v.
+                                    If neither is found, --vdb must be specified explicitly.''')
     group_igblast.add_argument('--ddb', action='store', dest='ddb', default=None,
                                help='''Name of the custom D reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form
-                                    imgt_<organism>_<loci>_d will be used.''')
+                                    If not specified, the database folder is searched for a file
+                                    matching airrc-imgt_<organism>_<loci>_d first, then imgt_<organism>_<loci>_d.
+                                    If neither is found, --ddb must be specified explicitly.''')
     group_igblast.add_argument('--jdb', action='store', dest='jdb', default=None,
                                help='''Name of the custom J reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form
-                                    imgt_<organism>_<loci>_j will be used.''')
+                                    If not specified, the database folder is searched for a file
+                                    matching airrc-imgt_<organism>_<loci>_j first, then imgt_<organism>_<loci>_j.
+                                    If neither is found, --jdb must be specified explicitly.''')
     group_igblast.add_argument('--cdb', action='store', dest='cdb', default=None,
                                help='''Name of the custom C reference in the IgBLAST database folder.
-                                    If not specified, then a default database name with the form 
-                                    imgt_<organism>_<loci>_c will be used. Note, this argument will be 
-                                    ignored for IgBLAST versions below 1.18.0.''')
+                                    If not specified, the database folder is searched for a file
+                                    matching airrc-imgt_<organism>_<loci>_c first, then imgt_<organism>_<loci>_c.
+                                    Note, this argument will be ignored for IgBLAST versions below 1.18.0.''')
     group_igblast.add_argument('--format', action='store', dest='format', default=default_format,
                                choices=choices_format,
                                help='''Specify the output format. The "blast" will result in
@@ -243,8 +246,9 @@ def getArgParser():
                                   choices=choices_loci, help='The receptor type.')
     group_igblast_aa.add_argument('--vdb', action='store', dest='vdb', default=None,
                                   help='''Name of the custom V reference in the IgBLAST database folder.
-                                       If not specified, then a default database name with the form
-                                       imgt_aa_<organism>_<loci>_v will be used.''')
+                                       If not specified, the database folder is searched for a file
+                                       matching airrc-imgt_aa_<organism>_<loci>_v first, then imgt_aa_<organism>_<loci>_v.
+                                       If neither is found, --vdb must be specified explicitly.''')
     group_igblast_aa.add_argument('--exec', action='store', dest='igblast_exec',
                                   default=default_igblastp_exec,
                                   help='Path to the igblastp executable.')
