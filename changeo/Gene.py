@@ -116,6 +116,10 @@ def getLocus(gene, action='first'):
       str: String of the first locus call when action is 'first'.
       tuple: Tuple of locus calls for 'set' or 'list' actions.
     """
+    # Handle None input
+    if gene is None:
+        return None
+    
     if multi_locus_tra_trd.search(gene):
         dual = ['TRA', 'TRD']
         if action == 'first':
