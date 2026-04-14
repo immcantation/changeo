@@ -1,14 +1,28 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.5dev:  Unreleased
+Version 1.3.5:  April 14, 2026
 -------------------------------------------------------------------------------
+
+CreateGermlines:
+
++ ``CreateGermlines.py`` now validates the sequence field and raises an 
+  informative error if amino acid sequences are detected. Amino acid sequences
+  are not supported; a nucleotide sequence field must be provided.
 
 MakeDb:
 
 + ``MakeDb.py igblast-aa`` now reports all top-scoring ``v_call`` hits in the 
   event of ties. Previously, only the first top-scoring hit was reported. The 
   new behavior aligns with that of the ``igblast`` subcommand.
+
+Gene:
+
++ Added support for dual-locus ``TRA/TRD`` gene detection. ``getLocus`` now 
+  correctly identifies genes with the ``TRAV.../DV...`` naming convention 
+  (e.g., ``TRAV14/DV4``) and returns ``TRA/TRD`` as the locus.
++ Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene 
+  call was ``None``.
 
 
 Version 1.3.4:  July 31, 2025
