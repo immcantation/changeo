@@ -1390,7 +1390,8 @@ class Receptor:
         """
         Position of the last nucleotide in the D germline sequence alignment
         """
-        try:  return self.d_germ_start + self.d_germ_length - 1
+        try:  
+            return self.d_germ_start + self.d_germ_length - 1
         except TypeError:  return None
 
     @property

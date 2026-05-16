@@ -1462,7 +1462,7 @@ class IgBLASTReader:
         # Create IMGT-gapped sequence
         if ('v_call' in db and db['v_call']) and ('sequence_trim' in db and db['sequence_trim']):
             try:
-                imgt_dict = gapV(db['sequence_trim'],
+                _, imgt_dict = gapV(db['sequence_trim'],
                                  v_germ_start=db['v_germ_start_vdj'],
                                  v_germ_length=db['v_germ_length_vdj'],
                                  v_call=db['v_call'],
@@ -1676,7 +1676,7 @@ class IgBLASTReaderAA(IgBLASTReader):
         # Create IMGT-gapped sequence
         if ('v_call' in db and db['v_call']) and ('sequence_aa_trim' in db and db['sequence_aa_trim']):
             try:
-                gap = gapV(db['sequence_aa_trim'],
+                _, gap = gapV(db['sequence_aa_trim'],
                            v_germ_start=db['v_germ_aa_start_vdj'],
                            v_germ_length=db['v_germ_aa_length_vdj'],
                            v_call=db['v_call'],
@@ -2132,7 +2132,7 @@ class IHMMuneReader:
         # Create IMGT-gapped sequence
         if 'v_call' in db and db['v_call'] and 'sequence_vdj' in db and db['sequence_vdj']:
             try:
-                imgt_dict = gapV(db['sequence_vdj'],
+                _, imgt_dict = gapV(db['sequence_vdj'],
                                  v_germ_start=db['v_germ_start_vdj'],
                                  v_germ_length=db['v_germ_length_vdj'],
                                  v_call=db['v_call'],

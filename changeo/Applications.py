@@ -181,6 +181,7 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
            '-germline_db_D', str(d_germ),
            '-germline_db_J', str(j_germ),
            '-outfmt', outfmt,
+           '-show_translation',
            '-domain_system', 'imgt']
 
     # Add C-region arguments for igblastn v1.18.0
