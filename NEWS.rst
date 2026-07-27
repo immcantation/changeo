@@ -1,6 +1,24 @@
 Release Notes
 ===============================================================================
 
+Version 1.3.6dev:  Unreleased
+-------------------------------------------------------------------------------
+
+MakeDb:
+
++ Fixed ``MakeDb.py imgt`` reporting ``j_germ_start``/``d_germ_start`` as 1
+  when IMGT could not identify the junction, which silently assumed no
+  germline trimming had occurred.
+
+Gene:
+
++ ``getJGermline`` now recovers the correct J germline start position from
+  the germline reference length when it is otherwise unknown (e.g., IMGT
+  junction not identified), since J is only trimmed on the 5' end.
+  ``getDGermline`` now leaves the D germline segment blank in this
+  situation, since D can be trimmed on both ends and its position cannot be
+  reliably inferred. Fixes #178.
+
 Version 1.3.5:  April 14, 2026
 -------------------------------------------------------------------------------
 

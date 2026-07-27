@@ -652,7 +652,11 @@ class IMGTReader:
         result['np1_length'] = _np1()
         result['d_seq_start'] = _dstart()
         result['d_seq_length'] = int(junction['D-REGION-nt nb'] or 0)
-        result['d_germ_start'] = int(junction['5\'D-REGION trimmed-nt nb'] or 0) + 1
+        # 5'D-REGION trimmed-nt nb is only populated when IMGT successfully identifies the
+        # junction. When it's missing, the germline start is unknown (D can be trimmed on
+        # both ends, so it cannot be inferred from the germline reference length alone).
+        result['d_germ_start'] = int(junction['5\'D-REGION trimmed-nt nb']) + 1 \
+            if junction['5\'D-REGION trimmed-nt nb'] else None
         result['d_germ_length'] = int(junction['D-REGION-nt nb'] or 0)
         result['np2_length'] = _np2()
 
@@ -686,7 +690,12 @@ class IMGTReader:
         result = {}
         result['j_seq_start'] = _jstart()
         result['j_seq_length'] = len(ntseq['J-REGION']) if ntseq['J-REGION'] else 0
-        result['j_germ_start'] = int(junction['5\'J-REGION trimmed-nt nb'] or 0) + 1
+        # 5'J-REGION trimmed-nt nb is only populated when IMGT successfully identifies the
+        # junction. When it's missing, leave the germline start unset here; getJGermline can
+        # still recover it from the germline reference length, since J is only trimmed on
+        # the 5' end.
+        result['j_germ_start'] = int(junction['5\'J-REGION trimmed-nt nb']) + 1 \
+            if junction['5\'J-REGION trimmed-nt nb'] else None
         result['j_germ_length'] = len(gapped['J-REGION']) if gapped['J-REGION'] else 0
 
         return result
