@@ -1,6 +1,15 @@
 Release Notes
 ===============================================================================
 
+Version 1.3.6dev:  Unreleased
+-------------------------------------------------------------------------------
+
+ParseDb:
+
++ ``ParseDb.py merge`` now accepts ``-f`` and ``-u`` arguments to annotate
+  merged records with a sample identifier field, with one value per input
+  file specified via ``-d``.
+
 Version 1.3.5:  April 14, 2026
 -------------------------------------------------------------------------------
 
@@ -18,10 +27,10 @@ MakeDb:
 
 Gene:
 
-+ Added support for dual-locus ``TRA/TRD`` gene detection. ``getLocus`` now 
-  correctly identifies genes with the ``TRAV.../DV...`` naming convention 
++ Added support for dual-locus ``TRA/TRD`` gene detection. ``getLocus`` now
+  correctly identifies genes with the ``TRAV.../DV...`` naming convention
   (e.g., ``TRAV14/DV4``) and returns ``TRA/TRD`` as the locus.
-+ Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene 
++ Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene
   call was ``None``.
 
 
