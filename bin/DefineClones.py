@@ -28,7 +28,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
                                 setDefaultFields
 from changeo.Distance import distance_models, calcDistances, formClusters
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, checkFields
+                       gzipOutputName, openFile, AIRRWriter, checkFields
 from changeo.Multiprocessing import DbResult, feedDbQueue, processDbQueue
 
 # Defaults
@@ -367,13 +367,14 @@ def collectQueue(alive, result_queue, collect_queue, db_file, fields,
     # Wrapper for opening handles and writers
     def _open(x, f, writer=writer, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
         else:
             handle = getOutputHandle(db_file,
                                      out_label='clone-%s' % x,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output'))
         return handle, writer(handle, fields=f)
 
     # Open log file

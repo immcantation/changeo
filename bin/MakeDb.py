@@ -27,8 +27,8 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
 from changeo.Alignment import RegionDefinition, gapV
 from changeo.Gene import buildGermline
 from changeo.IO import countDbFile, extractIMGT, readGermlines, getFormatOperators, getOutputHandle, \
-                       AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTReaderAA, IMGTReader, IHMMuneReader, \
-                       checkFields
+                       gzipOutputName, openFile, AIRRWriter, ChangeoWriter, IgBLASTReader, IgBLASTReaderAA, \
+                       IMGTReader, IHMMuneReader, checkFields
 from changeo.Receptor import ChangeoSchema, AIRRSchema
 
 # 10X Receptor attributes
@@ -235,13 +235,14 @@ def writeDb(records, fields, aligner_file, total_count, id_dict=None, annotation
     # Wrapper for opening handles and writers
     def _open(x, f, writer=writer, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
         else:
             handle = getOutputHandle(aligner_file,
                                      out_label='db-%s' % x,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output'))
         return handle, writer(handle, fields=f)
 
     # Function to convert fasta header annotations to changeo columns
@@ -606,7 +607,7 @@ def parseIgBLAST(aligner_file, seq_file, repo, amino_acid=False, cellranger_file
         fields.extend(custom)
 
     # Parse and write output
-    with open(aligner_file, 'r') as f:
+    with openFile(aligner_file, 'r') as f:
         parse_iter = parser(f, seq_dict, references, regions=regions, asis_calls=asis_calls, infer_junction=infer_junction)
         germ_iter = (addGermline(x, references, amino_acid=amino_acid) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
@@ -687,7 +688,7 @@ def parseIHMM(aligner_file, seq_file, repo, cellranger_file=None, validate='stri
         fields.extend(custom)
 
     # Parse and write output
-    with open(aligner_file, 'r') as f:
+    with openFile(aligner_file, 'r') as f:
         parse_iter = IHMMuneReader(f, seq_dict, references)
         germ_iter = (addGermline(x, references) for x in parse_iter)
         output = writeDb(germ_iter, fields=fields, aligner_file=aligner_file, total_count=total_count,
@@ -728,7 +729,7 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
         printError('Invalid format %s.' % format)
 
     # Open input
-    db_handle = open(aligner_file, 'rt')
+    db_handle = openFile(aligner_file, 'rt')
     db_iter = reader(db_handle)
 
     # Define log handle
@@ -753,15 +754,17 @@ def numberAIRR(aligner_file, repo=None, format=default_format,
 
     # Open output writer
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(aligner_file, out_label='db-pass', out_dir=out_args['out_dir'],
-                                        out_name=out_args['out_name'], out_type=schema.out_type)
+                                        out_name=out_args['out_name'], out_type=schema.out_type,
+                                        gzip_output=out_args.get('gzip_output'))
     pass_writer = writer(pass_handle, fields=db_iter.fields)
 
     if out_args['failed']:
         fail_handle = getOutputHandle(aligner_file, out_label='db-fail', out_dir=out_args['out_dir'],
-                                        out_name=out_args['out_name'], out_type=schema.out_type)
+                                        out_name=out_args['out_name'], out_type=schema.out_type,
+                                        gzip_output=out_args.get('gzip_output'))
         fail_writer = writer(fail_handle, fields=db_iter.fields)
 
     # Count records

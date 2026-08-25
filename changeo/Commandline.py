@@ -16,6 +16,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
 # Changeo imports
 from presto.IO import printWarning, printError
 from changeo.Defaults import choices_format, default_format
+from changeo.IO import gzipOutputName
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 
@@ -45,7 +46,7 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
 
 
 def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=True,
-                       format=True, multiproc=False, add_help=True):
+                       format=True, multiproc=False, add_help=True, gzip_output=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
@@ -57,6 +58,11 @@ def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=
       log (bool): if True include log arguments.
       format (bool): input and output type arguments.
       multiproc (bool): if True include multiprocessing arguments.
+      gzip_output (bool): if True include the --gzip-output argument. Should be
+                          False for tools whose output is not produced through
+                          getOutputHandle/openFile (e.g. wrapped external
+                          executables), since the flag would otherwise be
+                          silently ignored.
 
     Returns:
       argparse.ArgumentParser : an argument parser.
@@ -96,6 +102,11 @@ def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=
                        help='''Changes the prefix of the successfully processed output file
                             to the string specified. May not be specified with multiple
                             input files.''')
+    if gzip_output:
+        group.add_argument('--gzip-output', action='store_true', dest='gzip_output', default=None,
+                           help='''Specify to force gzip compressed output files. Output is
+                                automatically gzip compressed when the input file(s) are
+                                themselves gzip compressed (.gz), even without this argument.''')
 
     # Log arguments
     if log:
@@ -122,6 +133,30 @@ def getCommonArgParser(db_in=True, db_out=True, out_file=True, failed=True, log=
                                 (CPU cores to utilize).''')
 
     return parser
+
+
+def _samePath(path_a, path_b):
+    """
+    Determines whether two paths refer to the same file
+
+    Arguments:
+      path_a (str): first file path.
+      path_b (str): second file path.
+
+    Returns:
+      bool: True if the paths resolve to the same file. Uses os.path.samefile
+           (which follows symlinks and normalizes case/aliasing per the
+           filesystem) when both paths exist; otherwise falls back to
+           comparing normalized absolute paths, since one of the paths
+           (typically the output) may not exist yet.
+    """
+    if os.path.exists(path_a) and os.path.exists(path_b):
+        try:
+            return os.path.samefile(path_a, path_b)
+        except OSError:
+            pass
+
+    return os.path.normpath(os.path.abspath(path_a)) == os.path.normpath(os.path.abspath(path_b))
 
 
 def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
@@ -172,8 +207,10 @@ def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
         for f in args_dict['db_files']:
             if not os.path.isfile(f):
                 printError('Database file %s does not exist.' % f)
-            if os.path.splitext(f)[-1].lower() not in db_types:
-                printError('Database file %s is not a supported type. Must be one: %s.' \
+            # Strip a trailing .gz extension before checking the underlying file type
+            f_check = f[:-3] if f.lower().endswith('.gz') else f
+            if os.path.splitext(f_check)[-1].lower() not in db_types:
+                printError('Database file %s is not a supported type. Must be one: %s (optionally gzip compressed with a .gz extension).' \
                            % (f, ', '.join(db_types)))
 
     # Verify non-standard input files
@@ -198,17 +235,22 @@ def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
     if args_dict.get('out_files', None) is not None:
         if len(args_dict['out_files']) != input_count:
             printError('The -o argument requires one output file name per input file.')
-        for f in args_dict['out_files']:
-            if f in input_files:
+        # Resolve the .gz suffix that gzipOutputName will add at write time, so the
+        # collision and overwrite checks below see the file name that will actually be opened.
+        resolved_out_files = [gzipOutputName(f, args_dict.get('gzip_output', None)) \
+                              for f in args_dict['out_files']]
+        for f in resolved_out_files:
+            if any(_samePath(f, i) for i in input_files):
                 printError('Output files and input files cannot have the same names.')
-        for f in args_dict['out_files']:
+        for f in resolved_out_files:
             if os.path.isfile(f):
                 printWarning('Output file %s already exists and will be overwritten.' % f)
     if args_dict.get('out_file', None) is not None:
-        if args_dict['out_file'] in input_files:
+        resolved_out_file = gzipOutputName(args_dict['out_file'], args_dict.get('gzip_output', None))
+        if any(_samePath(resolved_out_file, i) for i in input_files):
             printError('Output files and input files cannot have the same names.')
-        if os.path.isfile(args_dict['out_file']):
-            printWarning('Output file %s already exists and will be overwritten.' % args_dict['out_file'])
+        if os.path.isfile(resolved_out_file):
+            printWarning('Output file %s already exists and will be overwritten.' % resolved_out_file)
 
     # Exit if output names or log files are specified with multiple input files
     if args_dict.get('out_name', None) is not None \
@@ -224,7 +266,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None, in_list=False):
             printError('Path %s exists but it is not a directory.' % args_dict['out_dir'])
 
     # Redefine common output options as out_args dictionary
-    out_args = ['log_file', 'out_dir', 'out_name', 'out_type', 'failed']
+    out_args = ['log_file', 'out_dir', 'out_name', 'out_type', 'failed', 'gzip_output']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     

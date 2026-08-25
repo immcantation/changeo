@@ -14,7 +14,7 @@ from time import time
 # Presto and changeo imports
 from presto.IO import printProgress, printLog, printError, printWarning
 from changeo.Defaults import default_out_args
-from changeo.IO import countDbFile, getOutputHandle, AIRRReader, AIRRWriter
+from changeo.IO import countDbFile, getOutputHandle, gzipOutputName, openFile, AIRRReader, AIRRWriter
 from changeo.Receptor import Receptor
 
 
@@ -113,7 +113,7 @@ def feedDbQueue(alive, data_queue, db_file, reader=AIRRReader, group_func=None, 
     # Open input file and perform grouping
     try:
         # Iterate over records and assign groups
-        db_handle = open(db_file, 'rt')
+        db_handle = openFile(db_file, 'rt')
         db_iter = reader(db_handle)
         if group_func is not None:
             # import cProfile
@@ -224,13 +224,14 @@ def collectDbQueue(alive, result_queue, collect_queue, db_file, label, fields,
     # Wrapper for opening handles and writers
     def _open(x, f, writer=writer, label=label, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
         else:
             handle = getOutputHandle(db_file,
                                      out_label='%s-%s' % (label, x),
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output'))
         return handle, writer(handle, fields=f)
 
     try:

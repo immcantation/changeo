@@ -29,9 +29,9 @@ from changeo.Defaults import default_id_field, default_seq_field, default_germ_f
                              default_csv_size, default_format, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.Gene import getCGene
-from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, AIRRReader, AIRRWriter, \
-                       ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, readGermlines, \
-                       checkFields, yamlDict
+from changeo.IO import countDbFile, getFormatOperators, getOutputHandle, gzipOutputName, openFile, \
+                       AIRRReader, AIRRWriter, ChangeoReader, ChangeoWriter, TSVReader, ReceptorData, \
+                       readGermlines, checkFields, yamlDict
 from changeo.Receptor import AIRRSchema, ChangeoSchema
 
 # System settings
@@ -101,7 +101,7 @@ def convertToAIRR(db_file, format=default_format,
         printError('Invalid format %s.' % format)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = reader(db_handle)
 
     # Set output fields replacing length with end fields
@@ -116,10 +116,11 @@ def convertToAIRR(db_file, format=default_format,
 
     # Open output writer
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='airr', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=AIRRSchema.out_type)
+                                      out_name=out_args['out_name'], out_type=AIRRSchema.out_type,
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = AIRRWriter(pass_handle, fields=out_fields)
 
     # Count records
@@ -169,7 +170,7 @@ def convertToChangeo(db_file, out_file=None, out_args=default_out_args):
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = AIRRReader(db_handle)
 
     # Set output fields replacing length with end fields
@@ -184,10 +185,11 @@ def convertToChangeo(db_file, out_file=None, out_args=default_out_args):
 
     # Open output writer
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='changeo', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=ChangeoSchema.out_type)
+                                      out_name=out_args['out_name'], out_type=ChangeoSchema.out_type,
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = ChangeoWriter(pass_handle, fields=out_fields)
 
     # Count records
@@ -252,16 +254,17 @@ def convertToBaseline(db_file, id_field=default_id_field, seq_field=default_seq_
     printLog(log)
     
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     result_count = countDbFile(db_file)
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type='clip')
+                                      out_name=out_args['out_name'], out_type='clip',
+                                      gzip_output=out_args.get('gzip_output'))
     # Iterate over records
     start_time = time()
     rec_count, germ_count, pass_count, fail_count = 0, 0, 0, 0
@@ -347,16 +350,17 @@ def convertToFasta(db_file, id_field=default_id_field, seq_field=default_seq_fie
     
     # Open input
     out_type = 'fasta'
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     result_count = countDbFile(db_file)
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='sequences', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_type)
+                                      out_name=out_args['out_name'], out_type=out_type,
+                                      gzip_output=out_args.get('gzip_output'))
 
     # Iterate over records
     start_time = time()
@@ -693,7 +697,7 @@ def convertToGenbank(db_file, inference=None, db_xref=None, molecule=default_mol
         printError('Invalid format %s.' % format)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = reader(db_handle)
 
     # Check for required columns

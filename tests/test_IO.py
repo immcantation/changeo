@@ -6,15 +6,19 @@ __author__ = 'Jason Anthony Vander Heiden'
 from changeo import __version__, __date__
 
 # Imports
+import gzip
 import os
+import shutil
 import sys
+import tempfile
 import time
 import unittest
 from Bio import SeqIO
 
 # Presto and changeo imports
+from changeo.Commandline import getCommonArgParser, parseCommonArgs
 from changeo.IO import getDbFields, extractIMGT, readGermlines, ChangeoReader, \
-                       IgBLASTReader, IgBLASTReaderAA, IHMMuneReader, IMGTReader
+                       IgBLASTReader, IgBLASTReaderAA, IHMMuneReader, IMGTReader, openFile
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -192,6 +196,69 @@ class Test_MakeDb(unittest.TestCase):
                 )
         finally:
             shutil.rmtree(temp_dir)
+
+
+class Test_Gzip(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def test_openFile_writes_real_gzip(self):
+        """openFile('w') on a .gz name produces an actual gzip file, verified
+        independently of openFile itself (via the stdlib gzip module and the
+        gzip magic bytes), not just round-tripped through the same function."""
+        file_name = os.path.join(self.temp_dir, 'records.tsv.gz')
+        content = 'sequence_id\tproductive\nseq1\tT\n'
+
+        with openFile(file_name, 'w') as handle:
+            handle.write(content)
+
+        with open(file_name, 'rb') as handle:
+            self.assertEqual(handle.read(2), b'\x1f\x8b')  # gzip magic bytes
+        with gzip.open(file_name, 'rt') as handle:
+            self.assertEqual(handle.read(), content)
+
+    def test_openFile_reads_real_gzip(self):
+        """openFile('r') on a .gz name transparently decompresses a file
+        written independently by the stdlib gzip module."""
+        file_name = os.path.join(self.temp_dir, 'records.tsv.gz')
+        content = 'sequence_id\tproductive\nseq1\tT\n'
+
+        with gzip.open(file_name, 'wt') as handle:
+            handle.write(content)
+
+        with openFile(file_name, 'r') as handle:
+            self.assertEqual(handle.read(), content)
+
+    def test_gzip_output_cannot_overwrite_input(self):
+        """The final gzip output name may not resolve to the input file."""
+        input_file = os.path.join(self.temp_dir, 'records.tsv.gz')
+        with gzip.open(input_file, 'wt') as handle:
+            handle.write('sequence_id\nseq1\n')
+
+        parser = getCommonArgParser()
+        args = parser.parse_args(['-d', input_file, '-o', input_file[:-3], '--gzip-output'])
+        with self.assertRaises(SystemExit):
+            parseCommonArgs(args)
+
+    def test_gzip_output_cannot_overwrite_input_via_path_alias(self):
+        """A -o that is only path-equivalent to the input (e.g. via a redundant
+        './' segment, as in -d ./input.tsv.gz -o input.tsv) must still be caught,
+        even though the two names are not string-identical."""
+        input_file = os.path.join(self.temp_dir, 'records.tsv.gz')
+        with gzip.open(input_file, 'wt') as handle:
+            handle.write('sequence_id\nseq1\n')
+
+        alias_out = os.path.join(self.temp_dir, '.', 'records.tsv')
+        self.assertNotEqual(alias_out, input_file[:-3])
+
+        parser = getCommonArgParser()
+        args = parser.parse_args(['-d', input_file, '-o', alias_out, '--gzip-output'])
+        with self.assertRaises(SystemExit):
+            parseCommonArgs(args)
+
 
 if __name__ == '__main__':
     unittest.main()
