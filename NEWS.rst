@@ -18,6 +18,11 @@ Gene:
   ``getDGermline`` now leaves the D germline segment blank in this
   situation, since D can be trimmed on both ends and its position cannot be
   reliably inferred. Fixes #178.
+ParseDb:
+
++ ``ParseDb.py merge`` now accepts ``-f`` and ``-u`` arguments to annotate
+  merged records with a sample identifier field, with one value per input
+  file specified via ``-d``.
 
 Version 1.3.5:  April 14, 2026
 -------------------------------------------------------------------------------
@@ -36,10 +41,10 @@ MakeDb:
 
 Gene:
 
-+ Added support for dual-locus ``TRA/TRD`` gene detection. ``getLocus`` now 
-  correctly identifies genes with the ``TRAV.../DV...`` naming convention 
++ Added support for dual-locus ``TRA/TRD`` gene detection. ``getLocus`` now
+  correctly identifies genes with the ``TRAV.../DV...`` naming convention
   (e.g., ``TRAV14/DV4``) and returns ``TRA/TRD`` as the locus.
-+ Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene 
++ Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene
   call was ``None``.
 
 
