@@ -18,7 +18,7 @@ from textwrap import dedent
 from time import time
 
 # Presto and changeo imports
-from presto.IO import printLog, printProgress, printMessage
+from presto.IO import printLog, printProgress, printMessage, printWarning
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import checkFields, countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
@@ -837,8 +837,15 @@ def mergeDbFiles(db_files, drop=False, field=None, values=None,
         field_set = set.union(*map(set, field_list))
     field_order = OrderedDict([(f, None) for f in chain(*field_list)])
     out_fields = [f for f in field_order if f in field_set]
-    if field is not None and field not in out_fields:
-        out_fields.append(field)
+    if field is not None:
+        # Check against all input headers (field_order), not just the post-drop
+        # output header (out_fields), so a field present in only some input files
+        # still triggers the overwrite warning when --drop removes it from out_fields.
+        if field in field_order:
+            printWarning('Field %s already exists in one or more input files and its '
+                         'existing values will be overwritten.' % field)
+        if field not in out_fields:
+            out_fields.append(field)
 
     # Open output file
     if out_file is not None:
