@@ -18,7 +18,7 @@ from textwrap import dedent
 from time import time
 
 # Presto and changeo imports
-from presto.IO import printLog, printProgress, printMessage
+from presto.IO import printLog, printProgress, printMessage, printWarning
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from changeo.IO import checkFields, countDbFile, getOutputHandle, gzipOutputName, openFile, \
@@ -808,24 +808,36 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     return pass_handle.name
 
 
-def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args):
+def mergeDbFiles(db_files, drop=False, field=None, values=None,
+                  out_file=None, out_args=default_out_args):
     """
     Updates field and value pairs to a database file
 
     Arguments:
       db_files : list of database file names.
       drop : if True drop columns not present in all files.
+      field : name of the field to add annotating the source file of each record;
+              if None do not add a sample identifier field.
+      values : list of sample identifiers, one per file in db_files, assigned to
+               field for each record; ignored if field is None.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       str : output file name.
     """
+    if field is None and values is not None:
+        printWarning('Values (-u) were specified without a field (-f) to assign '
+                     'them to and will be ignored.')
+
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'merge'
     log['FILES'] = ','.join([os.path.basename(f) for f in db_files])
     log['DROP'] = drop
+    if field is not None:
+        log['FIELD'] = field
+        log['VALUES'] = ','.join(values)
     printLog(log)
 
     # Open input
@@ -841,6 +853,15 @@ def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args)
         field_set = set.union(*map(set, field_list))
     field_order = OrderedDict([(f, None) for f in chain(*field_list)])
     out_fields = [f for f in field_order if f in field_set]
+    if field is not None:
+        # Check against all input headers (field_order), not just the post-drop
+        # output header (out_fields), so a field present in only some input files
+        # still triggers the overwrite warning when --drop removes it from out_fields.
+        if field in field_order:
+            printWarning('Field %s already exists in one or more input files and its '
+                         'existing values will be overwritten.' % field)
+        if field not in out_fields:
+            out_fields.append(field)
 
     # Open output file
     if out_file is not None:
@@ -855,11 +876,15 @@ def mergeDbFiles(db_files, drop=False, out_file=None, out_args=default_out_args)
     # Iterate over records
     start_time = time()
     rec_count = 0
-    for db in db_iters:
+    for i, db in enumerate(db_iters):
         for rec in db:
             # Print progress for previous iteration
             printProgress(rec_count, result_count, 0.05, start_time=start_time)
             rec_count += 1
+
+            # Annotate sample identifier
+            if field is not None:
+                rec[field] = values[i]
 
             # Write records
             pass_writer.writeDict(rec)
@@ -1049,6 +1074,14 @@ def getArgParser():
                               help='''If specified, drop fields that do not exist in all input files.
                                    Otherwise, include all columns in all files and fill missing data
                                    with empty strings.''')
+    group_merge.add_argument('-f', action='store', dest='field', default=None,
+                              help='''Name of the field to add to the output file annotating each
+                                   record with a sample identifier. If not specified, no sample
+                                   identifier field is added.''')
+    group_merge.add_argument('-u', nargs='+', action='store', dest='values', default=None,
+                              help='''Sample identifiers to assign to the field specified by -f, one
+                                   per input file (-d) and in the same order. Ignored if -f is not
+                                   specified.''')
     parser_merge.set_defaults(func=mergeDbFiles)
 
     # Subparser to partition files by annotation values
@@ -1091,6 +1124,11 @@ if __name__ == '__main__':
         parser.error('You must specify exactly one new name (-k) per field (-f)')
     elif args.command == 'update' and len(args_dict['values']) != len(args_dict['updates']):
         parser.error('You must specify exactly one value (-u) per replacement (-t)')
+    elif args.command == 'merge' and args_dict['field'] is not None:
+        if args_dict['values'] is None:
+            parser.error('You must specify sample identifiers (-u) when using -f')
+        elif len(args_dict['values']) != len(args_dict['db_files']):
+            parser.error('You must specify exactly one sample identifier (-u) per input file (-d)')
 
     # Call parser function for each database file
     if args.command == 'merge':
