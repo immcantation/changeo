@@ -814,6 +814,10 @@ def mergeDbFiles(db_files, drop=False, field=None, values=None,
     Returns:
       str : output file name.
     """
+    if field is None and values is not None:
+        printWarning('Values (-u) were specified without a field (-f) to assign '
+                     'them to and will be ignored.')
+
     log = OrderedDict()
     log['START'] = 'ParseDb'
     log['COMMAND'] = 'merge'
