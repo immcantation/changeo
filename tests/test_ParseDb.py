@@ -8,12 +8,14 @@ from changeo import __version__, __date__
 
 # Imports
 import csv
+import io
 import os
 import shutil
 import sys
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stderr
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -67,6 +69,54 @@ class Test_ParseDb(unittest.TestCase):
         results = {r['SEQUENCE_ID']: r['SAMPLE'] for r in records}
         self.assertDictEqual(results, {'A1': 'sample1', 'A2': 'sample1', 'B1': 'sample2'})
 
+    def test_mergeDbFiles_values_without_field(self):
+        file1 = self._write_tsv('sample1.tsv', [{'SEQUENCE_ID': 'A1', 'V_CALL': 'IGHV1'}])
+        file2 = self._write_tsv('sample2.tsv', [{'SEQUENCE_ID': 'B1', 'V_CALL': 'IGHV3'}])
+        out_file = os.path.join(self.tmp_dir, 'merged.tsv')
+
+        # Values without a field are ignored, with a warning
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            ParseDb.mergeDbFiles([file1, file2], values=['sample1', 'sample2'], out_file=out_file)
+        self.assertIn('WARNING', stderr.getvalue())
+
+        records = self._read_tsv(out_file)
+        self.assertEqual(len(records), 2)
+        self.assertNotIn('SAMPLE', records[0])
+
+    def test_mergeDbFiles_field_overwrites_existing_column(self):
+        file1 = self._write_tsv('sample1.tsv', [{'SEQUENCE_ID': 'A1', 'SAMPLE': 'original'}])
+        file2 = self._write_tsv('sample2.tsv', [{'SEQUENCE_ID': 'B1', 'SAMPLE': 'original'}])
+        out_file = os.path.join(self.tmp_dir, 'merged.tsv')
+
+        # Reusing an existing column name overwrites its values, with a warning
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            ParseDb.mergeDbFiles([file1, file2], field='SAMPLE', values=['sample1', 'sample2'],
+                                  out_file=out_file)
+        self.assertIn('WARNING', stderr.getvalue())
+
+        records = self._read_tsv(out_file)
+        results = {r['SEQUENCE_ID']: r['SAMPLE'] for r in records}
+        self.assertDictEqual(results, {'A1': 'sample1', 'B1': 'sample2'})
+
+    def test_mergeDbFiles_field_overwrites_partial_column_with_drop(self):
+        # Only file1 has a SAMPLE column; with drop=True it is excluded from
+        # out_fields before the annotation field is considered, so the warning
+        # must be based on the input headers rather than the post-drop output.
+        file1 = self._write_tsv('sample1.tsv', [{'SEQUENCE_ID': 'A1', 'SAMPLE': 'original'}])
+        file2 = self._write_tsv('sample2.tsv', [{'SEQUENCE_ID': 'B1', 'V_CALL': 'IGHV1'}])
+        out_file = os.path.join(self.tmp_dir, 'merged.tsv')
+
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            ParseDb.mergeDbFiles([file1, file2], drop=True, field='SAMPLE',
+                                  values=['sample1', 'sample2'], out_file=out_file)
+        self.assertIn('WARNING', stderr.getvalue())
+
+        records = self._read_tsv(out_file)
+        results = {r['SEQUENCE_ID']: r['SAMPLE'] for r in records}
+        self.assertDictEqual(results, {'A1': 'sample1', 'B1': 'sample2'})
 
 if __name__ == '__main__':
     unittest.main()
