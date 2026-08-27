@@ -183,7 +183,11 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parent_parser = getCommonArgParser(db_in=False, log=False, failed=False, format=False, multiproc=True)
+    # gzip_output is intentionally excluded: assignIgBLAST() writes its output through the
+    # igblastn/igblastp executable directly, not through getOutputHandle/openFile, so the
+    # option would otherwise be silently accepted and ignored.
+    parent_parser = getCommonArgParser(db_in=False, log=False, failed=False, format=False,
+                                       multiproc=True, gzip_output=False)
 
     # Subparser to run igblastn
     parser_igblast = subparsers.add_parser('igblast', parents=[parent_parser],

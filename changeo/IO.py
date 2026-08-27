@@ -6,6 +6,7 @@ __author__ = 'Namita Gupta, Jason Anthony Vander Heiden'
 
 # Imports
 import csv
+import gzip
 import os
 import re
 import tarfile
@@ -27,6 +28,40 @@ from changeo.Alignment import decodeBTOP, encodeCIGAR, padAlignment, gapV, infer
 
 # System settings
 csv.field_size_limit(default_csv_size)
+
+
+def openFile(filename, mode='r'):
+    """
+    Opens a file with automatic gzip support based on the .gz extension
+
+    Arguments:
+      filename (str): path to the file.
+      mode (str): file opening mode ('r' or 'w'; a trailing 't'/'b' is ignored).
+
+    Returns:
+      file : file handle opened in text mode.
+    """
+    if filename.lower().endswith('.gz'):
+        return gzip.open(filename, mode[0] + 't')
+    else:
+        return open(filename, mode)
+
+
+def gzipOutputName(file, gzip_output):
+    """
+    Appends a .gz extension to a file name if compressed output is requested
+
+    Arguments:
+      file (str): file name.
+      gzip_output (bool): if True force a .gz extension onto file.
+
+    Returns:
+      str: file name, with a .gz extension added if needed.
+    """
+    if gzip_output and not file.lower().endswith('.gz'):
+        file += '.gz'
+
+    return file
 
 
 class TSVReader:
@@ -2329,7 +2364,7 @@ def countDbFile(file):
     """
     # Count records and check file
     try:
-        with open(file, 'rt') as db_handle:
+        with openFile(file, 'rt') as db_handle:
             db_records = csv.reader(db_handle, dialect='excel-tab')
             for i, __ in enumerate(db_records):  pass
         db_count = i
@@ -2357,7 +2392,7 @@ def getDbFields(file, add=None, exclude=None, reader=TSVReader):
         list : list of field names
     """
     try:
-        with open(file, 'rt') as handle:
+        with openFile(file, 'rt') as handle:
             fields = reader(handle).fields
     except IOError:
         printError('File %s cannot be read.' % file)
@@ -2417,16 +2452,22 @@ def splitName(file):
       file (str): file name.
 
     Returns:
-      tuple : tuple of the file directory, basename and extension.
+      tuple : tuple of the file directory, basename and extension. A trailing
+              .gz extension is stripped from file before the extension is
+              determined, so a gzip compressed file reports the extension of
+              its underlying (uncompressed) type.
     """
     directory, filename = os.path.split(file)
+    if filename.lower().endswith('.gz'):
+        filename = filename[:-3]
     basename, extension = os.path.splitext(filename)
     extension = extension.lower().lstrip('.')
 
     return directory, basename, extension
 
 
-def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=None):
+def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=None,
+                  gzip_output=None):
     """
     Creates and output filename from an existing filename
 
@@ -2440,11 +2481,15 @@ def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=No
                 if None use directory of input file
       out_name : the short filename to use for the output file;
                  if None use input file short name.
+      gzip_output : if True force a .gz extension onto the output file name;
+                    if None add a .gz extension only when file is itself
+                    gzip compressed (preserve compression by default).
 
     Returns:
       str: file name.
     """
     # Get filename components
+    was_gzipped = os.path.split(file)[1].lower().endswith('.gz')
     directory, basename, extension = splitName(file)
 
     # Define output directory
@@ -2464,11 +2509,16 @@ def getOutputName(file, out_label=None, out_dir=None, out_name=None, out_type=No
     else:
         out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
 
+    # Preserve or force gzip compression of the output file name
+    if gzip_output or (gzip_output is None and was_gzipped):
+        out_file += '.gz'
+
     # Return file name
     return out_file
 
 
-def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=None):
+def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=None,
+                    gzip_output=None):
     """
     Opens an output file handle
 
@@ -2482,16 +2532,20 @@ def getOutputHandle(file, out_label=None, out_dir=None, out_name=None, out_type=
                 if None use directory of input file
       out_name : the short filename to use for the output file;
                  if None use input file short name.
+      gzip_output : if True force a .gz extension onto the output file name
+                    and open it as gzip compressed; if None preserve
+                    compression when file is itself gzip compressed.
 
     Returns:
       file : File handle
     """
     out_file = getOutputName(file, out_label=out_label, out_dir=out_dir,
-                             out_name=out_name, out_type=out_type)
+                             out_name=out_name, out_type=out_type,
+                             gzip_output=gzip_output)
 
     # Open and return handle
     try:
-        return open(out_file, mode='w')
+        return openFile(out_file, mode='w')
     except:
         printError('File %s cannot be opened.' % out_file)
 
