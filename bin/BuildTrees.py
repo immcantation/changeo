@@ -23,7 +23,8 @@ from functools import partial
 from presto.Defaults import default_out_args
 from presto.IO import  printLog, printMessage, printWarning, printError, printDebug
 from changeo.Defaults import default_format
-from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName
+from changeo.IO import splitName, getDbFields, getFormatOperators, getOutputHandle, getOutputName, \
+                       openFile
 from changeo.Alignment import RegionDefinition
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 
@@ -1054,7 +1055,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
                                   out_label=out_label,
                                   out_dir=out_args["out_dir"],
                                   out_name= out_args["out_name"],
-                                  out_type="tsv")
+                                  out_type="tsv",
+                                  gzip_output=out_args.get("gzip_output"))
 
     igphyml_out = None
     if igphyml:
@@ -1084,7 +1086,7 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
     out_fields = getDbFields(db_file, reader=reader)
 
     # open input file
-    handle = open(db_file, "r")
+    handle = openFile(db_file, "r")
     records = reader(handle)
 
     fail_handle, fail_writer = None, None
@@ -1093,7 +1095,8 @@ def buildTrees(db_file, meta_data=None, target_clones=None, collapse=False, ncdr
                                       out_label="lineages-fail",
                                       out_dir=out_args["out_dir"],
                                       out_name=out_args["out_name"],
-                                      out_type=out_args["out_type"])
+                                      out_type=out_args["out_type"],
+                                      gzip_output=out_args.get("gzip_output"))
         fail_writer = writer(fail_handle, fields=out_fields)
 
     cloneseqs = {}

@@ -26,7 +26,7 @@ from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgPars
                                 setDefaultFields
 from changeo.Gene import buildGermline, buildClonalGermline
 from changeo.IO import countDbFile, getDbFields, getFormatOperators, getOutputHandle, readGermlines, \
-                       checkFields
+                       gzipOutputName, openFile, checkFields
 
 # Defaults
 default_germ_types = ['dmask']
@@ -97,7 +97,7 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
 
     # Get repertoire and open Db reader
     reference_dict = readGermlines(references)
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = reader(db_handle)
 
     # Check for required columns
@@ -143,7 +143,7 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
     
     # Reset the file handle after sampling
     db_handle.close()
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = reader(db_handle)
 
     # Translate to Receptor attribute names
@@ -217,13 +217,14 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
             except AttributeError:
                 # Create output file handle and writer
                 if out_file is not None:
-                    pass_handle = open(out_file, 'w')
+                    pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
                 else:
                     pass_handle = getOutputHandle(db_file,
                                                   out_label='germ-pass',
                                                   out_dir=out_args['out_dir'],
                                                   out_name=out_args['out_name'],
-                                                  out_type=out_args['out_type'])
+                                                  out_type=out_args['out_type'],
+                                                  gzip_output=out_args.get('gzip_output'))
                 pass_writer = writer(pass_handle, fields=out_fields)
                 for r in records:
                     r.setDict(annotations)
@@ -238,7 +239,8 @@ def createGermlines(db_file, references, seq_field=default_seq_field, v_field=de
                                                   out_label='germ-fail',
                                                   out_dir=out_args['out_dir'],
                                                   out_name=out_args['out_name'],
-                                                  out_type=out_args['out_type'])
+                                                  out_type=out_args['out_type'],
+                                                  gzip_output=out_args.get('gzip_output'))
                     fail_writer = writer(fail_handle, fields=out_fields)
                     fail_writer.writeReceptor(records)
 

@@ -21,7 +21,8 @@ from time import time
 from presto.IO import printLog, printProgress, printMessage, printWarning
 from changeo.Defaults import default_csv_size, default_out_args
 from changeo.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from changeo.IO import checkFields, countDbFile, getOutputHandle, splitName, TSVReader, TSVWriter
+from changeo.IO import checkFields, countDbFile, getOutputHandle, gzipOutputName, openFile, \
+                       splitName, TSVReader, TSVWriter
 
 # System settings
 csv.field_size_limit(default_csv_size)
@@ -54,7 +55,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
@@ -73,7 +74,7 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
     # Sort records into files based on textual field
     if num_split is None:
         # Create set of unique field tags
-        with open(db_file, 'rt') as tmp_handle:
+        with openFile(db_file, 'rt') as tmp_handle:
             tmp_iter = TSVReader(tmp_handle)
             tag_list = list(set([row[field] for row in tmp_iter]))
 
@@ -92,7 +93,8 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
                                              out_label='%s-%s' % (field, label),
                                              out_name=out_args['out_name'],
                                              out_dir=out_args['out_dir'],
-                                             out_type=out_args['out_type'])
+                                             out_type=out_args['out_type'],
+                                             gzip_output=out_args.get('gzip_output'))
                         for tag, label in tag_dict.items()}
 
         # Create Db writer instances
@@ -116,12 +118,14 @@ def splitDbFile(db_file, field, num_split=None, out_args=default_out_args):
                                                  out_label='under-%.1f' % num_split,
                                                  out_name=out_args['out_name'],
                                                  out_dir=out_args['out_dir'],
-                                                 out_type=out_args['out_type']),
+                                                 out_type=out_args['out_type'],
+                                                 gzip_output=out_args.get('gzip_output')),
                         'atleast': getOutputHandle(db_file,
                                                    out_label='atleast-%.1f' % num_split,
                                                    out_name=out_args['out_name'],
                                                    out_dir=out_args['out_dir'],
-                                                   out_type=out_args['out_type'])}
+                                                   out_type=out_args['out_type'],
+                                                   gzip_output=out_args.get('gzip_output'))}
 
         # Create Db writer instances
         writers_dict = {'under': TSVWriter(handles_dict['under'], fields=out_fields),
@@ -178,7 +182,7 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
 
@@ -188,10 +192,11 @@ def addDbFile(db_file, fields, values, out_file=None, out_args=default_out_args)
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-add', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -247,7 +252,7 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
 
@@ -257,10 +262,11 @@ def indexDbFile(db_file, field=default_index_field, out_file=None, out_args=defa
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-index', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -314,7 +320,7 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
 
@@ -329,10 +335,11 @@ def dropDbFile(db_file, fields, out_file=None, out_args=default_out_args):
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-drop', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -400,7 +407,7 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
@@ -413,10 +420,11 @@ def deleteDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-delete', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -479,7 +487,7 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
     printLog(log)
 
     # Open file handles
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     __, __, out_args['out_type'] = splitName(db_file)
 
@@ -497,10 +505,11 @@ def renameDbFile(db_file, fields, names, out_file=None, out_args=default_out_arg
 
     # Open writer
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-rename', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -575,7 +584,7 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
@@ -588,10 +597,11 @@ def selectDbFile(db_file, fields, values, logic='any', regex=False,
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-select', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -659,7 +669,7 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
@@ -672,10 +682,11 @@ def sortDbFile(db_file, field, numeric=False, descend=False,
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-sort', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Store all records in a dictionary
@@ -741,7 +752,7 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
     printLog(log)
 
     # Open input
-    db_handle = open(db_file, 'rt')
+    db_handle = openFile(db_file, 'rt')
     db_iter = TSVReader(db_handle)
     out_fields = db_iter.fields
     __, __, out_args['out_type'] = splitName(db_file)
@@ -754,10 +765,11 @@ def updateDbFile(db_file, field, values, updates, out_file=None, out_args=defaul
 
     # Open output
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         pass_handle = getOutputHandle(db_file, out_label='parse-update', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Count records
@@ -829,7 +841,7 @@ def mergeDbFiles(db_files, drop=False, field=None, values=None,
     printLog(log)
 
     # Open input
-    db_handles = [open(f, 'rt') for f in db_files]
+    db_handles = [openFile(f, 'rt') for f in db_files]
     db_iters = [TSVReader(x) for x in db_handles]
     result_count = sum([countDbFile(f) for f in db_files])
 
@@ -853,11 +865,12 @@ def mergeDbFiles(db_files, drop=False, field=None, values=None,
 
     # Open output file
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        pass_handle = openFile(gzipOutputName(out_file, out_args.get('gzip_output')), 'w')
     else:
         __, __, out_args['out_type'] = splitName(db_files[0])
         pass_handle = getOutputHandle(db_files[0], out_label='parse-merge', out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                      out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output'))
     pass_writer = TSVWriter(pass_handle, out_fields)
 
     # Iterate over records
