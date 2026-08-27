@@ -290,17 +290,21 @@ def getDGermline(receptor, references, d_field=d_attr, amino_acid=False):
     # Get germline start and length
     if not amino_acid:
         try:  dstart = int(receptor.d_germ_start) - 1
-        except (TypeError, ValueError):  dstart = 0
+        except (TypeError, ValueError):  dstart = None
         try:  dlen = int(receptor.d_germ_length)
         except (TypeError, ValueError):  dlen = 0
     else:
         try:  dstart = int(receptor.d_germ_aa_start) - 1
-        except (TypeError, ValueError, AttributeError):  dstart = 0
+        except (TypeError, ValueError, AttributeError):  dstart = None
         try:  dlen = int(receptor.d_germ_aa_length)
         except (TypeError, ValueError, AttributeError):  dlen = 0
 
     # Build D segment germline sequence
-    if dgene is None:
+    # Unlike V and J, D can be trimmed on both the 5' and 3' end, so a missing
+    # germline start (eg, when IMGT could not identify the junction) cannot be
+    # inferred from the germline reference length. Report the D segment as blank
+    # rather than guessing an incorrect position.
+    if dgene is None or dstart is None:
         germ_dseq = ''
     elif dgene in references:
         # Define D germline sequence
@@ -332,13 +336,13 @@ def getJGermline(receptor, references, j_field=j_attr, amino_acid=False):
     if not amino_acid:
         pad_char = 'N'
         try:  jstart = int(receptor.j_germ_start) - 1
-        except (TypeError, ValueError):  jstart = 0
+        except (TypeError, ValueError):  jstart = None
         try:  jlen = int(receptor.j_germ_length)
         except (TypeError, ValueError):  jlen = 0
     else:
         pad_char = 'X'
         try:  jstart = int(receptor.j_germ_aa_start) - 1
-        except (TypeError, ValueError, AttributeError):  jstart = 0
+        except (TypeError, ValueError, AttributeError):  jstart = None
         try:  jlen = int(receptor.j_germ_aa_length)
         except (TypeError, ValueError, AttributeError):  jlen = 0
 
@@ -347,6 +351,12 @@ def getJGermline(receptor, references, j_field=j_attr, amino_acid=False):
         germ_jseq = pad_char * jlen
     elif jgene in references:
         jseq = references[jgene]
+        # J is only trimmed on the 5' end during recombination, so when the germline
+        # start is unknown (eg, when IMGT could not identify the junction) it can be
+        # recovered from the reference length: the segment used is anchored at the
+        # untrimmed 3' end of the germline J gene.
+        if jstart is None:
+            jstart = max(len(jseq) - jlen, 0)
         jpad = jlen - len(jseq[jstart:])
         if jpad < 0: jpad = 0
         germ_jseq = jseq[jstart:(jstart + jlen)] + (pad_char * jpad)
