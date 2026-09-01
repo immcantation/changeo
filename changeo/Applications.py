@@ -6,6 +6,7 @@ Application wrappers
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import glob
 import os
 import re
 from packaging.version import parse as parse_version
@@ -18,6 +19,38 @@ from changeo.Defaults import default_igblastn_exec, default_igblastp_exec, defau
 
 # Defaults
 default_igblast_output = 'legacy'
+
+
+def _resolve_db(igdata, segment, organism, loci, explicit=None, aa=False):
+    """
+    Resolve an IgBLAST database path by probing the filesystem.
+
+    Tries the 'airrc-imgt' prefix first, then 'imgt'. Returns None if neither is
+    found and no explicit name was given.
+
+    Arguments:
+      igdata (str): path to the IgBLAST database directory.
+      segment (str): gene segment; one of 'v', 'd', 'j', or 'c'.
+      organism (str): species name.
+      loci (str): receptor type; one of 'ig' or 'tr'.
+      explicit (str): explicit database name, bypassing prefix resolution.
+      aa (bool): if True, use the amino acid infix ('airrc-imgt_aa_' / 'imgt_aa_').
+
+    Returns:
+      str: full path to the database, or None if not found.
+    """
+    if explicit is not None:
+        return os.path.join(igdata, 'database', explicit)
+
+    infix = '_aa_' if aa else '_'
+    db_dir = os.path.join(igdata, 'database')
+    for prefix in ('airrc-imgt', 'imgt'):
+        name = '%s%s%s_%s_%s' % (prefix, infix, organism, loci, segment)
+        path = os.path.join(db_dir, name)
+        if glob.glob(path + '.*') or os.path.isfile(path):
+            return path
+
+    return None
 
 
 def runASN(fasta, template=None, exec=default_tbl2asn_exec):
@@ -157,17 +190,26 @@ def runIgBLASTN(fasta, igdata, loci='ig', organism='human', vdb=None, ddb=None, 
     # Set auxiliary data
     auxiliary = os.path.join(igdata, 'optional_file', '%s_gl.aux' % organism)
     # Set V database
-    if vdb is not None:  v_germ = os.path.join(igdata, 'database', vdb)
-    else:  v_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_v' % (organism, loci))
+    v_germ = _resolve_db(igdata, 'v', organism, loci, explicit=vdb)
+    if v_germ is None:
+        printError('No V database found for organism "%s" and loci "%s" with "airrc-imgt" or "imgt" prefix. '
+                   'Specify --vdb, --ddb and --jdb explicitly.' % (organism, loci))
     # Set D database
-    if ddb is not None:  d_germ = os.path.join(igdata, 'database', ddb)
-    else:  d_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_d' % (organism, loci))
+    d_germ = _resolve_db(igdata, 'd', organism, loci, explicit=ddb)
+    if d_germ is None:
+        printError('No D database found for organism "%s" and loci "%s" with "airrc-imgt" or "imgt" prefix. '
+                   'Specify --vdb, --ddb and --jdb explicitly.' % (organism, loci))
     # Set J database
-    if jdb is not None:  j_germ = os.path.join(igdata, 'database', jdb)
-    else:  j_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_j' % (organism, loci))
-    # Set C database
-    if cdb is not None:  c_germ = os.path.join(igdata, 'database', cdb)
-    else:  c_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_c' % (organism, loci))
+    j_germ = _resolve_db(igdata, 'j', organism, loci, explicit=jdb)
+    if j_germ is None:
+        printError('No J database found for organism "%s" and loci "%s" with "airrc-imgt" or "imgt" prefix. '
+                   'Specify --vdb, --ddb and --jdb explicitly.' % (organism, loci))
+    # Set C database (optional; warn if not found rather than error)
+    c_germ = _resolve_db(igdata, 'c', organism, loci, explicit=cdb)
+    if c_germ is None:
+        printWarning('No C database found for organism "%s" and loci "%s" with "airrc-imgt" or "imgt" prefix. '
+                     'Specify --cdb explicitly if C-region annotation is required.' % (organism, loci))
+        c_germ = os.path.join(igdata, 'database', 'imgt_%s_%s_c' % (organism, loci))
 
     # Define IgBLAST command
     cmd = [exec,
@@ -234,8 +276,10 @@ def runIgBLASTP(fasta, igdata, loci='ig', organism='human', vdb=None, output=Non
         printError('Invalid receptor type %s.' % loci)
 
     # Set V database
-    if vdb is not None:  v_germ = os.path.join(igdata, 'database', vdb)
-    else:  v_germ = os.path.join(igdata, 'database', 'imgt_aa_%s_%s_v' % (organism, loci))
+    v_germ = _resolve_db(igdata, 'v', organism, loci, explicit=vdb, aa=True)
+    if v_germ is None:
+        printError('No V database found for organism "%s" and loci "%s" with "airrc-imgt_aa" or "imgt_aa" prefix. '
+                   'Specify --vdb explicitly.' % (organism, loci))
 
     # Define IgBLAST command
     cmd = [exec,
