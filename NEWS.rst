@@ -1,28 +1,30 @@
 Release Notes
 ===============================================================================
 
-Version 1.3.6dev:  Unreleased
+Version 1.3.5:  September 2, 2026
 -------------------------------------------------------------------------------
 
-ParseDb:
+General:
 
-+ ``ParseDb.py merge`` now accepts ``-f`` and ``-u`` arguments to annotate
-  merged records with a sample identifier field, with one value per input
-  file specified via ``-d``.
-
-Version 1.3.5:  April 14, 2026
--------------------------------------------------------------------------------
++ Added support for gzip compressed (``.gz``) repertoire files. Compressed input
+  is detected automatically, and output is compressed to match whenever the
+  input is compressed. A new ``--gzip-output`` argument forces gzip compressed
+  output regardless of the input. Supported by ``AssignGenes.py``,
+  ``BuildTrees.py``, ``ConvertDb.py``, ``CreateGermlines.py``,
+  ``DefineClones.py``, ``MakeDb.py`` and ``ParseDb.py``. ``AssignGenes.py``
+  supports compressed input only, as its output is written directly by the
+  wrapped IgBLAST/IgBLAST-aa executables.
 
 CreateGermlines:
 
-+ ``CreateGermlines.py`` now validates the sequence field and raises an 
++ ``CreateGermlines.py`` now validates the sequence field and raises an
   informative error if amino acid sequences are detected. Amino acid sequences
   are not supported; a nucleotide sequence field must be provided.
 
 MakeDb:
 
-+ ``MakeDb.py igblast-aa`` now reports all top-scoring ``v_call`` hits in the 
-  event of ties. Previously, only the first top-scoring hit was reported. The 
++ ``MakeDb.py igblast-aa`` now reports all top-scoring ``v_call`` hits in the
+  event of ties. Previously, only the first top-scoring hit was reported. The
   new behavior aligns with that of the ``igblast`` subcommand.
 
 Gene:
@@ -32,6 +34,16 @@ Gene:
   (e.g., ``TRAV14/DV4``) and returns ``TRA/TRD`` as the locus.
 + Fixed a bug where ``getLocus`` would raise a ``TypeError`` when the gene
   call was ``None``.
+
+ParseDb:
+
++ ``ParseDb.py merge`` now accepts ``-f`` and ``-u`` arguments to annotate
+  merged records with a sample identifier field, with one value per input
+  file specified via ``-d``.
++ ``ParseDb.py merge`` now issues a warning when ``-f`` specifies a field that
+  already exists in one or more input files, as its values will be
+  overwritten, and when ``-u`` values are provided without a ``-f`` field to
+  assign them to, in which case the values are ignored.
 
 
 Version 1.3.4:  July 31, 2025
